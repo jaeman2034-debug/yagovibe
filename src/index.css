@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ✅ 전역 기본 리셋 */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* body 기본 스타일 */
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background-color: #ffffff;
+  overflow-x: hidden;
+}
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #213547;
+  background-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+/* Tailwind 기본 설정 보완 */
+* {
+  box-sizing: border-box;
+}
+
+/* h1 기본 스타일 제거 - 컴포넌트에서 개별 적용 */
+/* button, input 스타일은 Tailwind로 관리하므로 기본 스타일 제거 */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}

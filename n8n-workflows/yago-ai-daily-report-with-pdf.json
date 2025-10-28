@@ -1,0 +1,97 @@
+{
+  "name": "YAGO VIBE AI Daily Report with PDF",
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "0 18 * * *"
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/voice_logs",
+        "responseFormat": "json"
+      },
+      "name": "Get Firestore Logs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const logs = items[0].json.documents || [];\nconst today = new Date().toISOString().split('T')[0];\nconst intents = {};\nconst keywords = {};\nconst hourlyStats = {};\n\nfor (const log of logs) {\n  const intent = log.fields.intent?.stringValue || '미확인';\n  const keyword = log.fields.keyword?.stringValue || '';\n  const timestamp = log.fields.ts?.timestampValue || '';\n  \n  intents[intent] = (intents[intent] || 0) + 1;\n  \n  if (keyword) {\n    keywords[keyword] = (keywords[keyword] || 0) + 1;\n  }\n  \n  if (timestamp) {\n    const hour = new Date(timestamp).getHours();\n    hourlyStats[hour] = (hourlyStats[hour] || 0) + 1;\n  }\n}\n\nconst topKeywords = Object.entries(keywords)\n  .sort(([,a], [,b]) => b - a)\n  .slice(0, 5)\n  .reduce((acc, [keyword, count]) => {\n    acc[keyword] = count;\n    return acc;\n  }, {});\n\nconst peakHour = Object.entries(hourlyStats)\n  .sort(([,a], [,b]) => b - a)[0];\n\nconst totalCommands = logs.length;\nconst successfulCommands = logs.filter(log => \n  log.fields.intent?.stringValue !== '미확인'\n).length;\nconst successRate = totalCommands > 0 ? (successfulCommands / totalCommands * 100).toFixed(1) : 0;\n\nreturn [{ json: { \n  date: today, \n  intents, \n  keywords: topKeywords,\n  totalCommands,\n  successfulCommands,\n  successRate,\n  peakHour: peakHour ? `${peakHour[0]}시 (${peakHour[1]}건)` : '데이터 없음'\n} }];"
+      },
+      "name": "Advanced Statistics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "role": "system",
+            "content": "너는 YAGO VIBE 음성 지도 시스템의 일일 리포트를 작성하는 AI 비서야. 사용자의 음성 명령 데이터를 분석하고 전문적이고 읽기 쉬운 한국어 리포트를 작성해줘."
+          },
+          {
+            "role": "user",
+            "content": "다음은 YAGO VIBE 시스템의 일일 음성 명령 데이터입니다:\n\n📅 날짜: {{$json.date}}\n🎙️ 총 명령: {{$json.totalCommands}}건\n✅ 성공률: {{$json.successRate}}%\n\n📈 Intent별 통계:\n{{Object.entries($json.intents).map(([intent, count]) => `- ${intent}: ${count}건`).join('\\n')}}\n\n🔥 상위 키워드 Top 5:\n{{Object.entries($json.keywords).map(([keyword, count]) => `- ${keyword}: ${count}회`).join('\\n')}}\n\n⏰ 가장 활발한 시간: {{$json.peakHour}}\n\n위 데이터를 바탕으로 다음 형식으로 리포트를 작성해주세요:\n\n1. 📊 일일 요약\n2. 🎯 주요 인사이트\n3. 📈 사용 패턴 분석\n4. 💡 개선 제안\n5. 🚀 내일의 목표"
+          }
+        ]
+      },
+      "name": "Generate AI Summary",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3001/api/generate-pdf",
+        "method": "POST",
+        "body": {
+          "intents": "={{$json.intents}}",
+          "keywords": "={{$json.keywords}}",
+          "summary": "={{$('Generate AI Summary').item.json.choices[0].message.content}}",
+          "totalCommands": "={{$json.totalCommands}}"
+        },
+        "responseFormat": "file"
+      },
+      "name": "Generate PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "channel": "#daily-reports",
+        "text": "📄 *YAGO VIBE 일일 리포트* (자동 전송)\n\n📊 오늘의 성과:\n• 총 명령: {{$('Advanced Statistics').item.json.totalCommands}}건\n• 성공률: {{$('Advanced Statistics').item.json.successRate}}%\n• 가장 활발한 시간: {{$('Advanced Statistics').item.json.peakHour}}\n\n👉 아래 PDF 파일을 확인하세요!",
+        "attachments": [
+          {
+            "file": "={{$binary.data}}",
+            "fileName": "YAGO_VIBE_Report_{{$('Advanced Statistics').item.json.date}}.pdf"
+          }
+        ]
+      },
+      "name": "Send Slack Message",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": { "main": [[{ "node": "Get Firestore Logs", "type": "main", "index": 0 }]] },
+    "Get Firestore Logs": { "main": [[{ "node": "Advanced Statistics", "type": "main", "index": 0 }]] },
+    "Advanced Statistics": { "main": [[{ "node": "Generate AI Summary", "type": "main", "index": 0 }]] },
+    "Generate AI Summary": { "main": [[{ "node": "Generate PDF", "type": "main", "index": 0 }]] },
+    "Generate PDF": { "main": [[{ "node": "Send Slack Message", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1"
+}
