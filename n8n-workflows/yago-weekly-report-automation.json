@@ -1,0 +1,198 @@
+{
+    "name": "YAGO VIBE 주간 리포트 자동화",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "cronExpression",
+                            "expression": "0 9 * * 1"
+                        }
+                    ]
+                }
+            },
+            "name": "매주 월요일 오전 9시",
+            "type": "n8n-nodes-base.cron",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://your-app-domain/api/generateWeeklyReport",
+                "method": "POST",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "responseFormat": "file"
+            },
+            "name": "주간 리포트 PDF 생성",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "post",
+                "channel": "#weekly-reports",
+                "text": "📊 *YAGO VIBE 주간 인사이트 리포트*\n📅 {{$json.date || new Date().toLocaleDateString('ko-KR')}}\n\n🔹 자동 생성된 주간 리포트를 확인해주세요!",
+                "attachments": [
+                    {
+                        "file": "={{$binary.data}}",
+                        "fileName": "YAGO_VIBE_Weekly_Report_{{new Date().toISOString().split('T')[0]}}.pdf"
+                    }
+                ]
+            },
+            "name": "Slack으로 리포트 전송",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 1,
+            "position": [
+                680,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "fromEmail": "noreply@yago-vibe.com",
+                "toEmail": "admin@yago-vibe.com",
+                "subject": "📊 YAGO VIBE 주간 리포트 - {{new Date().toLocaleDateString('ko-KR')}}",
+                "message": "안녕하세요!\n\nYAGO VIBE 주간 인사이트 리포트가 자동 생성되었습니다.\n첨부된 PDF 파일을 확인해주세요.\n\n---\nYAGO VIBE AI System",
+                "attachments": [
+                    {
+                        "file": "={{$binary.data}}",
+                        "fileName": "YAGO_VIBE_Weekly_Report_{{new Date().toISOString().split('T')[0]}}.pdf"
+                    }
+                ]
+            },
+            "name": "이메일로 리포트 전송",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 1,
+            "position": [
+                680,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "condition1",
+                            "leftValue": "={{$json.status}}",
+                            "rightValue": "200",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "name": "성공 여부 확인",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                460,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "post",
+                "channel": "#alerts",
+                "text": "❌ *YAGO VIBE 주간 리포트 생성 실패*\n📅 {{new Date().toLocaleDateString('ko-KR')}}\n\n오류가 발생했습니다. 관리자에게 문의하세요."
+            },
+            "name": "오류 알림",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 1,
+            "position": [
+                680,
+                600
+            ]
+        }
+    ],
+    "connections": {
+        "매주 월요일 오전 9시": {
+            "main": [
+                [
+                    {
+                        "node": "주간 리포트 PDF 생성",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "주간 리포트 PDF 생성": {
+            "main": [
+                [
+                    {
+                        "node": "성공 여부 확인",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "성공 여부 확인": {
+            "main": [
+                [
+                    {
+                        "node": "Slack으로 리포트 전송",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "이메일로 리포트 전송",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "오류 알림",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        {
+            "createdAt": "2024-01-01T00:00:00.000Z",
+            "updatedAt": "2024-01-01T00:00:00.000Z",
+            "id": "yago-vibe",
+            "name": "YAGO VIBE"
+        }
+    ],
+    "triggerCount": 1,
+    "updatedAt": "2024-01-01T00:00:00.000Z",
+    "versionId": "1"
+}

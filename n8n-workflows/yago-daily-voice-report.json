@@ -1,0 +1,177 @@
+{
+    "name": "YAGO Daily Voice Report",
+    "nodes": [
+        {
+            "parameters": {
+                "cronExpression": "0 18 * * *"
+            },
+            "name": "Schedule Trigger",
+            "type": "n8n-nodes-base.cron",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/voice_logs",
+                "responseFormat": "json"
+            },
+            "name": "Get Firestore Logs",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "const logs = items[0].json.documents || [];\nconst today = new Date().toISOString().split('T')[0];\nconst intents = {};\nfor (const log of logs) {\n  const intent = log.fields.intent?.stringValue || '미확인';\n  intents[intent] = (intents[intent] || 0) + 1;\n}\nreturn [{ json: { date: today, intents, total: logs.length } }];"
+            },
+            "name": "Summarize Logs",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "너는 하루치 음성 로그 리포트를 작성하는 AI 비서야. 데이터를 읽고 요약 보고서를 자연스럽게 한국어로 만들어줘."
+                    },
+                    {
+                        "role": "user",
+                        "content": "데이터 요약: {{$json}}"
+                    }
+                ]
+            },
+            "name": "Generate Summary (GPT)",
+            "type": "n8n-nodes-base.openAi",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "http://localhost:3001/api/generate-signature-pdf",
+                "method": "POST",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "intents",
+                            "value": "={{$json.intents}}"
+                        },
+                        {
+                            "name": "keywords",
+                            "value": "={{$json.keywords}}"
+                        },
+                        {
+                            "name": "summary",
+                            "value": "={{$json.summary}}"
+                        },
+                        {
+                            "name": "totalCommands",
+                            "value": "={{$json.total}}"
+                        }
+                    ]
+                },
+                "responseFormat": "file"
+            },
+            "name": "Generate Signature PDF",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "post",
+                "channel": "#daily-reports",
+                "text": "📄 *YAGO VIBE 일일 리포트* (자동 전송)\n👉 아래 PDF 파일을 확인하세요!",
+                "attachments": [
+                    {
+                        "file": "={{$binary.data}}",
+                        "fileName": "YAGO_Report_{{$json.date}}.pdf"
+                    }
+                ]
+            },
+            "name": "Send Slack Message",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 1,
+            "position": [
+                1250,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Schedule Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Get Firestore Logs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Firestore Logs": {
+            "main": [
+                [
+                    {
+                        "node": "Summarize Logs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Summarize Logs": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Summary (GPT)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Summary (GPT)": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Signature PDF",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Signature PDF": {
+            "main": [
+                [
+                    {
+                        "node": "Send Slack Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
