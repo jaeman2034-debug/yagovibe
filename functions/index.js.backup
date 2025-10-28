@@ -1,0 +1,700 @@
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const PDFDocument = require("pdfkit");
+const dayjs = require("dayjs");
+const axios = require("axios");
+const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
+
+// Firebase Admin 초기화
+admin.initializeApp();
+const db = admin.firestore();
+
+// 🚀 PDF 자동 생성 + Slack 전송 함수
+exports.generateReport = functions.https.onRequest(async (req, res) => {
+    try {
+        console.log("🚀 YAGO VIBE 리포트 생성 시작");
+
+        const today = dayjs().format("YYYY-MM-DD");
+        const todayStart = dayjs().startOf('day').toDate();
+        const todayEnd = dayjs().endOf('day').toDate();
+
+        // 📊 Firestore에서 오늘 로그 수집
+        const snapshot = await db.collection("voice_logs")
+            .where("ts", ">=", todayStart)
+            .where("ts", "<=", todayEnd)
+            .get();
+
+        const logs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        console.log(`📝 수집된 로그: ${logs.length}건`);
+
+        // 📈 Intent 통계 계산
+        const intents = {};
+        const keywords = {};
+
+        logs.forEach((log) => {
+            const intent = log.intent || "미확인";
+            intents[intent] = (intents[intent] || 0) + 1;
+
+            if (log.keyword) {
+                keywords[log.keyword] = (keywords[log.keyword] || 0) + 1;
+            }
+        });
+
+        console.log("📊 Intent 통계:", intents);
+        console.log("🔥 키워드 통계:", keywords);
+
+        // 📊 차트 이미지 생성 (Canvas 문제 시 텍스트 대체)
+        let chartBuffer;
+        try {
+            const chart = new ChartJSNodeCanvas({
+                width: 600,
+                height: 300,
+                backgroundColour: 'white'
+            });
+
+            chartBuffer = await chart.renderToBuffer({
+                type: "bar",
+                data: {
+                    labels: Object.keys(intents),
+                    datasets: [
+                        {
+                            label: "명령 횟수",
+                            data: Object.values(intents),
+                            backgroundColor: [
+                                "#6366F1",
+                                "#A78BFA",
+                                "#EC4899",
+                                "#3B82F6",
+                                "#6B7280"
+                            ],
+                            borderColor: "#4F46E5",
+                            borderWidth: 2,
+                            borderRadius: 8,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Intent별 명령 사용량',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#E5E7EB' },
+                            ticks: { stepSize: 1 }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        } catch (chartError) {
+            console.warn("⚠️ 차트 생성 실패, 텍스트로 대체:", chartError.message);
+            chartBuffer = null;
+        }
+
+        // 📄 PDF 생성
+        const doc = new PDFDocument({
+            margin: 40,
+            size: 'A4',
+            info: {
+                Title: `YAGO VIBE AI Daily Report - ${today}`,
+                Author: 'YAGO VIBE AI System',
+                Subject: 'AI-Powered Voice Command Analysis Report',
+                Creator: 'YAGO VIBE AI System'
+            }
+        });
+
+        const chunks = [];
+        doc.on("data", (chunk) => chunks.push(chunk));
+
+        doc.on("end", async () => {
+            try {
+                const pdfBuffer = Buffer.concat(chunks);
+                console.log(`📄 PDF 생성 완료: ${pdfBuffer.length} bytes`);
+
+                // 💬 Slack 메시지 전송
+                const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
+                if (slackWebhookUrl) {
+                    const topIntent = Object.entries(intents).sort(([, a], [, b]) => b - a)[0];
+                    const topKeyword = Object.entries(keywords).sort(([, a], [, b]) => b - a)[0];
+
+                    const slackMessage = {
+                        text: `📄 *YAGO VIBE 일일 리포트 (${today})*`,
+                        attachments: [
+                            {
+                                color: "#4F46E5",
+                                fields: [
+                                    {
+                                        title: "📊 총 명령어",
+                                        value: `${logs.length}건`,
+                                        short: true
+                                    },
+                                    {
+                                        title: "🎯 인기 의도",
+                                        value: `${topIntent ? topIntent[0] : "없음"} (${topIntent ? topIntent[1] : 0}회)`,
+                                        short: true
+                                    },
+                                    {
+                                        title: "🔥 인기 키워드",
+                                        value: `${topKeyword ? topKeyword[0] : "없음"} (${topKeyword ? topKeyword[1] : 0}회)`,
+                                        short: true
+                                    },
+                                    {
+                                        title: "📈 Intent 분포",
+                                        value: Object.entries(intents)
+                                            .map(([intent, count]) => `• ${intent}: ${count}회`)
+                                            .join('\n'),
+                                        short: false
+                                    }
+                                ],
+                                footer: "YAGO VIBE AI System",
+                                ts: Math.floor(Date.now() / 1000)
+                            }
+                        ]
+                    };
+
+                    await axios.post(slackWebhookUrl, slackMessage);
+                    console.log("💬 Slack 메시지 전송 완료");
+                }
+
+                // 📎 Slack 파일 업로드 (Bot Token 방식)
+                const slackBotToken = process.env.SLACK_BOT_TOKEN;
+                if (slackBotToken) {
+                    const FormData = require('form-data');
+                    const form = new FormData();
+
+                    form.append('token', slackBotToken);
+                    form.append('channels', '#daily-reports');
+                    form.append('file', pdfBuffer, {
+                        filename: `YAGO_VIBE_Report_${today}.pdf`,
+                        contentType: 'application/pdf'
+                    });
+                    form.append('title', `YAGO VIBE 일일 리포트 - ${today}`);
+                    form.append('initial_comment', `📄 ${today} 일일 리포트가 생성되었습니다!`);
+
+                    await axios.post('https://slack.com/api/files.upload', form, {
+                        headers: {
+                            ...form.getHeaders(),
+                        },
+                    });
+                    console.log("📎 Slack 파일 업로드 완료");
+                }
+
+                res.status(200).json({
+                    success: true,
+                    message: "✅ 리포트 생성 및 Slack 전송 완료",
+                    data: {
+                        date: today,
+                        totalCommands: logs.length,
+                        intents: intents,
+                        keywords: keywords
+                    }
+                });
+
+            } catch (slackError) {
+                console.error("❌ Slack 전송 오류:", slackError);
+                res.status(200).json({
+                    success: true,
+                    message: "✅ PDF 생성 완료 (Slack 전송 실패)",
+                    error: slackError.message
+                });
+            }
+        });
+
+        // 📄 PDF 내용 작성
+        // 헤더
+        doc
+            .fontSize(24)
+            .fillColor("#4F46E5")
+            .font("Helvetica-Bold")
+            .text("YAGO VIBE AI Daily Report", { align: "center" });
+
+        doc
+            .fontSize(12)
+            .fillColor("#6B7280")
+            .font("Helvetica")
+            .text(`📅 ${today}`, { align: "center" });
+
+        doc.moveDown(1);
+
+        // 통계 요약
+        doc
+            .fontSize(16)
+            .fillColor("#111")
+            .text("📊 일일 통계 요약", { align: "left" });
+
+        doc
+            .fontSize(12)
+            .fillColor("#333")
+            .text(`• 총 명령어: ${logs.length}건`)
+            .text(`• Intent 종류: ${Object.keys(intents).length}개`)
+            .text(`• 키워드 종류: ${Object.keys(keywords).length}개`);
+
+        doc.moveDown(1);
+
+        // 차트 또는 텍스트 통계
+        if (chartBuffer) {
+            doc.text("📈 Intent별 사용량 차트", { align: "left" });
+            doc.image(chartBuffer, { fit: [500, 250], align: "center" });
+        } else {
+            doc.text("📈 Intent별 통계 (텍스트)", { align: "left" });
+            Object.entries(intents).forEach(([intent, count]) => {
+                doc.text(`• ${intent}: ${count}회`);
+            });
+        }
+
+        doc.moveDown(1);
+
+        // 상위 키워드
+        const topKeywords = Object.entries(keywords)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5);
+
+        if (topKeywords.length > 0) {
+            doc
+                .fontSize(14)
+                .fillColor("#111")
+                .text("🔥 상위 키워드 Top 5");
+
+            topKeywords.forEach(([keyword, count], index) => {
+                doc
+                    .fontSize(12)
+                    .fillColor("#333")
+                    .text(`${index + 1}. ${keyword}: ${count}회`);
+            });
+        }
+
+        doc.moveDown(2);
+
+        // 푸터
+        doc
+            .fontSize(10)
+            .fillColor("#6B7280")
+            .text("Generated automatically by YAGO VIBE AI System", { align: "center" })
+            .text(`Report generated at: ${dayjs().format('YYYY-MM-DD HH:mm:ss')}`, { align: "center" });
+
+        doc.end();
+
+    } catch (error) {
+        console.error("❌ 함수 실행 오류:", error);
+        res.status(500).json({
+            success: false,
+            message: "❌ 리포트 생성 중 오류 발생",
+            error: error.message
+        });
+    }
+});
+
+// 🎯 통합 리포트 함수 (Slack + 웹 + 모바일 모두 지원)
+exports.vibeReport = functions.https.onRequest(async (req, res) => {
+    try {
+        console.log("🎯 YAGO VIBE 통합 리포트 요청 시작");
+
+        // CORS 헤더 설정
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (req.method === 'OPTIONS') {
+            res.status(200).send('');
+            return;
+        }
+
+        const { period = "thisweek", source = "web" } = req.query;
+        console.log(`📊 리포트 요청: ${period} (${source})`);
+
+        // 📊 Firestore에서 최근 4개 리포트 조회
+        const reportsSnapshot = await db.collection("weekly_reports")
+            .orderBy("createdAt", "desc")
+            .limit(4)
+            .get();
+
+        const reports = reportsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        console.log(`📋 조회된 리포트 수: ${reports.length}`);
+
+        if (reports.length === 0) {
+            const errorResponse = {
+                success: false,
+                message: "아직 생성된 리포트가 없습니다. 관리자 대시보드에서 먼저 리포트를 생성해주세요.",
+                period,
+                source
+            };
+
+            // Slack 요청인 경우 특별 처리
+            if (source === "slack") {
+                const formData = req.body;
+                const responseUrl = formData.response_url;
+
+                if (responseUrl) {
+                    await axios.post(responseUrl, {
+                        response_type: "ephemeral",
+                        text: "❌ " + errorResponse.message
+                    });
+                }
+            }
+
+            res.status(200).json(errorResponse);
+            return;
+        }
+
+        // 🎯 요청된 주차 리포트 선택
+        let target = reports[0]; // 기본값: 최신 리포트
+        let reportDescription = "이번 주";
+
+        if (period.includes("lastweek") || period.includes("지난주") || period.includes("지난 주")) {
+            target = reports[1] || reports[0];
+            reportDescription = "지난 주";
+        } else if (period.includes("2week") || period.includes("2주전") || period.includes("2주 전")) {
+            target = reports[2] || reports[0];
+            reportDescription = "2주 전";
+        } else if (period.includes("3week") || period.includes("3주전") || period.includes("3주 전")) {
+            target = reports[3] || reports[0];
+            reportDescription = "3주 전";
+        }
+
+        console.log(`🎯 선택된 리포트: ${reportDescription} (${target.date})`);
+
+        // 📊 리포트 요약 생성
+        const reportSummary = {
+            period: reportDescription,
+            date: target.date,
+            totalLogs: target.totalLogs || 0,
+            geoCount: target.geoCount || 0,
+            deviceTypes: target.deviceTypes || 0,
+            actionTypes: target.actionTypes || 0,
+            insights: target.insights || [],
+            recommendations: target.recommendations || [],
+            summary: target.summary || "요약 없음"
+        };
+
+        // 📱 Slack 요청인 경우 특별 처리
+        if (source === "slack") {
+            const formData = req.body;
+            const responseUrl = formData.response_url;
+            const userName = formData.user_name;
+
+            if (responseUrl) {
+                const slackMessage = {
+                    response_type: "in_channel",
+                    text: `📊 *YAGO VIBE ${reportDescription} 리포트*`,
+                    attachments: [
+                        {
+                            color: "#4F46E5",
+                            fields: [
+                                {
+                                    title: "📅 기간",
+                                    value: `${target.date}`,
+                                    short: true
+                                },
+                                {
+                                    title: "📊 총 로그",
+                                    value: `${reportSummary.totalLogs}건`,
+                                    short: true
+                                },
+                                {
+                                    title: "🌍 지역 샘플",
+                                    value: `${reportSummary.geoCount}개`,
+                                    short: true
+                                },
+                                {
+                                    title: "📱 디바이스 유형",
+                                    value: `${reportSummary.deviceTypes}개`,
+                                    short: true
+                                },
+                                {
+                                    title: "🎯 주요 인사이트",
+                                    value: reportSummary.insights.slice(0, 3)
+                                        .map(insight => `• ${insight}`)
+                                        .join('\n') || "인사이트 없음",
+                                    short: false
+                                },
+                                {
+                                    title: "💡 추천 행동",
+                                    value: reportSummary.recommendations.slice(0, 2)
+                                        .map(rec => `• ${rec}`)
+                                        .join('\n') || "추천사항 없음",
+                                    short: false
+                                }
+                            ],
+                            footer: `요청자: ${userName} | 생성일: ${target.date}`,
+                            footer_icon: "https://platform.slack-edge.com/img/default_application_icon.png"
+                        }
+                    ]
+                };
+
+                await axios.post(responseUrl, slackMessage);
+                console.log("💬 Slack 메시지 전송 완료");
+            }
+        }
+
+        // 🔹 Slack Webhook에도 자동 전송 (선택 사항)
+        const slackWebhook = process.env.SLACK_WEBHOOK_URL || functions.config().slack?.webhook;
+        if (slackWebhook && source !== "slack") {
+            try {
+                const webhookMessage = {
+                    text: `📊 *YAGO VIBE ${reportDescription} 리포트*`,
+                    attachments: [
+                        {
+                            color: "#4F46E5",
+                            fields: [
+                                {
+                                    title: "📅 기간",
+                                    value: `${target.date}`,
+                                    short: true
+                                },
+                                {
+                                    title: "📊 총 로그",
+                                    value: `${reportSummary.totalLogs}건`,
+                                    short: true
+                                },
+                                {
+                                    title: "🌍 지역 샘플",
+                                    value: `${reportSummary.geoCount}개`,
+                                    short: true
+                                },
+                                {
+                                    title: "📱 디바이스 유형",
+                                    value: `${reportSummary.deviceTypes}개`,
+                                    short: true
+                                },
+                                {
+                                    title: "🎯 주요 인사이트",
+                                    value: reportSummary.insights.slice(0, 3)
+                                        .map(insight => `• ${insight}`)
+                                        .join('\n') || "인사이트 없음",
+                                    short: false
+                                },
+                                {
+                                    title: "💡 추천 행동",
+                                    value: reportSummary.recommendations.slice(0, 2)
+                                        .map(rec => `• ${rec}`)
+                                        .join('\n') || "추천사항 없음",
+                                    short: false
+                                }
+                            ],
+                            footer: `Firebase Functions | 생성일: ${target.date}`,
+                            footer_icon: "https://platform.slack-edge.com/img/default_application_icon.png"
+                        }
+                    ]
+                };
+
+                await axios.post(slackWebhook, webhookMessage);
+                console.log("🔹 Slack Webhook 전송 완료");
+            } catch (webhookError) {
+                console.warn("⚠️ Slack Webhook 전송 실패:", webhookError.message);
+            }
+        }
+
+        // 📊 일반 응답 반환
+        res.status(200).json({
+            success: true,
+            message: `✅ ${reportDescription} 리포트 조회 완료`,
+            data: reportSummary,
+            period,
+            source,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error("❌ vibeReport 함수 오류:", error);
+
+        // Slack 요청인 경우 에러 메시지 전송
+        if (req.query.source === "slack") {
+            try {
+                const formData = req.body;
+                const responseUrl = formData.response_url;
+
+                if (responseUrl) {
+                    await axios.post(responseUrl, {
+                        response_type: "ephemeral",
+                        text: "❌ 리포트 요약 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+                    });
+                }
+            } catch (slackError) {
+                console.error("❌ Slack 에러 메시지 전송 실패:", slackError);
+            }
+        }
+
+        res.status(500).json({
+            success: false,
+            message: "❌ 리포트 처리 중 오류 발생",
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// 🚀 독립 API 엔드포인트 (Slack 없이도 사용 가능)
+exports.generateReportAPI = functions.https.onRequest(async (req, res) => {
+    try {
+        console.log("🚀 독립 API 리포트 생성 시작");
+
+        // CORS 헤더 설정
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (req.method === 'OPTIONS') {
+            res.status(200).send('');
+            return;
+        }
+
+        const { period = "thisweek", format = "json" } = req.query;
+        console.log(`📊 독립 API 리포트 요청: ${period} (${format})`);
+
+        // 📊 Firestore에서 최근 4개 리포트 조회
+        const reportsSnapshot = await db.collection("weekly_reports")
+            .orderBy("createdAt", "desc")
+            .limit(4)
+            .get();
+
+        const reports = reportsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        if (reports.length === 0) {
+            res.status(200).json({
+                success: false,
+                message: "아직 생성된 리포트가 없습니다.",
+                suggestion: "관리자 대시보드에서 먼저 리포트를 생성해주세요."
+            });
+            return;
+        }
+
+        // 🎯 요청된 주차 리포트 선택
+        let target = reports[0];
+        let reportDescription = "이번 주";
+
+        if (period.includes("lastweek") || period.includes("지난주")) {
+            target = reports[1] || reports[0];
+            reportDescription = "지난 주";
+        } else if (period.includes("2week") || period.includes("2주전")) {
+            target = reports[2] || reports[0];
+            reportDescription = "2주 전";
+        } else if (period.includes("3week") || period.includes("3주전")) {
+            target = reports[3] || reports[0];
+            reportDescription = "3주 전";
+        }
+
+        // 📊 리포트 요약 생성
+        const reportSummary = {
+            period: reportDescription,
+            date: target.date,
+            totalLogs: target.totalLogs || 0,
+            geoCount: target.geoCount || 0,
+            deviceTypes: target.deviceTypes || 0,
+            actionTypes: target.actionTypes || 0,
+            insights: target.insights || [],
+            recommendations: target.recommendations || [],
+            summary: target.summary || "요약 없음"
+        };
+
+        // 🔹 Slack Webhook 자동 전송 (선택 사항)
+        const slackWebhook = process.env.SLACK_WEBHOOK_URL || functions.config().slack?.webhook;
+        if (slackWebhook) {
+            try {
+                const webhookMessage = {
+                    text: `📊 *YAGO VIBE ${reportDescription} 리포트* (독립 API 호출)`,
+                    attachments: [
+                        {
+                            color: "#4F46E5",
+                            fields: [
+                                {
+                                    title: "📅 기간",
+                                    value: `${target.date}`,
+                                    short: true
+                                },
+                                {
+                                    title: "📊 총 로그",
+                                    value: `${reportSummary.totalLogs}건`,
+                                    short: true
+                                },
+                                {
+                                    title: "🌍 지역 샘플",
+                                    value: `${reportSummary.geoCount}개`,
+                                    short: true
+                                },
+                                {
+                                    title: "📱 디바이스 유형",
+                                    value: `${reportSummary.deviceTypes}개`,
+                                    short: true
+                                },
+                                {
+                                    title: "🎯 주요 인사이트",
+                                    value: reportSummary.insights.slice(0, 3)
+                                        .map(insight => `• ${insight}`)
+                                        .join('\n') || "인사이트 없음",
+                                    short: false
+                                },
+                                {
+                                    title: "💡 추천 행동",
+                                    value: reportSummary.recommendations.slice(0, 2)
+                                        .map(rec => `• ${rec}`)
+                                        .join('\n') || "추천사항 없음",
+                                    short: false
+                                }
+                            ],
+                            footer: `Firebase Functions 독립 API | 생성일: ${target.date}`,
+                            footer_icon: "https://platform.slack-edge.com/img/default_application_icon.png"
+                        }
+                    ]
+                };
+
+                await axios.post(slackWebhook, webhookMessage);
+                console.log("🔹 독립 API Slack Webhook 전송 완료");
+            } catch (webhookError) {
+                console.warn("⚠️ 독립 API Slack Webhook 전송 실패:", webhookError.message);
+            }
+        }
+
+        // 📊 응답 반환
+        res.status(200).json({
+            success: true,
+            message: `✅ ${reportDescription} 리포트 조회 완료`,
+            data: reportSummary,
+            period,
+            format,
+            timestamp: new Date().toISOString(),
+            api: "Firebase Functions 독립 API"
+        });
+
+    } catch (error) {
+        console.error("❌ 독립 API 리포트 생성 오류:", error);
+        res.status(500).json({
+            success: false,
+            message: "❌ 독립 API 리포트 처리 중 오류 발생",
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// 🧪 테스트 함수
+exports.testFunction = functions.https.onRequest(async (req, res) => {
+    res.status(200).json({
+        message: "YAGO VIBE Firebase Functions 정상 작동",
+        timestamp: new Date().toISOString(),
+        environment: {
+            slackWebhook: !!process.env.SLACK_WEBHOOK_URL,
+            slackBotToken: !!process.env.SLACK_BOT_TOKEN
+        },
+        endpoints: {
+            vibeReport: "Slack 슬래시 명령어 지원",
+            generateReportAPI: "독립 API (Slack 없이도 사용 가능)",
+            generateReport: "PDF 생성 + Slack 전송"
+        }
+    });
+});

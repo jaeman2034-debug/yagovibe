@@ -1,0 +1,121 @@
+// n8n 워크플로: YAGO VIBE 일일 로그 요약 자동화
+// 📁 파일명: yago-vibe-daily-report.json
+{
+    "name": "YAGO VIBE 일일 리포트",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "cronExpression",
+                            "value": "0 9 * * *"
+                        }
+                    ]
+                }
+            },
+            "id": "cron-trigger",
+            "name": "매일 오전 9시 실행",
+            "type": "n8n-nodes-base.cron",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/voice_logs",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "googleApi",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "pageSize",
+                            "value": "1000"
+                        },
+                        {
+                            "name": "orderBy",
+                            "value": "ts desc"
+                        }
+                    ]
+                }
+            },
+            "id": "firestore-api",
+            "name": "Firestore 로그 조회",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Code Node: 일일 로그 요약\nconst logs = items[0].json.documents || [];\nconst today = new Date().toISOString().split(\"T\")[0];\nconst count = logs.length;\n\nconst intents = {};\nfor (const log of logs) {\n  const intent = log.fields.intent?.stringValue || \"미확인\";\n  intents[intent] = (intents[intent] || 0) + 1;\n}\n\nreturn [\n  {\n    json: {\n      summary: {\n        date: today,\n        total: count,\n        intents,\n      },\n    },\n  },\n];"
+            },
+            "id": "data-processor",
+            "name": "데이터 처리",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "channel": "#yago-vibe-reports",
+                "text": "📊 [YAGO VIBE 일일 리포트]\n🗓️ 날짜: {{ $json.summary.date }}\n🎙️ 총 음성 명령: {{ $json.summary.total }}건\n\n📈 Intent 통계:\n{{ Object.entries($json.summary.intents).map(([intent, count]) => `- ${intent}: ${count}`).join('\\n') }}\n\n📄 PDF 리포트 첨부됨 (자동 생성)",
+                "otherOptions": {}
+            },
+            "id": "slack-notification",
+            "name": "Slack 알림",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.1,
+            "position": [
+                900,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "cron-trigger": {
+            "main": [
+                [
+                    {
+                        "node": "firestore-api",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "firestore-api": {
+            "main": [
+                [
+                    {
+                        "node": "data-processor",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "data-processor": {
+            "main": [
+                [
+                    {
+                        "node": "slack-notification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {},
+    "versionId": "1"
+}

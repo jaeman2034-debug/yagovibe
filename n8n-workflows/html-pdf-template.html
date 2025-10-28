@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YAGO VIBE 일일 리포트</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a73e8, #34a853);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .header .date {
+            margin-top: 10px;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .summary-card {
+            background: #e8f0fe;
+            border-left: 4px solid #1a73e8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1a73e8;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .section {
+            margin: 30px 0;
+        }
+
+        .section h2 {
+            color: #34a853;
+            font-size: 20px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #34a853;
+            padding-bottom: 5px;
+        }
+
+        .intent-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .intent-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #1a73e8;
+        }
+
+        .keyword-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .keyword-tag {
+            background: #34a853;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .insights {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .insights h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .chart-placeholder {
+            background: #f0f0f0;
+            height: 200px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 YAGO VIBE 일일 리포트</h1>
+            <div class="date">{{$json.date}}</div>
+        </div>
+
+        <div class="content">
+            <!-- 요약 카드 -->
+            <div class="summary-card">
+                <h3>📈 오늘의 성과</h3>
+                <p>총 <strong>{{$json.total}}</strong>건의 음성 명령이 처리되었으며, 성공률은 <strong>{{$json.successRate}}</strong>입니다.
+                </p>
+            </div>
+
+            <!-- 통계 그리드 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{$json.total}}</div>
+                    <div class="stat-label">총 명령</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{$json.successful}}</div>
+                    <div class="stat-label">성공 명령</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{$json.successRate}}</div>
+                    <div class="stat-label">성공률</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{$json.topKeywords.length}}</div>
+                    <div class="stat-label">인기 키워드</div>
+                </div>
+            </div>
+
+            <!-- Intent별 통계 -->
+            <div class="section">
+                <h2>🎯 Intent별 사용 통계</h2>
+                <ul class="intent-list">
+                    {{Object.entries($json.intents).map(([intent, count]) => `
+                    <li class="intent-item">
+                        <span>${intent}</span>
+                        <strong>${count}건</strong>
+                    </li>
+                    `).join('')}}
+                </ul>
+            </div>
+
+            <!-- 상위 키워드 -->
+            <div class="section">
+                <h2>🔥 상위 키워드 Top 5</h2>
+                <div class="keyword-list">
+                    {{$json.topKeywords.map(k => `
+                    <div class="keyword-tag">${k.keyword} (${k.count}회)</div>
+                    `).join('')}}
+                </div>
+            </div>
+
+            <!-- 사용 패턴 -->
+            <div class="section">
+                <h2>⏰ 사용 패턴 분석</h2>
+                <div class="insights">
+                    <h3>📊 주요 인사이트</h3>
+                    <ul>
+                        <li>가장 활발한 시간: <strong>{{$json.peakHour}}</strong></li>
+                        <li>가장 활발한 요일: <strong>{{$json.peakDay}}</strong></li>
+                        <li>인기 검색어: <strong>{{$json.topKeywords[0]?.keyword || 'N/A'}}</strong></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- GPT 요약 -->
+            <div class="section">
+                <h2>🧠 AI 분석 요약</h2>
+                <div class="insights">
+                    <h3>💡 인사이트 및 제안</h3>
+                    <p>{{$json.summary || 'AI 분석 결과가 여기에 표시됩니다.'}}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>📱 YAGO VIBE 음성 지도 시스템 | 자동 생성 리포트</p>
+            <p>생성 시간: {{new Date().toLocaleString('ko-KR')}}</p>
+        </div>
+    </div>
+</body>
+
+</html>
