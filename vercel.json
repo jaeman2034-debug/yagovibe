@@ -10,18 +10,7 @@
       "destination": "/index.html"
     }
   ],
-  "redirects": [
-    {
-      "source": "/www.yagovibe.com",
-      "destination": "https://yagovibe.com",
-      "permanent": true
-    },
-    {
-      "source": "/http://yagovibe.com",
-      "destination": "https://yagovibe.com",
-      "permanent": true
-    }
-  ],
+  "redirects": [],
   "headers": [
     {
       "source": "/assets/(.*)",
