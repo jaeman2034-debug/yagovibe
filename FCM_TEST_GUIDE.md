@@ -87,7 +87,7 @@ firebase.initializeApp({
 `.env.local` 파일에 VAPID 키가 설정되어 있는지 확인:
 
 ```env
-VITE_FIREBASE_VAPID_KEY=BBq4syaG4toS6RjeBlb4SW9sGTDxBsJILjvSiSBHAiFAhspsFHKUcJtzSDsyFp00K65l60YHIyT-BnZIg-BqBlQ
+VITE_FIREBASE_VAPID_KEY=<YOUR_VAPID_PUBLIC_KEY>
 ```
 
 ## 🐛 문제 해결
