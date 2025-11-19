@@ -28,8 +28,8 @@ VITE_FIREBASE_APP_ID=your-firebase-app-id
 VITE_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
 
 # 📬 Firebase Cloud Messaging (FCM) 웹 푸시용 VAPID 키
-# ✅ 이 값은 실제 VAPID 키입니다 (Firebase Console > Cloud Messaging > Web Push 인증서)
-VITE_FIREBASE_VAPID_KEY=BBq4syaG4toS6RjeBlb4SW9sGTDxBsJILjvSiSBHAiFAhspsFHKUcJtzSDsyFp00K65l60YHIyT-BnZIg-BqBlQ
+# Firebase Console > Cloud Messaging > Web Push 인증서에서 확인
+VITE_FIREBASE_VAPID_KEY=<YOUR_VAPID_PUBLIC_KEY>
 
 # 🧭 Google Maps / Kakao Maps API (선택)
 VITE_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
