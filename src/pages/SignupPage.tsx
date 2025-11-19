@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { upgradeGuestAccount } from "@/utils/upgradeGuestAccount";
 import logo from "@/assets/logo/YagoVibeLogo.svg";
 
 interface SpeechRecognition extends EventTarget {
@@ -98,32 +99,53 @@ export default function SignupPage() {
     }
 
     try {
-      // 1. Firebase Auth로 회원가입
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      let user;
+      
+      // 게스트 계정이면 승격, 아니면 새로 생성
+      if (auth.currentUser?.isAnonymous) {
+        console.log("🎯 게스트 계정 발견 → 정식 계정으로 승격 시도");
+        user = await upgradeGuestAccount(email, password);
+        speak("게스트 계정이 정식 계정으로 승격되었습니다.");
+        
+        // 승격된 계정은 이미 존재하므로 Firestore 업데이트만 수행
+        const location = await getLocation();
+        await setDoc(doc(db, "users", user!.uid), {
+          uid: user!.uid,
+          email,
+          location,
+          aiProfile: true,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }); // merge: true로 기존 데이터 유지
+        
+      } else {
+        // 1. Firebase Auth로 새 회원가입
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        user = userCredential.user;
 
-      // 2. 위치 정보 가져오기
-      const location = await getLocation();
+        // 2. 위치 정보 가져오기
+        const location = await getLocation();
 
-      // 3. 기본 데이터 구성
-      const nickname = `게스트_${Math.floor(Math.random() * 10000)}`;
-      const favoriteSports = ["축구", "농구", "러닝"];
-      const createdAt = new Date().toISOString();
+        // 3. 기본 데이터 구성
+        const nickname = `게스트_${Math.floor(Math.random() * 10000)}`;
+        const favoriteSports = ["축구", "농구", "러닝"];
+        const createdAt = new Date().toISOString();
 
-      // 4. Firestore에 프로필 문서 생성
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email,
-        nickname,
-        favoriteSports,
-        location,
-        createdAt,
-        aiProfile: true,
-        updatedAt: createdAt,
-      });
+        // 4. Firestore에 프로필 문서 생성
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          email,
+          nickname,
+          favoriteSports,
+          location,
+          createdAt,
+          aiProfile: true,
+          updatedAt: createdAt,
+        });
 
-      speak("회원가입이 완료되었습니다. AI 프로필이 생성되었습니다.");
-      navigate("/home");
+        speak("회원가입이 완료되었습니다. AI 프로필이 생성되었습니다.");
+      }
+      
+      navigate("/sports-hub");
     } catch (err: any) {
       console.error(err);
       let errorMsg = "회원가입 중 오류가 발생했습니다.";
@@ -132,7 +154,7 @@ export default function SignupPage() {
       } else if (err.code === "auth/weak-password") {
         errorMsg = "비밀번호가 너무 약합니다.";
       } else {
-        errorMsg = "회원가입 중 오류가 발생했습니다. 이메일 형식과 비밀번호를 확인해주세요.";
+        errorMsg = err.message || "회원가입 중 오류가 발생했습니다. 이메일 형식과 비밀번호를 확인해주세요.";
       }
       speak(errorMsg);
       setError(errorMsg);
@@ -206,7 +228,7 @@ export default function SignupPage() {
       setTargetField((prevField) => {
         if (prevField === "email") {
           // "at" -> "@", "dot" -> "." 변환
-          let processedText = transcript
+          const processedText = transcript
             .replace(/\s+at\s+/gi, "@")
             .replace(/\s+dot\s+/gi, ".")
             .replace(/\s+/g, "");
@@ -248,7 +270,7 @@ export default function SignupPage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white px-6 text-center">
+    <div className="flex flex-col items-center text-center">
       <img
         src={logo}
         alt="YAGO VIBE"
@@ -263,7 +285,7 @@ export default function SignupPage() {
 
       <form
         onSubmit={handleSignup}
-        className="w-full max-w-xs flex flex-col gap-3"
+        className="w-full max-w-sm sm:max-w-md flex flex-col gap-3 items-center"
       >
         <input
           type="email"
@@ -271,7 +293,7 @@ export default function SignupPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm ${targetField === "email" ? "ring-2 ring-indigo-500" : ""
+          className={`w-full sm:w-auto min-w-[280px] max-w-[400px] px-4 py-3 border border-gray-200 rounded-full text-center text-sm focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 focus:border-blue-500 focus:outline-none shadow-sm transition-all duration-300 ${targetField === "email" ? "ring-4 ring-indigo-400 ring-opacity-50 border-indigo-500" : ""
             }`}
         />
         <input
@@ -281,7 +303,7 @@ export default function SignupPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={6}
-          className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm ${targetField === "password" ? "ring-2 ring-indigo-500" : ""
+          className={`w-full sm:w-auto min-w-[280px] max-w-[400px] px-4 py-3 border border-gray-200 rounded-full text-center text-sm focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 focus:border-blue-500 focus:outline-none shadow-sm transition-all duration-300 ${targetField === "password" ? "ring-4 ring-indigo-400 ring-opacity-50 border-indigo-500" : ""
             }`}
         />
         <input
@@ -291,13 +313,13 @@ export default function SignupPage() {
           onChange={(e) => setConfirm(e.target.value)}
           required
           minLength={6}
-          className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm ${targetField === "confirm" ? "ring-2 ring-indigo-500" : ""
+          className={`w-full sm:w-auto min-w-[280px] max-w-[400px] px-4 py-3 border border-gray-200 rounded-full text-center text-sm focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 focus:border-blue-500 focus:outline-none shadow-sm transition-all duration-300 ${targetField === "confirm" ? "ring-4 ring-indigo-400 ring-opacity-50 border-indigo-500" : ""
             }`}
         />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all shadow-md"
+          className="w-full sm:w-auto min-w-[280px] max-w-[400px] bg-blue-600 text-white py-3 rounded-full text-sm font-semibold hover:bg-blue-700 transition-all duration-300 shadow-md hover:shadow-lg"
         >
           가입하기
         </button>

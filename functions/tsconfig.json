@@ -1,20 +1,12 @@
 {
-    "compilerOptions": {
-        "module": "commonjs",
-        "noImplicitReturns": true,
-        "noUnusedLocals": true,
-        "outDir": "lib",
-        "sourceMap": true,
-        "strict": true,
-        "target": "es2017",
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true
-    },
-    "compileOnSave": true,
-    "include": [
-        "index.ts"
-    ],
-    "exclude": [
-        "src"
-    ]
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "outDir": "lib",
+    "rootDir": "src",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false
+  },
+  "include": ["src/visionAnalyze.ts", "src/marketTrigger.ts", "src/index.ts"]
 }

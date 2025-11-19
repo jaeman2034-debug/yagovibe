@@ -1,6 +1,6 @@
 export { generateWeeklyReportJob as generateWeeklyReportJobOld } from "./src/reportAutoGenerator";
 // 새로운 사용자별 AI 주간 리포트 생성 함수
-export { generateWeeklyReportJob } from "./src/weeklyReportAI";
+export { generateWeeklyReportJob, generateWeeklyReportAPI } from "./src/weeklyReportAI";
 // AI 주간 리포트 생성 + 이메일 자동 발송
 export { generateWeeklyReportAndEmail } from "./src/weeklyReportWithEmail";
 // AI 월간 리포트 생성 + 이메일 자동 발송
@@ -33,3 +33,26 @@ export { runDigitalTwinSimulation } from "./src/digitalTwinSimulator";
 export { generatePredictiveInsights } from "./src/predictiveInsightGenerator";
 export { autonomousActionEngine } from "./src/autonomousActionEngine";
 export { orchestrateAIModules } from "./src/orchestratorCore";
+export { handleImageAndVoiceAnalyze, generateTags } from "./src/handleImageAndVoiceAnalyze";
+export { getPriceRecommendation } from "./src/getPriceRecommendation";
+export { generateSearchMeta } from "./src/generateSearchMeta";
+export { getSearchSuggestions } from "./src/getSearchSuggestions";
+export { getRelatedProducts } from "./src/getRelatedProducts";
+export { getProductSummary } from "./src/getProductSummary";
+export { detectFraudRisk } from "./src/detectFraudRisk";
+export { getImageQualityScore } from "./src/getImageQualityScore";
+export { getConditionScore } from "./src/getConditionScore";
+export { getPricePrediction } from "./src/getPricePrediction";
+export { predictFuturePrice } from "./src/predictFuturePrice";
+export { generateProductTitle } from "./src/generateProductTitle";
+export { detectComponents } from "./src/detectComponents";
+export { generateAITags } from "./src/generateAITags";
+export { generateCategory } from "./src/generateCategory";
+export { generateOneLineSummary } from "./src/generateOneLineSummary";
+export { generateTotalScore } from "./src/generateTotalScore";
+export { getRecommendedFeed } from "./src/getRecommendedFeed";
+export { negotiateHelper } from "./src/negotiateHelper";
+export { searchProducts } from "./src/searchProducts";
+export { recommendSimilar } from "./src/recommendSimilar";
+export { getSellerTrustScore } from "./src/getSellerTrustScore";
+export { askAdminAI } from "./src/askAdminAI";

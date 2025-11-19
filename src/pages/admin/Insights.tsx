@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot, orderBy, query, where, limit } from "firebase/firestore";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { collection, onSnapshot, orderBy, query, where, limit, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import YagoLayout from "@/layouts/YagoLayout";
 import { YagoButton, YagoCard, YagoStatCard } from "@/components/ui/YagoComponents";
 import dayjs from "dayjs";
 import { aggregateLogs } from "@/utils/aggregateLogs";
+import AIWeeklySummary from "@/components/AIWeeklySummary";
+import AdminSummaryChart from "@/components/AdminSummaryChart";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 type Insight = {
     headline: string;
@@ -18,6 +24,9 @@ export default function Insights() {
     const [insight, setInsight] = useState<Insight | null>(null);
     const [loading, setLoading] = useState(false);
     const [slackLoading, setSlackLoading] = useState(false);
+    const [weeklyReport, setWeeklyReport] = useState<any>(null);
+    const [pdfLoading, setPdfLoading] = useState(false);
+    const pdfRef = useRef<HTMLDivElement>(null);
     const todayStart = dayjs().startOf("day").toDate();
 
     // 1) 오늘 로그 실시간 구독
@@ -45,7 +54,17 @@ export default function Insights() {
         loadAggregation();
     }, []);
 
-    // 3) GPT 호출 → 인사이트 생성
+    // 3) AI 주간 리포트 구독
+    useEffect(() => {
+        const unsub = onSnapshot(doc(db, "reports", "weekly", "data", "summary"), (snap) => {
+            if (snap.exists()) {
+                setWeeklyReport(snap.data());
+            }
+        });
+        return () => unsub();
+    }, []);
+
+    // 4) GPT 호출 → 인사이트 생성
     const generateInsight = async () => {
         if (!agg) return;
         setLoading(true);
@@ -104,7 +123,7 @@ export default function Insights() {
         }
     };
 
-    // 4) Slack 공유 (옵션)
+    // 5) Slack 공유 (옵션)
     const shareToSlack = async () => {
         if (!insight || !agg) return;
         setSlackLoading(true);
@@ -142,6 +161,16 @@ export default function Insights() {
         }
     };
 
+    // AI 주간 리포트 계산
+    const weeklyStats = useMemo(() => {
+        if (!weeklyReport) return null;
+        return {
+            newUsers: weeklyReport.newUsers || 0,
+            activeUsers: weeklyReport.activeUsers || 0,
+            growthRate: weeklyReport.growthRate || "0%",
+        };
+    }, [weeklyReport]);
+
     // 통계 계산
     const stats = useMemo(() => {
         if (!agg) return null;
@@ -160,6 +189,47 @@ export default function Insights() {
         };
     }, [agg]);
 
+    // PDF 내보내기 함수
+    const handleExportPDF = async () => {
+        if (!pdfRef.current) return;
+
+        setPdfLoading(true);
+        try {
+            const canvas = await html2canvas(pdfRef.current, { scale: 2 });
+            const imgData = canvas.toDataURL("image/png");
+
+            const pdf = new jsPDF("p", "mm", "a4");
+            const imgWidth = 210;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+            const pdfBlob = pdf.output("blob");
+            const timestamp = Date.now();
+            const storageRef = ref(storage, `reports/admin_insights_${timestamp}.pdf`);
+            await uploadBytes(storageRef, pdfBlob);
+
+            const downloadURL = await getDownloadURL(storageRef);
+            pdf.save(`admin_insights_${timestamp}.pdf`);
+            
+            // Firestore에 PDF URL 업데이트 (ZIP 트리거용)
+            try {
+                const weeklyRef = doc(db, "reports", "weekly");
+                await updateDoc(weeklyRef, { pdfURL: downloadURL });
+                console.log("✅ Firestore 업데이트 완료, ZIP 생성 트리거");
+            } catch (firestoreErr) {
+                console.warn("⚠️ Firestore 업데이트 실패 (ZIP 트리거 건너뜀):", firestoreErr);
+            }
+            
+            alert("✅ PDF 저장 완료!");
+            console.log("PDF URL:", downloadURL);
+        } catch (err) {
+            console.error("PDF Export Error:", err);
+            alert("⚠️ PDF 저장 중 오류 발생");
+        } finally {
+            setPdfLoading(false);
+        }
+    };
+
     return (
         <YagoLayout title="AI Insight Generator">
             <div className="space-y-6">
@@ -173,8 +243,51 @@ export default function Insights() {
                     </p>
                 </div>
 
+                {/* PDF 내보내기 버튼 */}
+                <div className="text-center">
+                    <button
+                        onClick={handleExportPDF}
+                        disabled={pdfLoading}
+                        className="px-5 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl shadow-lg hover:scale-105 transition-transform disabled:opacity-50"
+                    >
+                        {pdfLoading ? "📦 PDF 저장 중..." : "💾 PDF 리포트 저장"}
+                    </button>
+                </div>
+
+                <div ref={pdfRef} className="space-y-6">
+                    {/* 🧠 AI 주간 리포트 */}
+                    <AIWeeklySummary />
+
+                    {/* 📊 AI 주간 통계 그래프 */}
+                    <YagoCard title="📊 AI 주간 활동 통계" icon="📈">
+                        <div className="h-[400px]">
+                            <AdminSummaryChart />
+                        </div>
+                    </YagoCard>
+
                 {/* 📈 통계 카드 그리드 */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <YagoStatCard
+                        title="신규 가입자"
+                        value={weeklyStats?.newUsers || 0}
+                        change="이번 주"
+                        trend="up"
+                        icon="👥"
+                    />
+                    <YagoStatCard
+                        title="활성 사용자"
+                        value={weeklyStats?.activeUsers || 0}
+                        change="이번 주"
+                        trend="up"
+                        icon="✅"
+                    />
+                    <YagoStatCard
+                        title="성장률"
+                        value={weeklyStats?.growthRate || "0%"}
+                        change="주간 변화"
+                        trend="neutral"
+                        icon="📈"
+                    />
                     <YagoStatCard
                         title="오늘 총 로그"
                         value={agg?.total || 0}
@@ -182,6 +295,10 @@ export default function Insights() {
                         trend="up"
                         icon="📝"
                     />
+                </div>
+
+                {/* 추가 통계 카드 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <YagoStatCard
                         title="인기 의도"
                         value={stats?.topIntent || "없음"}
@@ -377,6 +494,7 @@ export default function Insights() {
                         </a>
                     </div>
                 </YagoCard>
+                </div>
             </div>
         </YagoLayout>
     );

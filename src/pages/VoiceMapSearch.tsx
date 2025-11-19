@@ -466,62 +466,58 @@ export default function VoiceMapSearch() {
     return (
         <>
             <VoiceFeedback intent={currentIntent} />
-            <div
-                style={{
-                    padding: 16,
-                    display: "grid",
-                    gridTemplateColumns: "360px 1fr",
-                    gap: 24,
-                }}
-            >
-                <div>
-                    <h3>📍 AI 음성 기반 Google 지도</h3>
-                    <div style={{ marginBottom: 8 }}>
-                        <button onClick={toggleMic} style={{ marginRight: 8 }}>
-                            {isListening ? "🎙️ 말하기 종료" : "🎤 AI 말하기 시작"}
-                        </button>
-                        <button onClick={moveToCurrent}>📌 현재 위치로 이동</button>
-                    </div>
-
+            <div className="flex flex-col md:flex-row items-center justify-center min-h-[calc(100vh-200px)] w-full gap-8 p-6">
+                {/* 지도 영역 */}
+                <div className="flex flex-col items-center w-full md:w-1/2 max-w-md mb-8 md:mb-0">
+                    <h2 className="text-xl font-bold mb-4">📍 AI 음성 기반 Google 지도</h2>
                     <div
                         ref={mapRef}
-                        style={{
-                            width: 360,
-                            height: 480,
-                            border: "1px solid #eaeaea",
-                            borderRadius: 8,
-                            overflow: "hidden",
-                        }}
+                        className="w-full h-80 border rounded-lg shadow-md"
+                        style={{ minHeight: 480 }}
                     />
-
-                    <div style={{ marginTop: 8, fontSize: 14 }}>
+                    <div className="mt-3 flex gap-2">
+                        <button
+                            onClick={toggleMic}
+                            className={`px-4 py-2 rounded-lg text-white ${isListening ? "bg-red-500" : "bg-indigo-600 hover:bg-indigo-700"}`}
+                        >
+                            🎙️ {isListening ? "말하기 종료" : "AI 말하기 시작"}
+                        </button>
+                        <button
+                            onClick={moveToCurrent}
+                            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                        >
+                            📍 현재 위치로 이동
+                        </button>
+                    </div>
+                    <div className="mt-3 text-sm text-center">
                         <div>상태: {status}</div>
-                        {lastText && <div>인식 중: "{lastText}"</div>}
-                        <div style={{ marginTop: 6, color: "#666" }}>
+                        {lastText && <div className="mt-2 text-gray-600">인식 중: "{lastText}"</div>}
+                        <div className="mt-2 text-gray-500 text-xs">
                             예) "근처 축구장 찾아줘", "가까운 카페", "서울역 편의점"
                         </div>
                         {mapsError ? (
-                            <div style={{ marginTop: 6, color: "#ef4444", fontWeight: "bold", whiteSpace: "pre-wrap" }}>
+                            <div className="mt-2 text-red-600 font-bold text-xs whitespace-pre-wrap">
                                 ❌ {mapsError}
                             </div>
                         ) : map.current ? (
-                            <div style={{ marginTop: 6, color: "#1a73e8" }}>
+                            <div className="mt-2 text-green-600 text-xs">
                                 ✅ Google Maps 로딩 성공
                             </div>
                         ) : null}
                     </div>
                 </div>
 
-                <div>
-                    <h4>🧠 동작 설명</h4>
-                    <ol>
+                {/* 설명 영역 */}
+                <div className="w-full md:w-1/2 max-w-md text-left md:pl-10">
+                    <h3 className="text-lg font-semibold mb-3">🧠 동작 설명</h3>
+                    <ol className="list-decimal list-inside text-gray-700 space-y-1 text-sm">
                         <li>"AI 말하기 시작"을 누르면 STT로 음성 인식</li>
                         <li>NLU로 의도 분석 → Nearby/Text 모드 결정</li>
                         <li>Google Places API로 검색</li>
                         <li>지도에 마커 표시 + 가장 가까운 1개 TTS 안내</li>
                     </ol>
-                    <p>
-                        위치 접근 실패 시, <b>HTTPS 도메인/권한</b>을 확인하세요. (localhost는 허용)
+                    <p className="mt-4 text-sm text-gray-500">
+                        위치 접근 실패 시, <strong>HTTPS 도메인/권한</strong>을 확인하세요. (localhost는 허용)
                     </p>
                 </div>
             </div>

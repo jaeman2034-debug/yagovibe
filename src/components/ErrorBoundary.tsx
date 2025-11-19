@@ -1,5 +1,6 @@
 import { Component } from "react";
 import type { ReactNode } from "react";
+import { captureException } from "@/lib/sentry";
 
 interface Props {
     children: ReactNode;
@@ -23,7 +24,14 @@ export default class ErrorBoundary extends Component<Props, State> {
     componentDidCatch(error: Error, info: any) {
         console.error("🚨 ErrorBoundary Caught:", error, info);
 
-        // 에러 로깅 (나중에 서비스로 전송 가능)
+        // Sentry에 에러 전송
+        captureException(error, {
+            componentStack: info.componentStack,
+            errorBoundary: true,
+            timestamp: new Date().toISOString(),
+        });
+
+        // 에러 로깅
         if (typeof window !== 'undefined') {
             console.error("Error Details:", {
                 message: error.message,
@@ -37,10 +45,10 @@ export default class ErrorBoundary extends Component<Props, State> {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="flex flex-col items-center justify-center h-screen text-center bg-gradient-to-br from-red-50 to-pink-100">
-                    <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4">
-                        <h1 className="text-3xl font-bold text-red-600 mb-4">⚠️ 오류가 발생했습니다</h1>
-                        <p className="text-gray-600 mb-6">
+                <main className="mx-auto flex min-h-screen w-full flex-col items-center justify-center bg-gradient-to-br from-red-50 to-pink-100 px-4 py-6 text-center max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl">
+                    <section className="w-full rounded-2xl bg-white p-8 shadow-lg">
+                        <h1 className="mb-4 text-3xl font-bold text-red-600">⚠️ 오류가 발생했습니다</h1>
+                        <p className="mb-6 text-gray-600">
                             예상치 못한 오류가 발생했습니다. 페이지를 새로고침하거나 관리자에게 문의하세요.
                         </p>
 
@@ -69,8 +77,8 @@ export default class ErrorBoundary extends Component<Props, State> {
                                 🏠 홈으로 이동
                             </button>
                         </div>
-                    </div>
-                </div>
+                    </section>
+                </main>
             );
         }
 

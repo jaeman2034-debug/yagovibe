@@ -338,46 +338,53 @@ export default function VoiceMap() {
 
     if (mapsLoading) {
         return (
-            <div className="w-full h-screen relative flex flex-col items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin text-4xl mb-4">⏳</div>
-                    <p className="text-gray-600">Google Maps API 로드 중...</p>
-                </div>
-            </div>
+            <section className="mx-auto w-full max-w-5xl rounded-2xl bg-white px-6 py-12 text-center shadow-md">
+                <div className="mb-4 animate-spin text-4xl">⏳</div>
+                <p className="text-gray-600">Google Maps API 로드 중...</p>
+            </section>
         );
     }
 
     if (mapsError) {
         return (
-            <div className="w-full h-screen relative flex flex-col items-center justify-center">
-                <div className="text-center max-w-md">
-                    <div className="text-6xl mb-4">❌</div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">지도를 불러올 수 없습니다</h2>
-                    <p className="text-gray-600 mb-4">{mapsError}</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                        새로고침
-                    </button>
-                    <div className="mt-4 text-sm text-gray-500">
-                        <p>브라우저 콘솔에서 <code className="bg-gray-100 px-2 py-1 rounded">checkGoogleMapsEnv()</code>를 실행하여</p>
-                        <p>Google Maps API 키 설정을 확인하세요.</p>
-                    </div>
+            <section className="mx-auto w-full max-w-5xl rounded-2xl bg-white px-6 py-10 text-center shadow-md">
+                <div className="mb-4 text-6xl">❌</div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">지도를 불러올 수 없습니다</h2>
+                <p className="text-gray-600 mb-4">{mapsError}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    새로고침
+                </button>
+                <div className="mt-4 text-sm text-gray-500">
+                    <p>브라우저 콘솔에서 <code className="bg-gray-100 px-2 py-1 rounded">checkGoogleMapsEnv()</code>를 실행하여</p>
+                    <p>Google Maps API 키 설정을 확인하세요.</p>
                 </div>
-            </div>
+            </section>
         );
     }
 
     return (
-        <div className="w-full h-screen relative flex flex-col items-center justify-center">
-            <h2 className="text-lg font-bold mb-2">📍 AI 음성 기반 Google 지도</h2>
-            <div id="map" className="w-80 h-96 rounded-2xl shadow"></div>
+        <section className="mx-auto flex w-full max-w-5xl flex-col items-center rounded-2xl bg-white px-4 py-8 shadow-md">
+            <h2 className="mb-4 text-lg font-bold">📍 AI 음성 기반 Google 지도</h2>
+            <div className="w-full overflow-hidden rounded-2xl shadow-md">
+                <div
+                    id="map"
+                    className="w-full"
+                    style={{
+                        width: "100%",
+                        height: "70vh",
+                        maxHeight: "600px",
+                        borderRadius: "12px",
+                        overflow: "hidden",
+                    }}
+                ></div>
+            </div>
             <div className="mt-4 flex gap-2">
                 <button
                     onClick={handleVoiceCommand}
-                    className={`px-4 py-2 rounded-2xl text-white shadow ${isListening ? "bg-red-500" : "bg-blue-600"
-                        }`}
+                    className={`px-4 py-2 rounded-2xl text-white shadow ${isListening ? "bg-red-500" : "bg-blue-600"}`}
                 >
                     {isListening ? "🎙️ 듣는 중..." : "🧠 AI 말하기 시작"}
                 </button>
@@ -388,6 +395,6 @@ export default function VoiceMap() {
                     📍 현재 위치로 이동
                 </button>
             </div>
-        </div>
+        </section>
     );
 }
