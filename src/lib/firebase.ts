@@ -20,160 +20,164 @@
 // ✅ 이 패치는 Firebase + AuthProvider + Router 기반을 구축한다.
 // ======================================================
 
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-import { getMessaging, getToken, onMessage, isSupported, type Messaging } from "firebase/messaging";
-import { checkFirebaseConfig } from "../utils/firebaseDebug";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getAuth, connectAuthEmulator, onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
-// Firebase 설정 값 검증
-const validateFirebaseConfig = () => {
-    const requiredVars = {
-        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-        appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    };
-
-    const missingVars: string[] = [];
-    const placeholderVars: string[] = [];
-
-    Object.entries(requiredVars).forEach(([key, value]) => {
-        if (!value || value === "" || value === undefined) {
-            missingVars.push(`VITE_FIREBASE_${key.toUpperCase()}`);
-        } else if (
-            typeof value === "string" &&
-            (value.includes("your-") || value.includes("YOUR-") || value === "G-XXXXXXXXXX")
-        ) {
-            placeholderVars.push(`VITE_FIREBASE_${key.toUpperCase()}`);
-        }
-    });
-
-    if (missingVars.length > 0 || placeholderVars.length > 0) {
-        console.error("❌ Firebase 설정 오류:");
-        if (missingVars.length > 0) {
-            console.error("  누락된 환경 변수:", missingVars.join(", "));
-        }
-        if (placeholderVars.length > 0) {
-            console.error("  플레이스홀더 값 (실제 값으로 교체 필요):", placeholderVars.join(", "));
-        }
-        console.error(
-            "\n📝 해결 방법:\n" +
-            "  1. Firebase Console > 프로젝트 설정 > 일반 > 웹 앱에서 Firebase 설정 확인\n" +
-            "  2. .env.local 파일에 실제 값으로 교체\n" +
-            "  3. 개발 서버 재시작: npm run dev\n"
-        );
-        throw new Error(
-            `Firebase 설정이 올바르지 않습니다. ${missingVars.length > 0 ? "누락된 변수: " + missingVars.join(", ") : ""} ${placeholderVars.length > 0 ? "플레이스홀더 값: " + placeholderVars.join(", ") : ""
-            }`
-        );
-    }
-
-    console.log("✅ Firebase 설정 검증 완료");
-
-    // 개발 모드에서만 상세 정보 표시
-    if (import.meta.env.DEV) {
-        console.log("💡 브라우저 콘솔에서 checkFirebaseConfig()를 실행하여 상세 설정을 확인할 수 있습니다.");
-    }
-
-    return requiredVars as {
-        apiKey: string;
-        authDomain: string;
-        projectId: string;
-        storageBucket: string;
-        messagingSenderId: string;
-        appId: string;
-    };
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const firebaseConfig = validateFirebaseConfig();
-
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-
-// 🔔 FCM Messaging
-export const messagingPromise = (async (): Promise<Messaging | null> => {
-    try {
-        const ok = await isSupported();
-        if (!ok) {
-            console.warn("⚠️ 이 브라우저는 FCM을 지원하지 않습니다.");
-            return null;
-        }
-        return getMessaging(app);
-    } catch (error) {
-        console.error("❌ FCM 초기화 오류:", error);
-        return null;
-    }
-})();
-
-/**
- * FCM 토큰 확보 및 Firestore에 저장
- */
-export async function ensureFcmToken(userId: string): Promise<string | null> {
-    try {
-        const messaging = await messagingPromise;
-        if (!messaging) {
-            console.warn("⚠️ FCM이 지원되지 않습니다.");
-            return null;
-        }
-
-        // 권한 요청
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-            console.warn("⚠️ 알림 권한이 거부되었습니다.");
-            return null;
-        }
-
-        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-        if (!vapidKey) {
-            console.warn("⚠️ VITE_FIREBASE_VAPID_KEY가 설정되지 않았습니다.");
-            return null;
-        }
-
-        const token = await getToken(messaging, { vapidKey });
-        if (!token) {
-            console.warn("⚠️ FCM 토큰을 가져올 수 없습니다.");
-            return null;
-        }
-
-        // 토큰 Firestore에 저장
-        const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");
-        await setDoc(
-            doc(db, "users", userId, "fcmTokens", token),
-            {
-                token,
-                createdAt: serverTimestamp(),
-                device: navigator.userAgent,
-                updatedAt: serverTimestamp(),
-            },
-            { merge: true }
-        );
-
-        console.log("✅ FCM 토큰 저장 완료:", token.substring(0, 20) + "...");
-        return token;
-    } catch (error) {
-        console.error("❌ FCM 토큰 확보 중 오류:", error);
-        return null;
-    }
+// Firebase 설정 검증
+console.log("⚙️ Firebase 초기화 중...");
+console.log("📋 Firebase Config 확인:");
+console.log("  - Project ID:", firebaseConfig.projectId);
+console.log("  - Auth Domain:", firebaseConfig.authDomain);
+if (firebaseConfig.authDomain && !firebaseConfig.authDomain.includes("firebaseapp.com")) {
+  console.warn("⚠️ authDomain이 'firebaseapp.com'을 포함하지 않습니다. Firebase Console에서 확인해주세요.");
+}
+if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR") || firebaseConfig.apiKey.includes("your")) {
+  console.warn("⚠️ API Key가 올바르게 설정되지 않았습니다. .env 파일을 확인해주세요.");
 }
 
-/**
- * 앱 포그라운드 수신 핸들러
- */
-export function attachOnMessage(handler: (payload: any) => void) {
-    messagingPromise.then((messaging) => {
-        if (!messaging) return;
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+console.log("✅ Firebase App initialized:", app);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const storage = getStorage(app);
 
-        onMessage(messaging, (payload) => {
-            console.log("🔔 포그라운드 FCM 메시지 수신:", payload);
-            handler(payload);
-        });
-    });
+// 익명 로그인 시도 여부 추적 (한 번만 시도)
+let hasAttemptedAnonymousLogin = false;
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    console.log("✅ Firebase 로그인 상태 유지:", user.uid);
+    hasAttemptedAnonymousLogin = false; // 로그인 성공 시 리셋
+    return;
+  }
+  
+  // 이미 시도했으면 더 이상 시도하지 않음 (무한 재시도 방지)
+  if (hasAttemptedAnonymousLogin) {
+    return;
+  }
+  
+  hasAttemptedAnonymousLogin = true;
+  
+  try {
+    await signInAnonymously(auth);
+    console.log("✅ 익명 로그인 완료");
+    hasAttemptedAnonymousLogin = false; // 성공 시 리셋
+  } catch (err: any) {
+    // 개발 환경: referer 오류는 조용히 무시 (앱은 계속 작동)
+    if (err?.code === "auth/requests-from-referer-are-blocked") {
+      // 오류를 조용히 무시 (콘솔에 출력하지 않음)
+      // 앱은 로그인 없이도 계속 작동할 수 있도록 함
+      return;
+    } else {
+      // 다른 오류는 로그만 출력 (앱은 계속 작동)
+      console.error("❌ 익명 로그인 실패:", err?.code || err?.message || err);
+    }
+  }
+});
+
+const USE_EMULATOR = import.meta.env.VITE_USE_EMULATOR === "true";
+
+if (USE_EMULATOR) {
+  console.log("🔥 Emulator mode enabled!");
+  console.log("⚙️ Firebase Emulator 연결 중...");
+  try {
+    connectFirestoreEmulator(db, "127.0.0.1", 8083);
+    connectAuthEmulator(auth, "http://127.0.0.1:9099");
+    connectStorageEmulator(storage, "127.0.0.1", 9199);
+    console.log("🔥 Firestore / Auth / Storage Emulator 연결 완료");
+  } catch (err) {
+    console.error("❌ Emulator 연결 실패:", err);
+  }
+} else {
+  console.log("✅ Firebase Production 연결 중...");
+}
+
+export { app, db, auth, storage };
+
+// 익명 로그인 수동 실행 함수 (브라우저 콘솔에서 사용 가능)
+export async function tryAnonymousLogin() {
+  try {
+    console.log("🔄 익명 로그인 시도 중...");
+    const userCred = await signInAnonymously(auth);
+    console.log("✅ 익명 로그인 성공!");
+    console.log("   사용자 UID:", userCred.user.uid);
+    console.log("   익명 사용자:", userCred.user.isAnonymous);
+    hasAttemptedAnonymousLogin = false; // 수동 로그인 성공 시 리셋
+    return userCred;
+  } catch (err: any) {
+    if (err?.code === "auth/requests-from-referer-are-blocked") {
+      console.warn("⚠️ 익명 로그인 실패: Firebase Console에서 localhost 도메인을 허용해주세요.");
+      console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.warn("📌 해결 방법:");
+      console.warn("   1. Firebase Console 접속: https://console.firebase.google.com");
+      console.warn("   2. 프로젝트 선택");
+      console.warn("   3. Authentication > Settings 탭");
+      console.warn("   4. Authorized domains 섹션에서 'Add domain' 클릭");
+      console.warn("   5. 'localhost' 입력 후 저장");
+      console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.warn("💡 참고: 이 오류는 개발 환경에서만 발생하며, 앱은 계속 작동합니다.");
+    } else {
+      console.error("❌ 익명 로그인 실패:", err?.code || err?.message || err);
+    }
+    hasAttemptedAnonymousLogin = false; // 실패해도 리셋하여 재시도 가능하게
+    throw err;
+  }
+}
+
+// 상품 데이터 확인 함수 (브라우저 콘솔용)
+export async function checkProductData() {
+  try {
+    const { collection, getDocs, limit, query } = await import("firebase/firestore");
+    console.log("🔍 Firestore에서 실제 상품 데이터 확인 중...\n");
+    
+    const q = query(collection(db, "marketProducts"), limit(1));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      console.log("❌ 저장된 상품 데이터가 없습니다.");
+      return null;
+    }
+    
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    
+    const result = {
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || null
+    };
+    
+    console.log("✅ 실제 저장된 상품 데이터 (1개):\n");
+    console.log(JSON.stringify(result, null, 2));
+    
+    console.log("\n📋 한 줄 버전:");
+    console.log(JSON.stringify(result));
+    
+    return result;
+  } catch (error: any) {
+    console.error("❌ 오류:", error.message || error);
+    return null;
+  }
+}
+
+// 브라우저 콘솔에서 사용할 수 있도록 전역 함수로 등록
+if (typeof window !== "undefined") {
+  (window as any).tryAnonymousLogin = tryAnonymousLogin;
+  (window as any).checkProductData = checkProductData;
+  console.log("💡 브라우저 콘솔에서 사용 가능한 함수:");
+  console.log("   - tryAnonymousLogin() - 익명 로그인");
+  console.log("   - checkProductData() - 상품 데이터 확인");
 }
 
 // ======================================================

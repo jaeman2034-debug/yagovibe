@@ -12,7 +12,7 @@ export default function QuickReportCard() {
     }, []);
 
     return (
-        <div className="w-full max-w-4xl bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-md">
+        <div className="w-full bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-md hover:shadow-lg transition-shadow">
             <div className="flex items-center space-x-3 mb-2">
                 <BarChart3 size={22} className="text-blue-600 dark:text-blue-400" />
                 <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100">AI 요약 리포트</h3>

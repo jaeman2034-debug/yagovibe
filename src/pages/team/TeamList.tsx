@@ -14,26 +14,26 @@ export default function TeamList() {
     }, []);
 
     return (
-        <div className="p-5 space-y-4">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">👥 팀 목록</h1>
+        <section className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6">
+            <h1 className="text-center text-2xl font-bold text-gray-800 dark:text-gray-100">👥 팀 목록</h1>
 
             {teams.length === 0 ? (
-                <div className="text-center py-12">
-                    <div className="text-4xl mb-2">🏃</div>
+                    <div className="py-12 text-center">
+                        <div className="mb-2 text-4xl">🏃</div>
                     <p className="text-gray-500 dark:text-gray-400">등록된 팀이 없습니다.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {teams.map((t) => (
                         <Link
                             key={t.id}
                             to={`/team/${t.id}`}
-                            className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 hover:shadow-lg transition"
+                                className="rounded-lg bg-white p-4 shadow-md transition hover:shadow-lg dark:bg-gray-800"
                         >
                             <img
                                 src={t.logo || "/default_team.png"}
                                 alt={t.name}
-                                className="w-full aspect-square object-cover rounded-lg mb-2"
+                                    className="mb-2 aspect-square w-full rounded-lg object-cover"
                             />
                             <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t.name}</h2>
                             <p className="text-xs text-gray-500 dark:text-gray-400">{t.members?.length ?? 0}명</p>
@@ -41,7 +41,7 @@ export default function TeamList() {
                     ))}
                 </div>
             )}
-        </div>
+        </section>
     );
 }
 

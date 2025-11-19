@@ -1,0 +1,19 @@
+# Vercel Environment Variables
+# 아래 변수들을 Vercel Dashboard → Settings → Environment Variables에 추가하세요
+
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_OPENAI_API_KEY=
+VITE_KAKAO_MAP_KEY=
+NODE_ENV=production
+
+# 사용 방법:
+# 1. Vercel Dashboard → Project → Settings → Environment Variables
+# 2. 각 변수에 실제 값 입력
+# 3. Environment: Production, Preview, Development 모두 선택
+# 4. Save
+

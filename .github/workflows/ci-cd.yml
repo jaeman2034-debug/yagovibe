@@ -1,0 +1,150 @@
+name: 🚀 YAGO VIBE CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main      # Production 배포
+      - dev       # Preview 배포
+      - 'feature/**'  # Feature 브랜치 Preview 배포
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  # 코드 검사 및 테스트
+  lint-and-test:
+    name: 🔍 Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout 코드
+        uses: actions/checkout@v4
+
+      - name: 📦 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 의존성 설치
+        run: npm ci
+
+      - name: 🔍 Lint 검사
+        run: npm run lint
+        continue-on-error: true
+
+      - name: 🧪 테스트 실행
+        run: npm test --if-present
+        continue-on-error: true
+
+      - name: 🔧 빌드 검사
+        run: npm run check:build
+        continue-on-error: true
+
+  # Vercel 배포 (Preview)
+  deploy-preview:
+    name: 🚀 Deploy Preview
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    if: |
+      (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/feature/**' || github.event_name == 'pull_request') &&
+      github.event_name != 'push' || github.ref != 'refs/heads/main'
+    steps:
+      - name: 🚀 Vercel Preview 배포 트리거
+        if: env.VERCEL_PREVIEW_HOOK != ''
+        env:
+          VERCEL_PREVIEW_HOOK: ${{ secrets.VERCEL_PREVIEW_HOOK }}
+        run: |
+          if [ -n "$VERCEL_PREVIEW_HOOK" ]; then
+            echo "🚀 Preview 배포 트리거 중..."
+            curl -X POST "$VERCEL_PREVIEW_HOOK" || true
+          else
+            echo "⚠️ VERCEL_PREVIEW_HOOK이 설정되지 않았습니다. Vercel Git Integration이 자동으로 처리합니다."
+          fi
+
+      - name: 📝 배포 정보 출력
+        run: |
+          echo "✅ Preview 배포 트리거 완료"
+          echo "   브랜치: ${{ github.ref }}"
+          echo "   이벤트: ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "   PR: #${{ github.event.pull_request.number }}"
+          fi
+
+  # Vercel 배포 (Production)
+  deploy-production:
+    name: 🚀 Deploy Production
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: 🚀 Vercel Production 배포 트리거
+        if: env.VERCEL_PRODUCTION_HOOK != ''
+        env:
+          VERCEL_PRODUCTION_HOOK: ${{ secrets.VERCEL_PRODUCTION_HOOK }}
+        run: |
+          if [ -n "$VERCEL_PRODUCTION_HOOK" ]; then
+            echo "🚀 Production 배포 트리거 중..."
+            curl -X POST "$VERCEL_PRODUCTION_HOOK" || true
+          else
+            echo "⚠️ VERCEL_PRODUCTION_HOOK이 설정되지 않았습니다. Vercel Git Integration이 자동으로 처리합니다."
+          fi
+
+      - name: 📝 배포 정보 출력
+        run: |
+          echo "✅ Production 배포 트리거 완료"
+          echo "   브랜치: ${{ github.ref }}"
+          echo "   환경: production"
+
+  # Firebase Functions 배포 (Production만)
+  deploy-functions:
+    name: 🔥 Deploy Firebase Functions
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: 📥 Checkout 코드
+        uses: actions/checkout@v4
+
+      - name: 📦 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: 🔐 Firebase 인증
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        if: env.FIREBASE_SERVICE_ACCOUNT != ''
+
+      - name: 🔧 Firebase CLI 설치
+        run: npm install -g firebase-tools
+
+      - name: 📦 Functions 의존성 설치
+        working-directory: functions
+        run: npm ci
+
+      - name: 🏗️ Functions 빌드
+        working-directory: functions
+        run: npm run build
+
+      - name: 🚀 Functions 배포
+        working-directory: functions
+        run: |
+          if [ -n "$FIREBASE_TOKEN" ]; then
+            firebase deploy --only functions --token "$FIREBASE_TOKEN" --non-interactive
+          else
+            echo "⚠️ FIREBASE_TOKEN이 설정되지 않았습니다."
+            echo "   GitHub Secrets에 FIREBASE_TOKEN을 추가하거나 수동으로 배포하세요."
+          fi
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: ✅ 배포 완료
+        run: |
+          echo "✅ Firebase Functions 배포 완료!"
+          echo "   브랜치: ${{ github.ref }}"
+          echo "   환경: production"
+

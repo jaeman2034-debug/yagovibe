@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions/v2";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import fetch from "node-fetch";
 import * as admin from "firebase-admin";
 
@@ -6,9 +6,11 @@ import * as admin from "firebase-admin";
  * 🎤 TTS 리포트 자동 낭독 함수
  * 리포트가 생성될 때 자동으로 TTS 변환
  */
-export const vibeTTSReport = functions.firestore
-    .document("auto_reports/{reportId}")
-    .onCreate(async (snap) => {
+export const vibeTTSReport = onDocumentCreated(
+    "auto_reports/{reportId}",
+    async (event) => {
+        const snap = event.data;
+        if (!snap) return;
         const data = snap.data();
         if (!data?.report) {
             console.log("⚠️ 리포트 텍스트가 없습니다.");
@@ -59,5 +61,6 @@ export const vibeTTSReport = functions.firestore
             console.error("❌ TTS 생성 실패:", err);
             // 실패해도 리포트는 정상 작동하도록 에러 로그만 기록
         }
-    });
+    }
+);
 

@@ -1,40 +1,34 @@
-import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthProvider";
-import { Sun, Moon, User } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthProvider";
+import { UserCircle } from "lucide-react";
+import InstallAppButton from "@/components/InstallAppButton";
 
 export default function Header() {
-    const { user } = useAuth();
-    const [dark, setDark] = useState(false);
+  const { user } = useAuth();
 
-    useEffect(() => {
-        if (dark) document.documentElement.classList.add("dark");
-        else document.documentElement.classList.remove("dark");
-    }, [dark]);
+  return (
+    <header className="sticky top-0 z-40 w-full border-b bg-white shadow-sm dark:bg-gray-800/90">
+      <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex items-center gap-2">
+          <UserCircle className="w-5 h-5 text-gray-700" />
+          <span className="font-semibold text-gray-800">YAGO VIBE</span>
+        </div>
 
-    return (
-        <header className="flex justify-between items-center px-5 py-3 bg-white/80 dark:bg-gray-800/80 shadow-sm backdrop-blur-md sticky top-0 z-50">
-            <Link to="/home" className="flex items-center space-x-3 group">
-                <span className="text-3xl">⚽</span>
-                <h1 className="font-bold text-xl text-blue-600 dark:text-blue-400 group-hover:text-blue-700 transition-colors">
-                    YAGO VIBE
-                </h1>
-            </Link>
-
-            <div className="flex items-center space-x-3">
-                <button
-                    onClick={() => setDark(!dark)}
-                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    aria-label="Toggle dark mode"
-                >
-                    {dark ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
-                {user && (
-                    <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <User size={20} />
-                    </button>
-                )}
-            </div>
-        </header>
-    );
+        <div className="flex items-center gap-3">
+          <InstallAppButton />
+          <div className="text-sm text-gray-600">
+            {user ? (
+              <span>
+                {user.displayName || "익명 사용자"}{" "}
+                <span className="text-xs text-gray-400">
+                  ({user.email ? user.email : "로그인 유지 중"})
+                </span>
+              </span>
+            ) : (
+              <span className="text-gray-400">로그인되지 않음</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 }

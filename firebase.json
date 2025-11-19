@@ -1,9 +1,12 @@
 {
   "functions": {
-    "source": "functions"
+    "source": "functions",
+    "runtime": "nodejs20",
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run build"
+    ]
   },
   "hosting": {
-    "site": "yago-vibe-spt",
     "public": "dist",
     "ignore": [
       "firebase.json",
@@ -16,37 +19,56 @@
         "destination": "/index.html"
       }
     ],
-    "cleanUrls": true,
-    "trailingSlash": false,
     "headers": [
+      {
+        "source": "**/*.@(js|css|woff|woff2|ttf|otf)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=31536000"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|ico)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=31536000"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(html|json)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=3600"
+          }
+        ]
+      },
       {
         "source": "**",
         "headers": [
-          {
-            "key": "Access-Control-Allow-Origin",
-            "value": "*"
-          },
-          {
-            "key": "Strict-Transport-Security",
-            "value": "max-age=31536000; includeSubDomains"
-          }
+          { "key": "Access-Control-Allow-Origin", "value": "*" }
         ]
       }
     ]
   },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "emulators": {
-    "functions": {
-      "host": "127.0.0.1",
-      "port": 5003
-    },
-    "firestore": {
-      "port": 8080
-    },
-    "auth": {
-      "port": 9099
-    },
-    "ui": {
-      "enabled": true
-    }
+    "functions": { "port": 5001 },
+    "firestore": { "port": 8081 },
+    "auth": { "port": 9099 },
+    "storage": { "port": 9199 },
+    "ui": { "port": 4001 },
+    "hub": { "port": 4401 },
+    "logging": { "port": 4501 }
   }
 }

@@ -10,7 +10,8 @@ export const sendReportEmail = functions.https.onCall(async (data, context) => {
     console.log("📧 이메일 발송 요청 수신:", data);
 
     try {
-        const { pdfUrl, reportDate, summary } = data;
+        const requestData = data as any;
+        const { pdfUrl, reportDate, summary } = requestData;
 
         // Gmail SMTP 설정 가져오기
         const gmailUser = functions.config().gmail?.user;

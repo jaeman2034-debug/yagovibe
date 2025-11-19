@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Bar, Line } from "react-chartjs-2";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { YagoButton, YagoCard, YagoStatCard } from "@/components/ui/YagoComponents";
 import YagoLayout from "@/layouts/YagoLayout";
 import dayjs from "dayjs";
-import { createBarChartData, defaultChartOptions } from "@/utils/chartConfig";
 import { FileDown, Presentation } from "lucide-react";
 import { generateWeeklyReport, generateAndShareReport } from "@/api/generateReport";
 import { exportReportPDF } from "@/lib/pdf";
@@ -127,48 +126,21 @@ export default function Dashboard() {
     return dayjs(log.ts.seconds * 1000).format("YYYY-MM-DD") === today;
   });
 
-  // ✅ 그래프 데이터
-  const chartData = createBarChartData(Object.keys(intents), Object.values(intents));
+  // ✅ 그래프 데이터 (recharts 형식)
+  const intentLabels = Object.keys(intents);
+  const intentValues = Object.values(intents);
+  const chartData = intentLabels.map((label, index) => ({
+    name: label,
+    value: intentValues[index] || 0,
+  }));
 
-  const chartOptions = {
-    ...defaultChartOptions,
-    plugins: {
-      ...defaultChartOptions.plugins,
-      title: {
-        display: true,
-        text: 'Intent별 명령 사용량',
-        font: { size: 16, weight: 700 }
-      }
-    }
-  };
-
-  // ✅ AI 리포트 차트 데이터
-  const reportData = {
-    labels: ["10월 1주", "10월 2주", "10월 3주", "10월 4주"],
-    datasets: [
-      {
-        label: "신규 가입자 수",
-        data: [21, 32, 45, 53],
-        borderColor: "rgba(75,192,192,1)",
-        backgroundColor: "rgba(75,192,192,0.2)",
-        tension: 0.3,
-      },
-    ],
-  };
-
-  const reportChartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: "bottom" as const,
-      },
-      title: {
-        display: true,
-        text: "📈 주간 신규 가입자 추이",
-        font: { size: 16, weight: 700 }
-      },
-    },
-  };
+  // ✅ AI 리포트 차트 데이터 (recharts 형식)
+  const reportData = [
+    { name: "10월 1주", "신규 가입자 수": 21 },
+    { name: "10월 2주", "신규 가입자 수": 32 },
+    { name: "10월 3주", "신규 가입자 수": 45 },
+    { name: "10월 4주", "신규 가입자 수": 53 },
+  ];
 
   // ✅ 완전 전환 API 리포트 요청 (모든 플랫폼 지원)
   const handleCompleteMigrationAPI = async (period: string = "thisweek") => {
@@ -515,8 +487,37 @@ export default function Dashboard() {
 
         {/* 📈 AI 리포트 차트 섹션 */}
         <section className="p-4 mt-6 bg-white rounded-2xl shadow-md border border-gray-100">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800">📈 AI 리포트 차트</h2>
-          <Line data={reportData} options={reportChartOptions} />
+          <h2 className="text-lg font-semibold mb-4 text-gray-800">📈 주간 신규 가입자 추이</h2>
+          <div className="h-64">
+            <LineChart width={800} height={256} data={reportData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="name" 
+                stroke="#6B7280"
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis 
+                stroke="#6B7280"
+                tick={{ fontSize: 12 }}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px'
+                }}
+              />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="신규 가입자 수" 
+                stroke="#4bc0c0" 
+                strokeWidth={2}
+                dot={{ fill: "#4bc0c0", r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </div>
         </section>
 
         {/* 🎮 액션 버튼들 */}
@@ -664,14 +665,41 @@ export default function Dashboard() {
         )}
 
         {/* 📈 의도별 차트 */}
-        <YagoCard title="🎯 의도별 명령 통계" icon="📊">
+        <YagoCard title="🎯 Intent별 명령 사용량" icon="📊">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yago-purple"></div>
             </div>
           ) : (
             <div className="h-64">
-              <Bar data={chartData} options={chartOptions} />
+              <BarChart width={800} height={256} data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#6B7280"
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis 
+                  stroke="#6B7280"
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    padding: '12px'
+                  }}
+                />
+                <Bar 
+                  dataKey="value" 
+                  fill="#6366F1"
+                  stroke="#4F46E5"
+                  strokeWidth={2}
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
             </div>
           )}
         </YagoCard>

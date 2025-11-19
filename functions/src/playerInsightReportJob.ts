@@ -164,7 +164,7 @@ export const generatePlayerInsightReports = onSchedule(
                             });
 
                             if (gptRes.ok) {
-                                const gptJson = await gptRes.json();
+                                const gptJson = await gptRes.json() as any;
                                 feedback =
                                     gptJson.choices?.[0]?.message?.content?.trim() ||
                                     "데이터 부족으로 피드백을 생성하지 못했습니다.";

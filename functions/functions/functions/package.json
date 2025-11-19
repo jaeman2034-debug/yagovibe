@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@google-cloud/tasks": "^6.2.1",
+    "epub-gen": "^0.1.0",
+    "jszip": "^3.10.1",
+    "node-fetch": "^2.7.0",
+    "xmlbuilder2": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/jszip": "^3.4.0",
+    "@types/node-fetch": "^2.6.13"
+  }
+}

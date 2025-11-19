@@ -87,6 +87,9 @@ export const generateInsightChartReport = onSchedule(
         logger.info("📈 Generating AI chart report...", { structuredData: true });
 
         try {
+            // TTS 음성 리포트 URL (선언을 위로 이동)
+            let audioUrl: string | null = null;
+            
             // 1️⃣ 모든 사용자와 월간 리포트 조회
             const usersSnap = await db.collection("users").get();
             logger.info(`👥 총 ${usersSnap.size}명의 사용자 발견`);
@@ -153,9 +156,10 @@ export const generateInsightChartReport = onSchedule(
                 ? monthlyAverages[monthlyAverages.length - 2].avg
                 : monthlyAverages[0].avg;
             const diff = (parseFloat(avgScore) - prevAvg).toFixed(1);
-            const trend = parseFloat(diff) > 0 ? "상승" : parseFloat(diff) < 0 ? "하락" : "유지";
+            const diffNum = Number(diff);
+            const trend = diffNum > 0 ? "상승" : diffNum < 0 ? "하락" : "유지";
 
-            logger.info(`📊 평균 점수: ${avgScore}점 (${trend} ${Math.abs(parseFloat(diff))}점)`);
+            logger.info(`📊 평균 점수: ${avgScore}점 (${trend} ${Math.abs(diffNum)}점)`);
 
             // 3️⃣ 🧠 GPT 분석 코멘트 생성
             let insight = "데이터 부족으로 AI 코멘트를 생성하지 못했습니다.";
@@ -167,7 +171,7 @@ export const generateInsightChartReport = onSchedule(
 당신은 스포츠 팀의 AI 코치입니다.
 최근 ${prevMonths.length}개월간 팀 평균 점수는 ${monthlyAverages.map((m) => `${m.month}: ${m.avg}점`).join(", ")}입니다.
 최근 추세는 ${trend}이며, 이번 달(${latestMonth}) 평균은 ${avgScore}점입니다.
-변화량: ${diff > 0 ? "+" : ""}${diff}점
+변화량: ${diffNum > 0 ? "+" : ""}${diff}점
 
 스포츠 코치처럼 간결하고 구체적인 분석 코멘트를 2-3문장으로 작성해주세요.
 팀의 강점과 개선 포인트를 포함해주세요.
@@ -194,7 +198,7 @@ export const generateInsightChartReport = onSchedule(
                     });
 
                     if (gptRes.ok) {
-                        const gptJson = await gptRes.json();
+                        const gptJson = await gptRes.json() as any;
                         insight =
                             gptJson.choices?.[0]?.message?.content?.trim() ||
                             "AI 코멘트를 불러올 수 없습니다.";
@@ -313,7 +317,7 @@ export const generateInsightChartReport = onSchedule(
 
             // 통계 정보
             pdf.setFontSize(11);
-            pdf.text(`평균 점수: ${avgScore}점 (${trend} ${diff > 0 ? "+" : ""}${diff}점)`, margin, y);
+            pdf.text(`평균 점수: ${avgScore}점 (${trend} ${diffNum > 0 ? "+" : ""}${diff}점)`, margin, y);
             y += 8;
             pdf.text(`참여 인원: ${monthlyAverages[monthlyAverages.length - 1].count}명`, margin, y);
             y += 12;
@@ -424,7 +428,6 @@ export const generateInsightChartReport = onSchedule(
             logger.info("✅ 리포트 요약 스냅샷 저장 완료 (reportSummaries/latest)");
 
             // 7️⃣ 🎙️ TTS 음성 리포트 생성
-            let audioUrl: string | null = null;
 
             if (openaiApiKey) {
                 try {
@@ -518,7 +521,7 @@ export const generateInsightChartReport = onSchedule(
                     topic: "admins",
                     notification: {
                         title: `📊 ${latestMonth} AI 리포트 생성 완료`,
-                        body: `평균 ${avgScore}점 • ${trend} ${diff > 0 ? "+" : ""}${diff}점 • 클릭해서 확인`,
+                        body: `평균 ${avgScore}점 • ${trend} ${diffNum > 0 ? "+" : ""}${diff}점 • 클릭해서 확인`,
                         imageUrl: undefined,
                     },
                     data: {

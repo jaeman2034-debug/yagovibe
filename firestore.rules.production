@@ -1,0 +1,479 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 🛒 마켓 상품 (Market Products) - Production 보안 규칙
+    match /marketProducts/{productId} {
+      // 읽기: 인증된 사용자 모두 가능 (상품 목록/상세)
+      allow read: if request.auth != null;
+      
+      // 생성: 로그인 사용자만 가능
+      allow create: if request.auth != null && 
+                     request.resource.data.sellerId == request.auth.uid;
+      
+      // 수정/삭제: 본인만 가능
+      allow update, delete: if request.auth != null && 
+                             resource.data.sellerId == request.auth.uid;
+    }
+    
+    // 👤 사용자 프로필
+    match /users/{userId} {
+      // 읽기: 본인 또는 인증된 사용자 (공개 프로필)
+      allow read: if request.auth != null;
+      
+      // 쓰기: 본인만 가능
+      allow write: if request.auth != null && 
+                    request.auth.uid == userId;
+    }
+    
+    // 📊 판매자 프로필
+    match /sellerProfiles/{sellerId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      
+      // 쓰기: 본인만 가능 (또는 Functions에서)
+      allow write: if request.auth != null && 
+                    request.auth.uid == sellerId;
+    }
+    
+    // 💬 채팅
+    match /chats/{chatId} {
+      // 읽기: 참여자만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.buyerId ||
+        request.auth.uid == resource.data.sellerId
+      );
+      
+      // 생성: 로그인 사용자만 가능
+      allow create: if request.auth != null;
+      
+      // 수정/삭제: 참여자만 가능
+      allow update, delete: if request.auth != null && (
+        request.auth.uid == resource.data.buyerId ||
+        request.auth.uid == resource.data.sellerId
+      );
+      
+      // 메시지
+      match /messages/{messageId} {
+        // 읽기/쓰기: 채팅 참여자만 가능
+        allow read, write: if request.auth != null && (
+          request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.buyerId ||
+          request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.sellerId
+        );
+      }
+    }
+    
+    // ❤️ 찜 목록
+    match /favorites/{favoriteId} {
+      // 읽기/쓰기: 본인만 가능
+      allow read, write: if request.auth != null && 
+                         request.auth.uid == resource.data.userId;
+    }
+    
+    // 📝 신고
+    match /reports/{reportId} {
+      // 읽기: 본인 또는 관리자만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.reporterId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      
+      // 생성: 로그인 사용자만 가능
+      allow create: if request.auth != null && 
+                     request.resource.data.reporterId == request.auth.uid;
+      
+      // 수정/삭제: 관리자만 가능
+      allow update, delete: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    // 📊 AI 리포트
+    match /aiReports/{reportId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    // 팀 문서: 팀 멤버만 읽기 가능, Owner만 쓰기 가능
+    match /teams/{teamId} {
+      // 읽기: 팀 멤버 (owners, coaches, members) 또는 관리자
+      allow read: if request.auth != null && (
+        request.auth.uid in resource.data.get('owners', []) ||
+        request.auth.uid in resource.data.get('coaches', []) ||
+        request.auth.uid in resource.data.get('members', []) ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      
+      // 쓰기: Owner만 가능
+      allow write: if request.auth != null && 
+                     request.auth.uid in resource.data.get('owners', []);
+      
+      // 팀 리포트
+      match /reports/{reportId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && 
+                       request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []);
+        
+        // 품질 리포트
+        match /qualityReports/{qualityReportId} {
+          allow read: if request.auth != null;
+          allow create: if request.auth != null;
+          allow update, delete: if false; // Functions에서만 관리
+        }
+      }
+      
+      // 역할 관리
+      match /roles/{userId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && 
+                       request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []);
+      }
+      
+      // 알림 로그: Owner 및 관리자만 읽기 가능
+      match /alerts/{alertId} {
+        allow read: if request.auth != null && (
+          request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []) ||
+          request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+          request.auth.token.email.matches('.*admin.*')
+        );
+        allow write: if false; // Functions에서만 쓰기
+      }
+    }
+    
+    // 기타 관리자 전용 컬렉션들...
+    match /insightSubs/{subId} {
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /insights/{insightId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    match /insightReports/{reportId} {
+      allow read: if request.auth != null && (
+        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('owners', []) ||
+        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('coaches', []) ||
+        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('members', []) ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      
+      allow update: if request.auth != null && (
+        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('owners', []) ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      
+      allow create: if false;
+      allow delete: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    // 감사 로그 (Audit Logs)
+    match /auditLogs/{logId} {
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow create: if request.auth != null && 
+                       request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // 워크플로우 로그 (Workflow Logs)
+    match /workflowLogs/{logId} {
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+
+    match /workflowStats/{statId} {
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+
+    // 베타 피드백 (Beta Feedback)
+    match /betaFeedback/{feedbackId} {
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+
+    match /releaseChecks/{checkId} {
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+
+    match /releaseNotes/{noteId} {
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /modelCards/{cardId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    // Compliance Export & DSAR
+    match /complianceExports/{exportId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.uid ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /dsarRequests/{requestId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.uid ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /deletionRequests/{requestId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.uid ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /systemLogs/{logId} {
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /policies/{policyId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    
+    match /orgs/{orgId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /tenants/{tenantId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /plans/{planId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /usage/{day}/{orgId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == orgId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /ratelimits/{limitId} {
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /billingDaily/{billId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.orgId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /featureOverrides/{orgId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == orgId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /events/{day}/{eventId} {
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /telemetryDaily/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    
+    match /improvements/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /pilotRollbacks/{docId} {
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+    
+    match /_health/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /runbookTemplates/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin']
+      );
+    }
+    
+    match /launchPlans/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin']
+      );
+    }
+    
+    match /slo/{metricId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin']
+      );
+    }
+    
+    match /experiments/{expId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin']
+      );
+      
+      match /assign/{userId} {
+        allow read: if request.auth != null && (
+          request.auth.uid == userId ||
+          request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+          request.auth.token.email.matches('.*admin.*')
+        );
+        allow write: if false;
+      }
+    }
+    
+    match /sessions/{userId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      match /visits/{visitId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    match /retention/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    
+    match /plugins/{pluginId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin'] ||
+        request.auth.uid == request.resource.data.ownerId
+      );
+    }
+    
+    match /assistantLogs/{logId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if false;
+    }
+  }
+}
+

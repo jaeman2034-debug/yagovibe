@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions/v2";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import fetch from "node-fetch";
 
 /**
@@ -6,7 +6,7 @@ import fetch from "node-fetch";
  * 매주 월요일 오전 9시(KST) 자동 실행
  * Cloud Scheduler 트리거 사용
  */
-export const vibeAutoReport = functions.scheduler.onSchedule(
+export const vibeAutoReport = onSchedule(
     {
         schedule: "0 9 * * 1", // 매주 월요일 09:00 (KST)
         timeZone: "Asia/Seoul",
@@ -32,7 +32,7 @@ export const vibeAutoReport = functions.scheduler.onSchedule(
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
+            const data = await response.json() as any;
             console.log("✅ 자동 리포트 생성 완료:", data.url || "no URL");
 
             // Firestore에 로그 기록

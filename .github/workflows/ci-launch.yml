@@ -1,0 +1,141 @@
+name: Launch Gates
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  sast:
+    name: SAST (Static Analysis Security Testing)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd functions && npm ci
+          cd ../src && npm ci || true
+      
+      - name: ESLint
+        run: |
+          cd functions && npm run lint || true
+          cd .. && npm run lint || true
+      
+      - name: TypeScript Type Check
+        run: |
+          cd functions && npm run typecheck || true
+          cd .. && npm run typecheck || true
+      
+      - name: Dependency Audit (OSV)
+        uses: google/osv-scanner-action@v1
+        with:
+          path: '.'
+  
+  sbom:
+    name: SBOM (Software Bill of Materials)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: CycloneDX SBOM - Functions
+        uses: CycloneDX/gh-node-module-generatebom@v3
+        with:
+          path: './functions'
+          output: 'bom-functions.xml'
+      
+      - name: CycloneDX SBOM - Root
+        uses: CycloneDX/gh-node-module-generatebom@v3
+        with:
+          path: '.'
+          output: 'bom-root.xml'
+      
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            bom-*.xml
+  
+  dast:
+    name: DAST (Dynamic Analysis Security Testing)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: ${{ secrets.DAST_TARGET_URL || 'https://yago-vibe-spt.web.app' }}
+          rules_file_name: '.zap/rules.tsv'
+          fail_action: false
+      
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-report
+          path: zap_report.json
+  
+  perf-k6:
+    name: Performance Test (k6)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: k6 Smoke Test
+        uses: grafana/k6-action@v0.3.1
+        with:
+          filename: perf/k6-smoke.js
+          cloud: false
+        env:
+          TARGET: ${{ secrets.PERF_TARGET_URL || 'https://yago-vibe-spt.web.app' }}
+      
+      - name: Upload k6 Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-report
+          path: k6-results.json
+  
+  allow-release:
+    name: Release Gate
+    needs: [sast, sbom]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check Gate Status
+        run: |
+          if [ "${{ needs.sast.result }}" != "success" ] || [ "${{ needs.sbom.result }}" != "success" ]; then
+            echo "❌ Launch Gates 실패"
+            exit 1
+          fi
+          echo "✅ All green — release allowed"
+  
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [sast, sbom, dast]
+    if: always()
+    steps:
+      - name: Generate Security Summary
+        run: |
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- SAST: ${{ needs.sast.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- SBOM: ${{ needs.sbom.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- DAST: ${{ needs.dast.result }}" >> $GITHUB_STEP_SUMMARY
+

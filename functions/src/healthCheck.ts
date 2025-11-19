@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions/v2";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import fetch from "node-fetch";
 
 /**
@@ -6,7 +6,7 @@ import fetch from "node-fetch";
  * 6시간마다 자동 실행
  * 앱 상태 확인 후 Slack 경고 전송
  */
-export const vibeHealthCheck = functions.scheduler.onSchedule(
+export const vibeHealthCheck = onSchedule(
     {
         schedule: "0 */6 * * *", // 6시간마다 실행
         timeZone: "Asia/Seoul",

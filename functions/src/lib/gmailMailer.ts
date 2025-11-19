@@ -30,12 +30,11 @@ export const sendReportEmail = async (
         }
 
         // JWT 클라이언트 생성
-        const jwtClient = new google.auth.JWT(
-            CREDENTIALS.client_email,
-            undefined,
-            CREDENTIALS.private_key,
-            SCOPES
-        );
+        const jwtClient = new google.auth.JWT({
+            email: CREDENTIALS.client_email,
+            key: CREDENTIALS.private_key,
+            scopes: SCOPES,
+        });
 
         // 인증
         await jwtClient.authorize();

@@ -1,72 +1,111 @@
 import React, { useState } from "react";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { PDFDocument, rgb } from "pdf-lib";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import jsPDF from "jspdf";
 
 /**
  * 📄 AI 리포트 PDF 생성 버튼
- * pdf-lib로 PDF 생성 → Firebase Storage 업로드 → n8n 자동 전송
+ * Firestore 데이터 로드 → jsPDF로 PDF 생성 → 브라우저 다운로드
  */
 export default function ReportPDFButton() {
     const [loading, setLoading] = useState(false);
-    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
     const handleGeneratePDF = async () => {
         try {
             setLoading(true);
 
-            // ✅ PDF 생성
-            const pdfDoc = await PDFDocument.create();
-            const page = pdfDoc.addPage([600, 400]);
-            const { width, height } = page.getSize();
+            // ✅ Firestore에서 주간 데이터 가져오기
+            const summaryRef = doc(db, "reports/weekly/data/summary");
+            const analyticsRef = doc(db, "reports/weekly/data/analytics");
+            
+            const summarySnap = await getDoc(summaryRef);
+            const analyticsSnap = await getDoc(analyticsRef);
 
-            page.drawText("📊 YAGO VIBE AI 요약 리포트", {
-                x: 50,
-                y: height - 80,
-                size: 24,
-                color: rgb(0.2, 0.2, 0.8),
-            });
+            const summary = summarySnap.exists() ? summarySnap.data() : null;
+            const analytics = analyticsSnap.exists() ? analyticsSnap.data() : null;
 
-            page.drawText(`- 신규 가입자: +23% 증가`, { x: 70, y: height - 140, size: 14 });
-            page.drawText(`- 경기북부 활동 +15%`, { x: 70, y: height - 160, size: 14 });
-            page.drawText(`- 추천 액션: UX 개선 캠페인 제안`, { x: 70, y: height - 180, size: 14 });
+            // ✅ PDF 생성 (영문만 지원 - 한글은 기본 폰트로 처리)
+            const pdf = new jsPDF({ unit: "pt", format: "a4" });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
 
-            const pdfBytes = await pdfDoc.save();
+            let y = 60;
 
-            // ✅ Firebase Storage 업로드
-            const fileRef = ref(storage, `reports/weekly_report_${Date.now()}.pdf`);
-            await uploadBytes(fileRef, pdfBytes);
-            const url = await getDownloadURL(fileRef);
-            setPdfUrl(url);
+            // 제목
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(20);
+            pdf.text("YAGO VIBE SPORTS - AI Weekly Report", 40, y);
+            y += 25;
 
-            console.log("✅ PDF 업로드 완료:", url);
+            // 생성일
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(10);
+            pdf.text(`Generated: ${new Date().toISOString().split("T")[0]}`, 40, y);
+            y += 30;
 
-            // ✅ n8n 자동 전송 (이메일 발송 트리거)
-            try {
-                const response = await fetch("https://n8n.yagovibe.com/webhook/weekly-report", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        pdfUrl: url,
-                        generatedAt: new Date().toISOString(),
-                        reportType: "weekly",
-                        triggeredBy: "admin_dashboard",
-                    }),
-                });
+            // 요약 정보
+            if (summary) {
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(14);
+                pdf.text("Weekly Summary", 40, y);
+                y += 20;
 
-                if (response.ok) {
-                    console.log("✅ n8n 웹훅 전송 성공");
-                } else {
-                    console.warn("⚠️ n8n 웹훅 응답 오류:", response.status);
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(11);
+                pdf.text(`- New Users: ${summary.newUsers}`, 50, y);
+                y += 18;
+                pdf.text(`- Active Users: ${summary.activeUsers}`, 50, y);
+                y += 18;
+                pdf.text(`- Growth Rate: ${summary.growthRate}`, 50, y);
+                y += 18;
+                
+                // 하이라이트
+                const highlightText = summary.highlight?.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim() || "";
+                if (highlightText) {
+                    const highlightLines = pdf.splitTextToSize(`- Highlight: ${highlightText}`, pageWidth - 100);
+                    for (let i = 0; i < highlightLines.length && y < pageHeight - 60; i++) {
+                        pdf.text(highlightLines[i], 50, y);
+                        y += 18;
+                    }
                 }
-            } catch (webhookError) {
-                console.warn("⚠️ n8n 웹훅 전송 실패 (무시 가능):", webhookError);
+                
+                pdf.text(`- Recommendation: ${summary.recommendation}`, 50, y);
+                y += 30;
             }
 
-            alert("✅ 리포트 생성 및 업로드 완료!");
+            // 통계 차트 데이터
+            if (analytics && analytics.labels && analytics.newUsers && analytics.activeUsers) {
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(14);
+                pdf.text("Weekly Statistics", 40, y);
+                y += 25;
+
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(10);
+                
+                // 테이블 헤더
+                pdf.text("Week", 50, y);
+                pdf.text("New Users", 120, y);
+                pdf.text("Active Users", 200, y);
+                y += 20;
+
+                // 데이터 행
+                for (let i = 0; i < Math.min(analytics.labels.length, analytics.newUsers.length, analytics.activeUsers.length); i++) {
+                    pdf.text(`Week ${i + 1}`, 50, y);
+                    pdf.text(`${analytics.newUsers[i]}`, 120, y);
+                    pdf.text(`${analytics.activeUsers[i]}`, 200, y);
+                    y += 18;
+                }
+            }
+
+            // ✅ 브라우저에서 즉시 다운로드
+            pdf.save(`AI_Weekly_Report_${new Date().toISOString().split("T")[0]}.pdf`);
+
+            console.log("✅ PDF 생성 및 다운로드 완료!");
+            alert("✅ 리포트 PDF가 다운로드되었습니다!");
         } catch (err) {
             console.error("❌ PDF 생성 실패:", err);
-            alert("PDF 생성 중 오류가 발생했습니다.");
+            alert("PDF 생성 중 오류가 발생했습니다: " + (err as Error).message);
         } finally {
             setLoading(false);
         }
@@ -81,17 +120,6 @@ export default function ReportPDFButton() {
             >
                 {loading ? "📄 생성 중..." : "📄 AI 리포트 PDF 생성"}
             </button>
-
-            {pdfUrl && (
-                <a
-                    href={pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 underline hover:text-blue-700"
-                >
-                    📥 리포트 다운로드
-                </a>
-            )}
         </div>
     );
 }
