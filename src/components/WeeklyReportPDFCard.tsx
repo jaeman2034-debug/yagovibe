@@ -57,18 +57,14 @@ export default function WeeklyReportPDFCard() {
         })();
     }, []);
 
-    const formatDate = (iso?: string) => {
-        if (!iso) return "";
-        try {
-            const d = new Date(iso);
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            return `${yyyy}-${mm}-${dd}`;
-        } catch {
-            return "";
+    function formatDate(date: any) {
+        if (!date) return "";
+        if (typeof date === "string") return date;
+        if (date.seconds) {
+            return new Date(date.seconds * 1000).toLocaleDateString("ko-KR");
         }
-    };
+        return "";
+    }
 
     // PDF 생성 (메모리/다운로드)
     const makePdf = async () => {

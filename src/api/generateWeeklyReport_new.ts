@@ -57,12 +57,11 @@ export const POST = async (request: Request) => {
         }
 
         // PDF 요청인 경우
-        return new Response(pdfBytes, {
-            headers: {
-                "Content-Type": "application/pdf",
-                "Content-Disposition": "attachment; filename=weekly_report.pdf",
-            },
-        });
+        return new Response(
+            new Blob([pdfBytes instanceof Uint8Array ? pdfBytes.slice() : pdfBytes], {
+                type: "application/pdf",
+            })
+        );
     } catch (err) {
         console.error("리포트 생성 오류:", err);
         const error = err instanceof Error ? err : new Error("Unknown error");

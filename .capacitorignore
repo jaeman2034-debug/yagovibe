@@ -1,0 +1,19 @@
+# Capacitor 빌드 시 제외할 파일/폴더
+
+node_modules/
+.git/
+.github/
+.vscode/
+.idea/
+*.md
+!README.md
+.env*
+capacitor-assets/
+scripts/
+tests/
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+

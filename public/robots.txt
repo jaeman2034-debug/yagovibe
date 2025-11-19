@@ -1,0 +1,19 @@
+# YAGO VIBE robots.txt
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://yagovibe.com/sitemap.xml
+
+# Disallow admin pages
+Disallow: /admin/
+Disallow: /app/admin/
+
+# Allow public pages
+Allow: /
+Allow: /market
+Allow: /market/*
+Allow: /voice-map
+Allow: /sports-hub
+

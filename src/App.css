@@ -1,9 +1,4 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
+/* #root 스타일 제거 - 각 레이아웃 컴포넌트에서 개별 관리 */
 
 .logo {
   height: 6em;

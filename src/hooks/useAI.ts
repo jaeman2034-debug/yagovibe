@@ -1,8 +1,12 @@
-import { handleAICommand } from "@/services/VoiceAgentCore";
+import { handleVoiceCommand } from "@/services/VoiceAgentCore";
 
 export function useAI(map: google.maps.Map | null, navigate?: (path: string) => void) {
     const processVoiceCommand = async (command: string) => {
-        await handleAICommand(command, map, navigate);
+        if (navigate) {
+            await handleVoiceCommand(navigate, command);
+        } else {
+            await handleVoiceCommand(() => {}, command);
+        }
     };
     return { processVoiceCommand };
 }

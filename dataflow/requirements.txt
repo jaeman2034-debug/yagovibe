@@ -1,0 +1,4 @@
+apache-beam[gcp]==2.56.0
+google-cloud-pubsub==2.23.0
+python-dateutil==2.8.2
+

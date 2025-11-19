@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import fetch from "node-fetch";
 
@@ -7,7 +7,6 @@ import fetch from "node-fetch";
  * 매주 월요일 오전 9시 자동 실행
  */
 export const autoWeeklyReport = functions
-    .region("asia-northeast3") // 서울 리전
     .pubsub.schedule("0 9 * * 1") // 매주 월요일 오전 9시
     .timeZone("Asia/Seoul")
     .onRun(async () => {
@@ -32,7 +31,9 @@ export const autoWeeklyReport = functions
             console.log(`📊 데이터 수집 완료 - 사용자: ${activeUsers}명, 로그: ${totalLogs}건`);
 
             // 2️⃣ AI 리포트 생성 (generateWeeklyReport 호출)
-            const generateReportUrl = `https://${functions.config().firebase?.location || "asia-northeast3"}-${process.env.GCLOUD_PROJECT || "yago-vibe-spt"}.cloudfunctions.net/generateWeeklyReport`;
+            const region = process.env.FIREBASE_REGION || "asia-northeast3";
+            const projectId = process.env.GCLOUD_PROJECT || "yago-vibe-spt";
+            const generateReportUrl = `https://${region}-${projectId}.cloudfunctions.net/generateWeeklyReport`;
 
             console.log("🧠 AI 리포트 생성 호출:", generateReportUrl);
 
@@ -50,13 +51,13 @@ export const autoWeeklyReport = functions
                 throw new Error(`PDF 생성 실패: ${pdfResponse.status}`);
             }
 
-            const pdfData = await pdfResponse.json();
+            const pdfData = await pdfResponse.json() as any;
             const pdfUrl = pdfData.pdfUrl || pdfData.url;
 
             console.log("✅ PDF 생성 완료:", pdfUrl);
 
             // 3️⃣ n8n 이메일 + Slack 전송 트리거
-            const n8nWebhook = functions.config().n8n?.webhook || "https://n8n.yagovibe.com/webhook/weekly-report";
+            const n8nWebhook = process.env.N8N_WEBHOOK_URL || "https://n8n.yagovibe.com/webhook/weekly-report";
 
             console.log("📧 n8n 웹훅 호출:", n8nWebhook);
 

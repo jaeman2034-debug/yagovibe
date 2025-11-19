@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import jsPDF from "jspdf";
 
 export default function VoiceAssistantButton() {
     const navigate = useNavigate();
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<any>(null);
+    const [recognizedText, setRecognizedText] = useState("");
 
     useEffect(() => {
         // 브라우저 음성인식 객체 생성
@@ -23,6 +27,7 @@ export default function VoiceAssistantButton() {
         recog.onresult = (event: any) => {
             const text = event.results[0][0].transcript.trim();
             console.log("🎙️ 인식된 명령어:", text);
+            setRecognizedText(text);
             handleCommand(text);
         };
 
@@ -45,8 +50,11 @@ export default function VoiceAssistantButton() {
             { keywords: ["홈", "대시보드", "시작"], path: "/home", name: "홈" },
             { keywords: ["음성", "가입", "시작"], path: "/start", name: "음성 가입" },
             { keywords: ["지도", "맵", "지도"], path: "/voice-map", name: "지도" },
-            { keywords: ["시설", "체육시설", "운동장", "축구장", "농구장"], path: "/facility", name: "체육시설" },
-            { keywords: ["관리자", "어드민", "관리"], path: "/admin", name: "관리자" },
+            { keywords: ["마켓", "쇼핑", "구매"], path: "/app/market", name: "마켓" },
+            { keywords: ["시설", "체육시설", "운동장", "축구장", "농구장"], path: "/app/facility", name: "시설" },
+            { keywords: ["팀", "팀목록"], path: "/app/team", name: "팀" },
+            { keywords: ["이벤트", "일정"], path: "/app/event", name: "이벤트" },
+            { keywords: ["관리자", "어드민", "관리"], path: "/app/admin", name: "관리자" },
         ];
 
         for (const r of routes) {
@@ -56,6 +64,20 @@ export default function VoiceAssistantButton() {
                 speak(`${r.name} 페이지로 이동합니다.`);
                 return;
             }
+        }
+
+        // ✅ 리포트 TTS 읽기 명령
+        if (normalized.includes("리포트읽") || normalized.includes("리포트듣") || 
+            (normalized.includes("리포트") && (normalized.includes("읽") || normalized.includes("듣") || normalized.includes("말")))) {
+            handleReadReport();
+            return;
+        }
+
+        // ✅ 리포트 PDF 생성 명령
+        if (normalized.includes("리포트pdf") || normalized.includes("리포트저장") || 
+            (normalized.includes("리포트") && (normalized.includes("pdf") || normalized.includes("저장") || normalized.includes("만들")))) {
+            handleGenerateReportPDF();
+            return;
         }
 
         // ✅ NLU 처리 (의도 분류 및 자동 실행)
@@ -73,6 +95,115 @@ export default function VoiceAssistantButton() {
 
         // 매칭 안 될 때
         speak("명령을 이해하지 못했어요. 다시 말씀해 주세요.");
+    };
+
+    // 📄 리포트 TTS 읽기
+    const handleReadReport = async () => {
+        try {
+            const summaryRef = doc(db, "reports/weekly/data/summary");
+            const summarySnap = await getDoc(summaryRef);
+
+            if (summarySnap.exists()) {
+                const data = summarySnap.data();
+                const summaryText = `신규 가입자: ${data.newUsers}명. 활성 사용자: ${data.activeUsers}명. 성장률: ${data.growthRate}. ${data.highlight}. ${data.recommendation}`;
+                speak(summaryText);
+            } else {
+                speak("리포트 데이터를 불러올 수 없습니다.");
+            }
+        } catch (err) {
+            console.error("리포트 읽기 오류:", err);
+            speak("리포트를 읽는 중 오류가 발생했습니다.");
+        }
+    };
+
+    // 📄 리포트 PDF 생성
+    const handleGenerateReportPDF = async () => {
+        try {
+            speak("PDF를 생성 중입니다.");
+
+            // Firestore에서 주간 데이터 가져오기
+            const summaryRef = doc(db, "reports/weekly/data/summary");
+            const analyticsRef = doc(db, "reports/weekly/data/analytics");
+            
+            const summarySnap = await getDoc(summaryRef);
+            const analyticsSnap = await getDoc(analyticsRef);
+
+            const summary = summarySnap.exists() ? summarySnap.data() : null;
+            const analytics = analyticsSnap.exists() ? analyticsSnap.data() : null;
+
+            // PDF 생성
+            const pdf = new jsPDF({ unit: "pt", format: "a4" });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            let y = 60;
+
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(20);
+            pdf.text("YAGO VIBE SPORTS - AI Weekly Report", 40, y);
+            y += 25;
+
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(10);
+            pdf.text(`Generated: ${new Date().toISOString().split("T")[0]}`, 40, y);
+            y += 30;
+
+            if (summary) {
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(14);
+                pdf.text("Weekly Summary", 40, y);
+                y += 20;
+
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(11);
+                pdf.text(`- New Users: ${summary.newUsers}`, 50, y);
+                y += 18;
+                pdf.text(`- Active Users: ${summary.activeUsers}`, 50, y);
+                y += 18;
+                pdf.text(`- Growth Rate: ${summary.growthRate}`, 50, y);
+                y += 18;
+                
+                const highlightText = summary.highlight?.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim() || "";
+                if (highlightText) {
+                    const highlightLines = pdf.splitTextToSize(`- Highlight: ${highlightText}`, pageWidth - 100);
+                    for (let i = 0; i < highlightLines.length && y < pageHeight - 60; i++) {
+                        pdf.text(highlightLines[i], 50, y);
+                        y += 18;
+                    }
+                }
+                
+                pdf.text(`- Recommendation: ${summary.recommendation}`, 50, y);
+                y += 30;
+            }
+
+            if (analytics && analytics.labels && analytics.newUsers && analytics.activeUsers) {
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(14);
+                pdf.text("Weekly Statistics", 40, y);
+                y += 25;
+
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(10);
+                
+                pdf.text("Week", 50, y);
+                pdf.text("New Users", 120, y);
+                pdf.text("Active Users", 200, y);
+                y += 20;
+
+                for (let i = 0; i < Math.min(analytics.labels.length, analytics.newUsers.length, analytics.activeUsers.length); i++) {
+                    pdf.text(`Week ${i + 1}`, 50, y);
+                    pdf.text(`${analytics.newUsers[i]}`, 120, y);
+                    pdf.text(`${analytics.activeUsers[i]}`, 200, y);
+                    y += 18;
+                }
+            }
+
+            pdf.save(`AI_Weekly_Report_${new Date().toISOString().split("T")[0]}.pdf`);
+            speak("PDF 리포트가 다운로드되었습니다.");
+        } catch (err) {
+            console.error("PDF 생성 오류:", err);
+            speak("PDF 생성 중 오류가 발생했습니다.");
+        }
     };
 
     // ✅ NLU 호출 → Functions 실행 → Firestore 로그 저장
@@ -150,18 +281,25 @@ export default function VoiceAssistantButton() {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center space-x-3">
-            <button
-                onClick={toggleListening}
-                className={`w-16 h-16 rounded-full text-2xl shadow-xl transition-all hover:scale-110 ${isListening ? "bg-red-500 animate-pulse" : "bg-blue-500 hover:bg-blue-600"
-                    }`}
-            >
-                🎤
-            </button>
-            {isListening && (
-                <span className="bg-white px-4 py-2 rounded-full shadow-lg text-sm font-medium text-gray-700 animate-pulse">
-                    음성 인식 중...
-                </span>
+        <div className="fixed bottom-6 right-6 z-50">
+            <div className="flex items-center space-x-3">
+                <button
+                    onClick={toggleListening}
+                    className={`w-16 h-16 rounded-full text-2xl shadow-xl transition-all hover:scale-110 ${isListening ? "bg-red-500 animate-pulse" : "bg-blue-500 hover:bg-blue-600"
+                        }`}
+                >
+                    🎤
+                </button>
+                {isListening && (
+                    <span className="bg-white px-4 py-2 rounded-full shadow-lg text-sm font-medium text-gray-700 animate-pulse">
+                        음성 인식 중...
+                    </span>
+                )}
+            </div>
+            {recognizedText && !isListening && (
+                <div className="mt-3 bg-white px-4 py-2 rounded-lg shadow-lg text-sm text-gray-700 border border-gray-200">
+                    🗣️ <span className="font-semibold">{recognizedText}</span>
+                </div>
             )}
         </div>
     );

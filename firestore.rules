@@ -1,0 +1,481 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 팀 문서: 팀 멤버만 읽기 가능, Owner만 쓰기 가능
+    match /teams/{teamId} {
+      // 읽기: 팀 멤버 (owners, coaches, members) 또는 관리자
+      allow read: if request.auth != null && (
+        request.auth.uid in resource.data.get('owners', []) ||
+        request.auth.uid in resource.data.get('coaches', []) ||
+        request.auth.uid in resource.data.get('members', []) ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      
+      // 쓰기: Owner만 가능
+      allow write: if request.auth != null && 
+                     request.auth.uid in resource.data.get('owners', []);
+      
+      // 팀 리포트
+      match /reports/{reportId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && 
+                       request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []);
+        
+        // 품질 리포트
+        match /qualityReports/{qualityReportId} {
+          allow read: if request.auth != null;
+          allow create: if request.auth != null;
+          allow update, delete: if false; // Functions에서만 관리
+        }
+      }
+      
+      // 역할 관리
+      match /roles/{userId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && 
+                       request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []);
+      }
+      
+      // 알림 로그: Owner 및 관리자만 읽기 가능
+      match /alerts/{alertId} {
+        allow read: if request.auth != null && (
+          request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []) ||
+          request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+          request.auth.token.email.matches('.*admin.*')
+        );
+        allow write: if false; // Functions에서만 쓰기
+      }
+    }
+    
+    // Step 59-60: Proactive Insights
+    match /insightSubs/{subId} {
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    // Step 20: AI 주간 인사이트
+    match /insights/{insightId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+
+    match /insightReports/{reportId} {
+      // 읽기: 팀 멤버 또는 관리자
+      allow read: if request.auth != null && (
+        // 보고서의 teamId로 팀 문서 확인
+        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('owners', []) ||
+        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('coaches', []) ||
+        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('members', []) ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      
+      // 쓰기 (승인/반려): Owner 또는 관리자만 가능
+      allow update: if request.auth != null && (
+        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('owners', []) ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      
+      // 생성: Functions에서만 가능
+      allow create: if false;
+      
+      // 삭제: 관리자만 가능
+      allow delete: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    // Step 26 & Step 62: 감사 로그 (Audit Logs)
+    match /auditLogs/{logId} {
+      // 읽기: 관리자(role="admin") 또는 관리자 이메일만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: 인증된 사용자가 자신의 액션을 기록 가능 (uid 일치)
+      allow create: if request.auth != null && 
+                       request.resource.data.uid == request.auth.uid;
+      // 수정/삭제: 불가 (감사 로그는 변경 불가)
+      allow update, delete: if false;
+    }
+
+    // Step 27: 워크플로우 로그 (Workflow Logs)
+    match /workflowLogs/{logId} {
+      // 읽기: 관리자 또는 매니저만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능 (클라이언트는 읽기만 가능)
+      allow write: if false;
+    }
+
+    // Step 28: 워크플로우 통계 (Workflow Stats)
+    match /workflowStats/{statId} {
+      // 읽기: 관리자 또는 매니저만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능 (클라이언트는 읽기만 가능)
+      allow write: if false;
+    }
+
+    // Step 31: 베타 피드백 (Beta Feedback)
+    match /betaFeedback/{feedbackId} {
+      // 읽기: 관리자 또는 매니저만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions/HTTPS API에서만 가능 (웹 직접 접근은 rate-limit 필요)
+      // 실제로는 feedbackApi 함수를 통해만 쓰기 가능하도록 제한
+      allow write: if false;
+    }
+
+    // Step 32: 릴리즈 체크 및 노트 (Release Checks & Notes)
+    match /releaseChecks/{checkId} {
+      // 읽기: 관리자 또는 매니저만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+
+    match /releaseNotes/{noteId} {
+      // 읽기: 관리자 또는 매니저만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "manager" ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    match /modelCards/{cardId} {
+      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
+      allow read: if request.auth != null;
+      // 쓰기: 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    // Step 63: Compliance Export & DSAR
+    match /complianceExports/{exportId} {
+      // 읽기: Owner 또는 SecOps(관리자)만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.uid ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    match /dsarRequests/{requestId} {
+      // 읽기: 요청자 또는 SecOps(관리자)만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.uid ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    match /deletionRequests/{requestId} {
+      // 읽기: 요청자 또는 SecOps(관리자)만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.uid ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    match /systemLogs/{logId} {
+      // 읽기: SecOps(관리자)만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    // Step 64: Global Governance Portal
+    match /policies/{policyId} {
+      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
+      allow read: if request.auth != null;
+      // 쓰기: Functions에서만 가능 (policyCompiler)
+      allow write: if false;
+    }
+    
+    // Step 65: Multi-Tenant Org Rollout & Billing Guard
+    match /orgs/{orgId} {
+      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
+      allow read: if request.auth != null;
+      // 쓰기: 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /tenants/{tenantId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      // 쓰기: 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /plans/{planId} {
+      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
+      allow read: if request.auth != null;
+      // 쓰기: 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /usage/{day}/{orgId} {
+      // 읽기: 해당 조직 또는 관리자만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == orgId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    match /ratelimits/{limitId} {
+      // 읽기: 관리자만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    match /billingDaily/{billId} {
+      // 읽기: 해당 조직 또는 관리자만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.orgId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    match /featureOverrides/{orgId} {
+      // 읽기: 해당 조직 또는 관리자만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == orgId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    // Step 68: Real-World Pilot & Telemetry Review
+    match /events/{day}/{eventId} {
+      // 읽기: 관리자만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    match /telemetryDaily/{docId} {
+      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
+      allow read: if request.auth != null;
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    match /improvements/{docId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      // 쓰기: Functions 또는 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+    }
+    
+    match /pilotRollbacks/{docId} {
+      // 읽기: 관리자만 가능
+      allow read: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    // Step 69: Production Hardening - 헬스체크용 임시 컬렉션
+    match /_health/{docId} {
+      // 읽기/쓰기: 인증된 사용자 모두 가능
+      allow read, write: if request.auth != null;
+    }
+    
+    // Step 69: Production Hardening - 런북 템플릿
+    match /runbookTemplates/{docId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      // 쓰기: 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin']
+      );
+    }
+    
+    // Step 69: Production Hardening - 론치 플랜
+    match /launchPlans/{docId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      // 쓰기: 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin']
+      );
+    }
+    
+    // Step 70: Post-Launch SRE & Growth Experiments
+    match /slo/{metricId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      // 쓰기: 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin']
+      );
+    }
+    
+    match /experiments/{expId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      // 쓰기: 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin']
+      );
+      
+      // 실험 할당
+      match /assign/{userId} {
+        // 읽기: 본인 또는 관리자만 가능
+        allow read: if request.auth != null && (
+          request.auth.uid == userId ||
+          request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+          request.auth.token.email.matches('.*admin.*')
+        );
+        // 쓰기: Functions에서만 가능 (abRouter)
+        allow write: if false;
+      }
+    }
+    
+    match /sessions/{userId} {
+      // 읽기: 본인 또는 관리자만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: 본인만 가능
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // 세션 방문 기록
+      match /visits/{visitId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    match /retention/{docId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    // Step 71: Multi-Modal AI Extensions & Voice UX 2.0
+    match /plugins/{pluginId} {
+      // 읽기: 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+      // 쓰기: 소유자(ownerId) 또는 관리자만 가능
+      allow write: if request.auth != null && (
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role in ['owner', 'admin'] ||
+        request.auth.uid == request.resource.data.ownerId
+      );
+    }
+    
+    match /assistantLogs/{logId} {
+      // 읽기: 본인 또는 관리자만 가능
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
+        request.auth.token.email.matches('.*admin.*')
+      );
+      // 쓰기: Functions에서만 가능
+      allow write: if false;
+    }
+    
+    // 🔧 개발/테스트용 컬렉션 (에뮬레이터에서 사용)
+    match /testConnection/{docId} {
+      // 읽기/쓰기: 인증된 사용자 모두 가능 (개발용)
+      allow read, write: if request.auth != null;
+    }
+    
+    // 🛒 마켓 상품 (Market Products)
+    // ✅ 테스트용 — 에뮬레이터에서 모든 요청 허용
+    match /marketProducts/{productId} {
+      allow read, write: if true;
+    }
+  }
+}
+

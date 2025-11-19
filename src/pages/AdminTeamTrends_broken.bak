@@ -1,0 +1,699 @@
+import { useEffect, useState, useRef, useMemo } from "react";
+import { collection, getDocs, query, orderBy, doc, onSnapshot } from "firebase/firestore";
+import { db, storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import TrendChart from "@/components/TrendChart";
+import TrendScoreCard from "@/components/TrendScoreCard";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+
+type ReportSummary = {
+    month: string;
+    avgScore: number;
+    trend: string;
+    diff?: number;
+    insight?: string;
+    pdfUrl?: string;
+    audioUrl?: string;
+    participantCount?: number;
+    monthlyAverages?: Array<{ month: string; avg: number; count: number }>;
+    updatedAt?: any;
+    createdAt?: any;
+};
+
+/**
+ * AI Î¶¨Ìè¨?∏Ïóê???êÏàò Ï∂îÏ∂ú (Í∞ÑÎã®???¥Î¶¨?§Ìã±)
+ * Î¶¨Ìè¨???çÏä§?∏Ïóê???´ÏûêÎ•?Ï∞æÏïÑ ?êÏàòÎ°??¨Ïö©
+ */
+const extractScoreFromReport = (report: string): number => {
+    if (!report) return 75; // Í∏∞Î≥∏Í∞?
+
+    // ?®ÌÑ¥ 1: "85??, "90?? ?ïÌÉú
+    const scoreMatch1 = report.match(/([0-9]{1,3})??g);
+    if (scoreMatch1) {
+        const scores = scoreMatch1.map((m) => parseInt(m.replace("??, "")));
+        const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+        if (avgScore >= 0 && avgScore <= 100) return Math.round(avgScore);
+    }
+
+    // ?®ÌÑ¥ 2: "85%", "90%" ?ïÌÉú
+    const scoreMatch2 = report.match(/([0-9]{1,3})%/g);
+    if (scoreMatch2) {
+        const scores = scoreMatch2.map((m) => parseInt(m.replace("%", "")));
+        const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+        if (avgScore >= 0 && avgScore <= 100) return Math.round(avgScore);
+    }
+
+    // ?®ÌÑ¥ 3: ?úÎèô ?üÏàò?Ä ?úÍ∞Ñ Í∏∞Î∞ò ?êÏàò Í≥ÑÏÇ∞
+    // Î¶¨Ìè¨??Í∏∏Ïù¥?Ä Í∏çÏ†ï ?§Ïõå?úÎ°ú Ï∂îÏ†ï
+    const positiveKeywords = ["Ï¢?, "?•ÏÉÅ", "Ï¶ùÍ?", "Í∞úÏÑ†", "?úÎ∞ú", "?∞Ïàò", "?åÎ?", "?±Í≥µ"];
+    const negativeKeywords = ["Í∞êÏÜå", "Î∂ÄÏ°?, "Í∞úÏÑ† ?ÑÏöî", "Ï£ºÏùò", "??ùå"];
+
+    let positiveCount = 0;
+    let negativeCount = 0;
+
+    positiveKeywords.forEach((keyword) => {
+        const matches = report.match(new RegExp(keyword, "g"));
+        if (matches) positiveCount += matches.length;
+    });
+
+    negativeKeywords.forEach((keyword) => {
+        const matches = report.match(new RegExp(keyword, "g"));
+        if (matches) negativeCount += matches.length;
+    });
+
+    // Í∏∞Î≥∏ ?êÏàò 75?êÏóê???§Ïõå??Í∏∞Î∞ò Ï°∞Ï†ï
+    let score = 75;
+    score += positiveCount * 3;
+    score -= negativeCount * 5;
+    score = Math.max(60, Math.min(95, score)); // 60-95 Î≤îÏúÑÎ°??úÌïú
+
+    return Math.round(score);
+};
+
+export default function AdminTeamTrends() {
+    const { isAdmin, loading: authLoading } = useAdminGuard();
+    const [data, setData] = useState<any[]>([]);
+    const [months, setMonths] = useState<string[]>([]);
+    const [selectedMonth, setSelectedMonth] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false);
+    const [playingTTS, setPlayingTTS] = useState(false);
+    const [sharingToSlack, setSharingToSlack] = useState(false);
+    const [latestSummary, setLatestSummary] = useState<ReportSummary | null>(null);
+    const dashboardRef = useRef<HTMLDivElement>(null);
+
+    // ?§ÏãúÍ∞??îÏïΩ ?§ÎÉÖ??Íµ¨ÎèÖ
+    useEffect(() => {
+        if (!isAdmin) return;
+
+        const summaryRef = doc(db, "reportSummaries", "latest");
+        const unsubscribe = onSnapshot(
+            summaryRef,
+            (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data() as ReportSummary;
+                    setLatestSummary(data);
+                    console.log("?ìä ÏµúÏã† Î¶¨Ìè¨???îÏïΩ ?ÖÎç∞?¥Ìä∏:", data);
+                } else {
+                    setLatestSummary(null);
+                }
+            },
+            (error) => {
+                console.error("??Î¶¨Ìè¨???îÏïΩ Íµ¨ÎèÖ ?§Î•ò:", error);
+            }
+        );
+
+        return () => unsubscribe();
+    }, [isAdmin]);
+
+    useEffect(() => {
+        if (!isAdmin) return;
+
+        (async () => {
+            try {
+                const usersSnap = await getDocs(collection(db, "users"));
+                const allData: any[] = [];
+
+                for (const userDoc of usersSnap.docs) {
+                    const user = userDoc.data();
+                    const uid = userDoc.id;
+
+                    // ?îÍ∞Ñ Î¶¨Ìè¨??Ïª¨Î†â??Ï°∞Ìöå
+                    const monthlyRef = collection(db, "monthlyReports", uid, "reports");
+                    const reportsSnap = await getDocs(query(monthlyRef, orderBy("createdAt", "desc")));
+
+                    for (const rep of reportsSnap.docs) {
+                        const r = rep.data();
+                        const score = extractScoreFromReport(r.report || "");
+
+                        allData.push({
+                            uid,
+                            nickname: user.nickname || user.name || "?¥Î¶Ñ ?ÜÏùå",
+                            email: user.email || "",
+                            month: rep.id,
+                            score,
+                            report: r.report,
+                            weeklyReportsCount: r.weeklyReportsCount,
+                            totalActivities: r.totalActivities,
+                            totalDuration: r.totalDuration,
+                        });
+                    }
+                }
+
+                // ??Î™©Î°ù Ï∂îÏ∂ú Î∞??ïÎ†¨
+                const uniqueMonths = [...new Set(allData.map((d) => d.month))].sort().reverse();
+
+                setMonths(uniqueMonths);
+                setData(allData);
+                setSelectedMonth(uniqueMonths[0] || "");
+            } catch (error) {
+                console.error("?∏Î†å???∞Ïù¥??Î°úÎìú ?§Ìå®:", error);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [isAdmin]);
+
+    // ?îä AI ?åÏÑ± ?îÏïΩ ?¨ÏÉù (OpenAI TTS ?êÎäî Web Speech API)
+    const handlePlaySummary = async () => {
+        const monthlyData = data.filter((d) => d.month === selectedMonth);
+        if (monthlyData.length === 0) {
+            alert("?†ÌÉù???îÏùò ?∞Ïù¥?∞Í? ?ÜÏäµ?àÎã§.");
+            return;
+        }
+
+        const avgScore = monthlyData.reduce((a: number, b: any) => a + b.score, 0) / monthlyData.length;
+        const top3 = [...monthlyData]
+            .sort((a: any, b: any) => b.score - a.score)
+            .slice(0, 3)
+            .map((t: any) => t.nickname);
+
+        const summaryText = `${selectedMonth}???Ä ?âÍ∑† ?êÏàò??${avgScore.toFixed(1)}?êÏûÖ?àÎã§. ${top3.length > 0 ? `?ÅÏúÑ 3Î™ÖÏ? ${top3.join(", ")} ?ÖÎãà??` : ""
+            }`;
+
+        setPlayingTTS(true);
+
+        try {
+            const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+            // OpenAI TTS API ?¨Ïö© (?òÍ≤Ω Î≥Ä?òÍ? ?àÎäî Í≤ΩÏö∞)
+            if (apiKey) {
+                const response = await fetch("https://api.openai.com/v1/audio/speech", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${apiKey}`,
+                    },
+                    body: JSON.stringify({
+                        model: "tts-1", // tts-1 ?êÎäî tts-1-hd
+                        input: summaryText,
+                        voice: "alloy", // alloy, echo, fable, onyx, nova, shimmer
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`OpenAI TTS API ?§Î•ò: ${response.statusText}`);
+                }
+
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+
+                audio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    setPlayingTTS(false);
+                };
+
+                audio.onerror = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    setPlayingTTS(false);
+                    // OpenAI TTS ?§Ìå® ??Web Speech APIÎ°??ÄÏ≤?
+                    fallbackToWebSpeechAPI(summaryText);
+                };
+
+                await audio.play();
+            } else {
+                // OpenAI API ?§Í? ?ÜÏúºÎ©?Web Speech API ?¨Ïö©
+                fallbackToWebSpeechAPI(summaryText);
+            }
+        } catch (error) {
+            console.error("TTS ?¨ÏÉù ?§Î•ò:", error);
+            // OpenAI TTS ?§Ìå® ??Web Speech APIÎ°??ÄÏ≤?
+            fallbackToWebSpeechAPI(summaryText);
+        }
+    };
+
+    // Web Speech API ?ÄÏ≤??®Ïàò
+    const fallbackToWebSpeechAPI = (text: string) => {
+        if (!("speechSynthesis" in window)) {
+            alert("??Î∏åÎùº?∞Ï????åÏÑ± ?©ÏÑ±??ÏßÄ?êÌïòÏßÄ ?äÏäµ?àÎã§.");
+            setPlayingTTS(false);
+            return;
+        }
+
+        // Í∏∞Ï°¥ ?åÏÑ± Ï§ëÏ?
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "ko-KR";
+        utterance.rate = 1.5; // ÏµúÏ†Å ?çÎèÑ
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        utterance.onend = () => {
+            setPlayingTTS(false);
+        };
+
+        utterance.onerror = () => {
+            setPlayingTTS(false);
+        };
+
+        window.speechSynthesis.speak(utterance);
+    };
+
+    const handleDownloadPDF = async () => {
+        if (!dashboardRef.current) {
+            alert("?Ä?úÎ≥¥?úÎ? Î∂àÎü¨?????ÜÏäµ?àÎã§.");
+            return;
+        }
+
+        setDownloading(true);
+        try {
+            // ?Ä?úÎ≥¥???ÅÏó≠??Ï∫îÎ≤Ñ?§Î°ú Ï∫°Ï≤ò
+            const canvas = await html2canvas(dashboardRef.current, {
+                scale: 2,
+                backgroundColor: "#ffffff",
+                logging: false,
+                useCORS: true,
+            });
+
+            const imgData = canvas.toDataURL("image/png");
+
+            // PDF ?ùÏÑ± (A4 ?¨Îß∑)
+            const pdf = new jsPDF("p", "mm", "a4");
+            const pdfWidth = 210; // A4 ??(mm)
+            const pdfHeight = 297; // A4 ?íÏù¥ (mm)
+            const margin = 10;
+            const contentWidth = pdfWidth - margin * 2;
+            const imgWidth = contentWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            // ?§Îçî Ï∂îÍ?
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(18);
+            pdf.text("YAGO VIBE ¬∑ AI ?∏Î†å??Î¶¨Ìè¨??, pdfWidth / 2, margin + 10, { align: "center" });
+
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(11);
+            pdf.text(`Í∏∞Í∞Ñ: ${selectedMonth || "?ÑÏ≤¥"}`, pdfWidth / 2, margin + 20, { align: "center" });
+
+            // ?µÍ≥Ñ ?ïÎ≥¥
+            const monthlyData = data.filter((d) => d.month === selectedMonth);
+            const avgScore = monthlyData.reduce((a: number, b: any) => a + b.score, 0) / (monthlyData.length || 1);
+            const maxScore = monthlyData.length > 0 ? Math.max(...monthlyData.map((d: any) => d.score)) : 0;
+            const minScore = monthlyData.length > 0 ? Math.min(...monthlyData.map((d: any) => d.score)) : 0;
+
+            pdf.setFontSize(10);
+            const statsText = `?âÍ∑†: ${avgScore.toFixed(1)}??| ÏµúÍ≥†: ${maxScore}??| ÏµúÏ?: ${minScore}??| Ï∞∏Ïó¨: ${monthlyData.length}Î™?;
+            pdf.text(statsText, pdfWidth / 2, margin + 28, { align: "center", maxWidth: contentWidth });
+
+            let y = margin + 35;
+
+            // ?¥Î?ÏßÄ Ï∂îÍ? (?¨Îü¨ ?òÏù¥ÏßÄÎ°?Î∂ÑÌï†)
+            const pageHeight = pdfHeight - margin;
+            const remainingHeight = pageHeight - y - 20; // ?òÎã® ?¨Î∞± ?¨Ìï®
+            const totalPages = Math.ceil(imgHeight / remainingHeight);
+
+            for (let i = 0; i < totalPages; i++) {
+                if (i > 0) {
+                    pdf.addPage();
+                    y = margin;
+                }
+
+                const pageImgHeight = Math.min(remainingHeight, imgHeight - i * remainingHeight);
+                const srcY = i * remainingHeight * (canvas.width / imgWidth);
+                const srcHeight = pageImgHeight * (canvas.width / imgWidth);
+
+                // ?¥Î?ÏßÄ Ï∂îÍ?
+                pdf.addImage(
+                    imgData,
+                    "PNG",
+                    margin,
+                    y,
+                    imgWidth,
+                    imgHeight,
+                    undefined,
+                    "FAST",
+                    0,
+                    srcY
+                );
+
+                // ?òÏù¥ÏßÄ Î≤àÌò∏ (?òÎã®)
+                pdf.setFontSize(9);
+                pdf.setFont("helvetica", "normal");
+                pdf.text(
+                    `?òÏù¥ÏßÄ ${i + 1}/${totalPages}`,
+                    pdfWidth / 2,
+                    pdfHeight - 5,
+                    { align: "center" }
+                );
+            }
+
+            // ?åÏùº ?§Ïö¥Î°úÎìú
+            const filename = `YAGO_VIBE_TeamReport_${selectedMonth || "all"}.pdf`;
+            pdf.save(filename);
+        } catch (error) {
+            console.error("PDF ?ùÏÑ± ?§Î•ò:", error);
+            alert("PDF ?ùÏÑ± Ï§??§Î•òÍ∞Ä Î∞úÏÉù?àÏäµ?àÎã§. ?§Ïãú ?úÎèÑ?¥Ï£º?∏Ïöî.");
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    // ?§ñ Slack Í≥µÏú† (n8n Webhook ?∏Ï∂ú)
+    const handleShareToSlack = async () => {
+        const monthlyData = data.filter((d) => d.month === selectedMonth);
+        if (monthlyData.length === 0) {
+            alert("?†ÌÉù???îÏùò ?∞Ïù¥?∞Í? ?ÜÏäµ?àÎã§.");
+            return;
+        }
+
+        if (!dashboardRef.current) {
+            alert("?Ä?úÎ≥¥?úÎ? Î∂àÎü¨?????ÜÏäµ?àÎã§.");
+            return;
+        }
+
+        setSharingToSlack(true);
+        try {
+            // 1Ô∏è‚É£ PDF ?ùÏÑ± (?Ä?úÎ≥¥??Ï∫°Ï≤ò)
+            const canvas = await html2canvas(dashboardRef.current, {
+                scale: 2,
+                backgroundColor: "#ffffff",
+                logging: false,
+                useCORS: true,
+            });
+
+            const imgData = canvas.toDataURL("image/png");
+
+            // PDF ?ùÏÑ± (A4 ?¨Îß∑)
+            const pdf = new jsPDF("p", "mm", "a4");
+            const pdfWidth = 210;
+            const pdfHeight = 297;
+            const margin = 10;
+            const contentWidth = pdfWidth - margin * 2;
+            const imgWidth = contentWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            // ?§Îçî Ï∂îÍ?
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(18);
+            pdf.text("YAGO VIBE ¬∑ AI ?∏Î†å??Î¶¨Ìè¨??, pdfWidth / 2, margin + 10, { align: "center" });
+
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(11);
+            pdf.text(`Í∏∞Í∞Ñ: ${selectedMonth || "?ÑÏ≤¥"}`, pdfWidth / 2, margin + 20, { align: "center" });
+
+            const avgScore = monthlyData.reduce((a: number, b: any) => a + b.score, 0) / monthlyData.length;
+            const maxScore = Math.max(...monthlyData.map((d: any) => d.score));
+            const minScore = Math.min(...monthlyData.map((d: any) => d.score));
+
+            pdf.setFontSize(10);
+            const statsText = `?âÍ∑†: ${avgScore.toFixed(1)}??| ÏµúÍ≥†: ${maxScore}??| ÏµúÏ?: ${minScore}??| Ï∞∏Ïó¨: ${monthlyData.length}Î™?;
+            pdf.text(statsText, pdfWidth / 2, margin + 28, { align: "center", maxWidth: contentWidth });
+
+            let y = margin + 35;
+            const pageHeight = pdfHeight - margin;
+            const remainingHeight = pageHeight - y - 20;
+            const totalPages = Math.ceil(imgHeight / remainingHeight);
+
+            for (let i = 0; i < totalPages; i++) {
+                if (i > 0) {
+                    pdf.addPage();
+                    y = margin;
+                }
+
+                const pageImgHeight = Math.min(remainingHeight, imgHeight - i * remainingHeight);
+                const srcY = i * remainingHeight * (canvas.width / imgWidth);
+
+                pdf.addImage(imgData, "PNG", margin, y, imgWidth, imgHeight, undefined, "FAST", 0);
+
+                pdf.setFontSize(9);
+                pdf.setFont("helvetica", "normal");
+                pdf.text(`?òÏù¥ÏßÄ ${i + 1}/${totalPages}`, pdfWidth / 2, pdfHeight - 5, { align: "center" });
+            }
+
+            // 2Ô∏è‚É£ Firebase Storage ?ÖÎ°ú??
+            const blob = pdf.output("blob");
+            const fileName = `teamReport_${selectedMonth || "all"}_${Date.now()}.pdf`;
+            const storageRef = ref(storage, `reportsPDF/${fileName}`);
+            await uploadBytes(storageRef, blob);
+            const pdfUrl = await getDownloadURL(storageRef);
+
+            // 3Ô∏è‚É£ ?ÅÏúÑ 3Î™?Ï∂îÏ∂ú
+            const top3 = [...monthlyData]
+                .sort((a: any, b: any) => b.score - a.score)
+                .slice(0, 3)
+                .map((t: any) => t.nickname);
+
+            // 4Ô∏è‚É£ n8n Webhook ?∏Ï∂ú
+            const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://n8n.yagovibe.ai/webhook/ai-report";
+            const payload = {
+                month: selectedMonth,
+                avgScore: avgScore.toFixed(1),
+                top3: top3.join(", "),
+                pdfUrl,
+                participantCount: monthlyData.length,
+                maxScore,
+                minScore,
+                createdAt: new Date().toISOString(),
+            };
+
+            const response = await fetch(webhookUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Webhook ?∏Ï∂ú ?§Ìå®: ${response.statusText}`);
+            }
+
+            alert("??Slack?ºÎ°ú Î¶¨Ìè¨?∏Í? ?ÑÏÜ°?òÏóà?µÎãà??");
+        } catch (error) {
+            console.error("Slack Í≥µÏú† ?§Î•ò:", error);
+            alert(`Slack ?ÑÏÜ° Ï§??§Î•òÍ∞Ä Î∞úÏÉù?àÏäµ?àÎã§: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setSharingToSlack(false);
+        }
+    };
+
+    if (authLoading || loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 mb-2">YAGO VIBE</div>
+                    <div className="text-gray-500">Î°úÎî© Ï§?..</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isAdmin) {
+        return null; // useAdminGuardÍ∞Ä Î¶¨Îîî?âÏÖò Ï≤òÎ¶¨
+    }
+
+    const monthlyData = data.filter((d) => d.month === selectedMonth);
+    const avgScore = monthlyData.reduce((a: number, b: any) => a + b.score, 0) / (monthlyData.length || 1);
+    const maxScore = monthlyData.length > 0 ? Math.max(...monthlyData.map((d: any) => d.score)) : 0;
+    const minScore = monthlyData.length > 0 ? Math.min(...monthlyData.map((d: any) => d.score)) : 0;
+
+    return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+            <div className="max-w-7xl mx-auto px-4">
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                        ?ìà ?ÄÎ≥?AI Î¶¨Ìè¨???∏Î†å???Ä?úÎ≥¥??
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        ?Ä?êÎì§???îÍ∞Ñ Î¶¨Ìè¨???∞Ïù¥?∞Î? Î∂ÑÏÑù?òÏó¨ ?∏Î†å?úÎ? ?ïÏù∏?òÏÑ∏??
+                    </p>
+                </div>
+
+                {/* ?§ÏãúÍ∞?ÏµúÏã† Î¶¨Ìè¨??Î∞∞ÎÑà */}
+                {latestSummary && (
+                    <div className="mb-6 rounded-xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 p-4 flex flex-col md:flex-row md:items-center md:justify-between shadow-md animate-pulse">
+                        <div className="space-y-2 flex-1">
+                            <div className="font-semibold text-emerald-900 dark:text-emerald-100 text-lg flex items-center gap-2">
+                                <span>?ìä</span>
+                                <span>ÏµúÏã† Î¶¨Ìè¨?? {latestSummary.month}</span>
+                            </div>
+                            <div className="text-sm text-emerald-700 dark:text-emerald-300">
+                                ?âÍ∑† <b className="font-bold text-lg">{latestSummary.avgScore.toFixed(1)}</b>????" "}
+                                <b className="font-semibold">{latestSummary.trend}</b>
+                                {latestSummary.diff !== undefined && (
+                                    <>
+                                        {" "}
+                                        ({latestSummary.diff > 0 ? "+" : ""}
+                                        {latestSummary.diff.toFixed(1)}??
+                                    </>
+                                )}
+                                {latestSummary.insight && (
+                                    <>
+                                        {" "}??<span className="text-emerald-600 dark:text-emerald-400 italic">{latestSummary.insight.substring(0, 80)}...</span>
+                                    </>
+                                )}
+                            </div>
+                            {latestSummary.updatedAt && (
+                                <div className="text-xs text-emerald-600 dark:text-emerald-400">
+                                    ?ÖÎç∞?¥Ìä∏:{" "}
+                                    {latestSummary.updatedAt.toDate
+                                        ? latestSummary.updatedAt.toDate().toLocaleString("ko-KR")
+                                        : new Date().toLocaleString("ko-KR")}
+                                </div>
+                            )}
+                        </div>
+                        <div className="mt-4 md:mt-0 flex gap-2">
+                            {latestSummary.pdfUrl && (
+                                <a
+                                    href={latestSummary.pdfUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-semibold flex items-center gap-2"
+                                >
+                                    <span>?ìÑ</span>
+                                    <span>PDF Î≥¥Í∏∞</span>
+                                </a>
+                            )}
+                            {latestSummary.audioUrl && (
+                                <a
+                                    href={latestSummary.audioUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors font-semibold flex items-center gap-2"
+                                >
+                                    <span>?éß</span>
+                                    <span>?åÏÑ± ?£Í∏∞</span>
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* ?ÑÌÑ∞ Î∞??µÍ≥Ñ */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 mb-6">
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                ?ìÖ ???†ÌÉù
+                            </label>
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                            >
+                                {months.map((m) => (
+                                    <option key={m} value={m}>
+                                        {m}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* ?µÍ≥Ñ Ïπ¥Îìú */}
+                        <div className="grid grid-cols-3 gap-4 flex-1">
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">?âÍ∑† ?êÏàò</p>
+                                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                    {avgScore.toFixed(1)}
+                                </p>
+                            </div>
+                            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">ÏµúÍ≥† ?êÏàò</p>
+                                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{maxScore}</p>
+                            </div>
+                            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 text-center">
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">ÏµúÏ? ?êÏàò</p>
+                                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{minScore}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={handlePlaySummary}
+                                disabled={playingTTS || !selectedMonth || monthlyData.length === 0}
+                                className="bg-emerald-500 text-white px-6 py-2 rounded-lg hover:bg-emerald-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {playingTTS ? (
+                                    <>
+                                        <span className="animate-pulse">??/span>
+                                        <span>?¨ÏÉù Ï§?..</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>?îä</span>
+                                        <span>AI ?îÏïΩ ?£Í∏∞</span>
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={handleDownloadPDF}
+                                disabled={downloading || !selectedMonth}
+                                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {downloading ? "??PDF ?ùÏÑ± Ï§?.." : "?ì• PDF ?§Ïö¥Î°úÎìú"}
+                            </button>
+                            <button
+                                onClick={handleShareToSlack}
+                                disabled={sharingToSlack || !selectedMonth || monthlyData.length === 0}
+                                className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {sharingToSlack ? (
+                                    <>
+                                        <span className="animate-pulse">??/span>
+                                        <span>?ÑÏÜ° Ï§?..</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>?§ñ</span>
+                                        <span>Slack Í≥µÏú†</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* PDF Ï∫°Ï≤ò ?Ä???Ä?úÎ≥¥???ÅÏó≠ */}
+                <div ref={dashboardRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                    {/* ?§Îçî */}
+                    <div className="mb-6 text-center">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                            ?ìà YAGO VIBE AI ?∏Î†å??Î¶¨Ìè¨??
+                        </h2>
+                        <p className="text-gray-600 dark:text-gray-400">
+                            {selectedMonth || "?ÑÏ≤¥ Í∏∞Í∞Ñ"} ¬∑ ?Ä ?âÍ∑† ?êÏàò: {avgScore.toFixed(1)}??
+                        </p>
+                    </div>
+
+                    {/* Ï∞®Ìä∏ ?πÏÖò */}
+                    {months.length > 0 && <TrendChart data={data} months={months} />}
+
+                    {/* ?Ä??Î¶¨Ïä§??*/}
+                    {selectedMonth && (
+                        <div className="mt-8">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                                ?ë• {selectedMonth} ?Ä?êÎ≥Ñ ?êÏàò
+                            </h2>
+                            {monthlyData.length === 0 ? (
+                                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-12 text-center">
+                                    <p className="text-gray-500 dark:text-gray-400">
+                                        ?†ÌÉù???îÏóê Î¶¨Ìè¨?∏Í? ?ÜÏäµ?àÎã§.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {monthlyData
+                                        .sort((a: any, b: any) => b.score - a.score)
+                                        .map((m: any, index: number) => (
+                                            <TrendScoreCard key={`${m.uid}-${m.month}`} data={m} rank={index + 1} />
+                                        ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ?∏ÌÑ∞ */}
+                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-center text-xs text-gray-500 dark:text-gray-400">
+                        <p>¬© 2025 YAGO VIBE ¬∑ Powered by AI</p>
+                        <p className="mt-1">?ùÏÑ±?? {new Date().toLocaleDateString("ko-KR")}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
