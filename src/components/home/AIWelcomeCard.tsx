@@ -30,7 +30,7 @@ export default function AIWelcomeCard({ user }: Props) {
     const userName = user?.nickname || user?.name || "사용자";
 
     return (
-        <div className="w-full max-w-4xl bg-gradient-to-r from-blue-600 to-indigo-500 text-white rounded-2xl p-5 shadow-lg">
+        <div className="w-full max-w-4xl mx-auto bg-gradient-to-r from-blue-600 to-indigo-500 text-white rounded-2xl p-5 shadow-lg">
             <div className="flex items-center space-x-3">
                 <Sparkles size={28} className="text-yellow-300" />
                 <div>

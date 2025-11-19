@@ -1,0 +1,108 @@
+/* ---------- 페이지 공통 레이아웃 ---------- */
+:root { 
+  --page-max: 960px; 
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+.page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;         /* 세로 중앙 */
+  justify-content: center;     /* 가로 중앙 */
+}
+
+.container {
+  width: min(100%, var(--page-max));
+  margin-inline: auto;
+  padding: 24px;
+  text-align: center;          /* 텍스트 기본 중앙 */
+}
+
+/* 버튼/링크 */
+.btn-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0 8px;
+}
+
+.btn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  cursor: pointer;
+}
+
+.btn:hover { 
+  background: #e5e7eb; 
+}
+
+.link {
+  color: #6d28d9;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link:hover { 
+  text-decoration: underline; 
+}
+
+.muted { 
+  color: #6b7280; 
+}
+
+/* ---------- 지도 영역 ---------- */
+.map-wrap {
+  position: relative;
+  width: min(1200px, 94vw);
+  height: min(70vh, 720px);
+  margin: 20px auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  background: #fafafa;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- 하단 고정 음성 버튼 ---------- */
+.voice-fab {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 24px;
+  z-index: 50;
+}
+
+.fab {
+  padding: 14px 18px;
+  font-size: 16px;
+  border-radius: 999px;
+  border: none;
+  color: #fff;
+  background: #2563eb;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.35);
+  cursor: pointer;
+}
+
+.fab:hover { 
+  background: #1d4ed8; 
+}
+
+/* 모바일에서 지도 높이 확보 */
+@media (max-width: 768px) {
+  .map-wrap { 
+    height: calc(100dvh - 220px); 
+  }
+}
+

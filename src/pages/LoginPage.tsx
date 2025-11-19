@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { upgradeGuestAccount } from "@/utils/upgradeGuestAccount";
 import logo from "@/assets/logo/YagoVibeLogo.svg";
 
 interface SpeechRecognition extends EventTarget {
@@ -61,14 +62,22 @@ export default function LoginPage() {
             return;
         }
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            speak("로그인에 성공했습니다. 홈 화면으로 이동합니다.");
-            navigate("/home");
-        } catch (error) {
+            // 게스트 계정이면 승격 시도
+            if (auth.currentUser?.isAnonymous) {
+                console.log("🎯 게스트 계정 발견 → 정식 계정으로 승격 시도");
+                await upgradeGuestAccount(email, password);
+                speak("게스트 계정이 정식 계정으로 승격되었습니다.");
+            } else {
+                // 일반 로그인
+                await signInWithEmailAndPassword(auth, email, password);
+                speak("로그인에 성공했습니다. 홈 화면으로 이동합니다.");
+            }
+            navigate("/sports-hub");
+        } catch (error: any) {
             console.error(error);
-            const errorMsg = "로그인에 실패했습니다. 이메일이나 비밀번호를 확인해주세요.";
+            const errorMsg = error.message || "로그인에 실패했습니다. 이메일이나 비밀번호를 확인해주세요.";
             speak(errorMsg);
-            setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+            setError(errorMsg);
         }
     };
 
@@ -129,7 +138,7 @@ export default function LoginPage() {
             setTargetField((prevField) => {
                 if (prevField === "email") {
                     // "at" -> "@", "dot" -> "." 변환
-                    let processedText = transcript
+                    const processedText = transcript
                         .replace(/\s+at\s+/gi, "@")
                         .replace(/\s+dot\s+/gi, ".")
                         .replace(/\s+/g, "");
@@ -157,7 +166,7 @@ export default function LoginPage() {
             }
         };
 
-        recog.onerror = (event: any) => {
+        (recog as any).onerror = (event: any) => {
             console.error("음성 인식 오류:", event.error);
             setListening(false);
             setTargetField(null);
@@ -167,7 +176,7 @@ export default function LoginPage() {
     }, []);
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-white px-6 text-center">
+        <div className="flex flex-col items-center text-center">
             <img
                 src={logo}
                 alt="YAGO VIBE"

@@ -1,45 +1,45 @@
-// tailwind.config.ts
-/** @type {import('tailwindcss').Config} */
-const config = {
-    content: [
-        "./index.html",
-        "./src/**/*.{js,ts,jsx,tsx}",
-    ],
-    theme: {
-        extend: {
-            colors: {
-                yago: {
-                    purple: '#4F46E5',
-                    gradientStart: '#6366F1',
-                    gradientEnd: '#A78BFA',
-                    pink: '#EC4899',
-                    blue: '#3B82F6',
-                    gray: '#6B7280',
-                    soft: '#F3F4F6',
-                    dark: '#1F2937',
-                    light: '#F9FAFB',
-                },
-            },
-            fontFamily: {
-                sans: ['Noto Sans KR', 'Poppins', 'sans-serif'],
-                display: ['Poppins', 'Noto Sans KR', 'sans-serif'],
-            },
-            backgroundImage: {
-                'yago-gradient': 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)',
-                'yago-gradient-dark': 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
-                'yago-gradient-pink': 'linear-gradient(135deg, #EC4899 0%, #F472B6 100%)',
-            },
-            boxShadow: {
-                'yago': '0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06)',
-                'yago-lg': '0 10px 15px -3px rgba(79, 70, 229, 0.1), 0 4px 6px -2px rgba(79, 70, 229, 0.05)',
-            },
-            animation: {
-                'yago-pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                'yago-bounce': 'bounce 1s infinite',
-            }
-        },
-    },
-    plugins: [],
-}
+import type { Config } from "tailwindcss";
 
-export default config
+export default {
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"];
+  safelist: [
+    // 마켓/상품 상세에서 사용하는 커스텀 유틸들
+    "products-grid",
+    "recommended-grid",
+    "product-card",
+    "detail-view",
+    "product-detail",
+    // HMR 시 종종 튀는 레이아웃 유틸들
+    "max-w-[900px]",
+    "max-w-[600px]",
+    "min-w-0",
+    "w-full",
+    "h-auto",
+    // Skeleton 및 애니메이션
+    "animate-pulse",
+    "bg-gray-200",
+    "bg-gray-200/80",
+    "bg-gray-100",
+  ],
+  plugins: [
+    function ({ addUtilities }) {
+      addUtilities({
+        ".products-grid": {
+          display: "grid",
+          "grid-template-columns": "1fr",
+          gap: "1rem",
+        },
+        "@media (min-width: 640px)": {
+          ".products-grid": {
+            "grid-template-columns": "repeat(2, 1fr)",
+          },
+        },
+        "@media (min-width: 1024px)": {
+          ".products-grid": {
+            "grid-template-columns": "repeat(3, 1fr)",
+          },
+        },
+      });
+    },
+  ],
+} satisfies Config;

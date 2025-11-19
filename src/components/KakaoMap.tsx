@@ -7,7 +7,7 @@ function loadKakaoSDK() {
 
   return new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_API_KEY}&autoload=false`;
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_JS_KEY}&autoload=false`;
     script.async = true;
     script.onload = () => {
       window.kakao.maps.load(() => resolve());
@@ -49,9 +49,9 @@ function loadKakaoSDK() {
   if (kakaoLoaderPromise) return kakaoLoaderPromise;
 
   kakaoLoaderPromise = new Promise<void>((resolve, reject) => {
-    const appKey = import.meta.env.VITE_KAKAO_API_KEY;
+    const appKey = import.meta.env.VITE_KAKAO_JS_KEY;
     if (!appKey) {
-      reject(new Error("❌ Kakao API Key not found (VITE_KAKAO_API_KEY)."));
+      reject(new Error("❌ Kakao API Key not found (VITE_KAKAO_JS_KEY)."));
       return;
     }
 

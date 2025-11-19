@@ -1,0 +1,62 @@
+name: Copilot Regression Tests
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build project
+        run: pnpm build --if-present
+
+      - name: Install Firebase Tools
+        run: npm install -g firebase-tools
+
+      - name: Run Copilot Tests with Firebase Emulator
+        run: |
+          firebase emulators:exec \
+            --only functions,firestore \
+            'pnpm test:copilot'
+        env:
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+          FUNCTIONS_EMULATOR_HOST: 127.0.0.1:5001
+          GCLOUD_PROJECT: yago-vibe-spt
+
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.node-version }}
+          path: |
+            test-results/
+            coverage/
+

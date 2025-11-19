@@ -1,66 +1,65 @@
-name: 🔥 Firebase Auto Deploy
+name: 🚀 Deploy to Vercel (Legacy)
+
+# 이 워크플로우는 호환성을 위해 유지됩니다.
+# 새로운 ci-cd.yml 워크플로우 사용을 권장합니다.
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
-      - '.gitignore'
+  workflow_dispatch:  # 수동 실행만 가능
+    inputs:
+      environment:
+        description: '배포 환경'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
 
 jobs:
-  build-and-deploy:
-    name: Build & Deploy to Firebase
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    name: Deploy to Vercel
+    
     steps:
-      # 1️⃣ 저장소 체크아웃
-      - name: Checkout Repository
+      - name: 📥 Checkout 코드
         uses: actions/checkout@v4
 
-      # 2️⃣ Node.js 환경 설정
-      - name: Setup Node.js
+      - name: 📦 Node.js 설정
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      # 3️⃣ 의존성 설치
-      - name: Install Dependencies
+      - name: 📦 의존성 설치
         run: npm ci
 
-      # 4️⃣ 프로젝트 빌드
-      - name: Build Project
-        run: npm run build
-        env:
-          VITE_OPENAI_API_KEY: ${{ secrets.VITE_OPENAI_API_KEY }}
-          VITE_KAKAO_API_KEY: ${{ secrets.VITE_KAKAO_API_KEY }}
-          VITE_SLACK_WEBHOOK_URL: ${{ secrets.VITE_SLACK_WEBHOOK_URL }}
+      - name: 🔍 환경 변수 검사
+        run: npm run check:env
+        continue-on-error: true
 
-      # 5️⃣ Firebase 배포
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: 🔧 빌드 검사
+        run: npm run check:build
+        continue-on-error: true
+
+      - name: 🚀 Vercel 배포 (Production)
+        if: github.event.inputs.environment == 'production'
+        uses: amondnet/vercel-action@v25
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-          channelId: live
-          projectId: yago-vibe-spt
-          target: yago-vibe-spt
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
 
-      # 6️⃣ 배포 완료 알림
-      - name: Deploy Success Notification
-        if: success()
+      - name: 🚀 Vercel 배포 (Preview)
+        if: github.event.inputs.environment == 'preview'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: 📝 배포 URL 출력
+        if: always()
         run: |
           echo "✅ 배포 완료!"
-          echo "🌐 URL: https://yago-vibe-spt.web.app"
-          echo "🌐 Custom: https://app.yagovibe.com"
-
-      # 7️⃣ 배포 실패 알림
-      - name: Deploy Failure Notification
-        if: failure()
-        run: |
-          echo "❌ 배포 실패!"
-          echo "로그를 확인하세요."
-
+          echo "   환경: ${{ github.event.inputs.environment }}"

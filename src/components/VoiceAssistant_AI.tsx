@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { STTService } from "../services/STTService";
 import { handleVoiceCommand } from "../services/VoiceAgentCore";
 
@@ -9,6 +10,7 @@ import { handleVoiceCommand } from "../services/VoiceAgentCore";
 export default function VoiceAssistant_AI() {
   const [isListening, setIsListening] = useState(false);
   const sttRef = useRef<STTService | null>(null);
+  const navigate = useNavigate();
 
   const startListening = () => {
     setIsListening(true);
@@ -17,7 +19,7 @@ export default function VoiceAssistant_AI() {
       onResult: async (text) => {
         console.log("🎤 인식 결과:", text);
         setIsListening(false);
-        await handleVoiceCommand(text);
+        await handleVoiceCommand(navigate, text);
       },
       onError: (err) => {
         console.error("❌ STT 오류:", err);

@@ -1,0 +1,16 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "qualityReports",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
+

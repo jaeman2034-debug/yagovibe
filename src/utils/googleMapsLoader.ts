@@ -236,7 +236,7 @@ export const loadGoogleMapsAPI = (): Promise<boolean> => {
             console.error("📋 실패한 스크립트 URL:", script.src);
             console.error("🔍 스크립트 요소:", {
                 id: script.id,
-                readyState: script.readyState,
+                /* readyState: script.readyState, */
                 onerror: typeof script.onerror
             });
             window.__googleMapsApiLoaded__ = false;

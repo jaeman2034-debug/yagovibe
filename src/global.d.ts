@@ -4,6 +4,11 @@ declare global {
         webkitSpeechRecognition: any;
         speechSynthesis: SpeechSynthesis;
         kakao: any;
+        Capacitor?: {
+            isNativePlatform: () => boolean;
+            isNativePlatform?: boolean; // 속성으로도 접근 가능하도록
+            getPlatform: () => string;
+        };
     }
 
     // Global SpeechRecognition types

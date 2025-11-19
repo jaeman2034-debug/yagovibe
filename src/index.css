@@ -1,60 +1,168 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* ✅ 전역 기본 리셋 */
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0;
+@layer utilities {
+  .products-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .products-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .products-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .recommended-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .product-card .info {
   padding: 0;
-  width: 100%;
-  box-sizing: border-box;
+  }
+
+  .product-card .img-box {
+    aspect-ratio: 1 / 1;
+  }
+
+  /* 🔥 텍스트 레이아웃 안정화 */
+  /* 제목: 2줄 고정, 넘치면 ... 처리 */
+  .product-title {
+    @apply font-semibold text-[16px] leading-snug line-clamp-2;
+  }
+
+  /* 가격: 파란색 강조 + 1줄 고정 */
+  .product-price {
+    @apply text-blue-600 font-bold text-[15px] truncate;
+  }
+
+  /* 위치 텍스트 */
+  .product-location {
+    @apply text-gray-500 text-[13px] truncate;
+  }
+
+  /* 컨테이너의 세로 정렬 안정 */
+  .product-info {
+    @apply flex flex-col justify-between gap-1 w-full;
+  }
+
+  /* 🔥 모바일 가로형에서 텍스트가 이미지 오른쪽에 꽉 차게 */
+  .mobile-landscape-ui .product-info {
+    @apply flex-1;
+  }
+
+  /* 반응형 모드별 스타일 */
+  /* 📱 모바일 세로형 (1열) */
+  .mobile-portrait-ui .product-grid {
+    @apply grid grid-cols-1 gap-4 px-3;
+  }
+
+  /* 📱 모바일 가로형 (1열 + 가로 최적화) */
+  .mobile-landscape-ui .product-grid {
+    @apply grid grid-cols-1 gap-3 px-2;
+  }
+
+  .mobile-landscape-ui .product-card {
+    @apply flex flex-row items-center gap-3; /* 가로형 카드 */
+  }
+
+  /* 📱💻 태블릿 (2열) */
+  .tablet-ui .product-grid {
+    @apply grid grid-cols-2 gap-5 px-5;
+  }
+
+  /* 🖥 PC 세로형 + 중앙정렬 (1~2열) */
+  .pc-center-ui {
+    @apply flex justify-center;
+  }
+
+  .pc-center-ui .content {
+    @apply max-w-[900px] w-full;
+  }
+
+  .pc-center-ui .product-grid {
+    @apply grid grid-cols-2 gap-6; /* 1~2열 */
+  }
+
+  /* 1400px 이상이면 3열로 확장 가능 */
+  @media (min-width: 1400px) {
+    .pc-center-ui .product-grid {
+      @apply grid-cols-3;
+    }
+  }
 }
 
-/* body 기본 스타일 */
-body {
-  font-family: 'Noto Sans KR', sans-serif;
-  background-color: #ffffff;
-  overflow-x: hidden;
+/* 🔥 모든 상품 이미지 정사각형으로 고정 */
+.product-thumb {
+  @apply w-full aspect-square overflow-hidden rounded-xl flex-shrink-0;
 }
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light;
-  color: #213547;
-  background-color: #ffffff;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.thumb-img {
+  @apply w-full h-full object-cover;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+/* 🔥 모바일 가로형일 때는 이미지 크기 줄임 */
+.mobile-landscape-ui .product-thumb {
+  @apply w-32 h-32 aspect-square;
 }
 
-a:hover {
-  color: #535bf2;
+/* 모바일 전체(세로 + 가로)에서 가로형 카드 강제 */
+@media (max-width: 768px) {
+  .product-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .product-card > div:first-child {
+    width: 40% !important;
+    max-width: 160px;
+    flex-shrink: 0;
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .product-card img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+  }
+
+  .product-card .product-info {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
-/* Tailwind 기본 설정 보완 */
-* {
-  box-sizing: border-box;
+/* 🔥 거리 표시 UI 고도화 */
+.product-location-group {
+  @apply flex flex-col gap-1 text-[13px] mt-1;
 }
 
-/* h1 기본 스타일 제거 - 컴포넌트에서 개별 적용 */
-/* button, input 스타일은 Tailwind로 관리하므로 기본 스타일 제거 */
-button,
-input,
-textarea,
-select {
-  font-family: inherit;
+.location-text {
+  @apply text-gray-700;
+}
+
+.distance-text {
+  @apply text-green-600 font-semibold;
+}
+
+/* 🔥 추천 태그 스타일 */
+.recommend-tag-container {
+  @apply flex gap-2 mb-1;
+}
+
+.recommend-tag {
+  @apply text-[11px] px-2 py-[2px] bg-blue-100 text-blue-700 rounded-full;
 }

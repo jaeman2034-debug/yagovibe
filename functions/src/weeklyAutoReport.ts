@@ -38,7 +38,7 @@ export const weeklyAutoReport = functions.scheduler.onSchedule(
             console.log(`📊 수집된 로그: ${logs.length}개`);
 
             // 3️⃣ OpenAI API 키 확인
-            const openaiKey = functions.config().openai?.key || process.env.OPENAI_API_KEY;
+            const openaiKey = process.env.OPENAI_API_KEY;
             if (!openaiKey) {
                 throw new Error("OpenAI API 키가 설정되지 않았습니다.");
             }
@@ -46,7 +46,7 @@ export const weeklyAutoReport = functions.scheduler.onSchedule(
             const openai = new OpenAI({ apiKey: openaiKey });
 
             // 4️⃣ OpenAI 요약 생성
-            const logsText = logs.slice(0, 50).map(log =>
+            const logsText = logs.slice(0, 50).map((log: any) =>
                 `- ${log.text || ""} (${log.intent || "미확인"})`
             ).join("\n");
 
@@ -119,7 +119,7 @@ ${logsText}
             console.log("🎧 음성 파일 업로드 완료:", audioUrl);
 
             // 9️⃣ Slack 알림 발송
-            const slackWebhook = functions.config().slack?.webhook || process.env.VITE_SLACK_WEBHOOK_URL;
+            const slackWebhook = process.env.SLACK_WEBHOOK_URL || process.env.VITE_SLACK_WEBHOOK_URL;
             if (slackWebhook) {
                 console.log("📱 Slack 알림 발송 중...");
                 await fetch(slackWebhook, {
@@ -162,13 +162,13 @@ ${logsText}
             }
 
             console.log("🎉 [AutoReport] 모든 작업 완료!");
-            return { success: true, reportId: reportRef.id, audioUrl };
+            // v2 scheduler는 void 반환 필요
 
         } catch (error) {
             console.error("❌ [AutoReport] 오류 발생:", error);
 
             // 에러 발생 시 Slack 알림
-            const slackWebhook = functions.config().slack?.webhook || process.env.VITE_SLACK_WEBHOOK_URL;
+            const slackWebhook = process.env.SLACK_WEBHOOK_URL || process.env.VITE_SLACK_WEBHOOK_URL;
             if (slackWebhook) {
                 try {
                     await fetch(slackWebhook, {

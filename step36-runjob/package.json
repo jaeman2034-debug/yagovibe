@@ -1,0 +1,10 @@
+{
+  "name": "step36-runjob",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "node-fetch": "^3.3.2"
+  }
+}
+

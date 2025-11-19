@@ -13,9 +13,9 @@ export function loadKakaoSDK(): Promise<typeof window.kakao> {
 
   // 로딩 중인 경우 기존 Promise 반환
   if (!kakaoLoading) {
-    const appKey = import.meta.env.VITE_KAKAO_API_KEY;
+    const appKey = import.meta.env.VITE_KAKAO_JS_KEY as string | undefined;
     if (!appKey) {
-      throw new Error("VITE_KAKAO_API_KEY is missing");
+      throw new Error("VITE_KAKAO_JS_KEY is missing");
     }
 
     kakaoLoading = new Promise((resolve, reject) => {

@@ -1,0 +1,234 @@
+import { onRequest } from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
+import * as admin from "firebase-admin";
+import JSZip from "jszip";
+import { create } from "xmlbuilder2";
+import fetch from "node-fetch";
+
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
+
+const db = admin.firestore();
+
+interface SentenceTimestamp {
+    start: number;
+    end: number;
+}
+
+/**
+ * XML 이스케이프 함수
+ */
+function escapeXml(s: string): string {
+    return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
+/**
+ * Step 34: EPUB3 Media Overlays (SMIL) + Read-Aloud 동기화 생성
+ * GET /generateReportEpubSmil?reportId=REPORT_ID
+ */
+export const generateReportEpubSmil = onRequest(
+    {
+        region: "asia-northeast3",
+        cors: true,
+    },
+    async (req, res) => {
+        try {
+            // GET query 또는 POST body에서 reportId 가져오기
+            const reportId = (req.query.reportId as string) || (req.body?.reportId as string);
+            
+            if (!reportId) {
+                res.status(400).send("reportId is required");
+                return;
+            }
+
+            logger.info("📚 EPUB(SMIL) 생성 시작:", { reportId });
+
+            // Firestore에서 리포트 데이터 가져오기
+            const reportDoc = await db.collection("reports").doc(reportId).get();
+            
+            if (!reportDoc.exists) {
+                res.status(404).send("Report not found");
+                return;
+            }
+
+            const reportData = reportDoc.data();
+            const content = reportData?.content || reportData?.summary || "";
+            const keywords = reportData?.keywords || [];
+            const sentenceTimestamps: SentenceTimestamp[] = reportData?.sentenceTimestamps || [];
+            const audioUrl = reportData?.audioUrl || "";
+
+            if (!audioUrl) {
+                res.status(400).send("audioUrl is required for SMIL EPUB");
+                return;
+            }
+
+            if (!sentenceTimestamps || sentenceTimestamps.length === 0) {
+                res.status(400).send("sentenceTimestamps are required for SMIL EPUB");
+                return;
+            }
+
+            // EPUB 메타데이터
+            const title = `AI Report - ${reportId.substring(0, 8)}`;
+            const author = "YAGO VIBE AI Assistant";
+            const uuid = `urn:uuid:${reportId}`;
+
+            // 문장 분할
+            const SENTENCE_SPLIT_REGEX = /(?<=[.!?。！？\n|。|\.|?|!|？|！|。])\s+/g;
+            const sentences = content.split(SENTENCE_SPLIT_REGEX).filter(Boolean).map(s => s.trim()).filter(Boolean);
+
+            // 타임스탬프를 mm:ss.sss 형식으로 변환 (SMIL용)
+            const formatTimestamp = (seconds: number): string => {
+                const mins = Math.floor(seconds / 60);
+                const secs = (seconds % 60).toFixed(3);
+                return `${mins}:${secs.padStart(6, "0")}`;
+            };
+
+            // 오디오 파일 다운로드
+            const audioResponse = await fetch(audioUrl);
+            if (!audioResponse.ok) {
+                throw new Error("Failed to download audio file");
+            }
+            const audioBuffer = await audioResponse.buffer();
+            const audioFileName = "audio.mp3";
+
+            // EPUB ZIP 생성
+            const zip = new JSZip();
+
+            // META-INF/container.xml
+            const containerXml = `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`;
+            zip.file("META-INF/container.xml", containerXml);
+
+            // OEBPS/report.xhtml 생성
+            const reportXhtml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+  <title>${escapeXml(title)}</title>
+  <style>
+    body { font-family: "Noto Sans KR", Arial, sans-serif; line-height: 1.6; padding: 20px; }
+    .h1 { font-size: 24px; font-weight: bold; margin: 20px 0; color: #1f2937; }
+    .h2 { font-size: 18px; font-weight: bold; margin: 16px 0; color: #374151; }
+    .meta { font-size: 12px; color: #6b7280; margin: 8px 0; }
+    .chip { display: inline-block; background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin: 2px; }
+    .kw { background: #fef3c7; color: #92400e; font-weight: bold; padding: 2px 4px; }
+    .sent { margin: 20px 0; padding: 12px; border-left: 3px solid #e5e7eb; }
+    .ts { font-size: 10px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="h1">${escapeXml(title)}</div>
+  <div class="meta">Generated by ${escapeXml(author)}</div>
+  <div class="h2">Keywords</div>
+  <div>
+    ${(keywords || []).map((k: string) => `<span class="chip">${escapeXml(k)}</span>`).join(" ")}
+  </div>
+  <div class="h2">Report</div>
+  ${sentences.map((s, i) => {
+      const ts = sentenceTimestamps[i] 
+          ? ` <span class="ts">[${formatTimestamp(sentenceTimestamps[i].start)}–${formatTimestamp(sentenceTimestamps[i].end)}]</span>` 
+          : "";
+      const found = (keywords || []).filter((k: string) => 
+          s.toLowerCase().includes(k.toLowerCase())
+      );
+      const keywordRegex = new RegExp(`\\b(${(keywords || []).join("|")})\\b`, "gi");
+      return `
+    <section id="s-${i}" class="sent">
+      <div class="meta">¶ ${i + 1}${ts}</div>
+      <p>${s.replace(keywordRegex, '<span class="kw">$1</span>').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+      ${found.length ? `<div>${found.slice(0, 6).map((k: string) => `<span class="chip">${escapeXml(k)}</span>`).join(" ")}</div>` : ""}
+    </section>
+      `;
+  }).join("\n")}
+</body>
+</html>`;
+            zip.file("OEBPS/report.xhtml", reportXhtml);
+
+            // OEBPS/report.smil 생성 (SMIL Media Overlay)
+            const smil = create({ version: "1.0", encoding: "UTF-8" })
+                .ele("smil", {
+                    xmlns: "http://www.w3.org/ns/SMIL",
+                    version: "3.0",
+                    "xmlns:epub": "http://www.idpf.org/2007/ops"
+                })
+                .ele("body")
+                .ele("seq", { "epub:type": "bodymatter chapter", "epub:textref": "report.xhtml" });
+
+            sentences.forEach((_, i) => {
+                const ts = sentenceTimestamps[i];
+                if (ts) {
+                    smil.ele("par", { id: `par-${i}` })
+                        .ele("text", { src: `report.xhtml#s-${i}` })
+                        .up()
+                        .ele("audio", {
+                            src: audioFileName,
+                            clipBegin: formatTimestamp(ts.start),
+                            clipEnd: formatTimestamp(ts.end)
+                        });
+                }
+            });
+
+            const smilXml = smil.end({ prettyPrint: true });
+            zip.file("OEBPS/report.smil", smilXml);
+
+            // OEBPS/content.opf 생성
+            const manifestItems: string[] = [];
+            const spineItems: string[] = [];
+
+            // manifest 항목
+            manifestItems.push(`    <item id="report" href="report.xhtml" media-type="application/xhtml+xml" properties="svg"/>`);
+            manifestItems.push(`    <item id="report-smil" href="report.smil" media-type="application/smil+xml"/>`);
+            manifestItems.push(`    <item id="audio" href="${audioFileName}" media-type="audio/mpeg"/>`);
+
+            // spine 항목 (media-overlay 속성 추가)
+            spineItems.push(`    <itemref idref="report" properties="page-spread-left" media-overlay="report-smil"/>`);
+
+            const contentOpf = `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="book-id">${uuid}</dc:identifier>
+    <dc:title>${escapeXml(title)}</dc:title>
+    <dc:creator>${escapeXml(author)}</dc:creator>
+    <dc:language>ko</dc:language>
+    <meta property="dcterms:modified">${new Date().toISOString()}</meta>
+    <meta property="media:duration" refines="#audio">0</meta>
+  </metadata>
+  <manifest>
+${manifestItems.join("\n")}
+  </manifest>
+  <spine toc="ncx">
+${spineItems.join("\n")}
+  </spine>
+</package>`;
+            zip.file("OEBPS/content.opf", contentOpf);
+
+            // mimetype 파일 (압축하지 않음)
+            zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
+
+            // 오디오 파일 추가
+            zip.file(`OEBPS/${audioFileName}`, audioBuffer);
+
+            // EPUB 생성
+            const epubBuffer = await zip.generateAsync({ type: "nodebuffer" });
+
+            res.setHeader("Content-Type", "application/epub+zip");
+            res.setHeader("Content-Disposition", `attachment; filename=AIReport_${reportId}_ReadAloud.epub`);
+            res.status(200).send(epubBuffer);
+
+        } catch (e: any) {
+            logger.error("EPUB(SMIL) 생성 오류:", e);
+            res.status(500).send(e?.message || "EPUB(SMIL) generation failed");
+        }
+    }
+);
+
