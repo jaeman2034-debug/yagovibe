@@ -77,8 +77,11 @@ export default function VoiceAssistant_AI() {
             setLastCommand(transcript);
 
             try {
-                // 명령어 전달
-                const res = await fetch("/api/voiceReport", {
+                // 명령어 전달 - Firebase Functions URL 사용
+                const voiceReportUrl = import.meta.env.VITE_VOICE_REPORT_ENDPOINT ||
+                    "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net/vibeReport";
+                
+                const res = await fetch(voiceReportUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ command: transcript }),

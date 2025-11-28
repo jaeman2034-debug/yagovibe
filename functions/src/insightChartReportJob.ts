@@ -1,31 +1,25 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
-import * as admin from "firebase-admin";
+import { admin } from "./lib/firebaseAdmin";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { getMessaging } from "firebase-admin/messaging";
 import jsPDF from "jspdf";
 import fetch from "node-fetch";
-import { ChartJSNodeCanvas } from "chartjs-node-canvas";
+// 🔥 Lazy import: chartjs-node-canvas는 함수 내부에서 동적 import
+// import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 import type { ChartConfiguration } from "chart.js";
 
-// Firebase Admin 초기화
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
+// 🔥 Firebase Admin 초기화는 index.ts에서 중앙 집중식으로 처리
+// if (!admin.apps.length) {
+//     admin.initializeApp();
+// }
 
 const db = getFirestore();
 const bucket = getStorage().bucket();
 const messaging = getMessaging();
 
-// Chart.js 설정
-const width = 800;
-const height = 400;
-const chartJSNodeCanvas = new ChartJSNodeCanvas({
-    width,
-    height,
-    backgroundColour: "white",
-});
+// 🔥 Chart.js 설정은 함수 내부에서 lazy initialization
 
 /**
  * AI 리포트에서 점수 추출 (휴리스틱)
@@ -214,6 +208,27 @@ export const generateInsightChartReport = onSchedule(
 
             // 4️⃣ 📊 차트 이미지 생성
             logger.info("📊 차트 이미지 생성 중...");
+
+            // 🔥 Lazy import: chartjs-node-canvas를 함수 실행 시점에 동적으로 로드
+            // optionalDependencies이므로 try-catch로 처리
+            let ChartJSNodeCanvas: any;
+            try {
+                // @ts-ignore - optionalDependencies이므로 타입 선언이 없을 수 있음
+                const chartModule = await import("chartjs-node-canvas");
+                ChartJSNodeCanvas = chartModule.ChartJSNodeCanvas;
+            } catch (err) {
+                logger.warn("⚠️ chartjs-node-canvas를 로드할 수 없습니다. 차트 생성이 건너뜁니다.");
+                return; // onSchedule은 void를 반환해야 함
+            }
+            
+            // Chart.js 설정
+            const width = 800;
+            const height = 400;
+            const chartJSNodeCanvas = new ChartJSNodeCanvas({
+                width,
+                height,
+                backgroundColour: "white",
+            });
 
             const minScore = Math.min(...monthlyAverages.map((m) => m.avg));
             const maxScore = Math.max(...monthlyAverages.map((m) => m.avg));

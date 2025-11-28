@@ -40,6 +40,16 @@ const urls = [
     priority: '0.7',
     changefreq: 'monthly',
   },
+  {
+    loc: '/app/market/create',
+    priority: '0.8',
+    changefreq: 'daily',
+  },
+  {
+    loc: '/app/admin/reports',
+    priority: '0.7',
+    changefreq: 'daily',
+  },
 ];
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

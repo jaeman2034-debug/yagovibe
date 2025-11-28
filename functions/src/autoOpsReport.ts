@@ -1,19 +1,15 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
-import { initializeApp } from "firebase-admin/app";
-import OpenAI from "openai";
-import PDFDocument from "pdfkit";
+// 🔥 Lazy import: 무거운 모듈들은 함수 내부에서 동적 import
+// import OpenAI from "openai";
+// import PDFDocument from "pdfkit";
 import * as fs from "fs";
 import * as path from "path";
 import { getStorage } from "firebase-admin/storage";
 import fetch from "node-fetch";
 
-initializeApp();
 const db = getFirestore();
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "<YOUR_OPENAI_KEY>",
-});
 
 export const generateOpsReport = onSchedule(
     {
@@ -21,6 +17,12 @@ export const generateOpsReport = onSchedule(
         timeZone: "Asia/Seoul",
     },
     async () => {
+        // 🔥 Lazy import: 무거운 모듈들을 함수 실행 시점에 동적으로 로드
+        const { getOpenAIClient } = await import("./lib/openaiClient");
+        const PDFDocument = (await import("pdfkit")).default;
+
+        const openai = getOpenAIClient();
+
         logger.info("📊 전사 AI 운영 리포트 생성 시작");
 
         const summariesSnap = await db.collection("teamSummaries").get();

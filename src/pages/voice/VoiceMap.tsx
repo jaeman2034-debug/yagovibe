@@ -20,9 +20,34 @@ export default function VoiceMap() {
 
     // 지도 초기화 함수 (mapRef 기반으로 변경)
     const initMap = () => {
-        if (!window.google || !window.google.maps || !window.google.maps.Map) {
-            console.error("❌ Google Maps API가 로드되지 않았습니다.");
-            setMapsError("Google Maps API가 로드되지 않았습니다.");
+        // 🔥 강화된 Google Maps API 검증
+        if (!window.google) {
+            console.error("❌ window.google이 정의되지 않았습니다.");
+            setMapsError("Google Maps API가 로드되지 않았습니다. (window.google 없음)");
+            return;
+        }
+
+        if (!window.google.maps) {
+            console.error("❌ window.google.maps가 정의되지 않았습니다.");
+            setMapsError("Google Maps API가 로드되지 않았습니다. (window.google.maps 없음)");
+            return;
+        }
+
+        if (!window.google.maps.Map) {
+            console.error("❌ window.google.maps.Map이 정의되지 않았습니다.");
+            console.error("🔍 window.google.maps 상태:", Object.keys(window.google.maps || {}));
+            setMapsError(
+                "Google Maps API가 완전히 로드되지 않았습니다.\n\n" +
+                "가능한 원인:\n" +
+                "1. API 키가 유효하지 않음\n" +
+                "2. Maps JavaScript API가 활성화되지 않음\n" +
+                "3. API 키의 도메인 제한 설정 문제\n" +
+                "   → https://yagovibe.com 추가 필요\n" +
+                "   → https://www.yagovibe.com 추가 필요\n" +
+                "   → https://yagovibe.vercel.app 추가 필요\n" +
+                "4. 결제 계정 미연동\n\n" +
+                "Google Cloud Console > API 및 서비스 > 사용자 인증 정보"
+            );
             return;
         }
 
@@ -54,21 +79,35 @@ export default function VoiceMap() {
                 try {
                     const { latitude, longitude } = pos.coords;
 
+                    // 🔥 Map 생성 전 추가 검증
+                    if (typeof window.google.maps.Map !== "function") {
+                        throw new Error("window.google.maps.Map이 함수가 아닙니다. API 키가 유효하지 않을 수 있습니다.");
+                    }
+
                     const mapInstance = new window.google.maps.Map(mapElement, {
                         center: { lat: latitude, lng: longitude },
                         zoom: 15,
                     });
 
+                    // 🔥 Map 인스턴스 검증
+                    if (!mapInstance) {
+                        throw new Error("지도 인스턴스 생성 실패");
+                    }
+
                     setMap(mapInstance);
 
-                    new window.google.maps.Marker({
-                        position: { lat: latitude, lng: longitude },
-                        map: mapInstance,
-                        title: "내 위치",
-                    });
+                    // 🔥 Marker 생성 전 검증
+                    if (window.google.maps.Marker) {
+                        new window.google.maps.Marker({
+                            position: { lat: latitude, lng: longitude },
+                            map: mapInstance,
+                            title: "내 위치",
+                        });
+                    }
 
                     await logPosition({ lat: latitude, lng: longitude, note: "init" });
                     setMapsError(null);
+                    console.log("✅ 지도 초기화 완료!");
                 } catch (error) {
                     console.error("❌ 지도 초기화 오류:", error);
                     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -76,7 +115,20 @@ export default function VoiceMap() {
                     if (errorMsg.includes("InvalidKey") || errorMsg.includes("InvalidKeyMapError")) {
                         setMapsError(
                             "Google Maps API 키 오류 (InvalidKeyMapError)\n\n" +
-                            "Google Cloud Console에서 API 키 설정을 확인하세요."
+                            "Google Cloud Console에서 API 키 설정을 확인하세요:\n" +
+                            "1. Maps JavaScript API 활성화 확인\n" +
+                            "2. API 키 도메인 제한에 다음 추가:\n" +
+                            "   - https://yagovibe.com/*\n" +
+                            "   - https://www.yagovibe.com/*\n" +
+                            "   - https://yagovibe.vercel.app/*"
+                        );
+                    } else if (errorMsg.includes("keys") || errorMsg.includes("undefined")) {
+                        setMapsError(
+                            "Google Maps API 초기화 오류\n\n" +
+                            "API 키가 유효하지 않거나 도메인 제한이 설정되어 있습니다.\n\n" +
+                            "Google Cloud Console에서 확인:\n" +
+                            "- API 및 서비스 > 사용자 인증 정보\n" +
+                            "- API 키 > 웹사이트 제한사항에 도메인 추가"
                         );
                     } else {
                         setMapsError(errorMsg);

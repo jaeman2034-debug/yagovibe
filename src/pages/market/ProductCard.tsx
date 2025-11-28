@@ -60,6 +60,12 @@ const ProductCard = memo(function ProductCard({ product, distanceKm, sortMode }:
   }, [sortMode, product, distanceKm]);
 
   const handleClick = () => {
+    // 🔥 id가 없으면 이동하지 않음
+    if (!id) {
+      console.error("❌ ProductCard: product.id가 없습니다!", product);
+      return;
+    }
+    console.log("🔥 ProductCard 클릭 → 상세 페이지 이동:", id);
     navigate(`/app/market/${id}`);
   };
 

@@ -17,7 +17,7 @@
   <meta property="og:url" content="https://yagovibe.com" />
   <meta property="og:title" content="YAGO VIBE - AI 기반 스마트 중고거래 플랫폼" />
   <meta property="og:description" content="AI 기반 스마트 중고거래 플랫폼 - 스포츠 용품, AI 검색, 지도 기반 거래" />
-  <meta property="og:image" content="https://yagovibe.com/pwa-512x512.png" />
+  <meta property="og:image" content="https://yagovibe.com/og-image.png" />
   
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image" />
@@ -37,6 +37,103 @@
   <link rel="apple-touch-icon" href="/pwa-192x192.png" />
   
   <title>YAGO VIBE - AI 기반 스마트 중고거래 플랫폼</title>
+
+  <!-- 🔥 Google Maps API Key - 빌드 시점에 vite.config.ts에서 주입됨 -->
+  <!-- 하드코딩된 키 제거: 환경 변수(VITE_GOOGLE_MAPS_API_KEY)만 사용 -->
+  <script>
+    // 빌드 시점에 vite.config.ts의 define 옵션으로 주입됨
+    // window.__GOOGLE_MAPS_API_KEY__는 더 이상 사용하지 않음
+  </script>
+
+  <!-- 🔥 인앱 브라우저/WebView 즉시 감지 및 Chrome 리다이렉트 (React 로드 전 실행) -->
+  <!-- 🎯 당근마켓 방식: WebView에서는 Firebase Auth가 제대로 작동하지 않으므로 Chrome으로 유도 -->
+  <script>
+    (function() {
+      // /in-app 페이지에서는 실행하지 않음
+      if (window.location.pathname === '/in-app') {
+        return;
+      }
+
+      // 🔥 개발 환경(localhost)에서는 인앱 브라우저 감지 비활성화
+      const isLocalhost = window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1' ||
+                         window.location.hostname.includes('localhost');
+      
+      if (isLocalhost) {
+        console.log('🔧 [개발 환경] localhost에서 실행 중 - 인앱 브라우저 감지 비활성화');
+        return; // 개발 환경에서는 감지하지 않음
+      }
+
+      const ua = navigator.userAgent.toLowerCase();
+      const fullUA = navigator.userAgent;
+      
+      // 🔥 강화된 WebView/인앱 브라우저 감지
+      const isInAppByUA =
+        ua.includes('kakaotalk') ||
+        ua.includes('instagram') ||
+        ua.includes('naver') ||
+        ua.includes('fb') ||
+        ua.includes('facebook') ||
+        ua.includes('line') ||
+        ua.includes('daum') ||
+        ua.includes('band') ||
+        ua.includes('whale') ||
+        ua.includes('samsungbrowser') ||
+        // WebView 감지 (가장 중요!)
+        (ua.includes('wv') && !ua.includes('chrome')) || // Android WebView
+        /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(fullUA) || // iOS WebView
+        /Android.*wv/i.test(fullUA) || // Android WebView
+        (ua.includes('version/') && ua.includes('mobile') && !ua.includes('safari'));
+
+      // Window 크기 기반 추가 감지 (더 엄격하게)
+      const isStandalone = window.navigator.standalone === true;
+      const heightDiff = window.outerHeight - window.innerHeight;
+      const widthDiff = window.outerWidth - window.innerWidth;
+      
+      // 일반 Chrome/Safari 브라우저는 제외
+      const isChrome = ua.includes('chrome') && !ua.includes('edg') && !ua.includes('opr');
+      const isSafari = ua.includes('safari') && !ua.includes('chrome');
+      
+      // Window 크기 기반 감지는 더 엄격하게 (일반 브라우저 제외)
+      const isInAppBySize = 
+        !isChrome && !isSafari && (
+          heightDiff > 200 || // 더 큰 임계값
+          (window.outerWidth === 0 && window.innerWidth > 0) ||
+          (heightDiff === 0 && widthDiff === 0 && !isStandalone && window.innerWidth < 400)
+        );
+      
+      // 저장소 접근 제한 감지 (WebView 특성) - Chrome/Safari는 제외
+      const isStorageRestricted = 
+        !isChrome && !isSafari &&
+        (typeof indexedDB === 'undefined' || indexedDB === null) &&
+        (typeof localStorage === 'undefined' || localStorage === null);
+
+      // 최종 판단: WebView 또는 인앱 브라우저 (Chrome/Safari는 제외)
+      const isInApp = (isInAppByUA || (!isStandalone && isInAppBySize) || isStorageRestricted) && !isChrome && !isSafari;
+
+      // 🔍 디버깅 정보
+      console.log('🔍 [인앱 브라우저 감지]', {
+        userAgent: fullUA,
+        isInAppByUA,
+        isInAppBySize,
+        isStorageRestricted,
+        isStandalone,
+        isInApp,
+        indexedDB: typeof indexedDB !== 'undefined' ? '✅' : '❌',
+        localStorage: typeof localStorage !== 'undefined' ? '✅' : '❌'
+      });
+
+      if (isInApp) {
+        console.log('🚨 [인앱 브라우저/WebView 감지됨] - Chrome으로 리다이렉트');
+        console.log('📋 이유: WebView에서는 Firebase Auth 로그인 유지가 불안정합니다.');
+        console.log('✅ 해결: Chrome에서 열면 모든 기능이 정상 작동합니다.');
+        // 즉시 리다이렉트 (replace로 히스토리 남기지 않음)
+        window.location.replace('/in-app');
+      } else {
+        console.log('✅ [일반 브라우저로 감지됨] - 정상 진행');
+      }
+    })();
+  </script>
 
   <!-- ✅ Google Maps API는 JavaScript에서 동적으로 로드됩니다 -->
   <!-- 환경 변수를 HTML에서 직접 사용할 수 없으므로 src/main.tsx에서 로드합니다 -->

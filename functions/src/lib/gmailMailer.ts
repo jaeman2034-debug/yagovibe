@@ -1,4 +1,5 @@
-import { google } from "googleapis";
+// 🔥 Lazy import: googleapis는 함수 내부에서 동적 import
+// import { google } from "googleapis";
 import * as logger from "firebase-functions/logger";
 
 const SCOPES = ["https://www.googleapis.com/auth/gmail.send"];
@@ -17,6 +18,9 @@ export const sendReportEmail = async (
     pdfBuffer: Buffer
 ): Promise<void> => {
     try {
+        // 🔥 Lazy import: googleapis를 함수 실행 시점에 동적으로 로드
+        const { google } = await import("googleapis");
+
         // 서비스 계정 JSON 경로 (환경변수 또는 기본값)
         const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || "./gmail-service-account.json";
 

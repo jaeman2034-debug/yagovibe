@@ -21,12 +21,15 @@ export const isDevelopmentMode = (): boolean => {
 
 /**
  * API Base URL 자동 설정
+ * 환경 변수로 명시적으로 설정 가능 (우선순위 1)
+ * 없으면 기본적으로 클라우드 API 사용 (로컬 에뮬레이터 실행 필요 없음)
  */
 export const getApiBaseUrl = (): string => {
-  if (isLocalEnvironment()) {
-    return "http://localhost:5183";
-  }
-  return "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
+  return (
+    import.meta.env.VITE_FUNCTIONS_ORIGIN ||
+    import.meta.env.VITE_API_BASE_URL ||
+    "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net"
+  );
 };
 
 /**
