@@ -1,14 +1,10 @@
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
-import { initializeApp } from "firebase-admin/app";
-import OpenAI from "openai";
+// Firebase Admin 초기화는 lib/firebaseAdmin.ts에서 처리됨
+import { getOpenAIClient } from "./lib/openaiClient";
 
-initializeApp();
 const db = getFirestore();
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "<YOUR_OPENAI_KEY>",
-});
 
 export const runDigitalTwinSimulation = onCall(async (req) => {
     const { team, scenario } = req.data;
@@ -49,6 +45,7 @@ export const runDigitalTwinSimulation = onCall(async (req) => {
     };
 
     try {
+        const openai = getOpenAIClient();
         const ai = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: prompt }],

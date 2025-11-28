@@ -2,17 +2,11 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { initializeApp } from "firebase-admin/app";
-import PDFDocument from "pdfkit";
+// 🔥 Lazy import: 무거운 모듈들은 함수 내부에서 동적 import
+// import PDFDocument from "pdfkit";
+// import OpenAI from "openai";
 import * as fs from "fs";
 import * as path from "path";
-import OpenAI from "openai";
-
-initializeApp();
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "<YOUR_OPENAI_API_KEY>",
-});
 
 export const generateWeeklyReportJob = onSchedule(
   {
@@ -20,9 +14,15 @@ export const generateWeeklyReportJob = onSchedule(
     timeZone: "Asia/Seoul",
   },
   async () => {
+    // 🔥 Lazy import: 무거운 모듈들을 함수 실행 시점에 동적으로 로드
+    const PDFDocument = (await import("pdfkit")).default;
+    const { getOpenAIClient } = await import("./lib/openaiClient");
+
     const db = getFirestore();
     const bucket = getStorage().bucket();
     logger.info("🧠 AI 리포트 PDF 자동 생성 시작");
+
+    const openai = getOpenAIClient();
 
     try {
       // 1️⃣ Firestore 데이터 가져오기

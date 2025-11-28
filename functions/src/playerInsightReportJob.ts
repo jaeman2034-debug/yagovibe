@@ -1,15 +1,10 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
-import * as admin from "firebase-admin";
+import { admin } from "./lib/firebaseAdmin";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import jsPDF from "jspdf";
 import fetch from "node-fetch";
-
-// Firebase Admin 초기화
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
 
 const db = getFirestore();
 const bucket = getStorage().bucket();

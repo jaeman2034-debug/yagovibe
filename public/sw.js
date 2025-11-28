@@ -64,6 +64,14 @@ async function networkFirst(req) {
 self.addEventListener('fetch', (e) => {
     const url = new URL(e.request.url);
     
+    // 🔥 Firebase Storage 업로드는 절대 캐싱하지 않음 (POST 요청 및 업로드 관련)
+    if (url.origin.includes('firebasestorage.googleapis.com')) {
+        // 업로드 요청 (POST, PUT, PATCH) 또는 업로드 관련 경로는 Service Worker를 거치지 않음
+        if (e.request.method !== 'GET' || url.pathname.includes('upload') || url.searchParams.has('uploadType')) {
+            return; // Service Worker가 가로채지 않음 → 직접 네트워크로 전달
+        }
+    }
+    
     // HTML: Stale-While-Revalidate
     if (e.request.mode === 'navigate' || RUNTIME_HTML.test(url.pathname)) {
         e.respondWith(swr(e.request));
@@ -105,8 +113,9 @@ self.addEventListener('fetch', (e) => {
         return;
     }
     
-    // 정적/이미지: cache-first
-    if (url.pathname.match(/\.(png|jpg|jpeg|svg|webp|woff2|css|js|ico)$/i)) {
+    // 정적/이미지: cache-first (단, Firebase Storage는 제외)
+    if (url.pathname.match(/\.(png|jpg|jpeg|svg|webp|woff2|css|js|ico)$/i) && 
+        !url.origin.includes('firebasestorage.googleapis.com')) {
         e.respondWith(cacheFirst(e.request));
         return;
     }

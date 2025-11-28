@@ -1,10 +1,6 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import * as admin from "firebase-admin";
+import { admin } from "./lib/firebaseAdmin";
 import fetch from "node-fetch";
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
 
 const db = admin.firestore();
 const SLACK_WEBHOOK_URL =

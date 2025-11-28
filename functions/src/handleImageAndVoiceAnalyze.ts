@@ -1,18 +1,32 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
-import OpenAI from "openai";
+// 🔥 Lazy import: 무거운 모듈들은 함수 내부에서 동적 import
+// import OpenAI from "openai";
 import Busboy from "busboy";
+import { Readable } from "stream";
 
-// Firebase Admin 초기화
-if (!getApps().length) {
-  initializeApp();
+// Firebase Admin 초기화 (지연 초기화)
+let adminInitialized = false;
+function ensureAdminInitialized() {
+  if (!adminInitialized && !getApps().length) {
+    initializeApp();
+    adminInitialized = true;
+  }
 }
 
-// OpenAI 클라이언트
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
+// OpenAI 클라이언트 (지연 초기화)
+let openaiClient: any = null;
+async function getOpenAIClient(): Promise<any> {
+  if (!openaiClient) {
+    // 🔥 Lazy import: 무거운 모듈을 함수 실행 시점에 동적으로 로드
+    const OpenAI = (await import("openai")).default;
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || "",
+    });
+  }
+  return openaiClient;
+}
 
 // 이미지 파일을 Buffer로 변환하는 함수
 interface ParsedForm {
@@ -30,33 +44,62 @@ interface ParsedForm {
 
 function parseMultipartForm(req: any): Promise<ParsedForm> {
   return new Promise((resolve, reject) => {
-    const busboy = Busboy({ headers: req.headers });
     const result: ParsedForm = { files: {}, fields: {} };
 
-    busboy.on("file", (name, file, info) => {
-      const buffers: Buffer[] = [];
-
-      file.on("data", (data: Buffer) => {
-        buffers.push(data);
+    try {
+      const busboy = Busboy({
+        headers: req.headers,
+        defParamCharset: "utf8",
       });
 
-      file.on("end", () => {
-        result.files[name] = {
-          buffer: Buffer.concat(buffers),
-          filename: info.filename || "",
-          mimeType: info.mimeType || "",
-        };
+      // 파일 처리
+      busboy.on("file", (fieldname, file, info) => {
+        const { filename, mimeType } = info;
+        const buffers: Buffer[] = [];
+
+        file.on("data", (data) => {
+          buffers.push(data);
+        });
+
+        file.on("end", () => {
+          result.files[fieldname] = {
+            buffer: Buffer.concat(buffers),
+            filename: filename || "",
+            mimeType: mimeType || "",
+          };
+        });
       });
-    });
 
-    busboy.on("field", (name: string, value: string) => {
-      result.fields[name] = value;
-    });
+      // 텍스트 필드 처리
+      busboy.on("field", (fieldname, value) => {
+        result.fields[fieldname] = value;
+      });
 
-    busboy.on("finish", () => resolve(result));
-    busboy.on("error", (err: Error) => reject(err));
+      // 완료
+      busboy.on("finish", () => {
+        resolve(result);
+      });
 
-    req.pipe(busboy);
+      busboy.on("error", (err) => {
+        reject(err);
+      });
+
+      // Cloud Functions v2에서는 rawBody가 Buffer 하나로 들어오므로
+      // 이 Buffer를 chunk 단위로 Busboy로 밀어 넣어야 한다.
+      const raw = req.rawBody;
+
+      if (!raw) {
+        reject(new Error("No rawBody in request"));
+        return;
+      }
+
+      // rawBody를 chunk 단위로 busboy에 공급
+      const stream = Readable.from(raw);
+      stream.pipe(busboy);
+
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -69,7 +112,8 @@ export const handleImageAndVoiceAnalyze = onRequest(
     region: "asia-northeast3",
     cors: true,
     maxInstances: 10,
-  },
+    requireRawBody: true, // 파일 업로드를 위해 필수
+  } as any,
   async (req, res) => {
     // CORS 헤더 설정
     res.set("Access-Control-Allow-Origin", "*");
@@ -88,7 +132,22 @@ export const handleImageAndVoiceAnalyze = onRequest(
     }
 
     try {
-      const { files } = await parseMultipartForm(req);
+      // Firebase Admin 및 OpenAI 클라이언트 초기화
+      ensureAdminInitialized();
+      const openai = await getOpenAIClient();
+      
+      logger.info("📥 이미지/음성 분석 요청 수신");
+      
+      const { files, fields } = await parseMultipartForm(req);
+
+      logger.info("📦 파싱된 파일 정보:", {
+        fileFields: Object.keys(files),
+        imageExists: !!files.image,
+        imageSize: files.image ? files.image.buffer.length : 0,
+        imageMimeType: files.image ? files.image.mimeType : null,
+        audioExists: !!files.audio,
+        audioSize: files.audio ? files.audio.buffer.length : 0,
+      });
 
       const image = files.image ? files.image.buffer : null;
       const audio = files.audio ? files.audio.buffer : null;
@@ -99,7 +158,10 @@ export const handleImageAndVoiceAnalyze = onRequest(
 
       // 1) 이미지 → 세부 디스크립터 생성 (Multi-step Reasoning)
       if (image) {
-        logger.info("📸 이미지 세부 디스크립터 생성 시작");
+        logger.info("📸 이미지 세부 디스크립터 생성 시작", {
+          imageSize: image.length,
+          imageType: files.image?.mimeType,
+        });
 
         const descriptorPrompt = `
 이 이미지를 분석하고 다음 내용을 매우 상세하게 설명해줘:
@@ -118,6 +180,18 @@ export const handleImageAndVoiceAnalyze = onRequest(
 `;
 
         try {
+          // 이미지 MIME 타입 확인 및 적절한 base64 데이터 URL 생성
+          const imageMimeType = files.image?.mimeType || "image/png";
+          const base64Image = image.toString("base64");
+          const imageDataUrl = `data:${imageMimeType};base64,${base64Image}`;
+          
+          logger.info("🖼️ OpenAI Vision API 호출 시작", {
+            model: "gpt-4o",
+            imageSize: image.length,
+            imageMimeType: imageMimeType,
+            base64Length: base64Image.length,
+          });
+
           const descriptorResp = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
@@ -131,7 +205,7 @@ export const handleImageAndVoiceAnalyze = onRequest(
                   {
                     type: "image_url",
                     image_url: {
-                      url: `data:image/png;base64,${image.toString("base64")}`,
+                      url: imageDataUrl,
                     },
                   },
                 ],
@@ -141,9 +215,23 @@ export const handleImageAndVoiceAnalyze = onRequest(
           });
 
           imageDescriptor = descriptorResp.choices[0]?.message?.content || "";
-          logger.info("📸 이미지 디스크립터 생성 완료:", imageDescriptor.substring(0, 200));
+          
+          if (!imageDescriptor) {
+            logger.warn("⚠️ 이미지 디스크립터가 비어있음");
+            imageDescriptor = "이미지 분석 실패";
+          } else {
+            logger.info("📸 이미지 디스크립터 생성 완료:", {
+              length: imageDescriptor.length,
+              preview: imageDescriptor.substring(0, 200),
+            });
+          }
         } catch (descriptorError: any) {
-          logger.error("❌ 이미지 디스크립터 생성 오류:", descriptorError);
+          logger.error("❌ 이미지 디스크립터 생성 오류:", {
+            error: descriptorError.message,
+            stack: descriptorError.stack,
+            status: descriptorError.status,
+            response: descriptorError.response?.data,
+          });
           imageDescriptor = "이미지 분석 실패";
         }
       }
@@ -307,13 +395,15 @@ export const generateTags = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
-    // CORS 헤더 설정
+    // CORS 헤더 설정 (모든 요청에 대해 먼저 설정)
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Max-Age", "3600");
 
-    // OPTIONS 요청 처리
+    // OPTIONS 요청 처리 (preflight)
     if (req.method === "OPTIONS") {
+      logger.info("✅ OPTIONS preflight 요청 처리");
       res.status(204).send("");
       return;
     }
@@ -324,12 +414,47 @@ export const generateTags = onRequest(
     }
 
     try {
-      const text = req.body?.text || "";
+      // OpenAI 클라이언트 초기화
+      const openai = await getOpenAIClient();
+      
+      // req.body 파싱 및 로깅 (디버깅용)
+      logger.info("📥 generateTags 요청 수신:", {
+        method: req.method,
+        headers: req.headers["content-type"],
+        bodyType: typeof req.body,
+        body: req.body,
+      });
+
+      // Firebase Functions v2에서는 JSON이 자동 파싱되지만, 안전하게 처리
+      let requestBody: any = req.body;
+      
+      // body가 문자열인 경우 JSON 파싱 시도
+      if (typeof requestBody === "string") {
+        try {
+          requestBody = JSON.parse(requestBody);
+        } catch (parseError) {
+          logger.error("⚠️ JSON 파싱 실패:", parseError);
+          res.status(400).json({ error: "Invalid JSON in request body" });
+          return;
+        }
+      }
+      
+      // body가 비어있거나 undefined인 경우 처리
+      if (!requestBody) {
+        logger.error("⚠️ req.body가 비어있음");
+        res.status(400).json({ error: "Request body is required" });
+        return;
+      }
+      
+      const text = requestBody.text || "";
 
       if (!text) {
+        logger.error("⚠️ text 필드 없음, body:", requestBody);
         res.status(400).json({ error: "text 필드가 필요합니다." });
         return;
       }
+
+      logger.info("✅ text 추출 성공:", text.substring(0, 50) + "...");
 
       const prompt = `
 다음 상품 설명을 분석해서 연관 태그를 3개 만들어줘.

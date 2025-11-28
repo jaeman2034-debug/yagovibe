@@ -349,6 +349,8 @@ export default function MarketPage() {
         setLoading(true);
         setError(null);
         
+        console.log("🔥 [MarketPage] 상품 로드 시작...");
+        
         // 검색어가 있으면 keywordTokens로 필터링
         let q;
         if (searchQuery.trim()) {
@@ -358,11 +360,26 @@ export default function MarketPage() {
             where("keywordTokens", "array-contains", token)
           );
         } else {
-          // 검색어가 없으면 전체 로드
-          q = query(collection(db, "marketProducts"));
+          // 검색어가 없으면 전체 로드 (최신순 정렬 추가)
+          q = query(
+            collection(db, "marketProducts"),
+            orderBy("createdAt", "desc"),
+            limit(100) // 성능을 위해 제한
+          );
         }
         
+        console.log("🔥 [MarketPage] Firestore 쿼리 실행 중...");
         const snap = await getDocs(q);
+        console.log(`✅ [MarketPage] Firestore 응답: ${snap.size}개 문서`);
+        
+        // 🔥 에러 체크: 빈 결과가 아닌 경우에만 처리
+        if (snap.empty) {
+          console.log("⚠️ [MarketPage] 상품 데이터가 없습니다.");
+          setProducts([]);
+          setLoading(false);
+          return;
+        }
+        
         let raw: MarketProduct[] = snap.docs.map((docSnap) => {
           const parsed = parseMarketProduct(docSnap);
           const rawData = docSnap.data();
@@ -392,18 +409,38 @@ export default function MarketPage() {
           });
         }
         
-        console.log(`[MarketPage] 총 ${raw.length}개 상품 로드됨${searchQuery.trim() ? ` (검색: "${searchQuery}")` : ""}`);
+        console.log(`✅ [MarketPage] 총 ${raw.length}개 상품 로드됨${searchQuery.trim() ? ` (검색: "${searchQuery}")` : ""}`);
         
         // 행정동 자동 변환
+        console.log("🔥 [MarketPage] 행정동 변환 시작...");
         const filled = await fillDongNames(raw);
         
-        console.log(`[MarketPage] 행정동 변환 완료:`, filled.map(p => ({ id: p.id, name: p.name, dong: p.dong })));
+        console.log(`✅ [MarketPage] 행정동 변환 완료:`, filled.map(p => ({ id: p.id, name: p.name, dong: p.dong })));
         
         setProducts(filled);
-      } catch (err) {
-        console.error("상품 목록을 불러오는 중 오류:", err);
-        setError("상품 목록을 불러오는 중 문제가 발생했습니다.");
+      } catch (err: any) {
+        console.error("❌ [MarketPage] 상품 목록을 불러오는 중 오류:", err);
+        console.error("❌ [MarketPage] 에러 상세:", {
+          code: err.code,
+          message: err.message,
+          stack: err.stack,
+        });
+        
+        // 🔥 Firestore 에러 상세 처리
+        let errorMessage = "상품 목록을 불러오는 중 문제가 발생했습니다.";
+        
+        if (err.code === "permission-denied") {
+          errorMessage = "Firestore 권한 오류: 로그인이 필요하거나 규칙이 제한되어 있습니다.";
+        } else if (err.code === "unavailable") {
+          errorMessage = "Firestore 서비스를 사용할 수 없습니다. 네트워크를 확인해주세요.";
+        } else if (err.message) {
+          errorMessage = `오류: ${err.message}`;
+        }
+        
+        setError(errorMessage);
+        setProducts([]); // 에러 시 빈 배열로 설정
       } finally {
+        console.log("🔥 [MarketPage] 로딩 완료 (성공/실패 무관)");
         setLoading(false);
       }
     }
@@ -617,7 +654,8 @@ export default function MarketPage() {
   );
 
   return (
-    <div className="content px-4 pb-24 pt-8">
+    <div className="w-full flex justify-center">
+      <div className="w-full max-w-[900px] px-4 pb-24 pt-8">
       {/* 🔥 상품 등록 버튼 */}
       <div className="flex justify-end mb-4">
         <button
@@ -840,6 +878,7 @@ export default function MarketPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

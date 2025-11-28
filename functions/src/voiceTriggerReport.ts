@@ -1,15 +1,16 @@
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
-import { initializeApp } from "firebase-admin/app";
 import { getStorage } from "firebase-admin/storage";
-import PDFDocument from "pdfkit";
+// 🔥 Lazy import: 무거운 모듈들은 함수 내부에서 동적 import
+// import PDFDocument from "pdfkit";
 import * as fs from "fs";
 import * as path from "path";
 
-initializeApp();
-
 export const voiceTriggerReport = onCall(async (req) => {
+    // 🔥 Lazy import: 무거운 모듈들을 함수 실행 시점에 동적으로 로드
+    const PDFDocument = (await import("pdfkit")).default;
+
     const db = getFirestore();
     const bucket = getStorage().bucket();
     logger.info("🎤 음성 명령 리포트 생성 시작");

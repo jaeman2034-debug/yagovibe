@@ -1,12 +1,14 @@
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "<YOUR_OPENAI_KEY>",
-});
+// 🔥 Lazy import: 무거운 모듈들은 함수 내부에서 동적 import
+// import OpenAI from "openai";
 
 export const routeVoiceCommand = onCall(async (req) => {
+    // 🔥 Lazy import: 무거운 모듈들을 함수 실행 시점에 동적으로 로드
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY || "<YOUR_OPENAI_KEY>",
+    });
     const text = (req.data.text || "").trim();
     logger.info("🎤 Voice Command Received:", text);
 

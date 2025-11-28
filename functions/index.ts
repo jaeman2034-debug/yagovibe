@@ -1,58 +1,12 @@
-export { generateWeeklyReportJob as generateWeeklyReportJobOld } from "./src/reportAutoGenerator";
-// 새로운 사용자별 AI 주간 리포트 생성 함수
-export { generateWeeklyReportJob, generateWeeklyReportAPI } from "./src/weeklyReportAI";
-// AI 주간 리포트 생성 + 이메일 자동 발송
-export { generateWeeklyReportAndEmail } from "./src/weeklyReportWithEmail";
-// AI 월간 리포트 생성 + 이메일 자동 발송
-export { generateMonthlyReportAndEmail } from "./src/monthlyReportAI";
-// 팀 리포트 자동 생성 및 Slack 공유 (매월 1일 오전 9시)
-export { generateAndSendMonthlyTeamReport } from "./src/teamReportAutomation";
-// AI 음성 리포트 + PDF 자동 생성 및 Slack 공유 (매월 1일 오전 9시)
-export { generateVoiceAndPdfReport } from "./src/monthlyVoiceReportJob";
-// 개인별 선수 리포트 + AI 피드백 자동 생성 및 Slack 공유 (매월 1일 오전 9시)
-export { generatePlayerInsightReports } from "./src/playerInsightReportJob";
-// AI 차트 인사이트 리포트 생성 및 Slack 공유 (매월 1일 오전 9시)
-export { generateInsightChartReport } from "./src/insightChartReportJob";
-// 관리자 토픽 구독 HTTPS 함수
-export { subscribeAdminTopic } from "./src/topicSubscribe";
-export { notifyWeeklyReport } from "./src/reportNotifier";
-export { predictEventTrends } from "./src/eventPredictionNotifier";
-export { dispatchAIReport } from "./src/aiOperationDispatcher";
-export { voiceTriggerReport } from "./src/voiceTriggerReport";
-export { routeVoiceCommand } from "./src/routeVoiceCommand";
-export { voiceAnalyticsAssistant } from "./src/voiceAnalyticsAssistant";
-export { voiceAdminConsole } from "./src/voiceAdminConsole";
-export { voiceMemoryAssistant } from "./src/voiceMemoryAssistant";
-export { teamVoiceAgent } from "./src/teamVoiceAgent";
-export { generateTeamSummaries } from "./src/teamSummaryGenerator";
-export { analyzeVoiceFeedback } from "./src/voiceFeedbackAnalyzer";
-export { generateEmotionHeatmap } from "./src/emotionHeatmapGenerator";
-export { generateOpsReport } from "./src/autoOpsReport";
-export { selfLearningGovernance } from "./src/selfLearningGovernance";
-export { runDigitalTwinSimulation } from "./src/digitalTwinSimulator";
-export { generatePredictiveInsights } from "./src/predictiveInsightGenerator";
-export { autonomousActionEngine } from "./src/autonomousActionEngine";
-export { orchestrateAIModules } from "./src/orchestratorCore";
-export { handleImageAndVoiceAnalyze, generateTags } from "./src/handleImageAndVoiceAnalyze";
-export { getPriceRecommendation } from "./src/getPriceRecommendation";
-export { generateSearchMeta } from "./src/generateSearchMeta";
-export { getSearchSuggestions } from "./src/getSearchSuggestions";
-export { getRelatedProducts } from "./src/getRelatedProducts";
-export { getProductSummary } from "./src/getProductSummary";
-export { detectFraudRisk } from "./src/detectFraudRisk";
-export { getImageQualityScore } from "./src/getImageQualityScore";
-export { getConditionScore } from "./src/getConditionScore";
-export { getPricePrediction } from "./src/getPricePrediction";
-export { predictFuturePrice } from "./src/predictFuturePrice";
-export { generateProductTitle } from "./src/generateProductTitle";
-export { detectComponents } from "./src/detectComponents";
-export { generateAITags } from "./src/generateAITags";
-export { generateCategory } from "./src/generateCategory";
-export { generateOneLineSummary } from "./src/generateOneLineSummary";
-export { generateTotalScore } from "./src/generateTotalScore";
-export { getRecommendedFeed } from "./src/getRecommendedFeed";
-export { negotiateHelper } from "./src/negotiateHelper";
-export { searchProducts } from "./src/searchProducts";
-export { recommendSimilar } from "./src/recommendSimilar";
-export { getSellerTrustScore } from "./src/getSellerTrustScore";
-export { askAdminAI } from "./src/askAdminAI";
+/**
+ * 🔥 Firebase Functions 최적화된 엔트리 포인트
+ * 
+ * ✅ 얇은 라우터 구조로 모든 함수를 그룹별로 export
+ * ✅ top-level import 최소화로 cold start 시간 대폭 단축
+ * ✅ 10초 timeout 문제 해결
+ * ✅ 그룹 단위로 주석 처리하여 배포 테스트 가능
+ */
+
+export * from "./src/exports/reporting";
+export * from "./src/exports/voice";
+export * from "./src/exports/market";

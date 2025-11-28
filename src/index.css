@@ -85,18 +85,11 @@
   }
 
   .pc-center-ui .content {
-    @apply max-w-[900px] w-full;
+    @apply w-full;
   }
 
   .pc-center-ui .product-grid {
-    @apply grid grid-cols-2 gap-6; /* 1~2열 */
-  }
-
-  /* 1400px 이상이면 3열로 확장 가능 */
-  @media (min-width: 1400px) {
-    .pc-center-ui .product-grid {
-      @apply grid-cols-3;
-    }
+    @apply grid grid-cols-3 gap-6; /* 🔥 항상 3열 가로형 */
   }
 }
 

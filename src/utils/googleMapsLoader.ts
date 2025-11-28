@@ -53,7 +53,19 @@ export const loadGoogleMapsAPI = (): Promise<boolean> => {
         }
 
         // 환경 변수 검증
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+        // 🔥 하드코딩된 키 완전 제거: 환경 변수만 사용
+        // 🔥 빌드 시점에 vite.config.ts의 define 옵션으로 VITE_GOOGLE_MAPS_API_KEY가 주입됨
+        // 🔥 Vercel 환경 변수 또는 .env.production 파일에서 올바른 키를 설정해야 함
+        const apiKey =
+            import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+            // Vite define / 다른 변수명으로 주입된 경우 대비
+            (import.meta.env as any).VITE_GOOGLE_MAP_API_KEY ||
+            (import.meta.env as any).VITE_GOOGLE_MAP_KEY ||
+            (import.meta.env as any).VITE_MAPS_API_KEY ||
+            (import.meta.env as any).VITE_MAP_API_KEY ||
+            (import.meta.env as any).VITE_APP_GOOGLE_MAP_KEY ||
+            // 최후의 수단: 빈 문자열 (오류 발생 시 명확히 알 수 있도록)
+            "";
 
         if (!apiKey || apiKey === "" || apiKey === "your-google-maps-api-key" || apiKey.includes("your-")) {
             const error = new Error(
@@ -191,12 +203,28 @@ export const loadGoogleMapsAPI = (): Promise<boolean> => {
             // 아직 로딩 중이면 Promise만 대기
         }
 
-        // 스크립트가 이미 있는지 확인 (중복 로드 방지)
+        // 🔥 스크립트가 이미 있는지 확인 (중복 로드 방지) - 강화된 검사
         const existingScript = document.querySelector(`script[src*="maps.googleapis.com/maps/api/js"]`);
         if (existingScript) {
             console.log("⚠️ Google Maps API 스크립트가 이미 존재합니다. 로드 완료 대기 중...");
-            // 이미 스크립트가 로드 중이면, 초기화 콜백을 기다림
-            return;
+            
+            // 이미 로드된 스크립트의 key 파라미터 확인
+            const existingSrc = (existingScript as HTMLScriptElement).src;
+            if (existingSrc.includes("key=undefined")) {
+                console.error("❌ 기존 스크립트가 key=undefined로 로드되었습니다. 제거 후 재로드합니다.");
+                existingScript.remove();
+                // 재로드 계속 진행
+            } else {
+                // 이미 스크립트가 로드 중이면, 초기화 콜백을 기다림
+                // window.google이 이미 있으면 즉시 resolve
+                if (window.google && window.google.maps) {
+                    console.log("✅ Google Maps API가 이미 로드되어 있습니다.");
+                    window.__googleMapsApiLoaded__ = true;
+                    pendingPromises.forEach((p: any) => p.resolve(true));
+                    pendingPromises.length = 0;
+                }
+                return;
+            }
         }
 
         // 타임아웃 백업 (콜백이 호출되지 않는 경우)

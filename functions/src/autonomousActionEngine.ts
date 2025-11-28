@@ -1,15 +1,11 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
-import { initializeApp } from "firebase-admin/app";
-import OpenAI from "openai";
+// Firebase Admin 초기화는 lib/firebaseAdmin.ts에서 처리됨
+import { getOpenAIClient } from "./lib/openaiClient";
 import fetch from "node-fetch";
 
-initializeApp();
 const db = getFirestore();
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "<YOUR_OPENAI_KEY>",
-});
 
 export const autonomousActionEngine = onSchedule(
     {
@@ -44,6 +40,7 @@ export const autonomousActionEngine = onSchedule(
         let parsed: any = { actions: [] };
 
         try {
+            const openai = getOpenAIClient();
             const ai = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [{ role: "user", content: prompt }],

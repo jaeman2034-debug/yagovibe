@@ -3,7 +3,13 @@ export async function handleVoiceCommand(navigate: any, text: string): Promise<s
   console.log("🎤 음성 명령 감지:", text);
 
   try {
-    const res = await fetch("/nlu", {
+    // Firebase Functions NLU 엔드포인트 사용
+    const nluEndpoint = import.meta.env.VITE_NLU_ENDPOINT ||
+      "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net/nluHandler";
+
+    console.log("📡 NLU 엔드포인트:", nluEndpoint);
+
+    const res = await fetch(nluEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ text }),

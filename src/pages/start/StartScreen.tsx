@@ -54,28 +54,36 @@ export default function StartScreen() {
         음성으로 제어되는 새로운 경험을 시작하세요.
       </p>
 
-      {/* 버튼 영역 */}
+      {/* 버튼 영역 - 실명 로그인 우선 */}
       <div className="flex flex-col gap-3 w-full max-w-[200px] mt-4">
         <Button
           onClick={() => navigate("/login")}
-          className="w-full text-white bg-blue-600 hover:bg-blue-700"
+          className="w-full text-white bg-blue-600 hover:bg-blue-700 font-semibold"
         >
-          로그인
+          🔐 로그인
         </Button>
         <Button
           variant="outline"
           onClick={() => navigate("/signup")}
-          className="w-full"
+          className="w-full font-semibold"
         >
-          회원가입
+          ✨ 회원가입
         </Button>
+        <div className="relative my-2">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-2 bg-white text-gray-500">또는</span>
+          </div>
+        </div>
         <Button
           variant="ghost"
           onClick={handleGuestLogin}
           disabled={isLoading}
-          className="w-full text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+          className="w-full text-gray-600 hover:text-gray-800 hover:bg-gray-50 text-sm"
         >
-          {isLoading ? "접속 중..." : "게스트로 둘러보기 →"}
+          {isLoading ? "접속 중..." : "게스트로 둘러보기"}
         </Button>
       </div>
     </motion.div>
