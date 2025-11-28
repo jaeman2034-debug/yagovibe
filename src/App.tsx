@@ -110,6 +110,19 @@ function InAppBrowserRedirect() {
       return;
     }
 
+    // 🔥 로그인 플로우 중에는 인앱 브라우저 감지 비활성화 (Firebase Auth 중단 방지)
+    const isLoginFlow = 
+      location.pathname === "/login" || 
+      location.pathname === "/signup" ||
+      location.pathname.includes("/__/auth/") ||
+      location.search.includes("authType=") ||
+      location.search.includes("apiKey=");
+    
+    if (isLoginFlow) {
+      console.log("🔧 [React] 로그인 플로우 중 - 인앱 브라우저 감지 비활성화");
+      return;
+    }
+
     // 🔥 강화된 WebView/인앱 브라우저 감지 로직
     const ua = navigator.userAgent.toLowerCase();
     const fullUA = navigator.userAgent;
