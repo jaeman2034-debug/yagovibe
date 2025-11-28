@@ -105,8 +105,16 @@ function InAppBrowserRedirect() {
   const location = useLocation();
 
   useEffect(() => {
+    // 🔍 디버깅: 인앱 감지 실행 확인
+    console.log("🟥 [InAppBrowserRedirect] 인앱 감지 실행됨", {
+      pathname: location.pathname,
+      search: location.search,
+      fullPath: location.pathname + location.search,
+    });
+    
     // /in-app 페이지에서는 리다이렉트하지 않음
     if (location.pathname === "/in-app") {
+      console.log("🟨 [InAppBrowserRedirect] /in-app 페이지 - 감지 스킵");
       return;
     }
 
@@ -116,10 +124,25 @@ function InAppBrowserRedirect() {
       location.pathname === "/signup" ||
       location.pathname.includes("/__/auth/") ||
       location.search.includes("authType=") ||
-      location.search.includes("apiKey=");
+      location.search.includes("apiKey=") ||
+      location.search.includes("mode=signIn") ||
+      location.search.includes("mode=signUp") ||
+      location.search.includes("redirect") ||
+      location.search.includes("providerId=");
     
     if (isLoginFlow) {
-      console.log("🔧 [React] 로그인 플로우 중 - 인앱 브라우저 감지 비활성화");
+      console.log("🟩 [InAppBrowserRedirect] 로그인 예외 처리 적용됨 - 인앱 브라우저 감지 비활성화", {
+        pathname: location.pathname,
+        search: location.search,
+        isLogin: location.pathname === "/login",
+        isSignup: location.pathname === "/signup",
+        hasAuthPath: location.pathname.includes("/__/auth/"),
+        hasAuthType: location.search.includes("authType="),
+        hasApiKey: location.search.includes("apiKey="),
+        hasMode: location.search.includes("mode="),
+        hasRedirect: location.search.includes("redirect"),
+        hasProviderId: location.search.includes("providerId="),
+      });
       return;
     }
 
@@ -181,7 +204,7 @@ function InAppBrowserRedirect() {
       return; // 개발 환경에서는 감지하지 않음 (undefined 반환)
     }
 
-    // 🔍 디버깅 정보
+    // 🔍 디버깅 정보 (로그인 플로우가 아닐 때만 출력)
     console.log("🔍 [React] 인앱 브라우저/WebView 감지:", {
       userAgent: fullUA,
       isInAppByUA,
@@ -211,6 +234,12 @@ export default function App() {
   useGATrack();
   useAutoGAEvents();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 🔍 디버깅: App.tsx 마운트 확인
+  useEffect(() => {
+    console.log("🟦 [App.tsx] App.tsx mounted at path:", location.pathname, location.search);
+  }, [location.pathname, location.search]);
 
   // 🔥 Google OAuth Redirect 결과 처리 (모바일 환경에서 redirect 방식 사용 시 필요)
   const isProcessing = useRef(false);
