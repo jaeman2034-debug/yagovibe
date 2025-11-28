@@ -78,8 +78,9 @@ export default function AssistantPanel() {
             }
 
             // NLU 처리 (Step 52/58 연동)
-            const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-                'https://asia-northeast3-yago-vibe-spt.cloudfunctions.net';
+            // Firebase Functions NLU 엔드포인트 사용
+            const nluEndpoint = import.meta.env.VITE_NLU_ENDPOINT ||
+                "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net/nluHandler";
 
             const contextData = {
                 gesture: detectedGesture,
@@ -88,7 +89,7 @@ export default function AssistantPanel() {
             };
 
             // NLU Handler 또는 GraphCopilot 엔진 호출
-            const response = await fetch(`${functionsOrigin}/nluHandler`, {
+            const response = await fetch(nluEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

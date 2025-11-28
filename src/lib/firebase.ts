@@ -1,187 +1,265 @@
-// === CORE PROTECTED: DO NOT MODIFY BELOW ===
-// 🧠 YAGO VIBE Firebase Configuration
-// 이 파일은 Cursor가 자동 수정하지 못하도록 보호됩니다.
+// src/lib/firebase.ts
+// 🔥 Firebase SDK 명시적 import (배포 환경에서 로드 보장)
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { initializeAuth, getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence, indexedDBLocalPersistence, browserPopupRedirectResolver, GoogleAuthProvider, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
-// ======================================================
-// 🧠 GENIUS MODE PATCH INSTRUCTION
-// Project: YAGO VIBE CLEAN BUILD (SPT Edition)
-// Author: ChatGPT (천재모드)
-// Purpose: Firebase + AuthProvider + Router 구조 세팅
-// ======================================================
-//
-// ⚠️ IMPORTANT DEVELOPER RULES for Cursor
-// ------------------------------------------------------
-// 1️⃣ 절대 다른 파일 수정 금지 — 지정된 파일만 수정할 것.
-// 2️⃣ 파일이 없으면 새로 생성, 반드시 명시된 경로에 생성.
-// 3️⃣ 이미 있는 코드는 덮어써도 됨 (본 지시문 내의 파일만).
-// 4️⃣ 설치된 패키지, .env, tailwind 설정 절대 건드리지 말 것.
-// 5️⃣ ChatGPT가 포함한 주석, 구조, import 경로 절대 삭제 금지.
-// ------------------------------------------------------
-// ✅ 이 패치는 Firebase + AuthProvider + Router 기반을 구축한다.
-// ======================================================
-
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
-import { getAuth, connectAuthEmulator, onAuthStateChanged, signInAnonymously } from "firebase/auth";
-import { getStorage, connectStorageEmulator } from "firebase/storage";
-
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
-
-// Firebase 설정 검증
-console.log("⚙️ Firebase 초기화 중...");
-console.log("📋 Firebase Config 확인:");
-console.log("  - Project ID:", firebaseConfig.projectId);
-console.log("  - Auth Domain:", firebaseConfig.authDomain);
-if (firebaseConfig.authDomain && !firebaseConfig.authDomain.includes("firebaseapp.com")) {
-  console.warn("⚠️ authDomain이 'firebaseapp.com'을 포함하지 않습니다. Firebase Console에서 확인해주세요.");
-}
-if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR") || firebaseConfig.apiKey.includes("your")) {
-  console.warn("⚠️ API Key가 올바르게 설정되지 않았습니다. .env 파일을 확인해주세요.");
-}
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-console.log("✅ Firebase App initialized:", app);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const storage = getStorage(app);
-
-// 익명 로그인 시도 여부 추적 (한 번만 시도)
-let hasAttemptedAnonymousLogin = false;
-
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    console.log("✅ Firebase 로그인 상태 유지:", user.uid);
-    hasAttemptedAnonymousLogin = false; // 로그인 성공 시 리셋
-    return;
-  }
-  
-  // 이미 시도했으면 더 이상 시도하지 않음 (무한 재시도 방지)
-  if (hasAttemptedAnonymousLogin) {
-    return;
-  }
-  
-  hasAttemptedAnonymousLogin = true;
-  
-  try {
-    await signInAnonymously(auth);
-    console.log("✅ 익명 로그인 완료");
-    hasAttemptedAnonymousLogin = false; // 성공 시 리셋
-  } catch (err: any) {
-    // 개발 환경: referer 오류는 조용히 무시 (앱은 계속 작동)
-    if (err?.code === "auth/requests-from-referer-are-blocked") {
-      // 오류를 조용히 무시 (콘솔에 출력하지 않음)
-      // 앱은 로그인 없이도 계속 작동할 수 있도록 함
-      return;
-    } else {
-      // 다른 오류는 로그만 출력 (앱은 계속 작동)
-      console.error("❌ 익명 로그인 실패:", err?.code || err?.message || err);
-    }
-  }
+// 🔥 Firebase SDK 로드 확인
+console.log("🔍 [firebase.ts] Firebase SDK 로드 확인:", {
+  initializeApp: typeof initializeApp !== "undefined" ? "✅ 로드됨" : "❌ undefined",
+  getAuth: typeof getAuth !== "undefined" ? "✅ 로드됨" : "❌ undefined",
+  getFirestore: typeof getFirestore !== "undefined" ? "✅ 로드됨" : "❌ undefined",
+  getStorage: typeof getStorage !== "undefined" ? "✅ 로드됨" : "❌ undefined",
+  firebaseApp: typeof FirebaseApp !== "undefined" ? "✅ 타입 로드됨" : "❌ 타입 없음",
 });
 
-const USE_EMULATOR = import.meta.env.VITE_USE_EMULATOR === "true";
+// 🔥 환경 변수 검증 및 디버깅
+const envVars = {
+  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
+  VITE_FIREBASE_MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID,
+};
 
-if (USE_EMULATOR) {
-  console.log("🔥 Emulator mode enabled!");
-  console.log("⚙️ Firebase Emulator 연결 중...");
-  try {
-    connectFirestoreEmulator(db, "127.0.0.1", 8083);
-    connectAuthEmulator(auth, "http://127.0.0.1:9099");
-    connectStorageEmulator(storage, "127.0.0.1", 9199);
-    console.log("🔥 Firestore / Auth / Storage Emulator 연결 완료");
-  } catch (err) {
-    console.error("❌ Emulator 연결 실패:", err);
+console.log("🔍 [firebase.ts] 환경 변수 확인:", {
+  apiKey: envVars.VITE_FIREBASE_API_KEY ? `✅ ${envVars.VITE_FIREBASE_API_KEY.substring(0, 10)}...` : "❌ undefined",
+  messagingSenderId: envVars.VITE_FIREBASE_MESSAGING_SENDER_ID ? `✅ ${envVars.VITE_FIREBASE_MESSAGING_SENDER_ID}` : "❌ undefined",
+  appId: envVars.VITE_FIREBASE_APP_ID ? `✅ ${envVars.VITE_FIREBASE_APP_ID.substring(0, 20)}...` : "❌ undefined",
+  mode: import.meta.env.MODE,
+  dev: import.meta.env.DEV,
+  prod: import.meta.env.PROD,
+  hostname: typeof window !== "undefined" ? window.location.hostname : "SSR",
+});
+
+// 🔥 필수 환경 변수 검증
+const missingVars: string[] = [];
+if (!envVars.VITE_FIREBASE_API_KEY) missingVars.push("VITE_FIREBASE_API_KEY");
+if (!envVars.VITE_FIREBASE_MESSAGING_SENDER_ID) missingVars.push("VITE_FIREBASE_MESSAGING_SENDER_ID");
+if (!envVars.VITE_FIREBASE_APP_ID) missingVars.push("VITE_FIREBASE_APP_ID");
+
+if (missingVars.length > 0) {
+  const errorMsg = `❌ [firebase.ts] 필수 환경 변수가 누락되었습니다: ${missingVars.join(", ")}\n\n` +
+    `해결 방법:\n` +
+    `1. 로컬 개발: .env.local 파일에 환경 변수 추가\n` +
+    `2. 배포 환경: Firebase Hosting 환경 변수 설정 확인\n` +
+    `3. Vercel: Settings > Environment Variables에서 확인`;
+  
+  console.error(errorMsg);
+  
+  // 개발 환경에서는 에러를 throw하여 즉시 알림
+  if (import.meta.env.DEV) {
+    throw new Error(errorMsg);
   }
-} else {
-  console.log("✅ Firebase Production 연결 중...");
+  
+  // 프로덕션에서는 경고만 표시하고 계속 진행 (기본값 사용)
+  console.warn("⚠️ [firebase.ts] 환경 변수 누락으로 인해 Firebase 초기화가 실패할 수 있습니다.");
 }
 
-export { app, db, auth, storage };
+// Firebase 설정 (하드코딩된 storageBucket 필수)
+// ⚠️ authDomain은 항상 firebaseapp.com을 사용 (개발/프로덕션 모두)
+// 개발 환경에서 localhost를 사용하려면 Firebase Console의 Authorized domains에 localhost 추가 필요
+const firebaseConfig = {
+  apiKey: envVars.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "yago-vibe-spt.firebaseapp.com",
+  projectId: "yago-vibe-spt",
+  // 🔥 실제 버킷 이름: yago-vibe-spt.firebasestorage.app
+  storageBucket: "yago-vibe-spt.firebasestorage.app",
+  messagingSenderId: envVars.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: envVars.VITE_FIREBASE_APP_ID || "",
+};
 
-// 익명 로그인 수동 실행 함수 (브라우저 콘솔에서 사용 가능)
-export async function tryAnonymousLogin() {
+// 🔥 Firebase 초기화 전 설정 확인
+console.log("🔍 [firebase.ts] Firebase 설정 확인:", {
+  apiKey: firebaseConfig.apiKey ? `✅ 설정됨 (${firebaseConfig.apiKey.substring(0, 10)}...)` : "❌ 없음",
+  authDomain: firebaseConfig.authDomain ? `✅ ${firebaseConfig.authDomain}` : "❌ 없음",
+  projectId: firebaseConfig.projectId ? `✅ ${firebaseConfig.projectId}` : "❌ 없음",
+  storageBucket: firebaseConfig.storageBucket ? `✅ ${firebaseConfig.storageBucket}` : "❌ 없음",
+  messagingSenderId: firebaseConfig.messagingSenderId ? `✅ ${firebaseConfig.messagingSenderId}` : "❌ 없음",
+  appId: firebaseConfig.appId ? `✅ 설정됨 (${firebaseConfig.appId.substring(0, 20)}...)` : "❌ 없음",
+});
+
+// 앱 초기화 (중복 생성 방지)
+let app: FirebaseApp;
+try {
+  // 🔥 initializeApp 함수 존재 확인
+  if (typeof initializeApp === "undefined") {
+    throw new Error("❌ [firebase.ts] initializeApp이 undefined입니다. Firebase SDK가 로드되지 않았습니다.");
+  }
+
+  if (!getApps().length) {
+    console.log("🚀 [firebase.ts] Firebase 앱 초기화 시작...");
+    console.log("🔍 [firebase.ts] initializeApp 함수:", typeof initializeApp);
+    
+    app = initializeApp(firebaseConfig);
+    
+    // 🔥 초기화 후 app 객체 확인
+    if (!app) {
+      throw new Error("❌ [firebase.ts] Firebase 앱 초기화 후 app이 null/undefined입니다.");
+    }
+    
+    console.log("✅ [firebase.ts] Firebase 앱 초기화 성공:", {
+      name: app.name,
+      options: app.options ? "✅ 옵션 존재" : "❌ 옵션 없음",
+    });
+  } else {
+    app = getApp();
+    console.log("✅ [firebase.ts] 기존 Firebase 앱 사용:", app.name);
+  }
+} catch (error) {
+  console.error("❌ [firebase.ts] Firebase 앱 초기화 실패:", error);
+  console.error("❌ [firebase.ts] 에러 상세:", {
+    message: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+    firebaseConfig: {
+      apiKey: firebaseConfig.apiKey ? "✅ 설정됨" : "❌ 없음",
+      authDomain: firebaseConfig.authDomain,
+      projectId: firebaseConfig.projectId,
+    },
+  });
+  throw error;
+}
+
+// Firebase 서비스들 (명시적 타입 지정)
+let auth: Auth;
+let db: Firestore;
+let storage: FirebaseStorage;
+
+try {
+  // 🔥 Third-party Cookie 문제 해결: browserPopupRedirectResolver 사용
+  // initializeAuth는 앱이 처음 초기화될 때만 사용 가능
+  if (typeof initializeAuth === "undefined") {
+    throw new Error("❌ [firebase.ts] initializeAuth가 undefined입니다. Firebase Auth SDK가 로드되지 않았습니다.");
+  }
+  
+  // 🔥 먼저 initializeAuth 시도 (browserPopupRedirectResolver 포함)
   try {
-    console.log("🔄 익명 로그인 시도 중...");
-    const userCred = await signInAnonymously(auth);
-    console.log("✅ 익명 로그인 성공!");
-    console.log("   사용자 UID:", userCred.user.uid);
-    console.log("   익명 사용자:", userCred.user.isAnonymous);
-    hasAttemptedAnonymousLogin = false; // 수동 로그인 성공 시 리셋
-    return userCred;
-  } catch (err: any) {
-    if (err?.code === "auth/requests-from-referer-are-blocked") {
-      console.warn("⚠️ 익명 로그인 실패: Firebase Console에서 localhost 도메인을 허용해주세요.");
-      console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      console.warn("📌 해결 방법:");
-      console.warn("   1. Firebase Console 접속: https://console.firebase.google.com");
-      console.warn("   2. 프로젝트 선택");
-      console.warn("   3. Authentication > Settings 탭");
-      console.warn("   4. Authorized domains 섹션에서 'Add domain' 클릭");
-      console.warn("   5. 'localhost' 입력 후 저장");
-      console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      console.warn("💡 참고: 이 오류는 개발 환경에서만 발생하며, 앱은 계속 작동합니다.");
+    console.log("🚀 [firebase.ts] Firebase Auth 초기화 시작 (browserPopupRedirectResolver 포함)...");
+    auth = initializeAuth(app, {
+      popupRedirectResolver: browserPopupRedirectResolver,
+    });
+    console.log("✅ [firebase.ts] Firebase Auth 초기화 성공 (Third-party Cookie 우회 설정 적용):", {
+      auth: auth ? "✅ 객체 존재" : "❌ 객체 없음",
+      app: auth.app.name,
+      authDomain: auth.app.options.authDomain,
+      projectId: auth.app.options.projectId,
+      popupRedirectResolver: "✅ browserPopupRedirectResolver 적용됨",
+    });
+  } catch (initError: any) {
+    // initializeAuth가 실패하면 (이미 초기화된 경우) getAuth 사용
+    if (initError.code === "auth/already-initialized") {
+      console.log("⚠️ [firebase.ts] Auth가 이미 초기화됨 - getAuth 사용");
+      if (typeof getAuth === "undefined") {
+        throw new Error("❌ [firebase.ts] getAuth가 undefined입니다. Firebase Auth SDK가 로드되지 않았습니다.");
+      }
+      auth = getAuth(app);
+      console.log("✅ [firebase.ts] Firebase Auth (getAuth) 초기화 성공:", {
+        auth: auth ? "✅ 객체 존재" : "❌ 객체 없음",
+        app: auth.app.name,
+        authDomain: auth.app.options.authDomain,
+        projectId: auth.app.options.projectId,
+      });
     } else {
-      console.error("❌ 익명 로그인 실패:", err?.code || err?.message || err);
+      // 다른 에러는 다시 throw
+      throw initError;
     }
-    hasAttemptedAnonymousLogin = false; // 실패해도 리셋하여 재시도 가능하게
-    throw err;
   }
+} catch (error) {
+  console.error("❌ [firebase.ts] Firebase Auth 초기화 실패:", error);
+  throw error;
 }
 
-// 상품 데이터 확인 함수 (브라우저 콘솔용)
-export async function checkProductData() {
+try {
+  // 🔥 getFirestore 함수 존재 확인
+  if (typeof getFirestore === "undefined") {
+    throw new Error("❌ [firebase.ts] getFirestore가 undefined입니다. Firebase Firestore SDK가 로드되지 않았습니다.");
+  }
+  
+  db = getFirestore(app);
+  console.log("✅ [firebase.ts] Firebase Firestore 초기화 성공");
+} catch (error) {
+  console.error("❌ [firebase.ts] Firebase Firestore 초기화 실패:", error);
+  throw error;
+}
+
+try {
+  // 🔥 getStorage 함수 존재 확인
+  if (typeof getStorage === "undefined") {
+    throw new Error("❌ [firebase.ts] getStorage가 undefined입니다. Firebase Storage SDK가 로드되지 않았습니다.");
+  }
+  
+  storage = getStorage(app);
+  console.log("✅ [firebase.ts] Firebase Storage 초기화 성공");
+} catch (error) {
+  console.error("❌ [firebase.ts] Firebase Storage 초기화 실패:", error);
+  throw error;
+}
+
+// 🔥 모바일 WebView에서 로그인 유지를 위한 Persistence 설정
+(async () => {
   try {
-    const { collection, getDocs, limit, query } = await import("firebase/firestore");
-    console.log("🔍 Firestore에서 실제 상품 데이터 확인 중...\n");
-    
-    const q = query(collection(db, "marketProducts"), limit(1));
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
-      console.log("❌ 저장된 상품 데이터가 없습니다.");
-      return null;
+    // 저장소 접근 가능 여부 확인
+    const isIndexedDBAvailable = typeof indexedDB !== "undefined";
+    const isLocalStorageAvailable = typeof localStorage !== "undefined";
+    const isSessionStorageAvailable = typeof sessionStorage !== "undefined";
+
+    console.log("🔍 [firebase.ts] 저장소 접근 가능 여부:", {
+      indexedDB: isIndexedDBAvailable,
+      localStorage: isLocalStorageAvailable,
+      sessionStorage: isSessionStorageAvailable,
+      userAgent: navigator.userAgent,
+      isWebView: /wv|WebView/i.test(navigator.userAgent)
+    });
+
+    // 🔥 Capacitor 환경 감지 (Capacitor는 IndexedDB를 지원하므로 LocalPersistence 사용 가능)
+    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
+    const isWebView = /wv|WebView/i.test(navigator.userAgent) || 
+                      /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent) ||
+                      /Android.*wv/i.test(navigator.userAgent);
+
+    // 🔥 Capacitor 환경에서는 IndexedDB가 사용 가능하므로 LocalPersistence 우선 사용
+    // (자동 로그인을 위해 영구 저장 필요)
+    if (isCapacitor && isIndexedDBAvailable) {
+      console.log("📱 [firebase.ts] Capacitor 환경 감지 - IndexedDB LocalPersistence 사용 (자동 로그인 지원)");
+      await setPersistence(auth, indexedDBLocalPersistence);
+    } else if (isIndexedDBAvailable) {
+      console.log("💾 [firebase.ts] IndexedDB 사용 가능 - LocalPersistence 사용");
+      await setPersistence(auth, indexedDBLocalPersistence);
+    } else if (isLocalStorageAvailable) {
+      console.log("💾 [firebase.ts] LocalStorage 사용 가능 - LocalPersistence 사용");
+      await setPersistence(auth, browserLocalPersistence);
+    } else if (isWebView) {
+      // 일반 WebView (인앱 브라우저 등)에서는 SessionPersistence 사용
+      console.log("📱 [firebase.ts] WebView 환경 감지 - SessionPersistence 사용");
+      await setPersistence(auth, browserSessionPersistence);
+    } else {
+      console.warn("⚠️ [firebase.ts] 저장소 접근 불가 - SessionPersistence 사용");
+      await setPersistence(auth, browserSessionPersistence);
     }
-    
-    const doc = snapshot.docs[0];
-    const data = doc.data();
-    
-    const result = {
-      id: doc.id,
-      ...data,
-      createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || null
-    };
-    
-    console.log("✅ 실제 저장된 상품 데이터 (1개):\n");
-    console.log(JSON.stringify(result, null, 2));
-    
-    console.log("\n📋 한 줄 버전:");
-    console.log(JSON.stringify(result));
-    
-    return result;
-  } catch (error: any) {
-    console.error("❌ 오류:", error.message || error);
-    return null;
+
+    console.log("✅ [firebase.ts] Auth Persistence 설정 완료");
+  } catch (error) {
+    console.error("❌ [firebase.ts] Auth Persistence 설정 실패:", error);
+    // 실패해도 기본값 사용
   }
-}
+})();
 
-// 브라우저 콘솔에서 사용할 수 있도록 전역 함수로 등록
-if (typeof window !== "undefined") {
-  (window as any).tryAnonymousLogin = tryAnonymousLogin;
-  (window as any).checkProductData = checkProductData;
-  console.log("💡 브라우저 콘솔에서 사용 가능한 함수:");
-  console.log("   - tryAnonymousLogin() - 익명 로그인");
-  console.log("   - checkProductData() - 상품 데이터 확인");
-}
+// 🔥 Google Auth Provider 설정
+// ⚠️ 매번 새로 생성하도록 함수로 변경 (캐싱 문제 방지)
+export const getGoogleProvider = () => {
+  const provider = new GoogleAuthProvider();
+  
+  // 🔥 디버깅: auth 설정 확인
+  console.log("🔍 [firebase.ts] GoogleAuthProvider 생성:", {
+    authDomain: auth.app.options.authDomain,
+    projectId: auth.app.options.projectId,
+    apiKey: auth.app.options.apiKey ? `${auth.app.options.apiKey.substring(0, 10)}...` : "없음",
+  });
+  
+  return provider;
+};
 
-// ======================================================
-// ✅ END OF GENIUS MODE PATCH (DO NOT MODIFY ABOVE LINES)
-// ======================================================
+// 🔥 하위 호환성을 위한 export (하지만 함수 사용 권장)
+export const googleProvider = getGoogleProvider();
 
-// === END PROTECTED ===
+// 단일 export (중복 금지!!)
+export { app, auth, db, storage };

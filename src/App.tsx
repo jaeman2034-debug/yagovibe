@@ -1,6 +1,10 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import { AuthProvider } from "./context/AuthProvider";
+import { getRedirectResult } from "firebase/auth";
+import { auth, db } from "./lib/firebase";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import MainLayout from "./layout/MainLayout";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import CenterLayout from "./layouts/CenterLayout";
@@ -12,11 +16,13 @@ import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 import { useGATrack } from "@/hooks/useGATrack";
 import { useAutoGAEvents } from "@/hooks/useAutoGAEvents";
+// 🔥 익명 로그인 보장 (업로드 문제 해결) - main.tsx에서 처리하므로 여기서는 제거
 
 // Lazy loading으로 성능 최적화
 const StartScreen = lazy(() => import("./pages/start/StartScreen"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
+const PhoneLoginPage = lazy(() => import("./pages/PhoneLoginPage"));
 const HomePage = lazy(() => import("./pages/HomePage"));
 const HomeNew = lazy(() => import("./pages/home/Home"));
 const HomeNewTest = lazy(() => import("./pages/home/HomeNew"));
@@ -89,13 +95,207 @@ const FavoriteList = lazy(() => import("./pages/favorites/FavoriteList"));
 const ChatRoom = lazy(() => import("./pages/chat/ChatRoom"));
 const OfflinePage = lazy(() => import("./pages/OfflinePage"));
 const NoMatch = lazy(() => import("./pages/NoMatch"));
+const InAppPage = lazy(() => import("./pages/InAppPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const DebugPage = lazy(() => import("./pages/DebugPage"));
+
+// 🔥 인앱 브라우저/WebView 감지 및 Chrome 리다이렉트 컴포넌트
+// 🎯 당근마켓 방식: WebView에서는 Firebase Auth가 제대로 작동하지 않으므로 Chrome으로 유도
+function InAppBrowserRedirect() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // /in-app 페이지에서는 리다이렉트하지 않음
+    if (location.pathname === "/in-app") {
+      return;
+    }
+
+    // 🔥 강화된 WebView/인앱 브라우저 감지 로직
+    const ua = navigator.userAgent.toLowerCase();
+    const fullUA = navigator.userAgent;
+    
+    // 1. User Agent 기반 감지
+    const isInAppByUA =
+      ua.includes("kakaotalk") ||
+      ua.includes("instagram") ||
+      ua.includes("naver") ||
+      ua.includes("fb") ||
+      ua.includes("facebook") ||
+      ua.includes("line") ||
+      ua.includes("daum") ||
+      ua.includes("band") ||
+      ua.includes("whale") ||
+      ua.includes("samsungbrowser") ||
+      // WebView 감지 (가장 중요!)
+      (ua.includes("wv") && !ua.includes("chrome")) || // Android WebView
+      /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(fullUA) || // iOS WebView
+      /Android.*wv/i.test(fullUA) || // Android WebView
+      (ua.includes("version/") && ua.includes("mobile") && !ua.includes("safari"));
+
+    // 2. Window 크기 기반 감지 (더 엄격하게)
+    const isStandalone = (window.navigator as any).standalone === true;
+    const heightDiff = window.outerHeight - window.innerHeight;
+    const widthDiff = window.outerWidth - window.innerWidth;
+    
+    // 일반 Chrome 브라우저는 제외 (Chrome User Agent 확인)
+    const isChrome = ua.includes('chrome') && !ua.includes('edg') && !ua.includes('opr');
+    const isSafari = ua.includes('safari') && !ua.includes('chrome');
+    
+    // Window 크기 기반 감지는 더 엄격하게 (일반 브라우저 제외)
+    const isInAppBySize = 
+      !isChrome && !isSafari && (
+        heightDiff > 200 || // 더 큰 임계값
+        (window.outerWidth === 0 && window.innerWidth > 0) ||
+        (heightDiff === 0 && widthDiff === 0 && !isStandalone && window.innerWidth < 400)
+      );
+
+    // 3. 저장소 접근 제한 감지 (WebView 특성) - 더 엄격하게
+    const isStorageRestricted = 
+      !isChrome && !isSafari && // Chrome/Safari는 제외
+      (typeof indexedDB === 'undefined' || indexedDB === null) &&
+      (typeof localStorage === 'undefined' || localStorage === null);
+
+    // 4. 최종 판단 (Chrome/Safari는 제외)
+    const isInApp = (isInAppByUA || (!isStandalone && isInAppBySize) || isStorageRestricted) && !isChrome && !isSafari;
+
+    // 🔥 개발 환경(localhost)에서는 인앱 브라우저 감지 비활성화
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       window.location.hostname.includes('localhost');
+    
+    if (isLocalhost) {
+      console.log("🔧 [React] 개발 환경 - localhost에서 실행 중, 인앱 브라우저 감지 비활성화");
+      return; // 개발 환경에서는 감지하지 않음 (undefined 반환)
+    }
+
+    // 🔍 디버깅 정보
+    console.log("🔍 [React] 인앱 브라우저/WebView 감지:", {
+      userAgent: fullUA,
+      isInAppByUA,
+      isInAppBySize,
+      isStorageRestricted,
+      isStandalone,
+      isInApp,
+      indexedDB: typeof indexedDB !== 'undefined' ? '✅' : '❌',
+      localStorage: typeof localStorage !== 'undefined' ? '✅' : '❌'
+    });
+
+    if (isInApp) {
+      console.log("🚨 [React] WebView/인앱 브라우저 감지됨 - Chrome으로 리다이렉트");
+      console.log("📋 이유: WebView에서는 Firebase Auth 로그인 유지가 불안정합니다.");
+      console.log("✅ 해결: Chrome에서 열면 모든 기능이 정상 작동합니다.");
+      // 즉시 리다이렉트 (replace로 히스토리 남기지 않음)
+      window.location.replace("/in-app");
+    } else {
+      console.log("✅ [React] 일반 브라우저로 감지됨 - 정상 진행");
+    }
+  }, [location.pathname]);
+
+  return null;
+}
 
 export default function App() {
   useGATrack();
   useAutoGAEvents();
+  const navigate = useNavigate();
 
-  // PWA 업데이트 핸들러
+  // 🔥 Google OAuth Redirect 결과 처리 (모바일 환경에서 redirect 방식 사용 시 필요)
+  const isProcessing = useRef(false);
+  
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      // 이미 처리 중이면 중복 실행 방지
+      if (isProcessing.current) {
+        console.log("⚠️ [App] Redirect 결과 이미 처리 중, 중복 실행 방지");
+        return;
+      }
+      isProcessing.current = true;
+
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log("✅ [App] Google OAuth Redirect 로그인 성공:", {
+            userEmail: result.user.email,
+            userUid: result.user.uid,
+            providerId: result.providerId,
+          });
+          
+          // 🔥 Firestore에 사용자 프로필이 없으면 생성
+          const userDocRef = doc(db, "users", result.user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (!userDoc.exists()) {
+            console.log("📝 [App] Firestore에 사용자 프로필 생성");
+            
+            // 위치 정보 가져오기
+            let location = "위치 정보 없음";
+            try {
+              if (navigator.geolocation) {
+                const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                  navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+                });
+                location = `lat:${pos.coords.latitude.toFixed(4)}, lng:${pos.coords.longitude.toFixed(4)}`;
+              }
+            } catch (err) {
+              console.warn("⚠️ [App] 위치 정보 가져오기 실패:", err);
+            }
+            
+            // Firestore에 프로필 생성
+            await setDoc(userDocRef, {
+              uid: result.user.uid,
+              email: result.user.email,
+              displayName: result.user.displayName || result.user.email?.split("@")[0] || "사용자",
+              photoURL: result.user.photoURL || null,
+              location,
+              aiProfile: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }, { merge: true });
+            
+            console.log("✅ [App] Firestore 사용자 프로필 생성 완료");
+          } else {
+            console.log("✅ [App] Firestore에 사용자 프로필이 이미 존재함");
+          }
+          
+          // 로그인 성공 시 홈으로 이동
+          navigate("/sports-hub", { replace: true });
+        } else {
+          console.log("ℹ️ [App] Redirect 결과 없음 (정상 - 일반 페이지 로드 또는 팝업 방식 사용)");
+        }
+      } catch (error: any) {
+        console.error("❌ [App] Google OAuth Redirect 오류:", error);
+        // 오류 발생 시 로그인 페이지로 리다이렉트하지 않음 (사용자가 직접 재시도할 수 있도록)
+      } finally {
+        isProcessing.current = false;
+      }
+    };
+
+    handleRedirectResult();
+  }, [navigate]);
+
+  // 🔥 푸시 알림 클릭 시 라우팅 처리
+  useEffect(() => {
+    const handlePushNotificationNavigate = (event: CustomEvent<{ route: string }>) => {
+      const route = event.detail.route;
+      console.log("🔥 [App] 푸시 알림 클릭 → 라우팅:", route);
+      navigate(route);
+    };
+
+    window.addEventListener("pushNotificationNavigate", handlePushNotificationNavigate as EventListener);
+
+    return () => {
+      window.removeEventListener("pushNotificationNavigate", handlePushNotificationNavigate as EventListener);
+    };
+  }, [navigate]);
+
+  // 🔥 PWA 업데이트 핸들러 - Service Worker 강제 비활성화 (업로드 문제 해결)
   const handlePWAUpdate = () => {
+    // 🔥 Service Worker 완전 비활성화
+    console.log("🔕 Service Worker 비활성화됨 (업로드 문제 해결)");
+    window.location.reload();
+    return;
+    
+    /*
     if ("serviceWorker" in navigator) {
       // @ts-expect-error - virtual:pwa-register는 vite-plugin-pwa가 빌드 시 생성하는 가상 모듈
       import("virtual:pwa-register")
@@ -111,25 +311,48 @@ export default function App() {
     } else {
       window.location.reload();
     }
+    */
   };
 
   return (
     <ErrorBoundary>
       <AuthProvider>
+        <InAppBrowserRedirect />
         <Suspense fallback={<div className="p-6 text-center text-gray-500">로딩 중...</div>}>
           <Routes>
+            {/* 🔥 인앱 브라우저 리다이렉트 페이지 */}
+            <Route path="/in-app" element={<InAppPage />} />
+            
             {/* 인증/시작 카드형 전용 */}
             <Route element={<CenterLayout />}>
               <Route path="/start" element={<StartScreen />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route path="/login/phone" element={<PhoneLoginPage />} />
             </Route>
 
-            {/* 메인 앱 대시보드 전용 - MainLayout 적용 */}
+            {/* 🔥 디버그 패널 (테스트 모드 전용) */}
+            <Route path="/debug" element={<DebugPage />} />
+
+            {/* 메인 앱 대시보드 전용 - MainLayout 적용 (보호된 라우트) */}
             <Route element={<MainLayout />}>
               <Route path="/" element={<Navigate to="/sports-hub" replace />} />
-              <Route path="/sports-hub" element={<SportsHubPage />} />
-              <Route path="/home" element={<HomeNew />} />
+              <Route 
+                path="/sports-hub" 
+                element={
+                  <ProtectedRoute>
+                    <SportsHubPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/home" 
+                element={
+                  <ProtectedRoute>
+                    <HomeNew />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/home-tts-test" element={<HomeNewTest />} />
               <Route path="/home-dashboard" element={<HomeDashboard />} />
               <Route path="/app" element={<Navigate to="/home" replace />} />
@@ -149,14 +372,23 @@ export default function App() {
                 }
               />
               <Route path="/app/chat/:id" element={<ChatRoom />} />
+              <Route 
+                path="/app/settings" 
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/app/assistant" element={<AssistantPanel />} />
               <Route path="/app/fcm-test" element={<FcmTestPage />} />
               <Route path="/app/test/fcm" element={<FCMTest />} />
               <Route path="/app/dev/portal" element={<DeveloperPortal />} />
-              <Route path="/voice-map" element={<CenterLayout><VoiceMapSearch /></CenterLayout>} />
-              <Route path="/voice-map-simple" element={<CenterLayout><VoiceMapPageSimple /></CenterLayout>} />
-              <Route path="/voice" element={<CenterLayout><VoiceMap /></CenterLayout>} />
-              <Route path="/voice-map-dashboard" element={<CenterLayout><VoiceMapDashboard /></CenterLayout>} />
+              {/* 🔥 voice-map 라우트: MainLayout 안에서 상단 헤더와 하단 네비게이션 표시 */}
+              <Route path="/voice-map" element={<VoiceMapSearch />} />
+              <Route path="/voice-map-simple" element={<VoiceMapPageSimple />} />
+              <Route path="/voice" element={<VoiceMap />} />
+              <Route path="/voice-map-dashboard" element={<VoiceMapDashboard />} />
             </Route>
 
             {/* 📌 완전히 독립된 MarketLayout - 모든 /app/market 라우트 통합 */}
@@ -165,6 +397,7 @@ export default function App() {
                 <Route index element={<MarketPage />} />
                 <Route path=":id" element={<ProductDetail />} />
                 <Route path="create" element={<MarketAddPage />} />
+                <Route path="edit/:id" element={<MarketAddPage />} />
                 <Route path="create-ai" element={<MarketCreate_AI />} />
                 <Route path="reviews" element={<MarketReviewDashboard />} />
                 <Route path="reviews/heatmap" element={<ReviewHeatmapDashboard />} />
@@ -176,9 +409,16 @@ export default function App() {
               </Route>
             </Route>
 
-            {/* 🔥 관리자(admin) 전용 라우트 - MainLayout 밖으로 분리 */}
+            {/* 🔥 관리자(admin) 전용 라우트 - MainLayout 밖으로 분리 (보호된 라우트) */}
             <Route path="/admin">
-              <Route index element={<AdminHome />} />
+              <Route 
+                index 
+                element={
+                  <ProtectedRoute>
+                    <AdminHome />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="insights" element={<InsightsDashboard />} />
               <Route path="console" element={<AiConsole />} />
               <Route path="reports" element={<ReportDashboardPage />} />

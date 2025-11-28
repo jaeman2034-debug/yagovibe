@@ -1,15 +1,11 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
-import * as admin from "firebase-admin";
+import { admin } from "./lib/firebaseAdmin";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { openai } from "./lib/openaiClient";
-import { sendReportEmail } from "./lib/gmailMailer";
-import jsPDF from "jspdf";
-
-// Firebase Admin 초기화
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
+// 🔥 Lazy import: 무거운 모듈들은 함수 내부에서 동적 import
+// import { openai } from "./lib/openaiClient";
+// import { sendReportEmail } from "./lib/gmailMailer";
+// import jsPDF from "jspdf";
 
 const db = getFirestore();
 
@@ -26,6 +22,11 @@ export const generateMonthlyReportAndEmail = onSchedule(
         logger.info("📆 Generating AI Monthly Reports...", { structuredData: true });
 
         try {
+            // 🔥 Lazy import: 무거운 모듈들을 함수 실행 시점에 동적으로 로드
+            const { getOpenAIClient } = await import("./lib/openaiClient");
+            const openai = getOpenAIClient();
+            const { sendReportEmail } = await import("./lib/gmailMailer");
+            const jsPDF = (await import("jspdf")).default;
             // 1️⃣ 모든 사용자 가져오기
             const usersSnap = await db.collection("users").get();
             logger.info(`👥 총 ${usersSnap.size}명의 사용자 발견`);

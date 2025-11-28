@@ -1,14 +1,21 @@
 /**
  * PWA Service Worker 등록 및 업데이트 관리
  * 
+ * 🔥 Service Worker 강제 비활성화 (업로드 문제 해결)
  * 새 버전이 감지되면 사용자에게 알림을 표시합니다.
  */
 
+// 🔥 Service Worker 완전 비활성화
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - virtual:pwa-register는 vite-plugin-pwa가 빌드 시 생성하는 가상 모듈
-import { registerSW } from "virtual:pwa-register";
+// import { registerSW } from "virtual:pwa-register";
 
 export function initPWA() {
+  // 🔥 Service Worker 완전 비활성화
+  console.log("🔕 Service Worker 비활성화됨 (업로드 문제 해결)");
+  return;
+  
+  /*
   if (!("serviceWorker" in navigator)) {
     console.log("서비스워커 미지원 환경");
     return;
@@ -26,5 +33,6 @@ export function initPWA() {
       console.log("✅ 오프라인에서도 사용할 준비 완료!");
     },
   });
+  */
 }
 

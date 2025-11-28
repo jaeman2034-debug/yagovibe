@@ -1,18 +1,14 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
-import { initializeApp } from "firebase-admin/app";
-import OpenAI from "openai";
+// Firebase Admin 초기화는 lib/firebaseAdmin.ts에서 처리됨
+import { getOpenAIClient } from "./lib/openaiClient";
 import PDFDocument from "pdfkit";
 import * as fs from "fs";
 import * as path from "path";
 import { getStorage } from "firebase-admin/storage";
 
-initializeApp();
 const db = getFirestore();
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "<YOUR_OPENAI_KEY>",
-});
 
 export const generatePredictiveInsights = onSchedule(
     {
@@ -56,6 +52,7 @@ export const generatePredictiveInsights = onSchedule(
         let parsed: any = { teamForecasts: [], globalSummary: "AI 분석 실패" };
 
         try {
+            const openai = getOpenAIClient();
             const ai = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [{ role: "user", content: prompt }],

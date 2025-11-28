@@ -2,7 +2,8 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import OpenAI from "openai";
+// 🔥 Lazy import: 무거운 모듈들은 함수 내부에서 동적 import
+// import OpenAI from "openai";
 
 // Firebase Admin 초기화
 if (!getApps().length) {
@@ -10,11 +11,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-
-// OpenAI 클라이언트
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
 
 /**
  * AI 가격 추천 엔진
@@ -28,6 +24,11 @@ export const getPriceRecommendation = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
+    // 🔥 Lazy import: 무거운 모듈들을 함수 실행 시점에 동적으로 로드
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || "",
+    });
     // CORS 헤더 설정
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");

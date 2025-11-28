@@ -1,11 +1,21 @@
+// =======================================
+// 🔥 최종 정상 Storage Rules (충돌 없음)
+// =======================================
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // ✅ 모든 경로 읽기/쓰기 허용 (에뮬레이터 테스트용)
+
+    // 🛒 마켓 상품 업로드
+    match /marketProducts/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 기타 모든 경로 — write 허용 금지 (충돌 방지)
     match /{allPaths=**} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if false; // 🔥 절대 true로 하면 안됨! 충돌 발생
     }
   }
 }
-

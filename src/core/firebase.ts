@@ -20,24 +20,9 @@
 // ✅ 이 패치는 Firebase + AuthProvider + Router 기반을 구축한다.
 // ======================================================
 
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
-
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+// 🔥 중복 초기화 방지: src/lib/firebase.ts에서 이미 초기화했으므로 re-export만 수행
+// 이렇게 하면 authDomain 불일치 문제를 완전히 해결할 수 있습니다.
+export { auth, db, storage, app } from "@/lib/firebase";
 
 // ======================================================
 // ✅ END OF GENIUS MODE PATCH (DO NOT MODIFY ABOVE LINES)

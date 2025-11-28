@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, GoogleAuthProvider } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { upgradeGuestAccount } from "@/utils/upgradeGuestAccount";
 import logo from "@/assets/logo/YagoVibeLogo.svg";
 
@@ -41,10 +41,28 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [targetField, setTargetField] = useState<"email" | "password" | "confirm" | null>(null);
   const navigate = useNavigate();
+  
+  // 🔥 모바일 환경에서 팝업 사용 가능 여부 확인
+  const canUsePopup = (): boolean => {
+    const ua = navigator.userAgent.toLowerCase();
+    // 모바일 웹뷰 감지
+    if (/wv|webview|android.+version\/|iphone|ipad|ipod/i.test(ua)) {
+      console.log("📱 [Google Signup] 모바일 웹뷰 감지 - Redirect 방식 사용");
+      return false;
+    }
+    // 작은 화면 감지
+    if (window.innerWidth < 420) {
+      console.log("📱 [Google Signup] 작은 화면 감지 - Redirect 방식 사용");
+      return false;
+    }
+    console.log("💻 [Google Signup] 데스크톱 환경 - Popup 방식 사용");
+    return true;
+  };
 
   // 🔊 AI 음성 안내
   const speak = (text: string) => {
@@ -324,6 +342,260 @@ export default function SignupPage() {
           가입하기
         </button>
       </form>
+
+      {/* 🔥 소셜 로그인 버튼 */}
+      <div className="mt-4 w-full max-w-xs">
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">또는</span>
+          </div>
+        </div>
+        
+        <button
+          onClick={async () => {
+            // 🔥 중복 클릭 방지
+            if (googleLoading) {
+              console.log("⚠️ [Google Signup] 이미 로그인 진행 중...");
+              return;
+            }
+            
+            // 🔥 이미 팝업이 열려있는지 확인
+            const existingPopup = document.querySelector('iframe[src*="firebaseapp.com"]') || 
+                                document.querySelector('iframe[src*="accounts.google.com"]');
+            if (existingPopup) {
+              console.log("⚠️ [Google Signup] 이미 팝업이 열려있습니다. 기다려주세요...");
+              setError("이미 로그인 창이 열려있습니다. 기다려주세요...");
+              return;
+            }
+            
+            setGoogleLoading(true);
+            setError("");
+            
+            try {
+              // 🔍 1. 사전 검증: 현재 환경 정보 로깅
+              const currentUrl = window.location.href;
+              const referer = document.referrer || currentUrl;
+              const hostname = window.location.hostname;
+              
+              console.log("🔍 [Google Signup] 사전 검증 시작:", {
+                currentUrl,
+                referer,
+                hostname,
+                authDomain: auth.app.options.authDomain,
+                projectId: auth.app.options.projectId,
+                apiKey: auth.app.options.apiKey ? `${auth.app.options.apiKey.substring(0, 10)}...` : "없음",
+                timestamp: new Date().toISOString(),
+              });
+              
+              // 🔍 2. Firebase Auth 인스턴스 정보 확인
+              console.log("🔍 [Google Signup] Firebase Auth 인스턴스 정보:", {
+                appName: auth.app.name,
+                authDomain: auth.app.options.authDomain,
+                projectId: auth.app.options.projectId,
+                apiKey: auth.app.options.apiKey ? "✅ 설정됨" : "❌ 없음",
+              });
+              
+              // 🔍 3. GoogleAuthProvider 생성 및 로깅
+              const provider = new GoogleAuthProvider();
+              // 🔥 Provider에 명시적 설정 추가 (referer 문제 해결)
+              provider.setCustomParameters({
+                prompt: 'select_account'
+              });
+              console.log("🔍 [Google Signup] GoogleAuthProvider 생성 완료:", {
+                providerId: provider.providerId,
+              });
+              
+              // 🔍 4. signInWithPopup 호출 전 최종 확인
+              console.log("🔍 [Google Signup] signInWithPopup 호출 직전:", {
+                authInstance: auth ? "✅ 존재" : "❌ 없음",
+                provider: provider ? "✅ 존재" : "❌ 없음",
+                currentDomain: hostname,
+                expectedAuthDomain: auth.app.options.authDomain,
+              });
+              
+              // 🔥 모바일 환경 감지 및 적절한 로그인 방식 선택
+              const usePopup = canUsePopup();
+              
+              if (usePopup) {
+                // 💻 데스크톱 환경: Popup 방식 사용
+                console.log("🔥 [Google Signup] signInWithPopup 호출 시작:", {
+                  timestamp: new Date().toISOString(),
+                });
+                
+                try {
+                  const result = await signInWithPopup(auth, provider);
+                  
+                  console.log("✅ [Google Signup] Google 로그인 성공:", {
+                    userEmail: result.user.email,
+                    userUid: result.user.uid,
+                  });
+                  
+                  // 🔥 Firestore에 사용자 프로필이 없으면 생성
+                  const userDocRef = doc(db, "users", result.user.uid);
+                  const userDoc = await getDoc(userDocRef);
+                  
+                  if (!userDoc.exists()) {
+                    console.log("📝 [Google Signup] Firestore에 사용자 프로필 생성");
+                    
+                    // 위치 정보 가져오기
+                    let location = "위치 정보 없음";
+                    try {
+                      if (navigator.geolocation) {
+                        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+                        });
+                        location = `lat:${pos.coords.latitude.toFixed(4)}, lng:${pos.coords.longitude.toFixed(4)}`;
+                      }
+                    } catch (err) {
+                      console.warn("⚠️ [Google Signup] 위치 정보 가져오기 실패:", err);
+                    }
+                    
+                    // Firestore에 프로필 생성
+                    await setDoc(userDocRef, {
+                      uid: result.user.uid,
+                      email: result.user.email,
+                      displayName: result.user.displayName || result.user.email?.split("@")[0] || "사용자",
+                      photoURL: result.user.photoURL || null,
+                      location,
+                      aiProfile: true,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                    }, { merge: true });
+                    
+                    console.log("✅ [Google Signup] Firestore 사용자 프로필 생성 완료");
+                  }
+                  
+                  // 로그인 성공 시 홈으로 이동
+                  navigate("/sports-hub", { replace: true });
+                  
+                  // 상태 해제
+                  setGoogleLoading(false);
+                  return;
+                } catch (popupError: any) {
+                  // 팝업이 차단되거나 실패한 경우 redirect로 fallback
+                  if (popupError.code === "auth/popup-closed-by-user" || 
+                      popupError.code === "auth/popup-blocked" ||
+                      popupError.code === "auth/cancelled-popup-request") {
+                    console.log("⚠️ [Google Signup] 팝업 실패 → Redirect 방식으로 전환");
+                    await signInWithRedirect(auth, provider);
+                    // redirect는 페이지가 이동하므로 여기서 return
+                    return;
+                  }
+                  // 다른 오류는 아래 catch 블록에서 처리
+                  throw popupError;
+                }
+              } else {
+                // 📱 모바일 환경: Redirect 방식 사용
+                console.log("🔥 [Google Signup] signInWithRedirect 호출 시작 (모바일 환경):", {
+                  timestamp: new Date().toISOString(),
+                  userAgent: navigator.userAgent,
+                  screenWidth: window.innerWidth,
+                });
+                
+                await signInWithRedirect(auth, provider);
+                // redirect는 페이지가 이동하므로 여기서 return
+                // 리다이렉션 후 결과는 App.tsx에서 처리
+                console.log("✅ [Google Signup] 리다이렉션 시작 - Google 로그인 페이지로 이동합니다.");
+                return;
+              }
+            } catch (error: any) {
+              // 🔥 cancelled-popup-request 오류 특별 처리
+              if (error.code === "auth/cancelled-popup-request") {
+                console.log("⚠️ [Google Signup] 팝업 요청이 취소되었습니다.");
+                setError("로그인 창이 이미 열려있습니다. 기다려주세요...");
+                setGoogleLoading(false);
+                return;
+              }
+              // 🔍 6. 오류 발생 시 상세 정보 로깅
+              const errorDetails = {
+                code: error.code,
+                message: error.message,
+                email: error.email,
+                credential: error.credential,
+                customData: error.customData,
+                stack: error.stack,
+                currentUrl: window.location.href,
+                referer: document.referrer,
+                hostname: window.location.hostname,
+                authDomain: auth.app.options.authDomain,
+                projectId: auth.app.options.projectId,
+                timestamp: new Date().toISOString(),
+              };
+              
+              console.error("❌ [Google Signup] 회원가입 실패 - 상세 정보:", errorDetails);
+              console.error("❌ [Google Signup] 전체 오류 객체:", error);
+              
+              let errorMsg = "";
+              
+              // 🔥 7. auth/requests-from-referer-are-blocked 오류 특별 처리
+              if (error.code === "auth/requests-from-referer-are-blocked" || 
+                  error.message?.includes("requests-from-referer") || 
+                  error.message?.includes("are-blocked") ||
+                  error.code?.includes("requests-from-referer")) {
+                
+                errorMsg = 
+                    "❌ 인증 요청이 차단되었습니다.\n\n" +
+                    "🔍 발견된 문제: 승인된 도메인 누락 또는 클라이언트 ID 불일치\n\n" +
+                    "현재 도메인: " + window.location.hostname + "\n" +
+                    "예상 도메인: " + auth.app.options.authDomain + "\n\n" +
+                    "✅ 해결 방법:\n" +
+                    "1. Firebase Console → Authentication → Settings → Authorized domains\n" +
+                    "   - '" + window.location.hostname + "' 추가\n" +
+                    "   - '" + auth.app.options.authDomain + "' 확인\n\n" +
+                    "2. Firebase Console → Authentication → Sign-in method → Google\n" +
+                    "   - '웹 클라이언트 ID' 확인\n" +
+                    "   - Google Cloud Console의 OAuth 2.0 Web Client ID와 일치하는지 확인\n\n" +
+                    "3. Google Cloud Console → APIs & Services → Credentials\n" +
+                    "   - OAuth 2.0 클라이언트 ID 확인\n" +
+                    "   - '승인된 JavaScript 원본'에 현재 도메인 포함 여부 확인\n\n" +
+                    "4. 브라우저 캐시 삭제 후 새로고침 (Ctrl+Shift+R)\n\n" +
+                    `에러 코드: ${error.code || "unknown"}\n` +
+                    `에러 메시지: ${error.message || "없음"}\n\n` +
+                    "💡 개발자 콘솔(F12)에서 상세 정보를 확인하세요.";
+                
+                alert(errorMsg);
+                
+                // 🔍 개발 환경에서만 추가 디버깅 정보 표시
+                if (import.meta.env.DEV) {
+                    console.group("🔍 [개발 모드] 추가 디버깅 정보");
+                    console.log("현재 URL:", window.location.href);
+                    console.log("Referer:", document.referrer);
+                    console.log("Hostname:", window.location.hostname);
+                    console.log("Firebase Auth Domain:", auth.app.options.authDomain);
+                    console.log("Firebase Project ID:", auth.app.options.projectId);
+                    console.log("Firebase API Key:", auth.app.options.apiKey ? "✅ 설정됨" : "❌ 없음");
+                    console.groupEnd();
+                }
+              } else if (error.code === "auth/operation-not-allowed") {
+                errorMsg = "Google 로그인이 활성화되지 않았습니다.\n\nFirebase Console에서 활성화해주세요:\n1. Firebase Console > Authentication > Sign-in method\n2. Google 활성화\n3. Project support email 설정";
+                alert(errorMsg);
+              } else if (error.code === "auth/popup-closed-by-user") {
+                errorMsg = "로그인 창이 닫혔습니다. 다시 시도해주세요.";
+              } else if (error.code === "auth/popup-blocked") {
+                errorMsg = "팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.";
+              } else {
+                errorMsg = error.message || "구글 회원가입에 실패했습니다.";
+              }
+              setError(errorMsg);
+            } finally {
+              setGoogleLoading(false);
+            }
+          }}
+          disabled={googleLoading}
+          className={`w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all shadow-sm ${googleLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          {googleLoading ? "회원가입 중..." : "구글로 회원가입"}
+        </button>
+      </div>
 
       {/* 🎙️ 음성 명령 버튼 */}
       {recognition && (

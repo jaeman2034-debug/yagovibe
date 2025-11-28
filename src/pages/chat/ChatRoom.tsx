@@ -38,11 +38,37 @@ export default function ChatRoom() {
                 const chatDoc = await getDoc(doc(db, "chats", id));
                 if (chatDoc.exists()) {
                     const chatData = chatDoc.data();
-                    // 판매자 여부 확인 (채팅의 sellerId와 현재 사용자 ID 비교)
-                    setIsSeller(chatData.sellerId === user.uid);
-
-                    // 상품 정보 로드
-                    if (chatData.productId) {
+                    
+                    // 상품 정보 로드 (product 객체가 직접 저장되어 있거나 productId로 참조)
+                    if (chatData.product) {
+                        // ProductDetail에서 생성한 채팅방: product 객체가 직접 저장됨
+                        const productData = chatData.product;
+                        setProduct({
+                            title: productData.name || "",
+                            price: productData.price || 0,
+                            category: productData.category || "",
+                            conditionLabel: productData.condition || "",
+                            summary: productData.aiOneLine || productData.description || "",
+                            aiOneLine: productData.aiOneLine || "",
+                        });
+                        
+                        // 판매자 여부 확인: users 배열에서 현재 사용자가 아닌 상대방이 판매자인지 확인
+                        // 또는 product 객체에 sellerId가 있으면 그것을 사용
+                        if (chatData.users && chatData.users.length === 2) {
+                            const otherUserId = chatData.users.find((uid: string) => uid !== user.uid);
+                            // 상대방이 판매자인지 확인하려면 product의 sellerId나 userId를 확인해야 함
+                            // 일단 users 배열만으로는 판단 불가하므로, productId로 다시 조회
+                            if (productData.id) {
+                                const productDoc = await getDoc(doc(db, "marketProducts", productData.id));
+                                if (productDoc.exists()) {
+                                    const fullProductData = productDoc.data();
+                                    const sellerId = fullProductData.sellerId || fullProductData.userId;
+                                    setIsSeller(sellerId === user.uid);
+                                }
+                            }
+                        }
+                    } else if (chatData.productId) {
+                        // 기존 방식: productId로 참조
                         const productDoc = await getDoc(doc(db, "marketProducts", chatData.productId));
                         if (productDoc.exists()) {
                             const productData = productDoc.data();
@@ -54,7 +80,14 @@ export default function ChatRoom() {
                                 summary: productData.aiOneLine || productData.description || "",
                                 aiOneLine: productData.aiOneLine || "",
                             });
+                            
+                            // 판매자 여부 확인
+                            const sellerId = productData.sellerId || productData.userId;
+                            setIsSeller(sellerId === user.uid);
                         }
+                    } else if (chatData.sellerId) {
+                        // 기존 방식: sellerId 필드 사용
+                        setIsSeller(chatData.sellerId === user.uid);
                     }
                 }
             } catch (error) {

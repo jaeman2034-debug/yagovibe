@@ -1,52 +1,71 @@
+// src/lib/pushNotifications.ts
 /**
- * 푸시 알림 초기화
- * 
- * Firebase Cloud Messaging (FCM)을 사용한 푸시 알림 설정
+ * 🔥 실서비스 수준 푸시 알림 초기화 (최종 버전)
+ * Capacitor 환경에서만 작동
  */
 
-export async function initPush() {
-  // Capacitor 네이티브 플랫폼인지 확인
-  const isNative = (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) ?? false;
-  if (!isNative) {
-    console.log("푸시 알림은 네이티브 앱에서만 사용 가능합니다.");
+import { PushNotifications } from "@capacitor/push-notifications";
+import { Device } from "@capacitor/device";
+import { saveDeviceToken } from "./saveDeviceToken";
+
+export async function registerPushNotifications() {
+  const info = await Device.getInfo();
+
+  // 웹에서는 스킵
+  if (info.platform === "web") {
+    console.log("🌐 Web platform → push registration skipped");
     return;
   }
 
-  try {
-    // 동적 import로 푸시 알림 플러그인 로드
-    const { PushNotifications } = await import('@capacitor/push-notifications');
+  // 권한 확인 및 요청
+  let permStatus = await PushNotifications.checkPermissions();
 
-    let perm = await PushNotifications.checkPermissions();
-    
-    if (perm.receive === "prompt") {
-      perm = await PushNotifications.requestPermissions();
-    }
-
-    if (perm.receive !== "granted") {
-      console.log("푸시 권한 거부됨");
-      return;
-    }
-
-    PushNotifications.register();
-
-    PushNotifications.addListener("registration", (token) => {
-      console.log("푸시 토큰:", token.value);
-      // TODO: 서버에 토큰 전송
-    });
-
-    PushNotifications.addListener("registrationError", (error) => {
-      console.error("푸시 등록 오류:", error);
-    });
-
-    PushNotifications.addListener("pushNotificationReceived", (notif) => {
-      console.log("푸시 메시지 수신:", notif);
-    });
-
-    PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
-      console.log("푸시 액션 수행:", action);
-    });
-  } catch (error) {
-    console.error("푸시 알림 초기화 오류:", error);
+  if (permStatus.receive === "prompt") {
+    permStatus = await PushNotifications.requestPermissions();
   }
+
+  if (permStatus.receive !== "granted") {
+    console.warn("❌ Push permission not granted");
+    return;
+  }
+
+  // 푸시 등록
+  await PushNotifications.register();
+
+  // 토큰 수신
+  PushNotifications.addListener("registration", async (token) => {
+    console.log("🔥 Device FCM Token:", token.value);
+    await saveDeviceToken(token.value, info.platform);
+  });
+
+  PushNotifications.addListener("registrationError", (err) => {
+    console.error("❌ Push registration error:", err);
+  });
+
+  // 알림 수신 로그
+  PushNotifications.addListener("pushNotificationReceived", (notification) => {
+    console.log("📩 Push received:", notification);
+  });
+
+  // 알림 클릭 시 라우팅
+  PushNotifications.addListener(
+    "pushNotificationActionPerformed",
+    (action) => {
+      console.log("🖱 Push clicked:", action);
+
+      const route = action.notification.data?.route;
+      if (route) {
+        // React Router를 쓰고 있어서 window.location.href로 넘겨도 됨.
+        // (Capacitor WebView 안에서 동작)
+        window.location.href = route;
+      } else {
+        // route 없으면 기본 홈으로
+        window.location.href = "/sports-hub";
+      }
+    }
+  );
 }
+
+// 기존 함수명 호환성 유지
+export const initPush = registerPushNotifications;
 

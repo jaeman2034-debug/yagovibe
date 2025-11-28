@@ -1,15 +1,10 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
-import { initializeApp } from "firebase-admin/app";
-import OpenAI from "openai";
+// 🔥 Lazy import: 무거운 모듈들은 함수 내부에서 동적 import
+// import OpenAI from "openai";
 
-initializeApp();
 const db = getFirestore();
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "<YOUR_OPENAI_KEY>",
-});
 
 export const generateTeamSummaries = onSchedule(
     {
@@ -17,6 +12,12 @@ export const generateTeamSummaries = onSchedule(
         timeZone: "Asia/Seoul",
     },
     async () => {
+        // 🔥 Lazy import: 무거운 모듈들을 함수 실행 시점에 동적으로 로드
+        const OpenAI = (await import("openai")).default;
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY || "<YOUR_OPENAI_KEY>",
+        });
+
         logger.info("📊 팀별 AI 요약 카드 생성 시작");
 
         const teamsSnap = await db.collection("teams").get();

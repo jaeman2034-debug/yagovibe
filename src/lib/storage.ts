@@ -1,10 +1,10 @@
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
 
 /**
  * 📦 Firebase Storage 업로드 유틸리티
+ * 🔥 storage는 firebase.ts에서 단일 인스턴스로 export된 것을 사용
  */
-const storage = getStorage(db.app);
 
 export async function uploadReportToStorage(file: Blob, filename: string): Promise<string> {
     try {

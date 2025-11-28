@@ -12,9 +12,31 @@ export default function VoiceMapPageSimple() {
   const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
-    // Google Maps API 로드
+    // 🔥 중앙 집중식 로더 사용 (중복 방지 보장)
+    import("@/utils/googleMapsLoader").then(({ loadGoogleMapsAPI }) => {
+      loadGoogleMapsAPI()
+        .then(() => {
+          console.log("✅ Google Maps API 로드 완료!");
+          setMapLoaded(true);
+          
+          if (mapRef.current && window.google) {
+            const map = new window.google.maps.Map(mapRef.current, {
+              center: { lat: 37.7138, lng: 127.0474 },
+              zoom: 13,
+            });
+            new window.google.maps.Marker({
+              position: { lat: 37.7138, lng: 127.0474 },
+              map,
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("❌ Google Maps API 로드 실패:", error);
+        });
+    });
+
+    // 이미 로드되어 있으면 즉시 초기화
     if (window.google && window.google.maps) {
-      // 이미 로드됨
       setMapLoaded(true);
       if (mapRef.current) {
         const map = new window.google.maps.Map(mapRef.current, {
@@ -26,36 +48,7 @@ export default function VoiceMapPageSimple() {
           map,
         });
       }
-      return;
     }
-
-    // 스크립트 로드
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places,marker`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      console.log("✅ Google Maps API 로드 완료!");
-      setMapLoaded(true);
-      if (mapRef.current && window.google) {
-        const map = new window.google.maps.Map(mapRef.current, {
-          center: { lat: 37.7138, lng: 127.0474 },
-          zoom: 13,
-        });
-        new window.google.maps.Marker({
-          position: { lat: 37.7138, lng: 127.0474 },
-          map,
-        });
-      }
-    };
-    script.onerror = () => {
-      console.error("❌ Google Maps API 로드 실패");
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      // cleanup
-    };
   }, []);
 
   return (

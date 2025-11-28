@@ -1,0 +1,14 @@
+// TEST MODE — Development only
+// ⚠️ 이 규칙은 개발 테스트에서만 사용하세요
+// ✘ 실서비스에서는 절대 사용하지 마세요!
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 로그인 한 사용자만 데이터 읽고/쓰기 허용
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+

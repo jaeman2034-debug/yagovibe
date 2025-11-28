@@ -16,6 +16,11 @@ export function PWAUpdatePrompt({ onUpdate, onDismiss }: PWAUpdatePromptProps) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    // 🔥 Service Worker 완전 비활성화 (업로드 문제 해결)
+    console.log("🔕 Service Worker 비활성화됨 (업로드 문제 해결)");
+    return;
+    
+    /*
     // Service Worker 업데이트 감지
     if ("serviceWorker" in navigator) {
       // @ts-expect-error - virtual:pwa-register는 vite-plugin-pwa가 빌드 시 생성하는 가상 모듈
@@ -34,6 +39,7 @@ export function PWAUpdatePrompt({ onUpdate, onDismiss }: PWAUpdatePromptProps) {
           // 개발 모드에서는 무시
         });
     }
+    */
   }, []);
 
   if (!show) return null;

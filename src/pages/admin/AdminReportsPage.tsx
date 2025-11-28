@@ -81,7 +81,9 @@ export default function AdminReportsPage() {
       const transcript: string = event.results[0][0].transcript;
       console.log("🎙️ 음성 입력:", transcript);
 
-      const nluEndpoint = import.meta.env.VITE_NLU_ENDPOINT || "http://localhost:5183/nlu";
+      // Firebase Functions NLU 엔드포인트 사용
+      const nluEndpoint = import.meta.env.VITE_NLU_ENDPOINT || 
+        "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net/nluHandler";
 
       try {
         const res = await fetch(nluEndpoint, {
