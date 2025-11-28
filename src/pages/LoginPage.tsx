@@ -50,19 +50,24 @@ export default function LoginPage() {
     // 🔥 React StrictMode 이중 렌더링 방지용 ref
     const isSigningInRef = useRef(false);
     
-    // 🔥 모바일 환경에서 팝업 사용 가능 여부 확인
+    // 🔥 모바일/웹뷰 환경에서는 무조건 Redirect 사용 (팝업 차단 방지)
+    // 데스크톱만 Popup 사용, 나머지는 전부 Redirect
     const canUsePopup = (): boolean => {
         const ua = navigator.userAgent.toLowerCase();
-        // 모바일 웹뷰 감지
-        if (/wv|webview|android.+version\/|iphone|ipad|ipod/i.test(ua)) {
-            console.log("📱 [Google Login] 모바일 웹뷰 감지 - Redirect 방식 사용");
+        
+        // 모바일/웹뷰 감지 (Android, iOS, WebView 등)
+        if (/android|iphone|ipad|ipod|mobile|wv|webview/i.test(ua)) {
+            console.log("📱 [Google Login] 모바일/웹뷰 환경 감지 - Redirect 방식 사용");
             return false;
         }
-        // 작은 화면 감지
-        if (window.innerWidth < 420) {
+        
+        // 작은 화면 감지 (모바일 기기)
+        if (window.innerWidth < 768) {
             console.log("📱 [Google Login] 작은 화면 감지 - Redirect 방식 사용");
             return false;
         }
+        
+        // 데스크톱 환경만 Popup 사용
         console.log("💻 [Google Login] 데스크톱 환경 - Popup 방식 사용");
         return true;
     };
@@ -406,7 +411,7 @@ export default function LoginPage() {
                             
                             // 🔥 5. 실제 로그인 시도
                             // ⚠️ 중복 호출 최종 확인 (마지막 방어선)
-                            if (isSigningInRef.current === false) {
+                            if (!isSigningInRef.current) {
                                 console.error("❌ [Google Login] 중복 방지 실패 - ref가 false입니다!");
                             }
                             
