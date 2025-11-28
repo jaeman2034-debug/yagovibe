@@ -2,9 +2,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import fetch from "node-fetch";
 import { getFirestore } from "firebase-admin/firestore";
-import { initializeApp } from "firebase-admin/app";
-
-initializeApp();
+// Firebase Admin 초기화는 lib/firebaseAdmin.ts에서 처리됨
 const db = getFirestore();
 
 const N8N_WEBHOOK_URL = "https://n8n.yagovibe.com/webhook/ai-operation";

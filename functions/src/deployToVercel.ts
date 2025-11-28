@@ -26,7 +26,7 @@ if (!admin.apps.length) {
  * firebase functions:config:set vercel.deploy_dev="https://api.vercel.com/v1/integrations/deploy/prj_xxx/yyy"
  */
 const getDeployHooks = () => {
-  const config = admin.apps[0]?.options;
+  const config = admin.apps[0]?.options as any;
   
   // 환경 변수에서 가져오기 (Vercel Deploy Hook URL)
   const productionHook = process.env.VERCEL_DEPLOY_PRODUCTION_HOOK || 

@@ -28,6 +28,7 @@ import {
 
   getDocs,
   orderBy,
+  limit,
 } from "firebase/firestore";
 
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -45,6 +46,7 @@ import ProductCard from "./ProductCard";
 import type { MarketProduct } from "@/types/market";
 
 import { parseMarketProduct } from "@/types/market";
+import { FUNCTIONS_ORIGIN, ANALYZE_PRODUCT_ENDPOINT } from "@/config/env";
 
 
 
@@ -117,6 +119,14 @@ type ProductDetail = {
   latitude?: number | null;
 
   longitude?: number | null;
+
+  // 소유자 정보
+
+  userId?: string | null;
+
+  ownerId?: string | null;
+
+  sellerId?: string | null;
 
 };
 
@@ -229,6 +239,14 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const navigate = useNavigate();
+
+  // 🔥 id 디버깅 로그 추가
+  useEffect(() => {
+    console.log("🔥 ProductDetail 페이지 로드:", { id, isIdValid: !!id });
+    if (!id) {
+      console.error("❌ ProductDetail: id가 undefined입니다! URL을 확인하세요.");
+    }
+  }, [id]);
 
 
 
@@ -359,11 +377,22 @@ export default function ProductDetailPage() {
 
           if (snap.exists()) {
 
+            const productData = snap.data();
+
+            // 🔥 디버깅: 상품 데이터 로그 (userId 확인)
+            console.log("🔥 상품 데이터 로드:", {
+              id: snap.id,
+              productUserId: productData?.userId || productData?.ownerId || productData?.sellerId,
+              hasUserId: !!(productData?.userId || productData?.ownerId || productData?.sellerId),
+              productDataKeys: Object.keys(productData || {}),
+              productData: productData,
+            });
+
             setProduct({
 
               id: snap.id,
 
-              ...(snap.data() as Omit<ProductDetail, "id">),
+              ...(productData as Omit<ProductDetail, "id">),
 
             });
 
@@ -495,11 +524,8 @@ export default function ProductDetailPage() {
         }
 
         // 2) AI 서버에 보내서 유사도 점수 계산
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/getRelatedProducts`,
+          `${FUNCTIONS_ORIGIN}/getRelatedProducts`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -561,7 +587,42 @@ export default function ProductDetailPage() {
           limit(200)
         );
 
-        const candidatesSnap = await getDocs(candidatesQuery);
+        let candidatesSnap;
+        try {
+          candidatesSnap = await getDocs(candidatesQuery);
+        } catch (indexError: any) {
+          // Firestore 인덱스 오류 처리
+          if (indexError?.code === "failed-precondition" || indexError?.message?.includes("index") || indexError?.message?.includes("requires an index")) {
+            console.error("❌ Firestore 인덱스가 필요합니다:", indexError);
+            
+            // 인덱스 생성 링크 자동 추출
+            const indexUrlMatch = indexError?.message?.match(/https:\/\/console\.firebase\.google\.com[^\s\)]+/);
+            const indexUrl = indexUrlMatch?.[0];
+            
+            if (indexUrl) {
+              console.error("🔗 인덱스 생성 링크 (클릭하여 생성):", indexUrl);
+              console.error("📌 위 링크를 클릭하거나 복사해서 브라우저에서 열어주세요.");
+              
+              // 사용자에게 명확한 안내
+              const shouldOpen = confirm(
+                `Firestore 인덱스가 필요합니다.\n\n` +
+                `이 링크를 클릭하면 인덱스를 자동 생성할 수 있습니다:\n${indexUrl}\n\n` +
+                `"확인"을 누르면 링크를 새 탭에서 엽니다.\n` +
+                `"취소"를 누르면 콘솔에서 링크를 확인하세요.`
+              );
+              
+              if (shouldOpen) {
+                window.open(indexUrl, '_blank');
+              }
+            } else {
+              console.error("📌 Firebase Console에서 인덱스를 수동으로 생성해주세요.");
+              console.error("   Firebase Console → Firestore → Indexes → Create Index");
+            }
+            
+            throw indexError;
+          }
+          throw indexError;
+        }
         const candidates = candidatesSnap.docs.map((docSnap) => {
           const parsed = parseMarketProduct(docSnap);
           return {
@@ -600,11 +661,8 @@ export default function ProductDetailPage() {
         }
 
         // 3) AI 유사상품 추천 API 호출
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/recommendSimilar`,
+          `${FUNCTIONS_ORIGIN}/recommendSimilar`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -698,11 +756,8 @@ export default function ProductDetailPage() {
           };
 
           // 2) AI 판매자 신뢰도 평가 API 호출
-          const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-            "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
           const response = await fetch(
-            `${functionsOrigin}/getSellerTrustScore`,
+            `${FUNCTIONS_ORIGIN}/getSellerTrustScore`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -750,11 +805,8 @@ export default function ProductDetailPage() {
         };
 
         // 4) AI 판매자 신뢰도 평가 API 호출
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/getSellerTrustScore`,
+          `${FUNCTIONS_ORIGIN}/getSellerTrustScore`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -787,11 +839,8 @@ export default function ProductDetailPage() {
     const fetchSummary = async () => {
       setSummaryLoading(true);
       try {
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/getProductSummary`,
+          `${FUNCTIONS_ORIGIN}/getProductSummary`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -806,13 +855,20 @@ export default function ProductDetailPage() {
         );
 
         if (!response.ok) {
-          throw new Error("서버 응답 오류");
+          const errorText = await response.text();
+          console.error("❌ getProductSummary API 오류:", response.status, errorText);
+          throw new Error(`서버 응답 오류: ${response.status} ${errorText}`);
         }
 
         const data = await response.json();
         setSummary(data.summary || "");
       } catch (error: any) {
         console.error("✨ AI 상품 요약 오류:", error);
+        console.error("✨ 오류 상세:", {
+          message: error?.message,
+          code: error?.code,
+          stack: error?.stack,
+        });
         setSummary("");
       } finally {
         setSummaryLoading(false);
@@ -853,11 +909,8 @@ export default function ProductDetailPage() {
           console.warn("평균가 계산 실패:", avgError);
         }
 
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/detectFraudRisk`,
+          `${FUNCTIONS_ORIGIN}/detectFraudRisk`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -879,13 +932,20 @@ export default function ProductDetailPage() {
         );
 
         if (!response.ok) {
-          throw new Error("서버 응답 오류");
+          const errorText = await response.text();
+          console.error("❌ detectFraudRisk API 오류:", response.status, errorText);
+          throw new Error(`서버 응답 오류: ${response.status} ${errorText}`);
         }
 
         const data = await response.json();
         setFraudRisk(data);
       } catch (error: any) {
         console.error("⚠️ AI 사기 감지 오류:", error);
+        console.error("⚠️ 오류 상세:", {
+          message: error?.message,
+          code: error?.code,
+          stack: error?.stack,
+        });
         setFraudRisk(null);
       } finally {
         setFraudLoading(false);
@@ -902,11 +962,8 @@ export default function ProductDetailPage() {
     const fetchImageQuality = async () => {
       setQualityLoading(true);
       try {
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/getImageQualityScore`,
+          `${FUNCTIONS_ORIGIN}/getImageQualityScore`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -940,11 +997,8 @@ export default function ProductDetailPage() {
     const fetchConditionScore = async () => {
       setConditionLoading(true);
       try {
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/getConditionScore`,
+          `${FUNCTIONS_ORIGIN}/getConditionScore`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -958,13 +1012,20 @@ export default function ProductDetailPage() {
         );
 
         if (!response.ok) {
-          throw new Error("서버 응답 오류");
+          const errorText = await response.text();
+          console.error("❌ getConditionScore API 오류:", response.status, errorText);
+          throw new Error(`서버 응답 오류: ${response.status} ${errorText}`);
         }
 
         const data = await response.json();
         setConditionScore(data);
       } catch (error: any) {
         console.error("🧩 AI 상품 상태 점수 오류:", error);
+        console.error("🧩 오류 상세:", {
+          message: error?.message,
+          code: error?.code,
+          stack: error?.stack,
+        });
         setConditionScore(null);
       } finally {
         setConditionLoading(false);
@@ -988,7 +1049,31 @@ export default function ProductDetailPage() {
           orderBy("createdAt", "desc")
         );
 
-        const historicalSnap = await getDocs(historicalPricesQuery);
+        let historicalSnap;
+        try {
+          historicalSnap = await getDocs(historicalPricesQuery);
+        } catch (indexError: any) {
+          // Firestore 인덱스 오류 처리
+          if (indexError?.code === "failed-precondition" || indexError?.message?.includes("index") || indexError?.message?.includes("requires an index")) {
+            console.error("❌ Firestore 인덱스가 필요합니다 (가격 미래 예측):", indexError);
+            
+            // 인덱스 생성 링크 자동 추출
+            const indexUrlMatch = indexError?.message?.match(/https:\/\/console\.firebase\.google\.com[^\s\)]+/);
+            const indexUrl = indexUrlMatch?.[0];
+            
+            if (indexUrl) {
+              console.error("🔗 인덱스 생성 링크 (클릭하여 생성):", indexUrl);
+              console.error("📌 위 링크를 클릭하거나 복사해서 브라우저에서 열어주세요.");
+            } else {
+              console.error("📌 Firebase Console에서 인덱스를 수동으로 생성해주세요.");
+            }
+            
+            // 인덱스 오류는 치명적이지 않으므로 빈 배열로 처리
+            historicalSnap = { docs: [] } as any;
+          } else {
+            throw indexError;
+          }
+        }
         const historicalPrices = historicalSnap.docs
           .map((doc) => {
             const data = doc.data();
@@ -998,11 +1083,8 @@ export default function ProductDetailPage() {
           .slice(0, 30); // 최근 30개
 
         // 2) 가격 예측 API 호출
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/predictFuturePrice`,
+          `${FUNCTIONS_ORIGIN}/predictFuturePrice`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1045,11 +1127,8 @@ export default function ProductDetailPage() {
     const fetchComponents = async () => {
       setComponentsLoading(true);
       try {
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/detectComponents`,
+          `${FUNCTIONS_ORIGIN}/detectComponents`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1115,11 +1194,8 @@ export default function ProductDetailPage() {
           }
         }
 
-        const functionsOrigin = import.meta.env.VITE_FUNCTIONS_ORIGIN || 
-          "https://asia-northeast3-yago-vibe-spt.cloudfunctions.net";
-
         const response = await fetch(
-          `${functionsOrigin}/generateTotalScore`,
+          `${FUNCTIONS_ORIGIN}/generateTotalScore`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1493,6 +1569,59 @@ export default function ProductDetailPage() {
 
 
 
+  // 💬 채팅하기 핸들러
+  const handleChat = async () => {
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    if (!product?.sellerId && !product?.userId) {
+      alert("판매자 정보가 없습니다.");
+      return;
+    }
+
+    const sellerId = product.sellerId || product.userId;
+
+    if (!sellerId) {
+      alert("판매자 정보가 없습니다.");
+      return;
+    }
+
+    // 본인이 본인에게 채팅 방지
+    if (user.uid === sellerId) {
+      alert("본인 상품에서는 채팅을 시작할 수 없습니다.");
+      return;
+    }
+
+    try {
+      // 채팅 방 ID 생성 규칙 (두 uid 조합)
+      const chatId = [user.uid, sellerId].sort().join("_");
+
+      const chatRef = doc(db, "chats", chatId);
+      const chatSnap = await getDoc(chatRef);
+
+      if (!chatSnap.exists()) {
+        await setDoc(chatRef, {
+          users: [user.uid, sellerId],
+          lastMessage: "",
+          updatedAt: serverTimestamp(),
+          product: {
+            id: product.id,
+            name: product.name,
+            imageUrl: product.imageUrl ?? null,
+          },
+        });
+      }
+
+      // 채팅 페이지로 이동
+      navigate(`/app/chat/${chatId}`);
+    } catch (error: any) {
+      console.error("채팅방 생성 오류:", error);
+      alert("채팅방 생성 중 오류가 발생했습니다.\n" + (error.message || "알 수 없는 오류"));
+    }
+  };
+
   // 에러 상태
 
   if (error) {
@@ -1641,7 +1770,7 @@ export default function ProductDetailPage() {
 
     <div className="min-h-screen w-full bg-gradient-to-b from-[#f5f5f7] to-white">
 
-      <div className="detail-view mx-auto w-full max-w-[720px] px-4 pt-4 pb-10">
+      <div className="detail-view w-full px-4 pt-4 pb-10">
 
         {/* 상단 뒤로가기 */}
 
@@ -1855,21 +1984,37 @@ export default function ProductDetailPage() {
 
                 </span>
 
-                {(product.location || product.region) && (
+                {/* 🔥 위치 보기 버튼: location/region 또는 latitude/longitude가 있으면 표시 */}
+                {(product.location || product.region || 
+                  (typeof product.latitude === "number" && !isNaN(product.latitude) && 
+                   typeof product.longitude === "number" && !isNaN(product.longitude))) && (
 
                   <>
 
                     <span className="h-3 w-px bg-gray-300" />
 
-                    <span className="truncate max-w-[140px]">
-
-                      {product.location ?? product.region}
-
-                    </span>
+                    {product.location || product.region ? (
+                      <span className="truncate max-w-[140px]">
+                        {product.location ?? product.region}
+                      </span>
+                    ) : (
+                      <span className="truncate max-w-[140px] text-gray-500">
+                        위치 정보
+                      </span>
+                    )}
 
                     <button
 
-                      onClick={() => setShowMap(true)}
+                      onClick={() => {
+                        // 🔥 id가 없으면 경고
+                        if (!id) {
+                          console.error("❌ 수정하기 버튼: id가 undefined입니다!", { id, productId: product?.id });
+                          alert("상품 ID를 찾을 수 없습니다. 페이지를 새로고침해주세요.");
+                          return;
+                        }
+                        console.log("🔥 위치 보기 버튼 클릭:", { id, productId: product?.id });
+                        setShowMap(true);
+                      }}
 
                       className="ml-2 text-[#0a84ff] underline text-[11px]"
 
@@ -1933,7 +2078,103 @@ export default function ProductDetailPage() {
 
             </div>
 
+            {/* ✏️ 수정/삭제 버튼 (판매자만 표시) */}
+            {(() => {
+              // 🔥 디버깅: 권한 체크 로그
+              const currentUserId = user?.uid;
+              const productUserId = (product as any)?.userId || (product as any)?.ownerId || (product as any)?.sellerId;
+              const hasUserId = !!(product as any)?.userId || !!(product as any)?.ownerId || !!(product as any)?.sellerId;
+              const isOwner = currentUserId && productUserId && (currentUserId === productUserId);
+              
+              console.log("🔥 수정/삭제 버튼 권한 체크:", {
+                currentUserId,
+                productUserId,
+                hasUserId,
+                isOwner,
+                user: user ? { uid: user.uid, isAnonymous: user.isAnonymous } : null,
+                product: {
+                  userId: (product as any)?.userId,
+                  ownerId: (product as any)?.ownerId,
+                  sellerId: (product as any)?.sellerId,
+                  id: product?.id,
+                },
+              });
+              
+              // ⚠️ 개발 모드에서 권한 불일치 시 안내 메시지
+              if (process.env.NODE_ENV === 'development' && currentUserId && productUserId && !isOwner) {
+                console.warn("⚠️ 권한 불일치 발견!");
+                console.warn("📌 현재 로그인한 UID:", currentUserId);
+                console.warn("📌 상품의 userId:", productUserId);
+                console.warn("💡 해결 방법: Firestore Console에서 해당 문서의 userId를 현재 UID로 수정하세요.");
+                console.warn("   Firebase Console → Firestore → marketProducts → 해당 문서 → userId 필드 수정");
+              }
+              
+              return null; // 로그만 출력
+            })()}
+            {/* 🔥 개발 모드: 현재 UID 표시 (디버깅용) */}
+            {process.env.NODE_ENV === 'development' && user?.uid && (
+              <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-xs">
+                <p className="font-semibold text-yellow-700 dark:text-yellow-300 mb-1">
+                  🔍 디버깅 정보 (개발 모드)
+                </p>
+                <p className="text-yellow-600 dark:text-yellow-400">
+                  현재 로그인 UID: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">{user.uid}</code>
+                </p>
+                <p className="text-yellow-600 dark:text-yellow-400 mt-1">
+                  상품 userId: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">
+                    {(product as any)?.userId || (product as any)?.ownerId || (product as any)?.sellerId || "없음"}
+                  </code>
+                </p>
+                {user.uid !== ((product as any)?.userId || (product as any)?.ownerId || (product as any)?.sellerId) && (
+                  <p className="text-red-600 dark:text-red-400 mt-1 font-semibold">
+                    ⚠️ UID 불일치 → 수정/삭제 버튼이 숨겨집니다.
+                  </p>
+                )}
+              </div>
+            )}
+            {user?.uid && ((product as any)?.userId || (product as any)?.ownerId || (product as any)?.sellerId) && 
+             (user.uid === (product as any)?.userId || user.uid === (product as any)?.ownerId || user.uid === (product as any)?.sellerId) ? (
+              <div className="mt-4 flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-10 rounded-xl text-[13px] font-semibold border-[#0a84ff] text-[#0a84ff] hover:bg-[#0a84ff] hover:text-white transition"
+                  onClick={() => {
+                    // 🔥 id가 없으면 경고 표시
+                    if (!id) {
+                      console.error("❌ 수정하기 버튼: id가 undefined입니다!", { id, productId: product?.id });
+                      alert("상품 ID를 찾을 수 없습니다. 페이지를 새로고침해주세요.");
+                      return;
+                    }
+                    console.log("🔥 수정하기 버튼 클릭:", { id, productId: product?.id });
+                    navigate(`/app/market/edit/${id}`);
+                  }}
+                >
+                  ✏️ 수정하기
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-10 rounded-xl text-[13px] font-semibold border-[#ff3b30] text-[#ff3b30] hover:bg-[#ff3b30] hover:text-white transition"
+                  onClick={async () => {
+                    if (!id || !user) return;
+                    
+                    const confirmed = confirm("정말로 이 상품을 삭제하시겠습니까?\n삭제된 상품은 복구할 수 없습니다.");
+                    if (!confirmed) return;
 
+                    try {
+                      const productRef = doc(db, "marketProducts", id);
+                      await deleteDoc(productRef);
+                      alert("상품이 삭제되었습니다.");
+                      navigate("/app/market");
+                    } catch (error: any) {
+                      console.error("상품 삭제 오류:", error);
+                      alert("상품 삭제 중 오류가 발생했습니다.\n" + (error.message || "알 수 없는 오류"));
+                    }
+                  }}
+                >
+                  🗑️ 삭제하기
+                </Button>
+              </div>
+            ) : null}
 
             {/* ⚠️ AI 사기 감지 경고 */}
             {fraudLoading ? (
@@ -2344,9 +2585,9 @@ export default function ProductDetailPage() {
             {similarLoading ? (
               <div className="mt-8 animate-pulse">
                 <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-56 mb-4"></div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex overflow-x-auto space-x-4 pb-2 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:space-x-0 sm:gap-4">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="h-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div key={i} className="min-w-[65%] sm:min-w-0 h-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
                   ))}
                 </div>
               </div>
@@ -2355,13 +2596,14 @@ export default function ProductDetailPage() {
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100 flex items-center gap-2">
                   <span>🔍</span> 이 상품과 비슷한 추천
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex overflow-x-auto space-x-4 pb-2 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:space-x-0 sm:gap-4">
                   {similarProducts.map((item) => (
-                    <ProductCard
-                      key={item.id}
-                      product={item}
-                      distanceKm={undefined}
-                    />
+                    <div key={item.id} className="min-w-[65%] sm:min-w-0">
+                      <ProductCard
+                        product={item}
+                        distanceKm={undefined}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -2373,7 +2615,10 @@ export default function ProductDetailPage() {
 
             <div className="mt-2 flex flex-col gap-3 sm:flex-row">
 
-              <Button className="flex-1 h-11 rounded-xl bg-[#0a84ff] text-white text-[14px] font-semibold shadow-[0_10px_30px_rgba(10,132,255,0.45)] hover:bg-[#0062d6]">
+              <Button 
+                className="flex-1 h-11 rounded-xl bg-[#0a84ff] text-white text-[14px] font-semibold shadow-[0_10px_30px_rgba(10,132,255,0.45)] hover:bg-[#0062d6]"
+                onClick={handleChat}
+              >
 
                 💬 판매자와 채팅하기
 

@@ -38,63 +38,50 @@ export default function VoiceMapSearch() {
     const [mapsError, setMapsError] = useState<string | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    /** Google Maps API 스크립트 로드 */
+    /** Google Maps API 스크립트 로드 (중앙 집중식 로더 사용) */
     useEffect(() => {
-        // 이미 로드된 경우 중복 로드 방지
-        if (window.google && window.google.maps) {
-            setIsLoaded(true);
-            return;
-        }
-
-        // InvalidKeyMapError 전역 핸들러 설정
-        if (!(window as any).gm_authFailure) {
-            (window as any).gm_authFailure = () => {
-                console.error("❌ Google Maps API 인증 실패 (InvalidKeyMapError)");
-                const errorEvent = new CustomEvent("googlemaps-error", {
-                    detail: {
-                        error: "InvalidKeyMapError",
-                        message: "API 키가 유효하지 않거나 도메인 제한 설정 문제"
-                    }
-                });
-                window.dispatchEvent(errorEvent);
-            };
-        }
-
-        const scriptId = "google-maps-script";
-        if (document.getElementById(scriptId)) {
-            // 스크립트가 이미 추가되어 있으면 로드 완료 대기
-            const checkInterval = setInterval(() => {
-                if (window.google && window.google.maps) {
-                    clearInterval(checkInterval);
+        // ✅ 중앙 집중식 로더 사용 (중복 로드 방지)
+        import("@/utils/googleMapsLoader").then(({ loadGoogleMapsAPI }) => {
+            loadGoogleMapsAPI()
+                .then(() => {
+                    console.log("✅ Google Maps API 로드 완료!");
                     setIsLoaded(true);
-                }
-            }, 100);
+                })
+                .catch((error) => {
+                    console.error("❌ Google Maps API 로드 실패:", error);
+                    setMapsError(error.message || "Google Maps API를 불러올 수 없습니다.");
+                    setStatus("API 로드 실패");
+                });
+        });
 
-            // 5초 후 타임아웃
-            setTimeout(() => {
-                clearInterval(checkInterval);
-            }, 5000);
-
-            return () => clearInterval(checkInterval);
-        }
-
-        const script = document.createElement("script");
-        script.id = scriptId;
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-            }&libraries=places,marker,geometry`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-            console.log("✅ Google Maps API 로드 완료!");
-            setIsLoaded(true);
+        // ✅ googlemaps-error 이벤트 리스너 추가
+        const handleGoogleMapsError = (event: CustomEvent) => {
+            const errorData = event.detail;
+            console.error("❌ Google Maps API 오류:", errorData);
+            
+            if (errorData?.error === "InvalidKeyMapError" || errorData?.message?.includes("InvalidKey")) {
+                setMapsError(
+                    "Google Maps API 키 오류 (InvalidKeyMapError)\n\n" +
+                    "가능한 원인:\n" +
+                    "1. API 키가 유효하지 않음\n" +
+                    "2. Maps JavaScript API가 활성화되지 않음\n" +
+                    "3. API 키의 도메인 제한 설정 문제\n" +
+                    "   → https://yagovibe.com 추가 필요\n" +
+                    "   → https://www.yagovibe.com 추가 필요\n" +
+                    "4. 결제 계정 미연동\n\n" +
+                    "Google Cloud Console > API 및 서비스 > 사용자 인증 정보"
+                );
+                setStatus("API 키 오류");
+            } else {
+                setMapsError(errorData?.message || "Google Maps API 오류가 발생했습니다.");
+            }
         };
-        script.onerror = () => {
-            console.error("❌ Google Maps API 스크립트 로드 실패");
-            setMapsError("Google Maps API를 불러올 수 없습니다.");
-            setStatus("API 로드 실패");
-        };
 
-        document.body.appendChild(script);
+        window.addEventListener("googlemaps-error", handleGoogleMapsError as EventListener);
+
+        return () => {
+            window.removeEventListener("googlemaps-error", handleGoogleMapsError as EventListener);
+        };
     }, []);
 
     /** 지도 초기화 (isLoaded와 mapRef가 준비된 후 실행) */

@@ -19,6 +19,10 @@ dist-ssr
 .env.development
 .env.*.local
 
+# Firebase Service Account Key (절대 Git에 올리면 안 됨!)
+serviceAccountKey.json
+*.serviceAccountKey.json
+
 # Capacitor
 android/
 ios/
@@ -34,3 +38,5 @@ ios/
 *.njsproj
 *.sln
 *.sw?
+
+.vercel

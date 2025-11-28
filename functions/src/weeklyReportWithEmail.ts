@@ -1,16 +1,19 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
-import * as admin from "firebase-admin";
+import { admin } from "./lib/firebaseAdmin";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { openai } from "./lib/openaiClient";
-import { generateReportPrompt, UserReportData } from "./utils/reportTemplate";
-import { sendReportEmail } from "./lib/gmailMailer";
-import jsPDF from "jspdf";
+// 🔥 타입은 정적 import (타입은 런타임에 제거되므로 lazy import 불필요)
+import type { UserReportData } from "./utils/reportTemplate";
+// 🔥 Lazy import: 무거운 모듈들은 함수 내부에서 동적 import
+// import { openai } from "./lib/openaiClient";
+// import { generateReportPrompt } from "./utils/reportTemplate";
+// import { sendReportEmail } from "./lib/gmailMailer";
+// import jsPDF from "jspdf";
 
-// Firebase Admin 초기화
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
+// 🔥 Firebase Admin 초기화는 index.ts에서 중앙 집중식으로 처리
+// if (!admin.apps.length) {
+//     admin.initializeApp();
+// }
 
 const db = getFirestore();
 
@@ -27,6 +30,13 @@ export const generateWeeklyReportAndEmail = onSchedule(
         logger.info("📆 Generating and emailing AI Reports...", { structuredData: true });
 
         try {
+            // 🔥 Lazy import: 무거운 모듈들을 함수 실행 시점에 동적으로 로드
+            const { getOpenAIClient } = await import("./lib/openaiClient");
+            const openai = getOpenAIClient();
+            const { generateReportPrompt } = await import("./utils/reportTemplate");
+            const { sendReportEmail } = await import("./lib/gmailMailer");
+            const jsPDF = (await import("jspdf")).default;
+
             // 1️⃣ 모든 사용자 가져오기
             const usersSnap = await db.collection("users").get();
             logger.info(`👥 총 ${usersSnap.size}명의 사용자 발견`);
