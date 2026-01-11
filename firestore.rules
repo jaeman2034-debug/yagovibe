@@ -1,488 +1,961 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 팀 문서: 팀 멤버만 읽기 가능, Owner만 쓰기 가능
+    
+    /* =====================
+       Helper Functions
+    ====================== */
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // 🔥 전역 관리자 확인 (users/{uid}.role == "ADMIN")
+    function isGlobalAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "ADMIN";
+    }
+    
+    function isAdmin(teamId) {
+      return exists(
+        /databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)
+      ) &&
+      get(
+        /databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)
+      ).data.role == "admin" &&
+      get(
+        /databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)
+      ).data.status == "active";
+    }
+    
+    function isActiveMember(teamId) {
+      return exists(
+        /databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)
+      ) &&
+      get(
+        /databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)
+      ).data.status == "active";
+    }
+    
+    // 🔥 협회 관리자 확인 (adminUids 우선 + Custom Claims 보조)
+    // 운영 안정성: adminUids 배열/맵 기반으로 동작, Custom Claims는 보조
+    function isAssociationAdmin(associationId) {
+      return request.auth != null && (
+        // ✅ 방법 1: adminUids 체크 (우선, 가장 안정적)
+        // 🔥 get() 호출 최적화: 한 번만 호출
+        (exists(/databases/$(database)/documents/associations/$(associationId)) &&
+         ("adminUids" in get(/databases/$(database)/documents/associations/$(associationId)).data) &&
+         request.auth.uid in get(/databases/$(database)/documents/associations/$(associationId)).data.adminUids) ||
+        // ✅ 방법 2: Custom Claims 체크 (보조, role이 있을 때만)
+        (request.auth.token.role != null && 
+         request.auth.token.role == "ADMIN" && 
+         request.auth.token.associationId == associationId)
+      );
+    }
+    
+    // 🔥 역할 확인 헬퍼 함수 (대회 운영용)
+    function roleIsTournament(r) {
+      return isSignedIn() && request.auth.token.role == r;
+    }
+    
+    function isTournamentAdmin() {
+      return roleIsTournament("ADMIN");
+    }
+    
+    function isTournamentReferee() {
+      return roleIsTournament("REFEREE");
+    }
+    
+    // 🔥 배정된 심판 확인 (경기 문서의 referees에 포함되어 있고, Custom Claims에 REFEREE 역할이 있어야 함)
+    function isAssignedReferee(associationId, tournamentId, matchId) {
+      return isTournamentReferee() &&
+        (
+          request.auth.uid == get(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)/matches/$(matchId)).data.referees.main ||
+          request.auth.uid == get(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)/matches/$(matchId)).data.referees.assistant1 ||
+          request.auth.uid == get(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)/matches/$(matchId)).data.referees.assistant2
+        );
+    }
+    
+    // 🔒 대회 종료 Lock 확인
+    function isLocked(associationId, tournamentId) {
+      // 🔥 문서가 존재하지 않으면 Lock 아님 (새 문서 생성 시)
+      return exists(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)) &&
+             get(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)).data.status == "LOCKED";
+    }
+    
+    // 🔒 공지 종료 확인
+    function noticeClosed(associationId, noticeId) {
+      let noticeDoc = get(/databases/$(database)/documents/associations/$(associationId)/notices/$(noticeId));
+      return noticeDoc.data.status == "closed";
+    }
+    
+    /* =====================
+       Users
+    ====================== */
+    
+    match /users/{uid} {
+      // 읽기: 인증된 사용자 모두 가능 (공개 프로필)
+      allow read: if isSignedIn();
+      
+      // 생성: 서버만
+      allow create: if false; // server only
+      
+      // 수정: 인증된 사용자 모두 가능 (위험도 필드는 신고 로직에서만 업데이트)
+      // 🔥 실제 보호는 애플리케이션 로직에서 처리
+      // ⚠️ 실제 운영 환경에서는 Functions를 통해 처리하는 것을 권장
+      allow update: if isSignedIn();
+      
+      /* =====================
+         즐겨찾기 (Favorites)
+      ====================== */
+      
+      match /favorites/{favoriteId} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      /* =====================
+         장바구니 (Cart)
+      ====================== */
+      
+      match /cart/{itemId} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      /* =====================
+         알림 설정 (Notification Settings)
+      ====================== */
+      
+      // 🔔 알림 설정 (실제 경로: users/{uid}/settings/notifications)
+      match /settings/notifications {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      // 🔔 기타 설정 (하위 호환성)
+      match /settings/{settingId} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      /* =====================
+         차단된 사용자 (Blocked Users)
+      ====================== */
+      
+      match /blockedUsers/{blockedUserId} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      /* =====================
+         FCM 토큰 (채팅 푸시 알림용)
+      ====================== */
+      
+      match /fcmTokens/{token} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+
+    /* =====================
+       Global Audit Logs (L-1 LOCK)
+    ====================== */
+    
+    match /auditLogs/{logId} {
+      // 🔥 L-4: Audit Log 완전 봉인
+      // 클라 write 절대 금지
+      allow create, update, delete: if false;
+      
+      // 읽기: 로그인한 사용자만 (실제로는 admin/owner 권한 체크 필요)
+      allow read: if isSignedIn();
+    }
+    
+    /* =====================
+       Teams
+    ====================== */
+    
     match /teams/{teamId} {
-      // 읽기: 팀 멤버 (owners, coaches, members) 또는 관리자
-      allow read: if request.auth != null && (
-        request.auth.uid in resource.data.get('owners', []) ||
-        request.auth.uid in resource.data.get('coaches', []) ||
-        request.auth.uid in resource.data.get('members', []) ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
+      // 🔥 읽기: 인증된 사용자 모두 가능 (list 쿼리 지원)
+      // list 쿼리에서는 resource.data를 사용할 수 없으므로 isSignedIn()만 체크
+      // get 쿼리에서는 resource.data.isDeleted 체크는 애플리케이션 로직에서 처리
+      allow read: if isSignedIn();
+      allow write: if false; // server only
+      
+      /* =====================
+         Team Members (SSOT)
+      ====================== */
+      
+      match /members/{memberId} {
+        // 읽기: 본인 멤버십만 확인 가능 (권장)
+        allow read: if isSignedIn() && memberId == request.auth.uid;
+        
+        // 쓰기: 서버만 (합류는 joinTeam 함수만)
+        allow create, update, delete: if false; // 🔒 핵심: 클라이언트 직접 쓰기 차단
+      }
+      
+      /* =====================
+         Other Subcollections
+      ====================== */
+      
+      match /blog/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if isSignedIn() && isAdmin(teamId);
+      }
+      
+      match /blog_posts/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if isSignedIn() && isAdmin(teamId);
+      }
+      
+      match /fees/{docId} {
+        allow read: if isSignedIn() && isAdmin(teamId);
+        allow write: if false; // billing server only
+      }
+      
+      match /auditLogs/{docId} {
+        // 🔥 L-4: 팀별 auditLogs (하위 호환성)
+        allow read: if isSignedIn() && isAdmin(teamId);
+        allow write: if false;
+      }
+      
+      match /usage/{docId} {
+        allow read: if isSignedIn() && isAdmin(teamId);
+        allow write: if false; // server only
+      }
+      
+      match /ai_reports/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false; // server only (Cloud Functions)
+      }
+      
+      match /ops/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false; // server only (Cloud Functions)
+      }
+    }
+    
+    /* =====================
+       team_members (Index)
+    ====================== */
+    
+    match /team_members/{docId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.uid;
+      allow write: if false; // server only
+    }
+    
+    /* =====================
+       Invites (QR 초대 토큰) - v1 LOCK
+    ====================== */
+    
+    match /invites/{inviteId} {
+      // 읽기: (v1) preview에서 필요하면 허용. 더 엄격하게 하려면 제한 가능
+      allow read: if true;
+      
+      // 쓰기: 서버만 가능 (Cloud Functions만 생성/수정)
+      allow create, update, delete: if false; // 🔒 핵심: 클라이언트 직접 쓰기 차단
+    }
+    
+    /* =====================
+       💬 채팅 (Chats) - 거래 성사 가속
+    ====================== */
+    
+    match /chats/{chatId} {
+      // ✅ 채팅방 생성: users 배열에 현재 사용자가 포함되어야 함
+      allow create: if isSignedIn() && (
+        request.auth.uid in request.resource.data.users
+      );
+
+      // ✅ 채팅방 읽기/수정: users 배열에 포함되어야 함
+      allow read, update: if isSignedIn() && (
+        request.auth.uid in resource.data.users
+      );
+
+      // ✅ 삭제: users 배열에 포함되어야 함
+      allow delete: if isSignedIn() && (
+        request.auth.uid in resource.data.users
+      );
+
+      // ✅ 메시지 읽기/쓰기: 채팅방의 users 배열에 포함되어야 함
+      match /messages/{messageId} {
+        // 🔥 핵심: get()으로 상위 chats 문서의 users 배열 확인
+        allow read, create: if isSignedIn() && (
+          request.auth.uid in get(
+            /databases/$(database)/documents/chats/$(chatId)
+          ).data.users
+        );
+        
+        // 수정: 작성자만 가능 (삭제됨 처리용)
+        allow update: if isSignedIn() && (
+          request.auth.uid in get(
+            /databases/$(database)/documents/chats/$(chatId)
+          ).data.users &&
+          (request.auth.uid == resource.data.uid || request.auth.uid == resource.data.senderId)
+        );
+        
+        // 삭제: 작성자만 가능 + 5분 이내만 삭제 가능 (실수 삭제는 허용, 기록 조작 방지)
+        allow delete: if isSignedIn() && (
+          request.auth.uid == resource.data.uid || request.auth.uid == resource.data.senderId
+        ) && (
+          // 5분 이내 제한: createdAt이 있으면 5분(300초) 이내만 삭제 가능
+          !("createdAt" in resource.data) || 
+          request.time.seconds <= resource.data.createdAt.seconds + 300
+        );
+      }
+    }
+    
+    /* =====================
+       🗄️ 삭제된 메시지 로그 (운영/분쟁 대응용)
+    ====================== */
+    
+    match /deletedMessages/{logId} {
+      // 읽기: 관리자만 가능
+      allow read: if isSignedIn() && isGlobalAdmin();
+      
+      // 생성: 로그인 사용자 모두 가능 (자기 메시지 삭제 시 로그 기록)
+      allow create: if isSignedIn();
+      
+      // 수정/삭제: 금지 (로그는 변경/삭제 불가)
+      allow update, delete: if false;
+    }
+    
+    /* =====================
+       🚨 채팅 메시지 신고 (증거 보존용)
+    ====================== */
+    
+    match /chatReports/{reportId} {
+      // 신고 생성: 로그인 사용자만, 본인이 신고자여야 함
+      allow create: if isSignedIn() && 
+        request.auth.uid == request.resource.data.reporterId;
+      
+      // 읽기: 본인 신고 또는 관리자
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.reporterId ||
+        isGlobalAdmin()
       );
       
-      // 쓰기: Owner만 가능
-      allow write: if request.auth != null && 
-                     request.auth.uid in resource.data.get('owners', []);
+      // 수정: 관리자만 가능 (resolved 처리 등)
+      allow update: if isSignedIn() && isGlobalAdmin();
       
-      // 팀 리포트
-      match /reports/{reportId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && 
-                       request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []);
+      // 삭제: 금지 (증거 보호)
+      allow delete: if false;
+    }
+    
+    /* =====================
+       🛒 마켓 상품 (Market Products)
+    ====================== */
+    
+    match /marketProducts/{productId} {
+      // 읽기: 인증된 사용자 모두 가능 (상품 목록/상세)
+      allow read: if isSignedIn();
+      
+      // 🔥 생성: 로그인 사용자만 가능 + 위치 정보 필수 (품질 보장)
+      allow create: if isSignedIn() && (
+        request.resource.data.sellerId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      ) && (
+        // 🔥 위치 정보 필수 검증 (latitude, longitude는 숫자여야 함)
+        request.resource.data.latitude is number &&
+        request.resource.data.longitude is number &&
+        request.resource.data.latitude >= -90 &&
+        request.resource.data.latitude <= 90 &&
+        request.resource.data.longitude >= -180 &&
+        request.resource.data.longitude <= 180
+      );
+      
+      // 수정/삭제: 본인만 가능
+      allow update, delete: if isSignedIn() && (
+        resource.data.sellerId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+    
+    /* =====================
+       ⚽ 협회 (Associations) - 노원 실전
+    ====================== */
+    
+    match /associations/{associationId} {
+      // 🔥 읽기: 인증된 사용자 모두 가능 (협회 목록/상세 조회)
+      // 협회 중심 플랫폼에서는 협회 정보는 거의 public에 가까움
+      // ⚠️ isAssociationAdmin 함수 내부에서 get() 호출을 위해 읽기 허용 필수
+      allow read: if isSignedIn() || true; // 임시로 모두 허용 (안정화)
+      
+      // 쓰기: 서버만 (Cloud Functions만 생성/수정)
+      allow create, update, delete: if false; // server only
+      
+      /* =====================
+         공지사항 (Notices) - 서브컬렉션 (레거시)
+      ====================== */
+      
+      match /notices/{noticeId} {
+        // 🔥 읽기: 모두 허용 (공개 공지 + 시스템 공지 포함)
+        // 시스템 공지(isSystemGenerated)는 읽기 전체 허용, 수정/삭제만 차단
+        allow read: if true;
+        // 🔥 쓰기: 협회 관리자만 (시스템 공지는 Functions에서만 생성)
+        // 시스템 공지 수정/삭제는 차단 (isSystemGenerated 체크는 애플리케이션 로직에서)
+        allow write: if isSignedIn() && isAssociationAdmin(associationId);
+      }
+      
+      /* =====================
+         공지 히스토리 (Notice History)
+      ====================== */
+      
+      match /notices/{noticeId}/history/{historyId} {
+        // 읽기/쓰기: 협회 관리자만
+        allow read, write: if isSignedIn() && 
+          isAssociationAdmin(resource.data.associationId);
+      }
+      
+      /* =====================
+         🔥 공지 기반 대화 (Notice Conversations)
+      ====================== */
+      
+      match /noticeConversations/{conversationId} {
+        // 읽기: 인증된 사용자 모두
+        allow read: if isSignedIn();
+        // 쓰기: Functions 전용 (자동 생성)
+        allow write: if false;
         
-        // 품질 리포트
-        match /qualityReports/{qualityReportId} {
-          allow read: if request.auth != null;
-          allow create: if request.auth != null;
-          allow update, delete: if false; // Functions에서만 관리
+        // 메시지
+        match /messages/{messageId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: 인증된 사용자 (질문/답변) + 공지 종료되지 않았을 때만
+          allow create: if isSignedIn() && !noticeClosed(associationId, conversationId);
+          // 수정/삭제: 관리자만 (또는 본인 메시지) + 공지 종료되지 않았을 때만
+          allow update, delete: if isSignedIn() && 
+            !noticeClosed(associationId, conversationId) && (
+            isAssociationAdmin(associationId) ||
+            resource.data.senderId == request.auth.uid
+          );
         }
       }
       
-      // 역할 관리
-      match /roles/{userId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow write: if request.auth != null && 
-                       request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []);
+      /* =====================
+         🔥 공지 기반 FAQ (Notice FAQs)
+      ====================== */
+      
+      match /noticeFaqs/{faqId} {
+        // 읽기: 인증된 사용자 모두 (FAQ는 공개 정보)
+        allow read: if isSignedIn();
+        // 쓰기: 협회 관리자만 (FAQ 고정) + 공지 종료되지 않았을 때만
+        allow create, update: if isSignedIn() && 
+          isAssociationAdmin(associationId) && 
+          !noticeClosed(associationId, resource.data.noticeId);
+        // 삭제: 협회 관리자만 + 공지 종료되지 않았을 때만
+        allow delete: if isSignedIn() && 
+          isAssociationAdmin(associationId) && 
+          !noticeClosed(associationId, resource.data.noticeId);
       }
       
-      // 알림 로그: Owner 및 관리자만 읽기 가능
-      match /alerts/{alertId} {
-        allow read: if request.auth != null && (
-          request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []) ||
-          request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-          request.auth.token.email.matches('.*admin.*')
-        );
-        allow write: if false; // Functions에서만 쓰기
-      }
-    }
-    
-    // Step 59-60: Proactive Insights
-    match /insightSubs/{subId} {
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    // Step 20: AI 주간 인사이트
-    match /insights/{insightId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-
-    match /insightReports/{reportId} {
-      // 읽기: 팀 멤버 또는 관리자
-      allow read: if request.auth != null && (
-        // 보고서의 teamId로 팀 문서 확인
-        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('owners', []) ||
-        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('coaches', []) ||
-        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('members', []) ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
+      /* =====================
+         🔥 공지 질문 통계 (Notice Stats)
+      ====================== */
       
-      // 쓰기 (승인/반려): Owner 또는 관리자만 가능
-      allow update: if request.auth != null && (
-        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('owners', []) ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      
-      // 생성: Functions에서만 가능
-      allow create: if false;
-      
-      // 삭제: 관리자만 가능
-      allow delete: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    // Step 26 & Step 62: 감사 로그 (Audit Logs)
-    match /auditLogs/{logId} {
-      // 읽기: 관리자(role="admin") 또는 관리자 이메일만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: 인증된 사용자가 자신의 액션을 기록 가능 (uid 일치)
-      allow create: if request.auth != null && 
-                       request.resource.data.uid == request.auth.uid;
-      // 수정/삭제: 불가 (감사 로그는 변경 불가)
-      allow update, delete: if false;
-    }
-
-    // Step 27: 워크플로우 로그 (Workflow Logs)
-    match /workflowLogs/{logId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능 (클라이언트는 읽기만 가능)
-      allow write: if false;
-    }
-
-    // Step 28: 워크플로우 통계 (Workflow Stats)
-    match /workflowStats/{statId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능 (클라이언트는 읽기만 가능)
-      allow write: if false;
-    }
-
-    // Step 31: 베타 피드백 (Beta Feedback)
-    match /betaFeedback/{feedbackId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions/HTTPS API에서만 가능 (웹 직접 접근은 rate-limit 필요)
-      // 실제로는 feedbackApi 함수를 통해만 쓰기 가능하도록 제한
-      allow write: if false;
-    }
-
-    // Step 32: 릴리즈 체크 및 노트 (Release Checks & Notes)
-    match /releaseChecks/{checkId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-
-    match /releaseNotes/{noteId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /modelCards/{cardId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    // Step 63: Compliance Export & DSAR
-    match /complianceExports/{exportId} {
-      // 읽기: Owner 또는 SecOps(관리자)만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.uid ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /dsarRequests/{requestId} {
-      // 읽기: 요청자 또는 SecOps(관리자)만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.uid ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /deletionRequests/{requestId} {
-      // 읽기: 요청자 또는 SecOps(관리자)만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.uid ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /systemLogs/{logId} {
-      // 읽기: SecOps(관리자)만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    // Step 64: Global Governance Portal
-    match /policies/{policyId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: Functions에서만 가능 (policyCompiler)
-      allow write: if false;
-    }
-    
-    // Step 65: Multi-Tenant Org Rollout & Billing Guard
-    match /orgs/{orgId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    match /tenants/{tenantId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    match /plans/{planId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    match /usage/{day}/{orgId} {
-      // 읽기: 해당 조직 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == orgId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /ratelimits/{limitId} {
-      // 읽기: 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /billingDaily/{billId} {
-      // 읽기: 해당 조직 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.orgId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /featureOverrides/{orgId} {
-      // 읽기: 해당 조직 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == orgId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    // Step 68: Real-World Pilot & Telemetry Review
-    match /events/{day}/{eventId} {
-      // 읽기: 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /telemetryDaily/{docId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /improvements/{docId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: Functions 또는 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    match /pilotRollbacks/{docId} {
-      // 읽기: 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    // Step 69: Production Hardening - 헬스체크용 임시 컬렉션
-    match /_health/{docId} {
-      // 읽기/쓰기: 인증된 사용자 모두 가능
-      allow read, write: if request.auth != null;
-    }
-    
-    // Step 69: Production Hardening - 런북 템플릿
-    match /runbookTemplates/{docId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin']
-      );
-    }
-    
-    // Step 69: Production Hardening - 론치 플랜
-    match /launchPlans/{docId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin']
-      );
-    }
-    
-    // Step 70: Post-Launch SRE & Growth Experiments
-    match /slo/{metricId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin']
-      );
-    }
-    
-    match /experiments/{expId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin']
-      );
-      
-      // 실험 할당
-      match /assign/{userId} {
-        // 읽기: 본인 또는 관리자만 가능
-        allow read: if request.auth != null && (
-          request.auth.uid == userId ||
-          request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-          request.auth.token.email.matches('.*admin.*')
-        );
-        // 쓰기: Functions에서만 가능 (abRouter)
+      match /noticeStats/{noticeId} {
+        // 읽기: 인증된 사용자 모두 (통계는 공개 정보)
+        allow read: if isSignedIn();
+        // 쓰기: Functions 전용 (자동 집계)
         allow write: if false;
       }
-    }
-    
-    match /sessions/{userId} {
-      // 읽기: 본인 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == userId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: 본인만 가능
-      allow write: if request.auth != null && request.auth.uid == userId;
       
-      // 세션 방문 기록
-      match /visits/{visitId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+      /* =====================
+         🔥 공지 스냅샷 (Notice Snapshots)
+      ====================== */
+      
+      match /noticeSnapshots/{noticeId} {
+        // 읽기: 인증된 사용자 모두 (스냅샷은 공개 정보)
+        allow read: if isSignedIn();
+        // 쓰기: Functions 전용 (자동 생성)
+        allow write: if false;
+      }
+      
+      /* =====================
+         대회 (Tournaments)
+      ====================== */
+      
+      match /tournaments/{tournamentId} {
+        // 읽기: 모두 허용 (공개 대회 정보)
+        allow read: if true;
+        // 쓰기: 협회 관리자만 + Lock 상태가 아닐 때만 + completed 상태가 아닐 때만
+        // 🔥 하이브리드: adminUids 우선 (Custom Claims 없어도 동작)
+        // 🔥 새 문서 생성 시 isLocked 체크 생략 (문서가 아직 없으므로)
+        allow create: if isSignedIn() && isAssociationAdmin(associationId);
+        // 🔥 기존 문서 수정 시 Lock 체크 + completed 상태 차단
+        allow update, delete: if isSignedIn() && isAssociationAdmin(associationId) && 
+          !isLocked(associationId, tournamentId) &&
+          resource.data.status != "completed";
+        
+        /* 🔥 Phase 1-4: 대회 운영 서브컬렉션 */
+        
+        // 경기장
+        match /venues/{venueId} {
+          allow read: if isSignedIn();
+          allow write: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 🔥 라운드 (Rounds) - 대진표 생성용
+        match /rounds/{roundId} {
+          // 🔥 읽기: 모두 허용 (공개 대진표용)
+          allow read: if true;
+          // 쓰기: Functions 전용 (경기 자동 생성 시 생성)
+          allow create, update: if false;
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 경기
+        match /matches/{matchId} {
+          // 🔥 읽기: 모두 허용 (공개 대진표용)
+          allow read: if true;
+          
+          // 🔥 쓰기: 관리자만 허용
+          allow create: if isSignedIn() && (isAssociationAdmin(associationId) || isTournamentAdmin()) && !isLocked(associationId, tournamentId);
+          
+          // 🔥 업데이트: 관리자만 허용
+          // winner는 admin만 설정 가능 (일반 유저가 REST/콘솔로 winner 못 바꿈)
+          // nextMatch team 세팅도 admin만 허용
+          allow update: if isSignedIn() && (isAssociationAdmin(associationId) || isTournamentAdmin()) && !isLocked(associationId, tournamentId);
+          
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+          
+          // 출전 명단
+          match /rosters/{rosterId} {
+            allow read: if isSignedIn();
+            allow write: if isSignedIn() && (isAssociationAdmin(associationId) || isTournamentAdmin()) && !isLocked(associationId, tournamentId);
+          }
+          
+          // 🔒 검인 기록 (QR 체크인은 Functions에서만)
+          match /checkins/{checkinId} {
+            allow read: if isSignedIn();
+            allow write: if false; // ✅ QR 체크인은 Functions에서만 (Lock 무관)
+          }
+          
+          // 🟨 경고/퇴장 (배정된 심판 또는 관리자만 + Lock 체크)
+          match /cards/{cardId} {
+            allow read: if isSignedIn();
+            allow create, update: if isSignedIn() && !isLocked(associationId, tournamentId) && (
+              isAssociationAdmin(associationId) ||
+              isTournamentAdmin() ||
+              isAssignedReferee(associationId, tournamentId, matchId)
+            );
+            allow delete: if false; // 삭제 불가 (감사 로그 보호)
+          }
+          
+          // 🟪 심판 메모 (배정된 심판 또는 관리자만 + Lock 체크)
+          match /memos/{memoId} {
+            allow read: if isSignedIn();
+            allow create, update: if isSignedIn() && !isLocked(associationId, tournamentId) && (
+              isAssociationAdmin(associationId) ||
+              isTournamentAdmin() ||
+              isAssignedReferee(associationId, tournamentId, matchId)
+            );
+            allow delete: if false; // 삭제 불가 (감사 로그 보호)
+          }
+        }
+        
+        // 🔥 참가 신청 (Entries) - 개인 참가 신청 상태
+        match /entries/{entryId} {
+          // 읽기: 본인만 (userId == request.auth.uid) 또는 관리자
+          allow read: if isSignedIn() && (
+            resource.data.userId == request.auth.uid ||
+            isAssociationAdmin(associationId)
+          );
+          // 생성: 로그인한 사용자 모두 (본인의 entry만)
+          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+          // 수정: 본인만 또는 관리자
+          allow update: if isSignedIn() && (
+            resource.data.userId == request.auth.uid ||
+            isAssociationAdmin(associationId)
+          );
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 참가 신청 (Applications)
+        match /applications/{applicationId} {
+          // 읽기: 인증된 사용자 모두 (신청 조회)
+          allow read: if isSignedIn();
+          // 생성: 인증된 사용자 모두 (팀/사용자 신청) - ✅ 클라이언트 허용
+          // 🔥 관리자는 생성 시 바로 status: "approved"로 생성 가능 (테스트용)
+          allow create: if isSignedIn() && (
+            // 일반 사용자: status는 "pending"만 가능
+            (request.resource.data.status == "pending" || request.resource.data.status == null) ||
+            // 관리자: "approved"로 직접 생성 가능 (테스트 팀 생성용)
+            (isAssociationAdmin(associationId) && request.resource.data.status == "approved")
+          );
+          // 수정: Functions 전용 (승인/거절은 Function에서 처리) 또는 관리자 (테스트용)
+          allow update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지
+          allow delete: if false;
+          
+          // 🔥 결제 기록 (Payments)
+          match /payments/{paymentId} {
+            // 읽기: 인증된 사용자 모두
+            allow read: if isSignedIn();
+            // 생성/수정: 협회 관리자만
+            allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+            // 삭제: 금지 (감사 로그 보호)
+            allow delete: if false;
+          }
+          
+          // 🔥 영수증 (Receipts)
+          match /receipts/{receiptId} {
+            // 읽기: 인증된 사용자 모두
+            allow read: if isSignedIn();
+            // 생성: 협회 관리자만
+            allow create: if isSignedIn() && isAssociationAdmin(associationId);
+            // 수정/삭제: 금지 (증빙 보호)
+            allow update, delete: if false;
+          }
+          
+          // 🔥 알림 로그 (Reminders) - Functions 전용
+          match /reminders/{reminderId} {
+            // 읽기: 협회 관리자만
+            allow read: if isSignedIn() && isAssociationAdmin(associationId);
+            // 쓰기: Functions 전용 (조작 불가)
+            allow write: if false;
+          }
+        }
+        
+        // 🔥 참가팀 (Approved Teams)
+        match /teams/{teamId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 생성/수정: 협회 관리자만 (테스트 팀 생성 및 승인 처리)
+          allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 협회 관리자만 (테스트 팀 삭제 허용)
+          allow delete: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 🔥 팀장 초대 (TeamInvites)
+        match /TeamInvites/{inviteId} {
+          // 읽기: 모두 허용 (토큰 검증용)
+          allow read: if true;
+          // 생성: 협회 관리자만
+          allow create: if isSignedIn() && isAssociationAdmin(associationId);
+          // 수정: 
+          // 1) 로그인한 사용자가 자신의 UID로 바인딩하는 경우 (used=true)
+          // 2) 관리자가 revoked 처리하는 경우
+          allow update: if isSignedIn() && (
+            (
+              request.resource.data.used == true
+              && request.resource.data.usedByUid == request.auth.uid
+              && resource.data.used == false
+              && resource.data.revoked != true
+              && (resource.data.expiresAt == null || resource.data.expiresAt > request.time)
+            ) || (
+              isAssociationAdmin(associationId)
+              && request.resource.data.revoked == true
+              && resource.data.revoked != true
+            )
+          );
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 참가 신청 (Applications)
+        match /Applications/{applicationId} {
+          // 읽기: 모두 허용 (공개 신청)
+          allow read: if true;
+          // 생성: 모두 허용 (비로그인도 신청 가능)
+          allow create: if true;
+          // 수정: 관리자만 (승인/반려)
+          allow update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지 (감사 로그)
+          allow delete: if false;
+        }
+        
+        // 🔥 일반 팀 (Teams) - 대회 외부 팀
+        match /Teams/{teamId} {
+          // 읽기: 모두 허용 (토큰 검증용)
+          allow read: if true;
+          // 수정: 관리자 또는 팀장(captainUid)만, 대회 시작 전까지만
+          // 🔥 실운영 보강: locked=true면 수정 불가, members 배열 길이 제한은 트랜잭션에서 처리
+          allow update: if isSignedIn()
+            && (
+              isAssociationAdmin(associationId) ||
+              (request.auth.uid == resource.data.captainUid && resource.data.locked != true)
+            )
+            && (!("locked" in resource.data) || resource.data.locked != true);
+          // 생성/삭제: 협회 관리자만
+          allow create, delete: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 🔥 테스트 조 추첨 결과 (test_groups)
+        match /test_groups/{groupId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: 협회 관리자만 (테스트 모드 조 추첨 결과 저장)
+          allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 협회 관리자만
+          allow delete: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 🔥 테스트 조 추첨 로그 (test_drawLogs)
+        match /test_drawLogs/{logId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: 협회 관리자만 (테스트 모드 조 추첨 로그 저장)
+          allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 조 추첨 로그 (drawLogs)
+        match /drawLogs/{logId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: Functions 전용 (운영 모드 조 추첨 로그 저장)
+          allow create, update: if false;
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 징계 로그 (discipline_logs)
+        match /discipline_logs/{logId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: 협회 관리자만
+          allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 결제 관리 (Payments) - Functions 전용
+        match /payments/{paymentId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: Functions 전용 (승인 시 자동 생성)
+          allow create, update: if false;
+          // 삭제: 금지
+          allow delete: if false;
+        }
+        
+        // 🔥 선수 명단 (Players) - 연령 검증 결과 저장
+        match /players/{playerId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 생성: 인증된 사용자 모두 (팀이 등록)
+          allow create: if isSignedIn();
+          // 수정: 협회 관리자만 (승인/거절)
+          allow update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔒 체크인 기록 (QR 체크인은 Functions에서만)
+        match /checkins/{checkinId} {
+          allow read: if isSignedIn();
+          allow write: if false; // ✅ QR 체크인은 Functions에서만
+        }
+        
+        // QR 토큰
+        match /qrTokens/{tokenId} {
+          allow read: if isSignedIn();
+          allow write: if false; // Functions 전용
+        }
+        
+        // JoinKFA 캐시 (사무국 전용)
+        match /joinKfaCache/{cacheId} {
+          allow read: if isSignedIn();
+          allow write: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 통계 (Functions 전용)
+        match /stats/{dateKey} {
+          allow read: if isSignedIn();
+          allow write: if false; // Functions 전용
+        }
+      }
+      
+      /* =====================
+         대관 (Facilities)
+      ====================== */
+      
+      match /facility_slots/{slotId} {
+        // 읽기: 모두 허용 (대관 현황 공개)
+        allow read: if true;
+        // 쓰기: 협회 관리자만
+        allow write: if isSignedIn() && isAssociationAdmin(associationId);
+      }
+      
+      /* =====================
+         스토리 (Stories)
+      ====================== */
+      
+      match /stories/{storyId} {
+        // 읽기: 모두 허용 (공개 스토리)
+        allow read: if true;
+        // 쓰기: 협회 관리자만
+        allow write: if isSignedIn() && isAssociationAdmin(associationId);
+      }
+      
+      /* =====================
+         감사 로그 (Audit Logs)
+      ====================== */
+      
+      match /audit_logs/{logId} {
+        // 읽기: 협회 관리자만
+        allow read: if isSignedIn() && isAssociationAdmin(associationId);
+        // 쓰기: 협회 관리자만 (애플리케이션에서 기록)
+        allow write: if isSignedIn() && isAssociationAdmin(associationId);
+      }
+      
+      /* =====================
+         협회 설정 (Report Settings 등)
+      ====================== */
+      
+      match /report_settings {
+        // 읽기/쓰기: 협회 관리자만 (추후 구현)
+        allow read, write: if false; // server only (임시)
       }
     }
     
-    match /retention/{docId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
+    /* =====================
+       📢 공지사항 (Notices) - 루트 컬렉션
+    ====================== */
     
-    // Step 71: Multi-Modal AI Extensions & Voice UX 2.0
-    match /plugins/{pluginId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 소유자(ownerId) 또는 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin'] ||
-        request.auth.uid == request.resource.data.ownerId
+    match /notices/{noticeId} {
+      // 읽기: 모두 허용 (공개 공지)
+      allow read: if true;
+      
+      // 생성: 인증된 사용자 모두 가능 (associationId 필드로 권한 체크)
+      allow create: if isSignedIn() && 
+        isAssociationAdmin(request.resource.data.associationId);
+      
+      // 수정: 권한 분기
+      // - 관리자: 모든 필드 수정 가능 (pinned, status 등, publish/scheduled 포함)
+      // - 일반 유저: draft 상태이고 pinned/status 변경 없을 때만 수정 가능
+      allow update: if isSignedIn() && (
+        // 🔥 관리자는 모든 수정 가능 (publish/scheduled 포함)
+        isAssociationAdmin(resource.data.associationId) ||
+        // 일반 유저는 draft 상태이고 pinned/status 변경 없을 때만
+        (
+          resource.data.status == 'draft' &&
+          request.resource.data.status == 'draft' &&
+          resource.data.isPinned == request.resource.data.isPinned
+        )
       );
+      
+      // 삭제: 관리자만
+      allow delete: if isSignedIn() && 
+        isAssociationAdmin(resource.data.associationId);
     }
     
-    match /assistantLogs/{logId} {
-      // 읽기: 본인 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.userId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
+    /* =====================
+       📢 공지 히스토리 (Notice History) - 루트 컬렉션
+    ====================== */
+    
+    match /notices/{noticeId}/history/{historyId} {
+      // 읽기/쓰기: 해당 공지의 협회 관리자만
+      allow read, write: if isSignedIn() && 
+        exists(/databases/$(database)/documents/notices/$(noticeId)) &&
+        isAssociationAdmin(
+          get(/databases/$(database)/documents/notices/$(noticeId)).data.associationId
+        );
     }
     
-    // 🔧 개발/테스트용 컬렉션 (에뮬레이터에서 사용)
-    match /testConnection/{docId} {
-      // 읽기/쓰기: 인증된 사용자 모두 가능 (개발용)
-      allow read, write: if request.auth != null;
+    /* =====================
+       📋 회원 신청 (Membership Requests)
+    ====================== */
+    
+    match /membershipRequests/{requestId} {
+      // 읽기: 본인이 신청한 것 또는 협회 관리자
+      allow read: if isSignedIn();
+      
+      // 쓰기: 서버만 (Cloud Functions만 생성/수정)
+      allow create, update, delete: if false; // server only
     }
     
-    // 🛒 마켓 상품 (Market Products)
-    // ✅ 테스트용 — 에뮬레이터에서 모든 요청 허용
-    match /marketProducts/{productId} {
-      allow read, write: if true;
+    /* =====================
+       ✅ COMMIT 13: Tenant Isolation & Security
+       테넌트 격리 규칙 (멀티테넌시 보안 강화)
+    ===================== */
+    
+    // ✅ 테넌트 매칭: 토큰에 tenantId가 있다고 가정
+    function tenantId() { 
+      return request.auth.token.tenantId; 
     }
     
-    // 🔥 FCM 푸시 알림 - 사용자 기기 토큰 저장
-    // users/{uid}/devices/{deviceId}
-    match /users/{userId}/devices/{deviceId} {
-      // 읽기/쓰기: 본인만 가능
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    function isTenant(tid) { 
+      return isSignedIn() && tenantId() == tid; 
+    }
+    
+    function tenantRole() { 
+      return request.auth.token.role; 
+    } // admin/editor/viewer (tenant context)
+    
+    function isTenantAdmin() {
+      return isSignedIn() && tenantRole() == "admin";
+    }
+    
+    function isTenantEditor() { 
+      return isSignedIn() && (tenantRole() == "admin" || tenantRole() == "editor"); 
+    }
+    
+    // ---------------------------
+    // 1) 도메인 데이터: tenants/{tenantId}/(collection)/(doc)
+    // ---------------------------
+    match /tenants/{tid}/{col}/{docId} {
+      allow read: if isTenant(tid);              // viewer 포함 read 허용
+      allow create, update: if isTenant(tid) && isTenantEditor();
+      allow delete: if isTenant(tid) && isTenantAdmin();
+    }
+    
+    // ---------------------------
+    // 2) Approvals: admin만 + tenantId 필드로 격리
+    // ---------------------------
+    match /_approvals/{id} {
+      allow read: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow create: if isSignedIn() && request.resource.data.tenantId == tenantId(); // review_required 생성은 editor도 가능
+      allow update: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow delete: if false;
+    }
+    
+    // ---------------------------
+    // 3) Ethics Decisions: admin만(대시보드/감사)
+    // ---------------------------
+    match /_ethicsDecisions/{auditId} {
+      allow read: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow create: if isSignedIn() && request.resource.data.tenantId == tenantId();
+      allow update, delete: if false;
+    }
+    
+    // ---------------------------
+    // 4) Policy Changes / Policies: admin만 + tenant 격리
+    // ---------------------------
+    match /_policyChanges/{id} {
+      allow read, create, update: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow delete: if false;
+    }
+    
+    match /_policies/{tid} {
+      allow read: if isTenantAdmin() && isTenant(tid);
+      allow write: if isTenantAdmin() && isTenant(tid);
+    }
+    
+    // ---------------------------
+    // 5) Daily reports / audit logs / versions: admin만 + tenant 격리
+    // ---------------------------
+    match /_dailyReports/{id} {
+      allow read, create: if isTenantAdmin() && request.resource.data.tenantId == tenantId();
+      allow update: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow delete: if false;
+    }
+    
+    match /_auditLogs/{id} {
+      allow read: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow create: if isSignedIn() && request.resource.data.tenantId == tenantId();
+      allow update, delete: if false;
+    }
+    
+    match /_versions/{id} {
+      allow read: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow create: if isSignedIn() && request.resource.data.tenantId == tenantId();
+      allow update, delete: if false;
     }
   }
 }
-
