@@ -4,7 +4,7 @@ import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, sendPa
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { upgradeGuestAccount } from "@/utils/upgradeGuestAccount";
-import loginWordmark from "@/assets/logo/YagoSportsWordmark.svg";
+import loginWordmark from "@/assets/logo/YagoSportsWordmark.svg?url";
 
 interface SpeechRecognition extends EventTarget {
     lang: string;
@@ -50,24 +50,36 @@ export default function LoginPage() {
     // 🔥 React StrictMode 이중 렌더링 방지용 ref
     const isSigningInRef = useRef(false);
     
-    // 🔥 모바일/웹뷰 환경에서는 무조건 Redirect 사용 (팝업 차단 방지)
-    // 데스크톱만 Popup 사용, 나머지는 전부 Redirect
+    // 모바일/좁은 화면은 기본적으로 Redirect(팝업 차단 대비).
+    // 단, localhost + 개발 빌드에서는 Chrome 기기 에뮬레이터(UA만 모바일)도 팝업으로 두어
+    // 리다이렉트 복귀·getRedirectResult 타이밍 이슈로 로그인이 튕기는 것을 줄임.
     const canUsePopup = (): boolean => {
         const ua = navigator.userAgent.toLowerCase();
-        
-        // 모바일/웹뷰 감지 (Android, iOS, WebView 등)
+        const host = typeof window !== "undefined" ? window.location.hostname : "";
+        const isLocalDev =
+            import.meta.env.DEV &&
+            (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local"));
+
+        if (isLocalDev) {
+            const realWebView = /(;\s*wv\)|webview|kakaotalk|instagram|fbav|fban|line\/|naver\(|daum)/i.test(
+                navigator.userAgent
+            );
+            if (!realWebView) {
+                console.log("🔧 [Google Login] 로컬 개발 — 팝업 로그인 사용 (에뮬레이터 UA 무시)");
+                return true;
+            }
+        }
+
         if (/android|iphone|ipad|ipod|mobile|wv|webview/i.test(ua)) {
             console.log("📱 [Google Login] 모바일/웹뷰 환경 감지 - Redirect 방식 사용");
             return false;
         }
-        
-        // 작은 화면 감지 (모바일 기기)
+
         if (window.innerWidth < 768) {
             console.log("📱 [Google Login] 작은 화면 감지 - Redirect 방식 사용");
             return false;
         }
-        
-        // 데스크톱 환경만 Popup 사용
+
         console.log("💻 [Google Login] 데스크톱 환경 - Popup 방식 사용");
         return true;
     };
@@ -255,13 +267,19 @@ export default function LoginPage() {
         }
     }, []);
 
+    const inputClass =
+        "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_rgb(255,255,255)] [&:-webkit-autofill]:[-webkit-text-fill-color:#111827]";
+
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 py-10">
+        <div className="flex min-h-dvh flex-col items-center bg-gray-50 px-4 pb-16 pt-8 sm:pb-12 sm:pt-10">
             <div className="flex w-full max-w-sm flex-col items-center text-center">
                 <img
                     src={loginWordmark}
                     alt="YAGO"
-                    className="mx-auto mb-4 h-16 w-auto max-w-[200px] object-contain"
+                    width={200}
+                    height={72}
+                    decoding="async"
+                    className="mx-auto mb-3 h-14 w-auto max-w-[200px] object-contain sm:mb-4 sm:h-16"
                 />
                 <h1 className="text-2xl font-bold tracking-tight text-gray-900">
                     YAGO SPORTS
@@ -270,7 +288,7 @@ export default function LoginPage() {
                     AI Platform for Sports Enthusiasts
                 </p>
 
-                <div className="mt-6 w-full space-y-4 rounded-xl bg-white p-5 text-left shadow-md">
+                <div className="mt-6 w-full rounded-xl bg-white p-6 text-left shadow-md">
                 <button
                     type="button"
                     onClick={async () => {
@@ -581,7 +599,7 @@ export default function LoginPage() {
 
             <form
                 onSubmit={handleLogin}
-                className="flex flex-col gap-3"
+                className="mt-4 flex flex-col gap-3"
             >
                 <input
                     type="email"
@@ -589,8 +607,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm ${targetField === "email" ? "ring-2 ring-indigo-500" : ""
-                        }`}
+                    className={`${inputClass} ${targetField === "email" ? "ring-2 ring-indigo-500" : ""}`}
                 />
                 <input
                     type="password"
@@ -598,8 +615,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm ${targetField === "password" ? "ring-2 ring-indigo-500" : ""
-                        }`}
+                    className={`${inputClass} ${targetField === "password" ? "ring-2 ring-indigo-500" : ""}`}
                 />
                 {error && !resetSuccess && <p className="text-red-500 text-sm">{error}</p>}
                 {resetSuccess && (
@@ -609,7 +625,7 @@ export default function LoginPage() {
                 )}
                 <button
                     type="submit"
-                    className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all shadow-md"
+                    className="mt-1 w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-blue-700"
                 >
                     로그인
                 </button>
@@ -619,20 +635,20 @@ export default function LoginPage() {
                     type="button"
                     onClick={handlePasswordReset}
                     disabled={resetLoading || !email}
-                    className="w-full text-center text-sm text-blue-600 hover:text-blue-700 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 disabled:no-underline"
+                    className="mt-5 w-full text-center text-sm text-blue-600 hover:text-blue-700 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 disabled:no-underline"
                 >
                     {resetLoading ? "전송 중..." : "비밀번호를 잊으셨나요?"}
                 </button>
 
                 <Link
                     to="/login/phone"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-center text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-center text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
                 >
                     전화번호로 로그인
                 </Link>
                 </div>
 
-                <div className="mt-5 text-sm text-gray-600">
+                <div className="mt-6 text-sm text-gray-600">
                     <Link to="/signup" className="text-blue-600 hover:underline">
                         회원가입
                     </Link>
@@ -642,7 +658,7 @@ export default function LoginPage() {
                     </Link>
                 </div>
 
-                <footer className="mt-10 text-xs text-gray-400">
+                <footer className="mt-8 text-center text-[11px] leading-relaxed text-gray-400 sm:mt-10 sm:text-xs">
                     © 2025 YAGO SPORTS · Powered by AI
                 </footer>
             </div>

@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Suspense, lazy, useEffect, useRef } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { AuthProvider } from "./context/AuthProvider";
 import { getRedirectResult } from "firebase/auth";
 import { auth, db } from "./lib/firebase";
@@ -124,7 +124,8 @@ function InAppBrowserRedirect() {
     // 🔥 로그인 플로우 중에는 인앱 브라우저 감지 비활성화 (Firebase Auth 중단 방지)
     const isLoginFlow = 
       location.pathname === "/start" ||
-      location.pathname === "/login" || 
+      location.pathname === "/login" ||
+      location.pathname.startsWith("/login/") ||
       location.pathname === "/signup" ||
       location.pathname.includes("/__/auth/") ||
       location.search.includes("authType=") ||
@@ -245,20 +246,16 @@ export default function App() {
     console.log("🟦 [App.tsx] App.tsx mounted at path:", location.pathname, location.search);
   }, [location.pathname, location.search]);
 
-  // 🔥 Google OAuth Redirect 결과 처리 (모바일 환경에서 redirect 방식 사용 시 필요)
-  const isProcessing = useRef(false);
-  
+  // 🔥 Google OAuth Redirect 결과 처리 (모바일/리다이렉트 방식 사용 시)
+  // React Strict Mode에서 이전 effect가 isProcessing으로 두 번째 호출을 막으면
+  // getRedirectResult가 한 번도 호출되지 않아 로그인 직후 튕김(세션 미복구)이 날 수 있음 → 취소 플래그만 사용
   useEffect(() => {
-    const handleRedirectResult = async () => {
-      // 이미 처리 중이면 중복 실행 방지
-      if (isProcessing.current) {
-        console.log("⚠️ [App] Redirect 결과 이미 처리 중, 중복 실행 방지");
-        return;
-      }
-      isProcessing.current = true;
+    let cancelled = false;
 
+    const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth);
+        if (cancelled) return;
         if (result) {
           console.log("✅ [App] Google OAuth Redirect 로그인 성공:", {
             userEmail: result.user.email,
@@ -311,12 +308,13 @@ export default function App() {
       } catch (error: any) {
         console.error("❌ [App] Google OAuth Redirect 오류:", error);
         // 오류 발생 시 로그인 페이지로 리다이렉트하지 않음 (사용자가 직접 재시도할 수 있도록)
-      } finally {
-        isProcessing.current = false;
       }
     };
 
     handleRedirectResult();
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
   // 🔥 푸시 알림 클릭 시 라우팅 처리
