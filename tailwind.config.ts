@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"];
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   safelist: [
     // 마켓/상품 상세에서 사용하는 커스텀 유틸들
     "products-grid",
