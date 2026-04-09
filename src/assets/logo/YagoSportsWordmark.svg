@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 72" width="200" height="72">
+  <!-- €@ ¤°Ü + YAGO (\øx Áè©, D” Ü P´) -->
+  <path
+    d="M 18 38 Q 48 18 78 38 T 138 38 T 182 36"
+    fill="none"
+    stroke="#111827"
+    stroke-width="5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <text
+    x="100"
+    y="62"
+    font-family="system-ui, -apple-system, Segoe UI, sans-serif"
+    font-size="26"
+    font-weight="800"
+    fill="#111827"
+    text-anchor="middle"
+    font-style="italic"
+  >YAGO</text>
+</svg>
