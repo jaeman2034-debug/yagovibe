@@ -4,7 +4,7 @@ import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, sendPa
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { upgradeGuestAccount } from "@/utils/upgradeGuestAccount";
-import logo from "@/assets/logo/YagoVibeLogo.svg";
+import loginWordmark from "@/assets/logo/YagoSportsWordmark.svg";
 
 interface SpeechRecognition extends EventTarget {
     lang: string;
@@ -42,8 +42,8 @@ export default function LoginPage() {
     const [resetSuccess, setResetSuccess] = useState(false);
     const [resetLoading, setResetLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
-    const [listening, setListening] = useState(false);
-    const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+    const [, setListening] = useState(false);
+    const [, setRecognition] = useState<SpeechRecognition | null>(null);
     const [targetField, setTargetField] = useState<"email" | "password" | null>(null);
     const navigate = useNavigate();
     
@@ -169,20 +169,7 @@ export default function LoginPage() {
         }
     };
 
-    // 🎤 음성 인식 시작
-    const startListening = () => {
-        if (!recognition) return;
-        setListening(true);
-        recognition.start();
-    };
-
-    const stopListening = () => {
-        if (!recognition) return;
-        setListening(false);
-        recognition.stop();
-    };
-
-    // 🧠 음성 인식 로직
+    // 🧠 음성 인식 로직 (UI 버튼 제거됨 — 초기화는 유지)
     useEffect(() => {
         try {
             const SpeechRecognitionClass =
@@ -269,88 +256,23 @@ export default function LoginPage() {
     }, []);
 
     return (
-        <div className="flex flex-col items-center text-center">
-            <img
-                src={logo}
-                alt="YAGO VIBE"
-                className="w-24 h-24 mb-6 drop-shadow-md"
-            />
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-1">
-                YAGO VIBE
-            </h1>
-            <p className="text-sm text-gray-500 mb-8">
-                AI Platform for Sports & Community
-            </p>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 py-10">
+            <div className="flex w-full max-w-sm flex-col items-center text-center">
+                <img
+                    src={loginWordmark}
+                    alt="YAGO"
+                    className="mx-auto mb-4 h-16 w-auto max-w-[200px] object-contain"
+                />
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                    YAGO SPORTS
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                    AI Platform for Sports Enthusiasts
+                </p>
 
-            <form
-                onSubmit={handleLogin}
-                className="w-full max-w-xs flex flex-col gap-3"
-            >
-                <input
-                    type="email"
-                    placeholder="이메일"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm ${targetField === "email" ? "ring-2 ring-indigo-500" : ""
-                        }`}
-                />
-                <input
-                    type="password"
-                    placeholder="비밀번호"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm ${targetField === "password" ? "ring-2 ring-indigo-500" : ""
-                        }`}
-                />
-                {error && !resetSuccess && <p className="text-red-500 text-sm">{error}</p>}
-                {resetSuccess && (
-                    <p className="text-green-600 text-sm bg-green-50 px-4 py-2 rounded-lg">
-                        ✅ 비밀번호 재설정 링크가 이메일로 전송되었습니다. 이메일을 확인해주세요.
-                    </p>
-                )}
-                <button
-                    type="submit"
-                    className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all shadow-md"
-                >
-                    로그인
-                </button>
-                
-                {/* 🔥 비밀번호 재설정 버튼 */}
+                <div className="mt-6 w-full space-y-4 rounded-xl bg-white p-5 text-left shadow-md">
                 <button
                     type="button"
-                    onClick={handlePasswordReset}
-                    disabled={resetLoading || !email}
-                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline mt-2"
-                >
-                    {resetLoading ? "전송 중..." : "비밀번호를 잊으셨나요?"}
-                </button>
-            </form>
-
-            {/* 🎙️ 음성 명령 버튼 */}
-            {recognition && (
-                <button
-                    onClick={listening ? stopListening : startListening}
-                    className={`mt-8 px-6 py-3 rounded-full text-white text-sm font-semibold shadow-md transition-all ${listening ? "bg-red-500 animate-pulse" : "bg-indigo-600 hover:bg-indigo-700"
-                        }`}
-                >
-                    {listening ? "🎤 듣는 중..." : "🎙️ 음성 명령 시작"}
-                </button>
-            )}
-
-            {/* 🔥 소셜 로그인 버튼 */}
-            <div className="mt-4 w-full max-w-xs">
-                <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-300"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                        <span className="px-2 bg-white text-gray-500">또는</span>
-                    </div>
-                </div>
-                
-                <button
                     onClick={async () => {
                         // 🔥 이중 방지: state + ref (React StrictMode 대응)
                         if (googleLoading || isSigningInRef.current) {
@@ -646,35 +568,84 @@ export default function LoginPage() {
                         }
                     }}
                     disabled={googleLoading}
-                    className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden>
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
-                    {googleLoading ? "로그인 중..." : "G 구글로 로그인"}
+                    {googleLoading ? "로그인 중..." : "G 구글로 로그인하기"}
                 </button>
-            </div>
 
-            <div className="mt-5 text-sm text-gray-600">
-                <Link to="/signup" className="text-blue-600 hover:underline">
-                    회원가입
-                </Link>
-                {" · "}
-                <Link to="/login/phone" className="text-blue-600 hover:underline">
-                    전화번호 로그인
-                </Link>
-                {" · "}
-                <Link to="/start" className="hover:underline">
-                    홈으로
-                </Link>
-            </div>
+            <form
+                onSubmit={handleLogin}
+                className="flex flex-col gap-3"
+            >
+                <input
+                    type="email"
+                    placeholder="이메일"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm ${targetField === "email" ? "ring-2 ring-indigo-500" : ""
+                        }`}
+                />
+                <input
+                    type="password"
+                    placeholder="비밀번호"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm ${targetField === "password" ? "ring-2 ring-indigo-500" : ""
+                        }`}
+                />
+                {error && !resetSuccess && <p className="text-red-500 text-sm">{error}</p>}
+                {resetSuccess && (
+                    <p className="text-green-600 text-sm bg-green-50 px-4 py-2 rounded-lg">
+                        ✅ 비밀번호 재설정 링크가 이메일로 전송되었습니다. 이메일을 확인해주세요.
+                    </p>
+                )}
+                <button
+                    type="submit"
+                    className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all shadow-md"
+                >
+                    로그인
+                </button>
+            </form>
 
-            <footer className="mt-10 text-xs text-gray-400">
-                © 2025 YAGO VIBE · Powered by AI
-            </footer>
+                <button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    disabled={resetLoading || !email}
+                    className="w-full text-center text-sm text-blue-600 hover:text-blue-700 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 disabled:no-underline"
+                >
+                    {resetLoading ? "전송 중..." : "비밀번호를 잊으셨나요?"}
+                </button>
+
+                <Link
+                    to="/login/phone"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-center text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+                >
+                    전화번호로 로그인
+                </Link>
+                </div>
+
+                <div className="mt-5 text-sm text-gray-600">
+                    <Link to="/signup" className="text-blue-600 hover:underline">
+                        회원가입
+                    </Link>
+                    {" · "}
+                    <Link to="/start" className="hover:underline">
+                        홈으로
+                    </Link>
+                </div>
+
+                <footer className="mt-10 text-xs text-gray-400">
+                    © 2025 YAGO SPORTS · Powered by AI
+                </footer>
+            </div>
         </div>
     );
 }
