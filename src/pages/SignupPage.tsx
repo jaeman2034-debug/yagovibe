@@ -47,15 +47,27 @@ export default function SignupPage() {
   const [targetField, setTargetField] = useState<"email" | "password" | "confirm" | null>(null);
   const navigate = useNavigate();
   
-  // 🔥 모바일 환경에서 팝업 사용 가능 여부 확인
   const canUsePopup = (): boolean => {
     const ua = navigator.userAgent.toLowerCase();
-    // 모바일 웹뷰 감지
+    const host = typeof window !== "undefined" ? window.location.hostname : "";
+    const isLocalDev =
+      import.meta.env.DEV &&
+      (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local"));
+
+    if (isLocalDev) {
+      const realWebView = /(;\s*wv\)|webview|kakaotalk|instagram|fbav|fban|line\/|naver\(|daum)/i.test(
+        navigator.userAgent
+      );
+      if (!realWebView) {
+        console.log("🔧 [Google Signup] 로컬 개발 — 팝업 사용");
+        return true;
+      }
+    }
+
     if (/wv|webview|android.+version\/|iphone|ipad|ipod/i.test(ua)) {
       console.log("📱 [Google Signup] 모바일 웹뷰 감지 - Redirect 방식 사용");
       return false;
     }
-    // 작은 화면 감지
     if (window.innerWidth < 420) {
       console.log("📱 [Google Signup] 작은 화면 감지 - Redirect 방식 사용");
       return false;

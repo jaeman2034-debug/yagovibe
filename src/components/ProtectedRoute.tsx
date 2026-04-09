@@ -1,6 +1,7 @@
 // src/components/ProtectedRoute.tsx
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthProvider";
+import { auth } from "@/lib/firebase";
 
 interface ProtectedRouteProps {
   children: JSX.Element;
@@ -12,9 +13,10 @@ interface ProtectedRouteProps {
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
+  /** Context 갱신이 한 틱 늦을 때 잘못 /login 으로 튕기는 것 방지 */
+  const sessionUser = user ?? auth.currentUser;
 
-  // 로딩 중일 때는 스피너 또는 null 반환
-  if (loading) {
+  if (loading && !sessionUser) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -25,12 +27,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // 로그인하지 않은 경우 로그인 페이지로 리다이렉트
-  if (!user) {
+  if (!sessionUser) {
     return <Navigate to="/login" replace />;
   }
 
-  // 로그인한 경우 자식 컴포넌트 렌더링
   return children;
 };
 

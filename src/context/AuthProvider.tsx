@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import type { User } from "firebase/auth";
 import { auth } from "../lib/firebase";
@@ -26,6 +26,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  /** 경로 변경마다 onAuthStateChanged 구독을 끊지 않도록 ref로 최신 경로만 참조 */
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
 
   // 🔥 로그아웃 함수
   const logout = async () => {
@@ -58,8 +61,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         // 🔥 자동 리다이렉트 규칙: 이미 로그인했고, 로그인/회원가입 페이지에 있으면 → 스포츠 허브로 보내기
-        const path = location.pathname;
-        const isAuthPage = ["/login", "/signup", "/register", "/start"].includes(path);
+        const path = pathnameRef.current;
+        const isAuthPage =
+          path === "/signup" ||
+          path === "/register" ||
+          path === "/start" ||
+          path.startsWith("/login");
         
         if (isAuthPage) {
           console.log("✅ [AuthProvider] 로그인 상태 감지 - /sports-hub로 리다이렉트");
@@ -75,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         // 🔥 자동 리다이렉트 규칙: 로그아웃 상태인데, 보호된 페이지에 있으면 → 로그인으로 보내기
-        const path = location.pathname;
+        const path = pathnameRef.current;
         const protectedPaths = ["/sports-hub", "/home", "/app", "/admin"];
         const isProtected = protectedPaths.some((p) => path.startsWith(p));
 
@@ -88,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     
     return () => unsub();
-  }, [navigate, location.pathname]);
+  }, [navigate]);
 
   return (
     <AuthContext.Provider value={{ user, loading, logout }}>
