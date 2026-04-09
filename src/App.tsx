@@ -98,6 +98,9 @@ const NoMatch = lazy(() => import("./pages/NoMatch"));
 const InAppPage = lazy(() => import("./pages/InAppPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const DebugPage = lazy(() => import("./pages/DebugPage"));
+const MatchListPage = lazy(() => import("./pages/match/MatchListPage"));
+const MatchCreatePage = lazy(() => import("./pages/match/MatchCreatePage"));
+const MatchDetailPage = lazy(() => import("./pages/match/MatchDetailPage"));
 
 // 🔥 인앱 브라우저/WebView 감지 및 Chrome 리다이렉트 컴포넌트
 // 🎯 당근마켓 방식: WebView에서는 Firebase Auth가 제대로 작동하지 않으므로 Chrome으로 유도
@@ -120,6 +123,7 @@ function InAppBrowserRedirect() {
 
     // 🔥 로그인 플로우 중에는 인앱 브라우저 감지 비활성화 (Firebase Auth 중단 방지)
     const isLoginFlow = 
+      location.pathname === "/start" ||
       location.pathname === "/login" || 
       location.pathname === "/signup" ||
       location.pathname.includes("/__/auth/") ||
@@ -376,9 +380,11 @@ export default function App() {
             {/* 🔥 디버그 패널 (테스트 모드 전용) */}
             <Route path="/debug" element={<DebugPage />} />
 
+            {/* 앱 진입 → 스타트 스크린 (로그인/회원가입/게스트 선택) */}
+            <Route path="/" element={<Navigate to="/start" replace />} />
+
             {/* 메인 앱 대시보드 전용 - MainLayout 적용 (보호된 라우트) */}
             <Route element={<MainLayout />}>
-              <Route path="/" element={<Navigate to="/sports-hub" replace />} />
               <Route 
                 path="/sports-hub" 
                 element={
@@ -431,6 +437,31 @@ export default function App() {
               <Route path="/voice-map-simple" element={<VoiceMapPageSimple />} />
               <Route path="/voice" element={<VoiceMap />} />
               <Route path="/voice-map-dashboard" element={<VoiceMapDashboard />} />
+              {/* 팀 경기 매칭 (matches 컬렉션) — /match/create 등 링크 대상 */}
+              <Route
+                path="/match"
+                element={
+                  <ProtectedRoute>
+                    <MatchListPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/match/create"
+                element={
+                  <ProtectedRoute>
+                    <MatchCreatePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/match/:id"
+                element={
+                  <ProtectedRoute>
+                    <MatchDetailPage />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
 
             {/* 📌 완전히 독립된 MarketLayout - 모든 /app/market 라우트 통합 */}
