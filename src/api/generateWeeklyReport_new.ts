@@ -31,7 +31,7 @@ export const POST = async (request: Request) => {
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const { width, height } = page.getSize();
 
-        page.drawText("YAGO VIBE 주간 리포트", {
+        page.drawText("YAGO SPORTS 주간 리포트", {
             x: 60,
             y: height - 80,
             size: 24,

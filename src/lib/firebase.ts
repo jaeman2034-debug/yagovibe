@@ -1,9 +1,22 @@
 // src/lib/firebase.ts
 // 🔥 Firebase SDK 명시적 import (배포 환경에서 로드 보장)
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { initializeAuth, getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence, indexedDBLocalPersistence, browserPopupRedirectResolver, GoogleAuthProvider, type Auth } from "firebase/auth";
+import {
+  initializeAuth,
+  getAuth,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  indexedDBLocalPersistence,
+  browserPopupRedirectResolver,
+  GoogleAuthProvider,
+  type Auth,
+} from "firebase/auth";
+import { ensureDurableAuthPersistence, useSessionPersistenceInDev } from "@/utils/authHelpers";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getDatabase, connectDatabaseEmulator, type Database } from "firebase/database";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { getFunctions, type Functions } from "firebase/functions";
 
 // 🔥 Firebase SDK 로드 확인
 console.log("🔍 [firebase.ts] Firebase SDK 로드 확인:", {
@@ -66,6 +79,9 @@ const firebaseConfig = {
   storageBucket: "yago-vibe-spt.firebasestorage.app",
   messagingSenderId: envVars.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
   appId: envVars.VITE_FIREBASE_APP_ID || "",
+  databaseURL:
+    import.meta.env.VITE_FIREBASE_DATABASE_URL?.trim() ||
+    "https://yago-vibe-spt-default-rtdb.asia-southeast1.firebasedatabase.app",
 };
 
 // 🔥 Firebase 초기화 전 설정 확인
@@ -122,7 +138,9 @@ try {
 // Firebase 서비스들 (명시적 타입 지정)
 let auth: Auth;
 let db: Firestore;
+let rtdb: Database;
 let storage: FirebaseStorage;
+let functions: Functions;
 
 try {
   // 🔥 Third-party Cookie 문제 해결: browserPopupRedirectResolver 사용
@@ -134,9 +152,19 @@ try {
   // 🔥 먼저 initializeAuth 시도 (browserPopupRedirectResolver 포함)
   try {
     console.log("🚀 [firebase.ts] Firebase Auth 초기화 시작 (browserPopupRedirectResolver 포함)...");
+    /** 동기적으로 영속 저장소 연결 — 비동기 setPersistence만 믿으면 첫 로드·새로고침 직후 세션 복구와 레이스 가능 */
+    const devSessionOnly = useSessionPersistenceInDev();
     auth = initializeAuth(app, {
+      persistence: devSessionOnly
+        ? [browserSessionPersistence]
+        : [indexedDBLocalPersistence, browserLocalPersistence],
       popupRedirectResolver: browserPopupRedirectResolver,
     });
+    if (devSessionOnly) {
+      console.info(
+        "[firebase.ts] DEV session persistence — Chrome 탭별 계정 분리 (VITE_AUTH_SESSION_PERSISTENCE_DEV)",
+      );
+    }
     console.log("✅ [firebase.ts] Firebase Auth 초기화 성공 (Third-party Cookie 우회 설정 적용):", {
       auth: auth ? "✅ 객체 존재" : "❌ 객체 없음",
       app: auth.app.name,
@@ -152,6 +180,8 @@ try {
         throw new Error("❌ [firebase.ts] getAuth가 undefined입니다. Firebase Auth SDK가 로드되지 않았습니다.");
       }
       auth = getAuth(app);
+      /** 다른 번들이 먼저 초기화한 경우에도 로컬 영속이 기본인지 확인 — authPersistenceReady에서 재설정됨 */
+      void ensureDurableAuthPersistence(auth).catch(() => {});
       console.log("✅ [firebase.ts] Firebase Auth (getAuth) 초기화 성공:", {
         auth: auth ? "✅ 객체 존재" : "❌ 객체 없음",
         app: auth.app.name,
@@ -194,52 +224,71 @@ try {
   throw error;
 }
 
-// 🔥 모바일 WebView에서 로그인 유지를 위한 Persistence 설정
-(async () => {
+try {
+  if (typeof getFunctions === "undefined") {
+    throw new Error("❌ [firebase.ts] getFunctions가 undefined입니다. Firebase Functions SDK가 로드되지 않았습니다.");
+  }
+  functions = getFunctions(app, "asia-northeast3");
+  console.log("✅ [firebase.ts] Firebase Functions 초기화 성공 (asia-northeast3)");
+} catch (error) {
+  console.error("❌ [firebase.ts] Firebase Functions 초기화 실패:", error);
+  throw error;
+}
+
+try {
+  if (typeof getDatabase === "undefined") {
+    throw new Error("❌ [firebase.ts] getDatabase가 undefined입니다. Firebase Database SDK가 로드되지 않았습니다.");
+  }
+  rtdb = getDatabase(app);
+  if (import.meta.env.DEV && import.meta.env.VITE_FIREBASE_DATABASE_EMULATOR === "true") {
+    connectDatabaseEmulator(rtdb, "127.0.0.1", 9000);
+    console.log("✅ [firebase.ts] RTDB emulator 연결 (127.0.0.1:9000)");
+  }
+  console.log("✅ [firebase.ts] Firebase Realtime Database 초기화 성공");
+} catch (error) {
+  console.error("❌ [firebase.ts] Firebase Realtime Database 초기화 실패:", error);
+  throw error;
+}
+
+/**
+ * initializeAuth persistence 이후에도 `getAuth` 폴백·저장소 실패 대비해 한 번 더 맞춤.
+ * AuthProvider는 이 Promise 이후에만 onAuthStateChanged를 걸어 새로고침 직후 null 오탐·리다이렉트를 줄인다.
+ */
+export const authPersistenceReady: Promise<void> = (async () => {
   try {
-    // 저장소 접근 가능 여부 확인
     const isIndexedDBAvailable = typeof indexedDB !== "undefined";
     const isLocalStorageAvailable = typeof localStorage !== "undefined";
-    const isSessionStorageAvailable = typeof sessionStorage !== "undefined";
+    const isCapacitor = typeof window !== "undefined" && (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+    const isWebView =
+      /wv|WebView/i.test(navigator.userAgent) ||
+      /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent) ||
+      /Android.*wv/i.test(navigator.userAgent);
 
-    console.log("🔍 [firebase.ts] 저장소 접근 가능 여부:", {
+    console.log("🔍 [firebase.ts] 저장소·환경:", {
       indexedDB: isIndexedDBAvailable,
       localStorage: isLocalStorageAvailable,
-      sessionStorage: isSessionStorageAvailable,
-      userAgent: navigator.userAgent,
-      isWebView: /wv|WebView/i.test(navigator.userAgent)
+      isCapacitor: !!isCapacitor,
+      isWebView,
     });
 
-    // 🔥 Capacitor 환경 감지 (Capacitor는 IndexedDB를 지원하므로 LocalPersistence 사용 가능)
-    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
-    const isWebView = /wv|WebView/i.test(navigator.userAgent) || 
-                      /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent) ||
-                      /Android.*wv/i.test(navigator.userAgent);
-
-    // 🔥 Capacitor 환경에서는 IndexedDB가 사용 가능하므로 LocalPersistence 우선 사용
-    // (자동 로그인을 위해 영구 저장 필요)
-    if (isCapacitor && isIndexedDBAvailable) {
-      console.log("📱 [firebase.ts] Capacitor 환경 감지 - IndexedDB LocalPersistence 사용 (자동 로그인 지원)");
+    if (useSessionPersistenceInDev()) {
+      await setPersistence(auth, browserSessionPersistence);
+    } else if (isCapacitor && isIndexedDBAvailable) {
       await setPersistence(auth, indexedDBLocalPersistence);
-    } else if (isIndexedDBAvailable) {
-      console.log("💾 [firebase.ts] IndexedDB 사용 가능 - LocalPersistence 사용");
-      await setPersistence(auth, indexedDBLocalPersistence);
-    } else if (isLocalStorageAvailable) {
-      console.log("💾 [firebase.ts] LocalStorage 사용 가능 - LocalPersistence 사용");
-      await setPersistence(auth, browserLocalPersistence);
-    } else if (isWebView) {
-      // 일반 WebView (인앱 브라우저 등)에서는 SessionPersistence 사용
-      console.log("📱 [firebase.ts] WebView 환경 감지 - SessionPersistence 사용");
+    } else if (!isIndexedDBAvailable && !isLocalStorageAvailable && isWebView) {
       await setPersistence(auth, browserSessionPersistence);
     } else {
-      console.warn("⚠️ [firebase.ts] 저장소 접근 불가 - SessionPersistence 사용");
-      await setPersistence(auth, browserSessionPersistence);
+      await ensureDurableAuthPersistence(auth);
     }
 
-    console.log("✅ [firebase.ts] Auth Persistence 설정 완료");
+    console.log("✅ [firebase.ts] Auth Persistence 정렬 완료");
   } catch (error) {
-    console.error("❌ [firebase.ts] Auth Persistence 설정 실패:", error);
-    // 실패해도 기본값 사용
+    console.error("❌ [firebase.ts] Auth Persistence 정렬 실패:", error);
+    try {
+      await ensureDurableAuthPersistence(auth);
+    } catch {
+      /* 최종 폴백 */
+    }
   }
 })();
 
@@ -262,4 +311,4 @@ export const getGoogleProvider = () => {
 export const googleProvider = getGoogleProvider();
 
 // 단일 export (중복 금지!!)
-export { app, auth, db, storage };
+export { app, auth, db, rtdb, storage, functions };

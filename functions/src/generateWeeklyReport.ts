@@ -3,7 +3,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 import PDFDocument from "pdfkit";
 import OpenAI from "openai";
 
@@ -13,7 +13,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const storage = getStorage().bucket();
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
@@ -123,14 +122,14 @@ async function generateReportLogic(): Promise<{
       margin: 48,
       size: "A4",
       info: {
-        Title: "YAGO VIBE 주간 AI 리포트",
-        Author: "YAGO VIBE",
+        Title: "YAGO SPORTS 주간 AI 리포트",
+        Author: "YAGO SPORTS",
         Subject: "주간 마켓 리포트",
-        Creator: "YAGO VIBE AI",
+        Creator: "YAGO SPORTS AI",
       },
     });
 
-    const pdfStream = storage.file(pdfPath).createWriteStream({
+    const pdfStream = getDefaultStorageBucket().file(pdfPath).createWriteStream({
       contentType: "application/pdf",
       resumable: false,
       metadata: {
@@ -144,7 +143,7 @@ async function generateReportLogic(): Promise<{
     pdfDoc.pipe(pdfStream);
 
     // PDF 내용 작성
-    pdfDoc.fontSize(20).fillColor("#1e40af").text("YAGO VIBE – 주간 AI 리포트", { align: "left" });
+    pdfDoc.fontSize(20).fillColor("#1e40af").text("YAGO SPORTS – 주간 AI 리포트", { align: "left" });
     pdfDoc.moveDown(0.5);
     pdfDoc.fontSize(10).fillColor("#6b7280").text(`생성일: ${dateLabel}`, { align: "left" });
     pdfDoc.moveDown(1);
@@ -208,7 +207,7 @@ async function generateReportLogic(): Promise<{
     const audioBuffer = Buffer.from(await speech.arrayBuffer());
     const mp3Path = `reports/${dateLabel}/weekly-summary.mp3`;
 
-    await storage.file(mp3Path).save(audioBuffer, {
+    await getDefaultStorageBucket().file(mp3Path).save(audioBuffer, {
       contentType: "audio/mpeg",
       resumable: false,
       metadata: {
@@ -222,12 +221,12 @@ async function generateReportLogic(): Promise<{
     logger.info("✅ MP3 생성 완료:", mp3Path);
 
     // 6) Firestore 인덱스 기록
-    const [pdfUrl] = await storage.file(pdfPath).getSignedUrl({
+    const [pdfUrl] = await getDefaultStorageBucket().file(pdfPath).getSignedUrl({
       action: "read",
       expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7일
     });
 
-    const [mp3Url] = await storage.file(mp3Path).getSignedUrl({
+    const [mp3Url] = await getDefaultStorageBucket().file(mp3Path).getSignedUrl({
       action: "read",
       expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
     });

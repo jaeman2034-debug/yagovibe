@@ -1,0 +1,307 @@
+---
+alwaysApply: true
+description: YAGO VIBE — Membership / Team OS / SaaS growth (제품 아키텍처 헌법)
+---
+
+# YAGO VIBE Product Architecture Directive
+
+# HIGH PRIORITY — Membership / Team OS / SaaS Growth Model
+
+현재 구현 중인 YAGO VIBE는 단순 팀 홈페이지 생성기가 아니다.
+
+**제품 정의:**
+
+"생활체육 팀의 모집 · 운영 · 참여 관리를 자동화하는 AI 운영 SaaS"
+
+이 정의를 기준으로 앞으로 모든 설계와 구현 방향을 정렬한다.
+
+---
+
+## 1. Core Product Principle
+
+YAGO에 존재하는 "팀 멤버"는 반드시 플랫폼 가입 사용자여야 한다.
+
+즉:
+
+> A person represented as a team member in YAGO must be a registered platform user with a unique auth UID.
+
+비가입 사용자는 팀 멤버로 모델링하지 않는다.
+
+**허용:**
+
+- registered members
+- authenticated leadership
+- invited users (pending acceptance)
+
+**비허용:**
+
+- freeform fake members
+- non-auth operational members
+- standalone leadership entities disconnected from membership
+
+외부인은 필요하면 별도 `contacts` 개념으로 관리할 수 있으나 **team members SoT에는 포함하지 않는다.**
+
+---
+
+## 2. Single Source of Truth
+
+팀 멤버의 유일한 SoT:
+
+`teams/{teamId}/members/{uid}`
+
+향후 모든 기능은 이 경로 기반.
+
+- role / permissions
+- RSVP
+- attendance
+- accounting
+- push notifications
+- chat
+- activity history
+- AI coaching
+- public leadership cards
+- public member previews
+- operator analytics
+
+**절대 별도 freeform member 시스템을 만들지 않는다.**
+
+---
+
+## 3. Leadership Policy
+
+운영진은 반드시 플랫폼 가입 기반.
+
+**포함:** 회장, 팀장, 수석 부회장, 부회장, 감독, 코치, 총무, 감사, 운영진, 매니저
+
+즉:
+
+**NO** standalone "운영진 소개" records disconnected from membership.
+
+현재 direct `publicStaff` 등록 구조는 **transitional only**. 장기적으로 `members` SoT 기반으로 통합한다.
+
+---
+
+## 4. Chairman / Captain Architecture
+
+회장(대표)도 예외 아님.
+
+**현재 (temporary compatibility):**
+
+- `aiProfile.captainMessage`
+- `meta.captainPhotoUrl`
+
+**목표:** `teams/{teamId}/members/{ownerUid}`
+
+```typescript
+{
+  role: "owner",
+  publicProfile: {
+    visible: true,
+    photoUrl,
+    publicTitle,
+    bio,
+    message,
+    sortOrder,
+  },
+}
+```
+
+AI captain greeting도 **owner member profile**에 저장한다. 팀 `ai` blob에 영구 분리 저장하지 않는다.
+
+---
+
+## 5. Invite Growth Engine (CRITICAL)
+
+YAGO growth model:
+
+team owner joins → creates team → invites leadership → invites members → invite acceptance → automatic membership creation → operational SaaS engagement
+
+**반드시 구현.**
+
+### Required UX
+
+dashboard / team page:
+
+- `[ 팀원 초대 ]`
+- `[ 운영진 초대 ]`
+
+---
+
+## 6. Invite Flow
+
+초대 링크 기반.
+
+예: `/invite/{token}`
+
+token payload:
+
+```typescript
+{
+  teamId,
+  inviterUid,
+  intendedRole,
+  expiresAt,
+  status,
+}
+```
+
+roles 예시:
+
+- `member`
+- `owner`
+- `senior_vice_president`
+- `vice_president`
+- `coach`
+- `manager`
+- `auditor`
+- `staff`
+
+(제품 확정 시 enum과 Firestore rules와 일치시킨다.)
+
+---
+
+## 7. Invite Acceptance Flow
+
+**Case A: not signed in**
+
+invite clicked → sign up / login → auto accept invite → create `teams/{teamId}/members/{uid}`
+
+**Case B: already signed in**
+
+invite clicked → immediate join flow → membership create
+
+No manual "find team again" friction.
+
+**가입 + 팀 합류는 one continuous funnel.**
+
+---
+
+## 8. Membership Document Schema
+
+Recommended canonical structure:
+
+```typescript
+{
+  uid,
+  displayName,
+  photoUrl,
+
+  role,
+  status,
+
+  invitedBy,
+  invitedAt,
+  joinedAt,
+
+  publicProfile: {
+    visible,
+    publicTitle,
+    bio,
+    message,
+    sortOrder,
+    photoUrl,
+  },
+}
+```
+
+**status:** `invited` | `active` | `suspended` | `removed`
+
+---
+
+## 9. Public Team Hub Rules
+
+Public leadership section must be **auto-rendered from membership SoT**.
+
+Query 의도:
+
+- `members` where `role` in leadership roles **and** `publicProfile.visible == true`
+- order by `publicProfile.sortOrder`
+
+**No duplicated staff sources.**
+
+---
+
+## 10. Public Member Preview
+
+"함께하는 멤버"는 **active registered members만** 렌더링.
+
+No fake participants.
+
+---
+
+## 11. Deprecation Plan
+
+To remove over time:
+
+- A) direct public staff custom records (`meta.publicStaff` 등)
+- B) duplicated leadership systems
+- C) separate captain data blobs (장기적으로 `members`로 흡수)
+
+Temporary compatibility allowed **only during migration.**
+
+---
+
+## 12. AI Layer
+
+AI is NOT random text generation.
+
+**AI = operational team coach.**
+
+AI features must rely on **authenticated membership data:**
+
+- RSVP reminders
+- attendance trends
+- inactive member detection
+- recruitment recommendations
+- media freshness
+- activity cadence
+- operational insights
+
+Non-auth members break this model.
+
+---
+
+## 13. Product KPI Model
+
+Track:
+
+- invite created
+- invite opened
+- signup conversion
+- join conversion
+- leadership activation
+- weekly RSVP response rate
+- retention
+- operational engagement
+
+**Invite funnel is core growth engine.**
+
+---
+
+## 14. Engineering Constraints
+
+**DO:**
+
+- reuse Firebase Auth UID
+- Firestore membership SoT
+- role-based rules
+- invite token validation
+- transactional membership creation
+
+**DO NOT:**
+
+- create second member systems
+- standalone fake leadership tables
+- public leadership blobs without membership linkage
+
+---
+
+## 15. Immediate Refactor Priorities
+
+1. **Priority 1:** Invite system — invite tokens, invite acceptance, auto join flow, role preset  
+2. **Priority 2:** leadership roles enum expansion  
+3. **Priority 3:** public leadership rendering from members SoT  
+4. **Priority 4:** migrate captain profile to owner `membership.publicProfile`  
+5. **Priority 5:** remove duplicated direct leadership structures  
+
+**Architectural decision is locked unless explicitly changed by product owner.**

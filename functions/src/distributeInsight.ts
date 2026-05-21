@@ -2,7 +2,6 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
 import fetch from "node-fetch";
 import * as nodemailer from "nodemailer";
 import { google } from "googleapis";
@@ -12,7 +11,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const storage = getStorage().bucket();
 
 /**
  * Step 24: AI 인사이트 자동 배포 (Notion + Google Drive + 이메일 첨부)
@@ -301,7 +299,7 @@ export const distributeInsight = onDocumentWritten(
                 },
               });
 
-          const emailSubject = `📊 YAGO VIBE AI 주간 인사이트 리포트 - ${dateStr}`;
+          const emailSubject = `📊 YAGO SPORTS AI 주간 인사이트 리포트 - ${dateStr}`;
 
           const emailHtml = `
 <!DOCTYPE html>
@@ -319,7 +317,7 @@ export const distributeInsight = onDocumentWritten(
 </head>
 <body>
   <div class="header">
-    <h1>📄 YAGO VIBE AI 주간 인사이트 리포트</h1>
+    <h1>📄 YAGO SPORTS AI 주간 인사이트 리포트</h1>
     <p style="margin: 0; opacity: 0.9;">생성일: ${dateStr}</p>
   </div>
   
@@ -338,7 +336,7 @@ export const distributeInsight = onDocumentWritten(
   </div>
   
   <div class="footer">
-    <p>© 2025 YAGO VIBE · Powered by AI</p>
+    <p>© 2025 YAGO SPORTS · Powered by AI</p>
     <p>이 이메일은 자동으로 생성되었습니다.</p>
   </div>
 </body>
@@ -357,11 +355,11 @@ export const distributeInsight = onDocumentWritten(
           }
 
           await transporter.sendMail({
-            from: `"YAGO VIBE AI" <${gmailUser || "noreply@yagovibe.com"}>`,
+            from: `"YAGO SPORTS AI" <${gmailUser || "noreply@yagovibe.com"}>`,
             to: managerEmail,
             subject: emailSubject,
             html: emailHtml,
-            text: `YAGO VIBE AI 주간 인사이트 PDF 리포트\n\n생성일: ${dateStr}\n분석 리포트 수: ${reportCount || 0}개\n\nPDF 다운로드: ${pdfUrl}`,
+            text: `YAGO SPORTS AI 주간 인사이트 PDF 리포트\n\n생성일: ${dateStr}\n분석 리포트 수: ${reportCount || 0}개\n\nPDF 다운로드: ${pdfUrl}`,
             attachments: attachments,
           });
 

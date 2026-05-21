@@ -1,5 +1,5 @@
 // === CORE PROTECTED: DO NOT MODIFY BELOW ===
-// 🔥 YAGO VIBE Voice Event Logger
+// 🔥 YAGO SPORTS Voice Event Logger
 // 음성 명령 처리 과정 추적 및 분석
 
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";

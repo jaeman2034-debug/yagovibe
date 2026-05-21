@@ -75,7 +75,7 @@ export const generateReportEpubSmil = onRequest(
 
             // EPUB 메타데이터
             const title = `AI Report - ${reportId.substring(0, 8)}`;
-            const author = "YAGO VIBE AI Assistant";
+            const author = "YAGO SPORTS AI Assistant";
             const uuid = `urn:uuid:${reportId}`;
 
             // 문장 분할

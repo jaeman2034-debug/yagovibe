@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 
 export default function InAppPage() {
   const [isIOS, setIsIOS] = useState(false);
+  const [fromKakao, setFromKakao] = useState(false);
   const targetUrl = "https://www.yagovibe.com";
 
   useEffect(() => {
+    const ua = navigator.userAgent || "";
+    setFromKakao(/kakaotalk/i.test(ua));
     // iOS 감지
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isIOSDevice = /iPad|iPhone|iPod/.test(ua);
     setIsIOS(isIOSDevice);
 
     if (isIOSDevice) {
@@ -38,6 +41,12 @@ export default function InAppPage() {
       <p style={{ marginBottom: "24px", color: "#666" }}>
         아래 버튼을 눌러 {isIOS ? "Safari" : "Chrome"}으로 열어주세요.
       </p>
+      {fromKakao && (
+        <p style={{ marginBottom: "16px", fontSize: "14px", color: "#b45309", maxWidth: "320px" }}>
+          카카오톡 인앱에서는 Google 로그인 세션이 유지되지 않습니다. 반드시 {isIOS ? "Safari" : "Chrome"}에서
+          다시 열어주세요.
+        </p>
+      )}
       <a
         href={isIOS ? targetUrl : `googlechrome://navigate?url=${targetUrl}`}
         onClick={handleChromeOpen}

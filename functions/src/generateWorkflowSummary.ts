@@ -90,7 +90,7 @@ export const generateWorkflowSummary = onSchedule(
       if (webhookUrl) {
         const emoji = parseFloat(successRate) >= 95 ? "🟢" : parseFloat(successRate) >= 80 ? "🟡" : "🔴";
         
-        const message = `📊 *YAGO VIBE — AI 리포트 워크플로우 주간 리포트*\n\n${emoji} *주간 통계 (${weekStr} ~ ${new Date().toISOString().slice(0, 10)})*\n\n🔄 총 실행: *${total}*회\n✅ 성공: *${success}*회\n❌ 오류: *${error}*회\n📈 성공률: *${successRate}%*\n⏱ 평균 처리시간: *${Math.round(avgDuration)}ms*\n\n${topErrors.length > 0 ? `🚨 *주요 오류 (최근 3건):*\n${topErrors.map((e, i) => `${i + 1}. ${e}`).join("\n")}` : "✅ 이번 주 오류 없음"}`;
+        const message = `📊 *YAGO SPORTS — AI 리포트 워크플로우 주간 리포트*\n\n${emoji} *주간 통계 (${weekStr} ~ ${new Date().toISOString().slice(0, 10)})*\n\n🔄 총 실행: *${total}*회\n✅ 성공: *${success}*회\n❌ 오류: *${error}*회\n📈 성공률: *${successRate}%*\n⏱ 평균 처리시간: *${Math.round(avgDuration)}ms*\n\n${topErrors.length > 0 ? `🚨 *주요 오류 (최근 3건):*\n${topErrors.map((e, i) => `${i + 1}. ${e}`).join("\n")}` : "✅ 이번 주 오류 없음"}`;
 
         try {
           await fetch(webhookUrl, {
@@ -123,7 +123,7 @@ export const generateWorkflowSummary = onSchedule(
                       short: true,
                     },
                   ],
-                  footer: "YAGO VIBE AI 시스템",
+                  footer: "YAGO SPORTS AI 시스템",
                   ts: Math.floor(Date.now() / 1000),
                 },
               ],

@@ -91,7 +91,7 @@ export default function WeeklyReportPDFCard() {
             // 타이틀
             pdf.setFont("helvetica", "bold");
             pdf.setFontSize(16);
-            pdf.text("YAGO VIBE · AI 주간 리포트", 40, y);
+            pdf.text("YAGO SPORTS · AI 주간 리포트", 40, y);
             pdf.setFont("helvetica", "normal");
             pdf.setFontSize(11);
             y += 18;
@@ -136,7 +136,7 @@ export default function WeeklyReportPDFCard() {
             let y = 60;
             pdf.setFont("helvetica", "bold");
             pdf.setFontSize(16);
-            pdf.text("YAGO VIBE · AI 주간 리포트", 40, y);
+            pdf.text("YAGO SPORTS · AI 주간 리포트", 40, y);
             pdf.setFont("helvetica", "normal");
             pdf.setFontSize(11);
             y += 18;
@@ -171,7 +171,7 @@ export default function WeeklyReportPDFCard() {
 
     if (loading) {
         return (
-            <div className="w-full max-w-md mx-auto p-6 text-center text-gray-500">
+            <div className="w-full w-full max-w-none px-3 md:mx-auto md:max-w-3xl p-3 md:p-6 text-center text-gray-500">
                 AI 리포트를 불러오는 중...
             </div>
         );
@@ -179,7 +179,7 @@ export default function WeeklyReportPDFCard() {
 
     if (!report) {
         return (
-            <div className="w-full max-w-md mx-auto p-6 text-center text-gray-500">
+            <div className="w-full w-full max-w-none px-3 md:mx-auto md:max-w-3xl p-3 md:p-6 text-center text-gray-500">
                 최신 주간 리포트가 없습니다.
             </div>
         );
@@ -189,14 +189,14 @@ export default function WeeklyReportPDFCard() {
     const prettyReport = report.report.replaceAll("---", "").trim();
 
     return (
-        <div className="w-full max-w-md mx-auto">
+        <div className="w-full w-full max-w-none px-3 md:mx-auto md:max-w-3xl">
             {/* 캡처 대상 카드 */}
             <div
                 ref={cardRef}
                 className="p-6 rounded-2xl shadow-md bg-white border border-gray-100"
             >
                 <div className="flex items-center gap-3 mb-4">
-                    <img src="/ai_logo.svg" alt="YAGO" className="w-10 h-10" />
+                    <img src="/icons/icon-maskable-512.png" alt="YAGO" className="w-10 h-10 object-contain" />
                     <div>
                         <h2 className="text-lg font-bold text-gray-900">AI 주간 리포트</h2>
                         <p className="text-xs text-gray-500">{formatDate(report.createdAt)}</p>

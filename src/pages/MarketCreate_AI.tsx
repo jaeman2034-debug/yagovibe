@@ -35,7 +35,7 @@ const MarketCreate_AI: React.FC = () => {
         🛒 AI 상품 등록
       </h1>
 
-      <div className="mb-6 flex w-full max-w-md flex-col items-center">
+      <div className="mb-6 flex w-full max-w-none md:max-w-3xl flex-col items-center">
         <label className="mb-2 block font-semibold text-gray-700">상품 이미지</label>
 
         <div
@@ -85,7 +85,7 @@ const MarketCreate_AI: React.FC = () => {
         </button>
       </div>
 
-      <div className="w-full max-w-md space-y-3">
+      <div className="w-full max-w-none md:max-w-3xl space-y-3">
         <input
           type="text"
           placeholder="상품명 예: 나이키 축구화"

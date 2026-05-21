@@ -4,22 +4,13 @@
  * 사용법:
  *   import { requestPermissionAndGetToken } from "@/lib/fcm";
  *   const token = await requestPermissionAndGetToken();
+ *
+ * FCM은 `src/lib/firebase`의 단일 `app`을 사용한다 (별도 initializeApp 금지).
  */
 
-import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage, type Messaging } from "firebase/messaging";
 import { isSupported } from "firebase/messaging";
-
-const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
-
-const app = initializeApp(firebaseConfig);
+import { app } from "@/lib/firebase";
 
 // FCM 지원 여부 확인 후 Messaging 인스턴스 생성
 let messaging: Messaging | null = null;
@@ -113,20 +104,20 @@ export const setupForegroundMessageHandler = () => {
                 if (notification) {
                     const notificationOptions: NotificationOptions = {
                         body: notification.body,
-                        icon: notification.icon || "/ai_logo.svg",
-                        badge: "/ai_logo.svg",
+                        icon: notification.icon || "/icons/icon-maskable-512.png",
+                        badge: "/icons/icon-maskable-512.png",
                         tag: payload.data?.tag || "yago-vibe",
                         data: payload.data,
                     };
 
                     // 새 알림 생성 및 표시
-                    new Notification(notification.title || "YAGO VIBE", notificationOptions);
+                    new Notification(notification.title || "YAGO SPORTS", notificationOptions);
                 }
             }
 
             // 추가적으로 alert로도 표시 (개발용)
             if (payload.notification) {
-                alert(`📢 ${payload.notification.title || "YAGO VIBE"}\n${payload.notification.body || ""}`);
+                alert(`📢 ${payload.notification.title || "YAGO SPORTS"}\n${payload.notification.body || ""}`);
             }
         });
 

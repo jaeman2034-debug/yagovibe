@@ -129,7 +129,7 @@ export const dsarHandler = onRequest(
                     await transporter.sendMail({
                         from: process.env.SMTP_USER,
                         to: user.email || process.env.MAIL_TO || "admin@yago-vibe.com",
-                        subject: `[YAGO VIBE] DSAR Request Completed - ${type}`,
+                        subject: `[YAGO SPORTS] DSAR Request Completed - ${type}`,
                         text: `Your data subject access request has been completed.\n\nRequest ID: ${exportJob.id}\nType: ${type}\n\n${result.publicUrl ? `Download: ${result.publicUrl}` : "Status: Queued"}`,
                     });
                 } catch (error) {

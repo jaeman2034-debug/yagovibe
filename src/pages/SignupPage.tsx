@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, GoogleAuthProvider } from "firebase/auth";
+import { createUserWithEmailAndPassword, GoogleAuthProvider } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { upgradeGuestAccount } from "@/utils/upgradeGuestAccount";
-import logo from "@/assets/logo/YagoVibeLogo.svg";
+import { signInWithGoogleAdaptive } from "@/utils/authHelpers";
+import Logo from "@/components/common/Logo";
 
 interface SpeechRecognition extends EventTarget {
   lang: string;
@@ -46,35 +47,6 @@ export default function SignupPage() {
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [targetField, setTargetField] = useState<"email" | "password" | "confirm" | null>(null);
   const navigate = useNavigate();
-  
-  const canUsePopup = (): boolean => {
-    const ua = navigator.userAgent.toLowerCase();
-    const host = typeof window !== "undefined" ? window.location.hostname : "";
-    const isLocalDev =
-      import.meta.env.DEV &&
-      (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local"));
-
-    if (isLocalDev) {
-      const realWebView = /(;\s*wv\)|webview|kakaotalk|instagram|fbav|fban|line\/|naver\(|daum)/i.test(
-        navigator.userAgent
-      );
-      if (!realWebView) {
-        console.log("🔧 [Google Signup] 로컬 개발 — 팝업 사용");
-        return true;
-      }
-    }
-
-    if (/wv|webview|android.+version\/|iphone|ipad|ipod/i.test(ua)) {
-      console.log("📱 [Google Signup] 모바일 웹뷰 감지 - Redirect 방식 사용");
-      return false;
-    }
-    if (window.innerWidth < 420) {
-      console.log("📱 [Google Signup] 작은 화면 감지 - Redirect 방식 사용");
-      return false;
-    }
-    console.log("💻 [Google Signup] 데스크톱 환경 - Popup 방식 사용");
-    return true;
-  };
 
   // 🔊 AI 음성 안내
   const speak = (text: string) => {
@@ -174,8 +146,8 @@ export default function SignupPage() {
 
         speak("회원가입이 완료되었습니다. AI 프로필이 생성되었습니다.");
       }
-      
-      navigate("/sports-hub");
+
+      // /hub 이동은 PublicRoute(sessionUser)가 처리
     } catch (err: any) {
       console.error(err);
       let errorMsg = "회원가입 중 오류가 발생했습니다.";
@@ -301,11 +273,7 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col items-center text-center">
-      <img
-        src={logo}
-        alt="YAGO VIBE"
-        className="w-24 h-24 mb-6 drop-shadow-md"
-      />
+      <Logo size={96} alt="YAGO SPORTS" className="mb-6 drop-shadow-md" />
       <h1 className="text-3xl font-extrabold text-gray-900 mb-1">
         회원가입
       </h1>
@@ -315,7 +283,7 @@ export default function SignupPage() {
 
       <form
         onSubmit={handleSignup}
-        className="w-full max-w-sm sm:max-w-md flex flex-col gap-3 items-center"
+        className="flex w-full max-w-none flex-col items-center gap-3 sm:max-w-md"
       >
         <input
           type="email"
@@ -368,230 +336,37 @@ export default function SignupPage() {
         
         <button
           onClick={async () => {
-            // 🔥 중복 클릭 방지
             if (googleLoading) {
-              console.log("⚠️ [Google Signup] 이미 로그인 진행 중...");
+              console.log("⚠️ [Google Signup] 이미 진행 중...");
               return;
             }
-            
-            // 🔥 이미 팝업이 열려있는지 확인
-            const existingPopup = document.querySelector('iframe[src*="firebaseapp.com"]') || 
-                                document.querySelector('iframe[src*="accounts.google.com"]');
-            if (existingPopup) {
-              console.log("⚠️ [Google Signup] 이미 팝업이 열려있습니다. 기다려주세요...");
-              setError("이미 로그인 창이 열려있습니다. 기다려주세요...");
-              return;
-            }
-            
             setGoogleLoading(true);
             setError("");
-            
+
             try {
-              // 🔍 1. 사전 검증: 현재 환경 정보 로깅
-              const currentUrl = window.location.href;
-              const referer = document.referrer || currentUrl;
-              const hostname = window.location.hostname;
-              
-              console.log("🔍 [Google Signup] 사전 검증 시작:", {
-                currentUrl,
-                referer,
-                hostname,
-                authDomain: auth.app.options.authDomain,
-                projectId: auth.app.options.projectId,
-                apiKey: auth.app.options.apiKey ? `${auth.app.options.apiKey.substring(0, 10)}...` : "없음",
-                timestamp: new Date().toISOString(),
-              });
-              
-              // 🔍 2. Firebase Auth 인스턴스 정보 확인
-              console.log("🔍 [Google Signup] Firebase Auth 인스턴스 정보:", {
-                appName: auth.app.name,
-                authDomain: auth.app.options.authDomain,
-                projectId: auth.app.options.projectId,
-                apiKey: auth.app.options.apiKey ? "✅ 설정됨" : "❌ 없음",
-              });
-              
-              // 🔍 3. GoogleAuthProvider 생성 및 로깅
               const provider = new GoogleAuthProvider();
-              // 🔥 Provider에 명시적 설정 추가 (referer 문제 해결)
-              provider.setCustomParameters({
-                prompt: 'select_account'
-              });
-              console.log("🔍 [Google Signup] GoogleAuthProvider 생성 완료:", {
-                providerId: provider.providerId,
-              });
-              
-              // 🔍 4. signInWithPopup 호출 전 최종 확인
-              console.log("🔍 [Google Signup] signInWithPopup 호출 직전:", {
-                authInstance: auth ? "✅ 존재" : "❌ 없음",
-                provider: provider ? "✅ 존재" : "❌ 없음",
-                currentDomain: hostname,
-                expectedAuthDomain: auth.app.options.authDomain,
-              });
-              
-              // 🔥 모바일 환경 감지 및 적절한 로그인 방식 선택
-              const usePopup = canUsePopup();
-              
-              if (usePopup) {
-                // 💻 데스크톱 환경: Popup 방식 사용
-                console.log("🔥 [Google Signup] signInWithPopup 호출 시작:", {
-                  timestamp: new Date().toISOString(),
-                });
-                
-                try {
-                  const result = await signInWithPopup(auth, provider);
-                  
-                  console.log("✅ [Google Signup] Google 로그인 성공:", {
-                    userEmail: result.user.email,
-                    userUid: result.user.uid,
-                  });
-                  
-                  // 🔥 Firestore에 사용자 프로필이 없으면 생성
-                  const userDocRef = doc(db, "users", result.user.uid);
-                  const userDoc = await getDoc(userDocRef);
-                  
-                  if (!userDoc.exists()) {
-                    console.log("📝 [Google Signup] Firestore에 사용자 프로필 생성");
-                    
-                    // 위치 정보 가져오기
-                    let location = "위치 정보 없음";
-                    try {
-                      if (navigator.geolocation) {
-                        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-                        });
-                        location = `lat:${pos.coords.latitude.toFixed(4)}, lng:${pos.coords.longitude.toFixed(4)}`;
-                      }
-                    } catch (err) {
-                      console.warn("⚠️ [Google Signup] 위치 정보 가져오기 실패:", err);
-                    }
-                    
-                    // Firestore에 프로필 생성
-                    await setDoc(userDocRef, {
-                      uid: result.user.uid,
-                      email: result.user.email,
-                      displayName: result.user.displayName || result.user.email?.split("@")[0] || "사용자",
-                      photoURL: result.user.photoURL || null,
-                      location,
-                      aiProfile: true,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
-                    }, { merge: true });
-                    
-                    console.log("✅ [Google Signup] Firestore 사용자 프로필 생성 완료");
-                  }
-                  
-                  // 로그인 성공 시 홈으로 이동
-                  navigate("/sports-hub", { replace: true });
-                  
-                  // 상태 해제
-                  setGoogleLoading(false);
-                  return;
-                } catch (popupError: any) {
-                  // 팝업이 차단되거나 실패한 경우 redirect로 fallback
-                  if (popupError.code === "auth/popup-closed-by-user" || 
-                      popupError.code === "auth/popup-blocked" ||
-                      popupError.code === "auth/cancelled-popup-request") {
-                    console.log("⚠️ [Google Signup] 팝업 실패 → Redirect 방식으로 전환");
-                    await signInWithRedirect(auth, provider);
-                    // redirect는 페이지가 이동하므로 여기서 return
-                    return;
-                  }
-                  // 다른 오류는 아래 catch 블록에서 처리
-                  throw popupError;
-                }
-              } else {
-                // 📱 모바일 환경: Redirect 방식 사용
-                console.log("🔥 [Google Signup] signInWithRedirect 호출 시작 (모바일 환경):", {
-                  timestamp: new Date().toISOString(),
-                  userAgent: navigator.userAgent,
-                  screenWidth: window.innerWidth,
-                });
-                
-                await signInWithRedirect(auth, provider);
-                // redirect는 페이지가 이동하므로 여기서 return
-                // 리다이렉션 후 결과는 App.tsx에서 처리
-                console.log("✅ [Google Signup] 리다이렉션 시작 - Google 로그인 페이지로 이동합니다.");
-                return;
-              }
+              provider.setCustomParameters({ prompt: "select_account" });
+              await signInWithGoogleAdaptive(auth, provider);
             } catch (error: any) {
-              // 🔥 cancelled-popup-request 오류 특별 처리
-              if (error.code === "auth/cancelled-popup-request") {
-                console.log("⚠️ [Google Signup] 팝업 요청이 취소되었습니다.");
-                setError("로그인 창이 이미 열려있습니다. 기다려주세요...");
-                setGoogleLoading(false);
-                return;
-              }
-              // 🔍 6. 오류 발생 시 상세 정보 로깅
-              const errorDetails = {
-                code: error.code,
-                message: error.message,
-                email: error.email,
-                credential: error.credential,
-                customData: error.customData,
-                stack: error.stack,
-                currentUrl: window.location.href,
-                referer: document.referrer,
-                hostname: window.location.hostname,
-                authDomain: auth.app.options.authDomain,
-                projectId: auth.app.options.projectId,
-                timestamp: new Date().toISOString(),
-              };
-              
-              console.error("❌ [Google Signup] 회원가입 실패 - 상세 정보:", errorDetails);
-              console.error("❌ [Google Signup] 전체 오류 객체:", error);
-              
-              let errorMsg = "";
-              
-              // 🔥 7. auth/requests-from-referer-are-blocked 오류 특별 처리
-              if (error.code === "auth/requests-from-referer-are-blocked" || 
-                  error.message?.includes("requests-from-referer") || 
-                  error.message?.includes("are-blocked") ||
-                  error.code?.includes("requests-from-referer")) {
-                
-                errorMsg = 
-                    "❌ 인증 요청이 차단되었습니다.\n\n" +
-                    "🔍 발견된 문제: 승인된 도메인 누락 또는 클라이언트 ID 불일치\n\n" +
-                    "현재 도메인: " + window.location.hostname + "\n" +
-                    "예상 도메인: " + auth.app.options.authDomain + "\n\n" +
-                    "✅ 해결 방법:\n" +
-                    "1. Firebase Console → Authentication → Settings → Authorized domains\n" +
-                    "   - '" + window.location.hostname + "' 추가\n" +
-                    "   - '" + auth.app.options.authDomain + "' 확인\n\n" +
-                    "2. Firebase Console → Authentication → Sign-in method → Google\n" +
-                    "   - '웹 클라이언트 ID' 확인\n" +
-                    "   - Google Cloud Console의 OAuth 2.0 Web Client ID와 일치하는지 확인\n\n" +
-                    "3. Google Cloud Console → APIs & Services → Credentials\n" +
-                    "   - OAuth 2.0 클라이언트 ID 확인\n" +
-                    "   - '승인된 JavaScript 원본'에 현재 도메인 포함 여부 확인\n\n" +
-                    "4. 브라우저 캐시 삭제 후 새로고침 (Ctrl+Shift+R)\n\n" +
-                    `에러 코드: ${error.code || "unknown"}\n` +
-                    `에러 메시지: ${error.message || "없음"}\n\n` +
-                    "💡 개발자 콘솔(F12)에서 상세 정보를 확인하세요.";
-                
-                alert(errorMsg);
-                
-                // 🔍 개발 환경에서만 추가 디버깅 정보 표시
-                if (import.meta.env.DEV) {
-                    console.group("🔍 [개발 모드] 추가 디버깅 정보");
-                    console.log("현재 URL:", window.location.href);
-                    console.log("Referer:", document.referrer);
-                    console.log("Hostname:", window.location.hostname);
-                    console.log("Firebase Auth Domain:", auth.app.options.authDomain);
-                    console.log("Firebase Project ID:", auth.app.options.projectId);
-                    console.log("Firebase API Key:", auth.app.options.apiKey ? "✅ 설정됨" : "❌ 없음");
-                    console.groupEnd();
-                }
+              console.error("❌ [Google Signup] Google 가입/로그인 실패:", error);
+              if (
+                error.code === "auth/requests-from-referer-are-blocked" ||
+                error.message?.includes("requests-from-referer")
+              ) {
+                const msg =
+                  "인증 요청이 차단되었습니다. Firebase Console → 승인된 도메인에\n" +
+                  window.location.hostname +
+                  "\n을(를) 추가해 주세요.";
+                alert(msg);
+                setError(msg);
               } else if (error.code === "auth/operation-not-allowed") {
-                errorMsg = "Google 로그인이 활성화되지 않았습니다.\n\nFirebase Console에서 활성화해주세요:\n1. Firebase Console > Authentication > Sign-in method\n2. Google 활성화\n3. Project support email 설정";
-                alert(errorMsg);
-              } else if (error.code === "auth/popup-closed-by-user") {
-                errorMsg = "로그인 창이 닫혔습니다. 다시 시도해주세요.";
-              } else if (error.code === "auth/popup-blocked") {
-                errorMsg = "팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.";
+                const m =
+                  "Google 로그인이 비활성화되어 있습니다. Firebase Console에서 활성화해 주세요.";
+                alert(m);
+                setError(m);
               } else {
-                errorMsg = error.message || "구글 회원가입에 실패했습니다.";
+                setError(error.message || "구글 회원가입을 시작할 수 없습니다.");
               }
-              setError(errorMsg);
             } finally {
               setGoogleLoading(false);
             }
@@ -628,7 +403,7 @@ export default function SignupPage() {
       </div>
 
       <footer className="mt-10 text-xs text-gray-400">
-        © 2025 YAGO VIBE · Powered by AI
+        © 2025 YAGO SPORTS · Powered by AI
       </footer>
     </div>
   );

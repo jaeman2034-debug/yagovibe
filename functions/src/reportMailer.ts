@@ -3,7 +3,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 import * as nodemailer from "nodemailer";
 import fetch from "node-fetch";
 
@@ -13,7 +13,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const storage = getStorage().bucket();
 
 /**
  * Nodemailer Transporter 초기화
@@ -54,7 +53,7 @@ function createTransporter() {
  */
 async function downloadPDFFromStorage(pdfPath: string): Promise<Buffer | null> {
   try {
-    const file = storage.file(pdfPath);
+    const file = getDefaultStorageBucket().file(pdfPath);
     const [exists] = await file.exists();
 
     if (!exists) {
@@ -152,10 +151,10 @@ export const onReportCreateEmail = onDocumentCreated(
       }
 
       // 이메일 본문 구성
-      const emailSubject = `📊 YAGO VIBE 주간 AI 리포트 - ${dateStr}`;
+      const emailSubject = `📊 YAGO SPORTS 주간 AI 리포트 - ${dateStr}`;
       
       const emailText = `
-📊 YAGO VIBE 주간 AI 리포트
+📊 YAGO SPORTS 주간 AI 리포트
 
 생성일: ${dateStr}
 총 판매(추정): ${(report.totalSales ?? 0).toLocaleString()} 개
@@ -167,7 +166,7 @@ ${report.pdfUrl ? `\n📄 PDF 다운로드: ${report.pdfUrl}` : ""}
 ${report.audioUrl ? `\n🎧 TTS 음성 리포트: ${report.audioUrl}` : ""}
 
 ---
-YAGO VIBE AI · 자동 발행
+YAGO SPORTS AI · 자동 발행
       `.trim();
 
       const emailHtml = `
@@ -193,7 +192,7 @@ YAGO VIBE AI · 자동 발행
 </head>
 <body>
   <div class="header">
-    <h1>📊 YAGO VIBE 주간 AI 리포트</h1>
+    <h1>📊 YAGO SPORTS 주간 AI 리포트</h1>
     <p style="margin: 0; opacity: 0.9;">생성일: ${dateStr}</p>
   </div>
   
@@ -242,7 +241,7 @@ YAGO VIBE AI · 자동 발행
   </div>
 
   <div class="footer">
-    <p>YAGO VIBE AI · 자동 발행</p>
+    <p>YAGO SPORTS AI · 자동 발행</p>
     <p>이 이메일은 자동으로 생성되어 발송되었습니다.</p>
   </div>
 </body>
@@ -252,7 +251,7 @@ YAGO VIBE AI · 자동 발행
       // 이메일 발송
       const transporter = createTransporter();
       const mailOptions: nodemailer.SendMailOptions = {
-        from: `"YAGO VIBE AI" <${process.env.GMAIL_USER || "noreply@yagovibe.com"}>`,
+        from: `"YAGO SPORTS AI" <${process.env.GMAIL_USER || "noreply@yagovibe.com"}>`,
         to: recipientEmail,
         subject: emailSubject,
         text: emailText,
@@ -370,9 +369,9 @@ export const sendReportEmailManual = onRequest(
         }
       }
 
-      const emailSubject = `📊 YAGO VIBE 주간 AI 리포트 - ${dateStr}`;
+      const emailSubject = `📊 YAGO SPORTS 주간 AI 리포트 - ${dateStr}`;
       const emailText = `
-📊 YAGO VIBE 주간 AI 리포트
+📊 YAGO SPORTS 주간 AI 리포트
 
 생성일: ${dateStr}
 총 판매(추정): ${(report.totalSales ?? 0).toLocaleString()} 개
@@ -384,11 +383,11 @@ ${report.pdfUrl ? `\n📄 PDF 다운로드: ${report.pdfUrl}` : ""}
 ${report.audioUrl ? `\n🎧 TTS 음성 리포트: ${report.audioUrl}` : ""}
 
 ---
-YAGO VIBE AI · 자동 발행
+YAGO SPORTS AI · 자동 발행
       `.trim();
 
       const mailOptions: nodemailer.SendMailOptions = {
-        from: `"YAGO VIBE AI" <${process.env.GMAIL_USER || "noreply@yagovibe.com"}>`,
+        from: `"YAGO SPORTS AI" <${process.env.GMAIL_USER || "noreply@yagovibe.com"}>`,
         to: targetEmail,
         subject: emailSubject,
         text: emailText,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged, User } from "firebase/auth";
-import { checkUserRole } from "@/lib/checkUserRole";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import type { User } from "firebase/auth";
+import { checkUserRole, getLastRoleCheckDebugSnapshot, type RoleCheckDebugSnapshot } from "@/lib/checkUserRole";
 
 export type UserRole = "admin" | "manager" | "viewer" | "guest" | "loading";
 
@@ -8,6 +9,7 @@ export function useRoleGate() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole>("loading");
+  const [debug, setDebug] = useState<RoleCheckDebugSnapshot | null>(null);
 
   useEffect(() => {
     const auth = getAuth();
@@ -25,9 +27,11 @@ export function useRoleGate() {
       try {
         const userRole = await checkUserRole();
         setRole(userRole);
+        setDebug(getLastRoleCheckDebugSnapshot());
       } catch (error) {
         console.error("역할 확인 오류:", error);
         setRole("guest");
+        setDebug(getLastRoleCheckDebugSnapshot());
       } finally {
         setLoading(false);
       }
@@ -38,6 +42,8 @@ export function useRoleGate() {
 
   return {
     role,
+    /** 플랫폼 운영자(KPI·Callable·Rules `isGlobalAdmin` 과 동일 기준) — {@link checkUserRole} → portalRole */
+    isPlatformAdmin: role === "admin",
     isAdmin: role === "admin",
     isManager: role === "manager" || role === "admin",
     isViewer: role === "viewer" || role === "manager" || role === "admin",
@@ -46,6 +52,7 @@ export function useRoleGate() {
     canView: role !== "guest" && role !== "loading",
     loading: loading || role === "loading",
     user,
+    debug,
   };
 }
 

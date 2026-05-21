@@ -53,7 +53,7 @@ export const triggerN8nWorkflow = onDocumentCreated(
         reportId: reportId,
         title: report.title || `주간 AI 리포트 - ${dateStr}`,
         summary: report.summary || "요약 정보가 없습니다.",
-        author: report.author || "YAGO VIBE AI",
+        author: report.author || "YAGO SPORTS AI",
         pdfUrl: report.pdfUrl || null,
         audioUrl: report.audioUrl || report.ttsUrl || null,
         ttsUrl: report.audioUrl || report.ttsUrl || null,

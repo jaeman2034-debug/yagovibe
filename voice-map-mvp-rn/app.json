@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Voice Map MVP",
+    "slug": "voice-map-mvp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yago.voicemapmvp",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "주변 장소를 음성으로 검색하기 위해 위치 정보가 필요합니다.",
+        "NSMicrophoneUsageDescription": "주변 장소를 음성으로 검색하기 위해 마이크 접근이 필요합니다."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.yago.voicemapmvp",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "주변 장소를 찾기 위해 위치 정보가 필요합니다."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "음성 검색을 위해 마이크 권한이 필요합니다."
+        }
+      ]
+    ]
+  }
+}

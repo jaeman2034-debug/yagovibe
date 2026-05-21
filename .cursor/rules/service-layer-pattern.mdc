@@ -1,0 +1,166 @@
+---
+alwaysApply: false
+description: 서비스 레이어 생성 패턴
+globs: **/services/**
+---
+
+# 🔧 서비스 레이어 생성 패턴
+
+## 📋 기본 구조
+
+### 파일 위치
+```
+src/services/
+├── recruitService.ts
+├── matchService.ts
+├── guestService.ts
+└── teamService.ts
+```
+
+## 📝 구현 템플릿
+
+### 1. Create 함수
+```typescript
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { CreateXxxInput } from "@/types/xxx";
+
+export async function createXxx(
+  input: CreateXxxInput,
+  authorId: string
+): Promise<string> {
+  const data = {
+    ...input,
+    authorId,
+    status: "open" as const,
+    createdAt: serverTimestamp(),
+  };
+
+  const docRef = await addDoc(collection(db, "xxx"), data);
+  return docRef.id;
+}
+```
+
+### 2. Get List 함수
+```typescript
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { Xxx } from "@/types/xxx";
+
+export async function getXxxList(options?: {
+  status?: "open" | "closed";
+  limit?: number;
+}): Promise<Xxx[]> {
+  const conditions: any[] = [];
+
+  if (options?.status) {
+    conditions.push(where("status", "==", options.status));
+  }
+
+  conditions.push(orderBy("createdAt", "desc"));
+
+  if (options?.limit) {
+    conditions.push(limit(options.limit));
+  }
+
+  const q = query(collection(db, "xxx"), ...conditions);
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Xxx[];
+}
+```
+
+### 3. Get Single 함수
+```typescript
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { Xxx } from "@/types/xxx";
+
+export async function getXxx(xxxId: string): Promise<Xxx | null> {
+  const docRef = doc(db, "xxx", xxxId);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    return null;
+  }
+
+  return {
+    id: docSnap.id,
+    ...docSnap.data(),
+  } as Xxx;
+}
+```
+
+### 4. Application/Request 함수
+```typescript
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+export async function applyToXxx(
+  xxxId: string,
+  userId: string,
+  userName?: string,
+  message?: string
+): Promise<string> {
+  const applicationData = {
+    xxxId,
+    userId,
+    userName,
+    message,
+    status: "pending" as const,
+    createdAt: serverTimestamp(),
+  };
+
+  const docRef = await addDoc(collection(db, "xxx_applications"), applicationData);
+  return docRef.id;
+}
+```
+
+## 🔥 Activity Feed 연동
+
+모든 생성 함수에서 `activities` 컬렉션에 자동 생성:
+
+```typescript
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { ActivityType } from "@/types/activity";
+
+// createXxx 함수 내부
+try {
+  const activityData = {
+    type: "xxx_created" as ActivityType,
+    refType: "xxx" as const,
+    refId: docRef.id,
+    authorId: authorId,
+    teamId: input.teamId, // 팀 관련이면
+    title: "...",
+    summary: "...",
+    visibility: "public" as const,
+    likeCount: 0,
+    commentCount: 0,
+    createdAt: serverTimestamp(),
+  };
+  await addDoc(collection(db, "activities"), activityData);
+  console.log("✅ activity created");
+} catch (err) {
+  console.warn("⚠️ activity 생성 실패 (무시):", err);
+}
+```
+
+## 📝 네이밍 규칙
+
+- Create: `createXxx()`
+- Get List: `getXxxList()` 또는 `getXxx()`
+- Get Single: `getXxx(xxxId)`
+- Apply: `applyToXxx()`
+- Request: `requestXxx()`
+
+## ⚠️ 주의사항
+
+1. **에러 처리**: try-catch로 감싸기
+2. **Activity 실패**: 무시하고 계속 진행 (업로드는 성공으로 처리)
+3. **타입 안정성**: 반환 타입 명시
+4. **서버 타임스탬프**: `serverTimestamp()` 사용

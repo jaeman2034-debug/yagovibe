@@ -2,10 +2,73 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    function tradeUidMatchesField(uid, field) {
+      return uid == field || (field != null && uid == string(field));
+    }
+
+    function chatParticipant(data) {
+      return tradeUidMatchesField(request.auth.uid, data.buyerId) ||
+        tradeUidMatchesField(request.auth.uid, data.sellerId) ||
+        ("users" in data && data.users is list && request.auth.uid in data.users) ||
+        ("users" in data && data.users is map && request.auth.uid in data.users) ||
+        ("participants" in data && data.participants is list && request.auth.uid in data.participants) ||
+        ("participants" in data && data.participants is map && request.auth.uid in data.participants);
+    }
+
+    /** `postId_uidLo_uidHi` 형태면 필드 오류와 무관하게 참가자 인정 (메시지 list/read) */
+    function tradeChatDocumentIdImpliesParticipant(chatId) {
+      return request.auth != null &&
+        request.auth.uid is string &&
+        request.auth.uid.size() >= 10 &&
+        chatId is string &&
+        (
+          chatId.matches('.*_' + request.auth.uid + '$') ||
+          chatId.matches('.*_' + request.auth.uid + '_[A-Za-z0-9_-]{10,}$')
+        );
+    }
+
+    function tradeChatDocGetAllowed(chatId) {
+      let p = /databases/$(database)/documents/chats/$(chatId);
+      return !exists(p) ||
+        chatParticipant(resource.data) ||
+        tradeChatDocumentIdImpliesParticipant(chatId);
+    }
+
+    function chatParticipantByChatId(chatId) {
+      let p = /databases/$(database)/documents/chats/$(chatId);
+      return tradeChatDocumentIdImpliesParticipant(chatId) ||
+        (exists(p) && chatParticipant(get(p).data));
+    }
+
+    function tradeTwoPartyThreadMemberIdsValid(chatId, mids) {
+      let p = /databases/$(database)/documents/chats/$(chatId);
+      let d = get(p).data;
+      return exists(p) && mids is list && mids.size() == 2 &&
+        chatParticipant(d) &&
+        (
+          (tradeUidMatchesField(mids[0], d.buyerId) && tradeUidMatchesField(mids[1], d.sellerId)) ||
+          (tradeUidMatchesField(mids[0], d.sellerId) && tradeUidMatchesField(mids[1], d.buyerId))
+        );
+    }
+    
+    function notificationRecipientMatches() {
+      return ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        ('uid' in resource.data && resource.data.uid == request.auth.uid) ||
+        ('targetUid' in resource.data && resource.data.targetUid == request.auth.uid);
+    }
+    
+    function postsCounterFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['likesCount', 'viewsCount', 'chatsCount', 'score', 'commentsCount']);
+    }
+    
+    function postsAuthorPreservesOwnerFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'associationId']);
+    }
+    
     // 🛒 마켓 상품 (Market Products) - Production 보안 규칙
     match /marketProducts/{productId} {
-      // 읽기: 인증된 사용자 모두 가능 (상품 목록/상세)
-      allow read: if request.auth != null;
+      allow read: if true;
       
       // 생성: 로그인 사용자만 가능
       allow create: if request.auth != null && 
@@ -14,6 +77,193 @@ service cloud.firestore {
       // 수정/삭제: 본인만 가능
       allow update, delete: if request.auth != null && 
                              resource.data.sellerId == request.auth.uid;
+    }
+    
+    // 허브·마켓·활동 (미정의 시 permission-denied)
+    match /activities/{activityId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+    }
+    match /activityLogs/{logId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    function marketBuyerReserveFromOpen() {
+      let affected = request.resource.data.diff(resource.data).affectedKeys();
+      let isOwner = ('authorId' in resource.data && resource.data.authorId == request.auth.uid) ||
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        ('sellerId' in resource.data && resource.data.sellerId == request.auth.uid);
+      return affected.hasOnly(['status', 'reservedBy', 'reservedAt', 'updatedAt']) &&
+        request.resource.data.status == 'reserved' &&
+        request.resource.data.reservedBy == request.auth.uid &&
+        (resource.data.status == 'active' || resource.data.status == 'open') &&
+        !isOwner;
+    }
+
+    match /market/{marketId} {
+      allow read: if true;
+      allow create: if request.auth != null && (
+        request.resource.data.authorId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        marketBuyerReserveFromOpen() ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['views', 'viewCount', 'rankScore', 'updatedAt', 'likesCount', 'likeCount', 'chatCount'])
+      );
+      allow delete: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+    match /marketPosts/{postId} {
+      allow read: if true;
+      allow create: if request.auth != null && (
+        request.resource.data.authorId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        marketBuyerReserveFromOpen() ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['viewCount', 'views', 'rankScore', 'updatedAt', 'likesCount', 'likeCount', 'chatCount'])
+      );
+      allow delete: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+    match /recruitPosts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && (
+        request.resource.data.authorId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['viewCount', 'views', 'rankScore', 'updatedAt', 'likesCount', 'likeCount', 'chatCount'])
+      );
+      allow delete: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+    match /matchPosts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && (
+        request.resource.data.authorId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['viewCount', 'views', 'rankScore', 'updatedAt', 'likesCount', 'likeCount', 'chatCount'])
+      );
+      allow delete: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+    
+    match /marketJoins/{joinId} {
+      allow read: if request.auth != null && (
+        resource.data.postAuthorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.postAuthorId is string &&
+        request.resource.data.postAuthorId != request.auth.uid &&
+        request.resource.data.postId is string &&
+        request.resource.data.category in ["recruit", "match"] &&
+        request.resource.data.status == "pending";
+      allow update: if request.auth != null && (
+        resource.data.postAuthorId == request.auth.uid ||
+        (resource.data.userId == request.auth.uid &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.postAuthorId == resource.data.postAuthorId &&
+          request.resource.data.postId == resource.data.postId)
+      );
+      allow delete: if false;
+    }
+    
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+        request.resource.data.uid == request.auth.uid &&
+        'associationId' in request.resource.data;
+      allow update: if request.auth != null && (
+        postsCounterFieldsOnly() ||
+        (resource.data.uid == request.auth.uid && postsAuthorPreservesOwnerFields())
+      );
+      allow delete: if request.auth != null &&
+        resource.data.uid == request.auth.uid &&
+        'associationId' in resource.data;
+      
+      match /likes/{likeUid} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == likeUid &&
+          request.resource.data.uid == request.auth.uid;
+        allow delete: if request.auth != null && request.auth.uid == likeUid;
+        allow update: if false;
+      }
+      
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+        allow update: if request.auth != null && resource.data.uid == request.auth.uid;
+        allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+        
+        match /likes/{likerUid} {
+          allow read: if request.auth != null;
+          allow create: if request.auth != null && request.auth.uid == likerUid &&
+            request.resource.data.uid == request.auth.uid;
+          allow delete: if request.auth != null && request.auth.uid == likerUid;
+          allow update: if false;
+        }
+      }
+    }
+    
+    match /likes/{likeId} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid &&
+        'postId' in request.resource.data;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update: if false;
+    }
+    
+    match /events/{eventId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /sessions/{sessionId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+    match /activityHistory/{entryId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+    match /activityFeed/{entryId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && notificationRecipientMatches();
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && notificationRecipientMatches();
     }
     
     // 👤 사용자 프로필
@@ -36,30 +286,68 @@ service cloud.firestore {
                     request.auth.uid == sellerId;
     }
     
-    // 💬 채팅
+    function chatRoomsMember(data) {
+      return request.auth.uid == data.authorId ||
+        ("members" in data && data.members is list && request.auth.uid in data.members) ||
+        ("participants" in data && data.participants is list && request.auth.uid in data.participants);
+    }
+    
+    function chatRoomsMemberFromRoomId(roomId) {
+      let p = /databases/$(database)/documents/chatRooms/$(roomId);
+      return exists(p) && chatRoomsMember(get(p).data);
+    }
+    
+    // 💬 채팅 — get/messages 는 chatParticipant 통일, list 는 인증만(array-contains 쿼리·rules 정적 검증 완화)
     match /chats/{chatId} {
-      // 읽기: 참여자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.buyerId ||
-        request.auth.uid == resource.data.sellerId
-      );
+      allow get: if request.auth != null && tradeChatDocGetAllowed(chatId);
+      allow list: if request.auth != null;
       
-      // 생성: 로그인 사용자만 가능
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && chatParticipant(request.resource.data);
       
-      // 수정/삭제: 참여자만 가능
       allow update, delete: if request.auth != null && (
-        request.auth.uid == resource.data.buyerId ||
-        request.auth.uid == resource.data.sellerId
+        chatParticipant(resource.data) ||
+        tradeChatDocumentIdImpliesParticipant(chatId)
       );
       
-      // 메시지
+      // messages create: 부모 chats/{chatId} get()으로 참가자 판별 (create에는 message resource 없음)
       match /messages/{messageId} {
-        // 읽기/쓰기: 채팅 참여자만 가능
-        allow read, write: if request.auth != null && (
-          request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.buyerId ||
-          request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.sellerId
+        allow read: if request.auth != null && (
+          chatParticipantByChatId(chatId) ||
+          (
+            resource.data.threadMemberIds is list &&
+            resource.data.threadMemberIds.size() == 2 &&
+            request.auth.uid in resource.data.threadMemberIds
+          ) ||
+          resource.data.senderId == request.auth.uid ||
+          resource.data.uid == request.auth.uid ||
+          resource.data.userId == request.auth.uid
         );
+        allow create: if request.auth != null && chatParticipantByChatId(chatId) &&
+          request.resource.data.senderId == request.auth.uid &&
+          (
+            !('threadMemberIds' in request.resource.data) ||
+            tradeTwoPartyThreadMemberIdsValid(chatId, request.resource.data.threadMemberIds)
+          );
+        allow update, delete: if request.auth != null && chatParticipantByChatId(chatId);
+      }
+    }
+    
+    match /chatRooms/{roomId} {
+      allow read: if request.auth != null && (
+        !exists(/databases/$(database)/documents/chatRooms/$(roomId)) ||
+        chatRoomsMember(resource.data)
+      );
+      allow create: if request.auth != null && chatRoomsMember(request.resource.data);
+      allow update: if request.auth != null && chatRoomsMember(resource.data);
+      allow delete: if false;
+      
+      match /messages/{messageId} {
+        allow read: if request.auth != null && chatRoomsMemberFromRoomId(roomId);
+        allow create: if request.auth != null && chatRoomsMemberFromRoomId(roomId) &&
+          request.resource.data.senderId == request.auth.uid;
+        allow update: if request.auth != null && chatRoomsMemberFromRoomId(roomId);
+        allow delete: if request.auth != null && chatRoomsMemberFromRoomId(roomId) &&
+          request.auth.uid == resource.data.senderId;
       }
     }
     

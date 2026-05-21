@@ -97,6 +97,17 @@ export const parseMarketProduct = (
 
   const allImages = [...images, ...gallery];
   const photoCount = allImages.length;
+
+  /** 일부 문서는 최상위 latitude 대신 location: { lat, lng } 만 저장 */
+  let nestedLat: number | undefined;
+  let nestedLng: number | undefined;
+  const locRaw = data.location;
+  if (locRaw && typeof locRaw === "object" && !Array.isArray(locRaw)) {
+    const l = locRaw as Record<string, unknown>;
+    nestedLat = normalizeNumber(l.lat) ?? normalizeNumber(l.latitude);
+    nestedLng = normalizeNumber(l.lng) ?? normalizeNumber(l.longitude);
+  }
+
   const hasDescription = !!(
     typeof data.description === "string" && data.description.length > 0
   ) || !!(
@@ -116,9 +127,21 @@ export const parseMarketProduct = (
     location: typeof data.location === "string" ? data.location : null,
     region: typeof data.region === "string" ? data.region : null,
     distance: typeof data.distance === "string" ? data.distance : null,
-    // latitude/longitude 또는 lat/lng 모두 지원 (대소문자 변형 포함)
-    latitude: normalizeNumber(data.latitude) ?? normalizeNumber(data.Latitude) ?? normalizeNumber(data.lat) ?? normalizeNumber(data.Lat) ?? null,
-    longitude: normalizeNumber(data.longitude) ?? normalizeNumber(data.Longitude) ?? normalizeNumber(data.lng) ?? normalizeNumber(data.Lng) ?? null,
+    // latitude/longitude 또는 lat/lng 모두 지원 (대소문자 변형 + location 객체)
+    latitude:
+      normalizeNumber(data.latitude) ??
+      normalizeNumber(data.Latitude) ??
+      normalizeNumber(data.lat) ??
+      normalizeNumber(data.Lat) ??
+      nestedLat ??
+      null,
+    longitude:
+      normalizeNumber(data.longitude) ??
+      normalizeNumber(data.Longitude) ??
+      normalizeNumber(data.lng) ??
+      normalizeNumber(data.Lng) ??
+      nestedLng ??
+      null,
     description:
       typeof data.description === "string"
         ? data.description
@@ -137,6 +160,16 @@ export const parseMarketProduct = (
     viewCount: normalizeNumber(data.viewCount) || normalizeNumber(data.views),
     userId: typeof data.userId === "string" ? data.userId : typeof data.ownerId === "string" ? data.ownerId : null,
     aiOneLine: typeof data.aiOneLine === "string" ? data.aiOneLine : null, // AI 한줄 요약 (리스트용)
+    dong: typeof data.dong === "string" ? data.dong : null,
+    address: typeof data.address === "string" ? data.address : null,
   };
 };
+
+/** 마켓 게시글(marketPosts) 타입은 features 모듈을 단일 소스로 둠 */
+export type {
+  MarketPost,
+  Sport,
+  MarketCategory,
+  MarketView,
+} from "../features/market/types";
 

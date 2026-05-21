@@ -3,15 +3,21 @@
   "scripts": {
     "build": "tsc --project tsconfig.json --outDir lib --skipLibCheck true --noEmitOnError false || echo \"Build completed with errors, but continuing...\"",
     "prebuild": "echo \"Starting TypeScript build...\"",
-    "start": "firebase emulators:start --only functions",
-    "deploy-ai": "tsc src/aiAnalyze.ts --outDir lib --skipLibCheck true --noEmitOnError false"
+    "start": "node ../scripts/deploy-functions.mjs emulators:start --only functions",
+    "deploy-ai": "tsc src/aiAnalyze.ts --outDir lib --skipLibCheck true --noEmitOnError false",
+    "backfill:team-member-profile-fields": "node scripts/backfill-team-member-profile-fields.js",
+    "dedupe:team-fees": "npx tsx scripts/dedupeTeamFeesByMonthKey.ts",
+    "merge:trade-chats": "npx tsx scripts/mergeDuplicateTradeChats.ts",
+    "migrate:trade-room-messages": "npx tsx scripts/migrateTradeRoomMessages.ts"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "dependencies": {
     "@google-cloud/storage": "^7.17.3",
+    "@google-cloud/tasks": "^4.1.0",
+    "@google-cloud/text-to-speech": "^5.0.0",
     "@google-cloud/vision": "^5.3.4",
     "@slack/web-api": "^7.12.0",
     "axios": "^1.13.2",
@@ -32,21 +38,20 @@
     "pdfkit": "^0.15.2",
     "pdfmake": "^0.2.11",
     "qrcode": "^1.5.3",
-    "xmlbuilder2": "^3.0.2",
-    "@google-cloud/text-to-speech": "^5.0.0",
-    "@google-cloud/tasks": "^4.1.0",
-    "uuid": "^10.0.0"
+    "stripe": "^17.0.0",
+    "uuid": "^10.0.0",
+    "xmlbuilder2": "^3.0.2"
   },
   "optionalDependencies": {
     "chartjs-node-canvas": "^4.1.6"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
     "@types/busboy": "^1.5.4",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/multer": "^2.0.0",
-    "@types/node": "^24.10.0"
+    "@types/node": "^24.10.0",
+    "typescript": "^5.9.3"
   },
   "private": true
 }

@@ -34,7 +34,7 @@ export default function ReportPDFButton() {
             // 제목
             pdf.setFont("helvetica", "bold");
             pdf.setFontSize(20);
-            pdf.text("YAGO VIBE SPORTS - AI Weekly Report", 40, y);
+            pdf.text("YAGO SPORTS - AI Weekly Report", 40, y);
             y += 25;
 
             // 생성일

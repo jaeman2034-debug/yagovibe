@@ -7,6 +7,10 @@
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Device } from "@capacitor/device";
 import { saveDeviceToken } from "./saveDeviceToken";
+import {
+  recordNotificationClicked,
+  recordNotificationPushOpened,
+} from "@/lib/notifications/recordNotificationEngagement";
 
 export async function registerPushNotifications() {
   const info = await Device.getInfo();
@@ -45,6 +49,10 @@ export async function registerPushNotifications() {
   // 알림 수신 로그
   PushNotifications.addListener("pushNotificationReceived", (notification) => {
     console.log("📩 Push received:", notification);
+    const nid = notification.data?.notificationId;
+    if (typeof nid === "string" && nid.trim()) {
+      void recordNotificationPushOpened(nid);
+    }
   });
 
   // 알림 클릭 시 라우팅
@@ -53,6 +61,11 @@ export async function registerPushNotifications() {
     (action) => {
       console.log("🖱 Push clicked:", action);
 
+      const nid = action.notification.data?.notificationId;
+      if (typeof nid === "string" && nid.trim()) {
+        void recordNotificationClicked(nid);
+      }
+
       const route = action.notification.data?.route;
       if (route) {
         // React Router를 쓰고 있어서 window.location.href로 넘겨도 됨.
@@ -60,7 +73,7 @@ export async function registerPushNotifications() {
         window.location.href = route;
       } else {
         // route 없으면 기본 홈으로
-        window.location.href = "/sports-hub";
+        window.location.href = "/hub";
       }
     }
   );

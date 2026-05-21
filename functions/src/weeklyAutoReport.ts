@@ -50,7 +50,7 @@ export const weeklyAutoReport = functions.scheduler.onSchedule(
                 `- ${log.text || ""} (${log.intent || "미확인"})`
             ).join("\n");
 
-            const prompt = `다음은 YAGO VIBE 지난 주 사용자 활동 로그입니다:
+            const prompt = `다음은 YAGO SPORTS 지난 주 사용자 활동 로그입니다:
 
 ${logsText}
 
@@ -67,7 +67,7 @@ ${logsText}
                 messages: [
                     {
                         role: "system",
-                        content: "당신은 YAGO VIBE 주간 리포트 요약 분석 전문가입니다."
+                        content: "당신은 YAGO SPORTS 주간 리포트 요약 분석 전문가입니다."
                     },
                     {
                         role: "user",
@@ -98,7 +98,7 @@ ${logsText}
             const ttsResponse = await openai.audio.speech.create({
                 model: "tts-1",
                 voice: "alloy",
-                input: `이번 주 YAGO VIBE 주간 리포트입니다. ${summary}`
+                input: `이번 주 YAGO SPORTS 주간 리포트입니다. ${summary}`
             });
 
             const audioBuffer = Buffer.from(await ttsResponse.arrayBuffer());
@@ -126,7 +126,7 @@ ${logsText}
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        text: "📊 *이번 주 YAGO VIBE AI 자동 리포트가 도착했습니다!*",
+                        text: "📊 *이번 주 YAGO SPORTS AI 자동 리포트가 도착했습니다!*",
                         attachments: [
                             {
                                 color: "#36a64f",
@@ -175,7 +175,7 @@ ${logsText}
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            text: "🚨 *YAGO VIBE 자동 리포트 생성 실패!*",
+                            text: "🚨 *YAGO SPORTS 자동 리포트 생성 실패!*",
                             attachments: [
                                 {
                                     color: "#ff0000",

@@ -12,10 +12,114 @@ service firebase.storage {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 기타 모든 경로 — write 허용 금지 (충돌 방지)
+    // 👥 팀원 모집 글 이미지 (recruits 전용)
+    match /recruitImages/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 💬 채팅 이미지 (uploadChatImage: thumb / origin)
+    match /chat/thumb/{fileId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    match /chat/origin/{fileId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.resource.size < 6 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // 💰 팀 회계 영수증 (지출 증빙)
+    match /teams/{teamId}/receipts/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /teamPublicStaffPhotos/{teamId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+      allow delete: if false;
+    }
+
+    match /teamCaptainPhotos/{teamId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+      allow delete: if false;
+    }
+
+    match /teamCoverPhotos/{teamId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+      allow delete: if false;
+    }
+
+    // 📷 팀 미디어 갤러리 — Firestore teams/.../members + teams.owner* SoT 정합
+    function teamMemberPath(teamId) {
+      return /databases/(default)/documents/teams/$(teamId)/members/$(request.auth.uid);
+    }
+
+    function teamMemberStatusActive(teamId) {
+      let m = firestore.get(teamMemberPath(teamId)).data;
+      return !('status' in m) || m.status == 'active' || m.status == '';
+    }
+
+    function teamMediaActiveMember(teamId) {
+      return request.auth != null &&
+        firestore.exists(teamMemberPath(teamId)) &&
+        teamMemberStatusActive(teamId);
+    }
+
+    function teamMediaOwnerByDoc(teamId) {
+      let t = firestore.get(/databases/(default)/documents/teams/$(teamId)).data;
+      return request.auth != null &&
+        firestore.exists(/databases/(default)/documents/teams/$(teamId)) && (
+          ('ownerUid' in t && t.ownerUid == request.auth.uid) ||
+          ('ownerUserId' in t && t.ownerUserId == request.auth.uid) ||
+          ('ownerId' in t && t.ownerId == request.auth.uid) ||
+          ('leaderId' in t && t.leaderId == request.auth.uid) ||
+          ('createdBy' in t && t.createdBy == request.auth.uid) ||
+          ('owners' in t && t.owners is list && request.auth.uid in t.owners)
+        );
+    }
+
+    function teamMediaCanUpload(teamId) {
+      return teamMediaActiveMember(teamId) || teamMediaOwnerByDoc(teamId);
+    }
+
+    function teamMediaIsImage(fileName) {
+      return request.resource.contentType.matches('image/.*') ||
+        fileName.matches('(?i).+\\.(jpe?g|png|gif|webp|heic|bmp)$');
+    }
+
+    function teamMediaIsVideo(fileName) {
+      return request.resource.contentType.matches('video/.*') ||
+        fileName.matches('(?i).+\\.(mp4|mov|webm|m4v)$');
+    }
+
+    match /teams/{teamId}/photos/{fileName} {
+      allow read: if true;
+      allow write: if teamMediaCanUpload(teamId)
+        && request.resource.size < 50 * 1024 * 1024
+        && teamMediaIsImage(fileName);
+      allow delete: if teamMediaCanUpload(teamId);
+    }
+
+    match /teams/{teamId}/videos/{fileName} {
+      allow read: if true;
+      allow write: if teamMediaCanUpload(teamId)
+        && request.resource.size < 100 * 1024 * 1024
+        && teamMediaIsVideo(fileName);
+      allow delete: if teamMediaCanUpload(teamId);
+    }
+
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if false; // 🔥 절대 true로 하면 안됨! 충돌 발생
+      allow write: if false;
     }
   }
 }

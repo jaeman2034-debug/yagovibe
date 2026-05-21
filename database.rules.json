@@ -1,0 +1,74 @@
+{
+  "rules": {
+    "presence": {
+      "$uid": {
+        ".read": "auth != null && ($uid === auth.uid || auth.token.admin === true)",
+        ".write": "auth != null && $uid === auth.uid"
+      }
+    },
+    "matchmaking": {
+      "queues": {
+        "$mode": {
+          "meta": {
+            ".read": "auth != null",
+            ".write": false
+          },
+          "formationLock": {
+            ".read": false,
+            ".write": false
+          },
+          "entries": {
+            "$uid": {
+              ".read": "auth != null",
+              ".write": "auth != null && $uid === auth.uid && !newData.exists()"
+            }
+          }
+        }
+      },
+      "matches": {
+        "$matchId": {
+          ".read": "auth != null && data.child('players').child(auth.uid).exists()",
+          ".write": false
+        }
+      }
+    },
+    "liveSessions": {
+      "$sessionId": {
+        "meta": {
+          ".read": "auth != null",
+          "fieldLayoutMode": {
+            ".read": "auth != null",
+            ".write": "auth != null && root.child('liveSessions').child($sessionId).child('match').child('hostUid').val() === auth.uid"
+          },
+          "participantUids": {
+            "$uid": {
+              ".read": "auth != null",
+              ".write": "auth != null && $uid === auth.uid"
+            }
+          }
+        },
+        "players": {
+          ".read": "auth != null",
+          "$uid": {
+            ".read": "auth != null",
+            ".write": "auth != null && $uid === auth.uid"
+          }
+        },
+        "ball": {
+          ".read": "auth != null",
+          ".write": "auth != null && root.child('liveSessions').child($sessionId).child('match').child('hostUid').val() === auth.uid"
+        },
+        "match": {
+          ".read": "auth != null",
+          ".write": "auth != null && ( (!data.exists() && newData.child('hostUid').val() === auth.uid) || data.child('hostUid').val() === auth.uid )"
+        },
+        "signals": {
+          "startCountdown": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+          }
+        }
+      }
+    }
+  }
+}

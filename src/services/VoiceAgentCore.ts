@@ -34,8 +34,8 @@ export async function handleVoiceCommand(navigate: any, text: string): Promise<s
         return "👥 팀 페이지로 이동합니다.";
       
       case "go_to_map":
-        navigate("/voice-map");
-        return "🗺️ 지도 페이지로 이동합니다.";
+        navigate("/market/map");
+        return "🗺️ 마켓 지도로 이동합니다.";
       
       case "go_to_home":
         navigate("/sports-hub");

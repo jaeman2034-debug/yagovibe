@@ -1,27 +1,126 @@
 "use strict";
 /**
- * 🔥 Firebase Functions 최적화된 엔트리 포인트
- *
- * ✅ 얇은 라우터 구조로 모든 함수를 그룹별로 export
- * ✅ top-level import 최소화로 cold start 시간 대폭 단축
- * ✅ 10초 timeout 문제 해결
- * ✅ 그룹 단위로 주석 처리하여 배포 테스트 가능
+ * Firebase Functions 엔트리 — discovery 10초 타임아웃 방지를 위해 전부 지연 require
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("./src/exports/reporting"), exports);
-__exportStar(require("./src/exports/voice"), exports);
-__exportStar(require("./src/exports/market"), exports);
+const attachLazyBarrels_1 = require("./src/exports/attachLazyBarrels");
+(0, attachLazyBarrels_1.attachLazyBarrelExports)(module.exports, (0, attachLazyBarrels_1.barrelPathFromLibIndex)("reporting"), [
+    "generateWeeklyReportJobOld",
+    "generateWeeklyReportJob",
+    "generateWeeklyReportAndEmail",
+    "generateMonthlyReportAndEmail",
+    "generateAndSendMonthlyTeamReport",
+    "generateVoiceAndPdfReport",
+    "generatePlayerInsightReports",
+    "generateInsightChartReport",
+    "notifyWeeklyReport",
+    "generateOpsReport",
+    "selfLearningGovernance",
+    "runDigitalTwinSimulation",
+    "generatePredictiveInsights",
+    "autonomousActionEngine",
+    "orchestrateAIModules",
+]);
+(0, attachLazyBarrels_1.attachLazyBarrelExports)(module.exports, (0, attachLazyBarrels_1.barrelPathFromLibIndex)("voice"), [
+    "subscribeAdminTopic",
+    "predictEventTrends",
+    "dispatchAIReport",
+    "voiceTriggerReport",
+    "routeVoiceCommand",
+    "voiceAnalyticsAssistant",
+    "voiceAdminConsole",
+    "voiceMemoryAssistant",
+    "teamVoiceAgent",
+    "generateTeamSummaries",
+    "analyzeVoiceFeedback",
+    "generateEmotionHeatmap",
+]);
+(0, attachLazyBarrels_1.attachLazyBarrelExports)(module.exports, (0, attachLazyBarrels_1.barrelPathFromLibIndex)("market"), [
+    "handleImageAndVoiceAnalyze",
+    "generateTags",
+    "getPriceRecommendation",
+    "generateSearchMeta",
+    "getSearchSuggestions",
+    "getRelatedProducts",
+    "getProductSummary",
+    "detectFraudRisk",
+    "getImageQualityScore",
+    "getConditionScore",
+    "getPricePrediction",
+    "predictFuturePrice",
+    "generateProductTitle",
+    "detectComponents",
+    "generateAITags",
+    "generateCategory",
+    "generateOneLineSummary",
+    "generateTotalScore",
+    "getRecommendedFeed",
+    "negotiateHelper",
+    "searchProducts",
+    "recommendSimilar",
+    "getSellerTrustScore",
+    "askAdminAI",
+]);
+(0, attachLazyBarrels_1.attachLazyModuleExports)(module.exports, (0, attachLazyBarrels_1.barrelPathFromLibIndex)("rootBundle"), [
+    "inviteTeamMemberByPhone",
+    "claimPhoneInvitedTeamMemberships",
+    "updateInvitedMemberPhone",
+    "previewTeamMemberInvite",
+    "createTeamMemberInvite",
+    "claimTeamMemberInvite",
+    "onAuthUserCreateLinkPhoneInvites",
+    "recordManualTeamFeePayment",
+    "registerAnnualPrepaidPayment",
+    "cancelAnnualPrepaidPayment",
+    "initializeTeamAccounting",
+    "teamFeeAutoCloseScheduler",
+    "weeklySeasonSettleScheduler",
+    "submitPlayMatchFeedback",
+    "sendPushOnNotificationCreate",
+    "onTeamGameCompletedPlayFeedbackPush",
+    "applyGameProgressionEvent",
+    "applyReferralCallable",
+    "applyReviewRatingAggregate",
+    "grantUserXpBonus",
+    "finalizeMiniShotSession",
+    "joinQueue",
+    "leaveQueue",
+    "leaveMatch",
+    "clearActiveMatch",
+    "readyCheck",
+    "getGameSession",
+    "getCurrentSeasonInfo",
+    "settleWeeklySeason",
+    "claimSeasonReward",
+    "listPendingWeeklySeasonRewards",
+    "syncOrganizationMemberRole",
+    "onMarketReviewCreatedTrustRisk",
+    "onMarketWriteTrustRisk",
+    "completeMarketTransaction",
+    "ensureCanonicalTradeChat",
+    "createTeam",
+    "backfillMyTeamMemberships",
+    "ensureTeamMediaUploadAccess",
+    "uploadTeamGalleryMedia",
+    "finalizeTeamBranding",
+    "updateTeamPublicCopy",
+    "setTeamCaptainPhotoMeta",
+    "setTeamCaptainMessage",
+    "uploadTeamCaptainPhoto",
+    "uploadTeamPublicStaffPhoto",
+    "setTeamPublicStaff",
+    "setTeamCoverPhotoMeta",
+    "uploadTeamCoverPhoto",
+    "getPublicTeamStaff",
+    "revertTeamPublicField",
+    "regenerateTeamPublicField",
+    "improveTeamPublicTextSelection",
+    "onTeamMemberCreatedAvatarXp",
+    "onTeamScheduledRsvpAvatarXp",
+    "onTeamActivityCreatedAvatarXp",
+    "requestFriendship",
+    "acceptFriendship",
+    "blockFriendship",
+    "previewFriendInvite",
+    "claimChallengeReward",
+]);

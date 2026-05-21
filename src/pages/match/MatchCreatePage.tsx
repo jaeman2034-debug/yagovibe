@@ -1,5 +1,5 @@
 /**
- * 경기 매칭 글쓰기 — /match/create
+ * 경기 매칭 글쓰기 — `/sports/:sport/match/create` (레거시 `/match/create` → 리다이렉트)
  * 팀 검색 자동완성 · 구장 지도 선택 · 연락 수단별 상세 입력
  */
 
@@ -11,20 +11,26 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { normalizeSportId } from "@/constants/sports";
 import { MapPin } from "lucide-react";
 import { useMyTeams } from "@/hooks/useMyTeams";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, doc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createMatch } from "@/services/matchService";
+import { createMatch, ensureOpenMatchHostChatRoom } from "@/services/matchService";
 import type { CreateMatchInput, MatchContactMethod, MatchLevel } from "@/types/match";
-import { CreateHeader } from "@/components/create/CreateHeader";
+import { CreatePageContextBadges } from "@/components/create/CreatePageContextBadges";
 import MapPickerModal from "@/components/schedule/MapPickerModal";
 import { StadiumAutocomplete } from "@/components/match/StadiumAutocomplete";
 import { MatchStadiumKakaoPreview } from "@/components/match/MatchStadiumKakaoPreview";
+import {
+  clearHubRecommendationNav,
+  peekHubRecommendationNav,
+  type SportsHubRecommendation,
+} from "@/lib/sportsHubRecommendation";
 
 const LEVELS: MatchLevel[] = [
   "초보",
@@ -165,10 +171,24 @@ const defaultForm = (): MatchFormFields => ({
   stadium: "",
   level: "상관없음",
   fee: "",
-  contact: "카카오톡",
+  contact: "채팅",
   contactDetail: "",
   description: "",
 });
+
+/** 허브 추천 → 다음 토요일 18:00 근사 프리셋 */
+function suggestNextMatchSlot(): { date: string; time: string } {
+  const now = new Date();
+  const dow = now.getDay();
+  let addDays = (6 - dow + 7) % 7;
+  if (addDays === 0 && now.getHours() >= 17) addDays = 7;
+  const d = new Date(now);
+  d.setDate(d.getDate() + addDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return { date: `${y}-${m}-${day}`, time: "18:00" };
+}
 
 function SectionCard({
   sectionId,
@@ -207,7 +227,23 @@ function SectionCard({
 
 export default function MatchCreatePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { sport: sportRoute } = useParams<{ sport?: string }>();
+  const routeSportSlug = normalizeSportId(sportRoute) ?? "soccer";
   const { teamMembers, loading: teamsLoading } = useMyTeams();
+
+  const hubPayloadRef = useRef<SportsHubRecommendation | null | undefined>(undefined);
+  if (hubPayloadRef.current === undefined) {
+    const st = (location.state as { hubRecommendation?: SportsHubRecommendation })?.hubRecommendation;
+    if (st) {
+      hubPayloadRef.current = st;
+      clearHubRecommendationNav();
+    } else {
+      hubPayloadRef.current = peekHubRecommendationNav();
+    }
+  }
+
+  const hubPresetsAppliedRef = useRef(false);
 
   const myTeam = teamMembers.length > 0 ? teamMembers[0] : null;
   const [teams, setTeams] = useState<TeamRow[]>([]);
@@ -277,6 +313,41 @@ export default function MatchCreatePage() {
       cancelled = true;
     };
   }, [teamMembers]);
+
+  /** 허브 추천 → 팀·일시·지역 프리셋 (1회) */
+  useEffect(() => {
+    if (hubPresetsAppliedRef.current || teams.length === 0) return;
+    const hub = hubPayloadRef.current;
+    if (!hub) {
+      hubPresetsAppliedRef.current = true;
+      return;
+    }
+    const auto = hub.auto;
+    if (auto?.presetTeamId && teams.some((t) => t.id === auto.presetTeamId)) {
+      setTeamId(auto.presetTeamId);
+      const row = teams.find((t) => t.id === auto.presetTeamId);
+      if (row) {
+        setTeamName(row.name);
+        setTeamSportType(row.sportType);
+      }
+    }
+    if (
+      hub.kind === "match_first" ||
+      hub.kind === "match_stale" ||
+      auto?.createChatAfterSuccess
+    ) {
+      const slot = suggestNextMatchSlot();
+      setForm((prev) => ({
+        ...prev,
+        date: slot.date,
+        time: slot.time,
+        region: auto?.presetRegion?.trim() ? auto.presetRegion.trim() : prev.region,
+      }));
+    } else if (auto?.presetRegion?.trim()) {
+      setForm((prev) => ({ ...prev, region: auto.presetRegion!.trim() }));
+    }
+    hubPresetsAppliedRef.current = true;
+  }, [teams]);
 
   useEffect(() => {
     if (!teamId) return;
@@ -350,6 +421,7 @@ export default function MatchCreatePage() {
         sport: (teamSportType || "soccer") as CreateMatchInput["sport"],
         date: matchDateTime,
         time,
+        matchRegion: region.trim(),
         region: region.trim(),
         stadium: stadium.trim() || undefined,
         stadiumLat: stadiumCoords?.lat,
@@ -363,27 +435,21 @@ export default function MatchCreatePage() {
 
       const matchId = await createMatch(matchInput, auth.currentUser.uid);
 
-      try {
-        await addDoc(collection(db, "activities"), {
-          type: "match_created" as const,
-          refType: "match" as const,
-          refId: matchId,
-          authorId: auth.currentUser.uid,
-          teamId,
-          title: `${teamName || "팀"} - ${date} ${time} 경기 매칭`,
-          summary:
-            description?.trim() || `${region} ${stadium ? `· ${stadium}` : ""}`,
-          visibility: "public" as const,
-          likeCount: 0,
-          commentCount: 0,
-          createdAt: serverTimestamp(),
-          sport: (teamSportType || "soccer") as CreateMatchInput["sport"],
-        });
-      } catch (err) {
-        console.warn("⚠️ [MatchCreatePage] activity 생성 실패 (무시):", err);
+      const hub = hubPayloadRef.current;
+      let openedChat = false;
+      if (hub?.auto?.createChatAfterSuccess) {
+        try {
+          await ensureOpenMatchHostChatRoom(matchId);
+          openedChat = true;
+        } catch (e) {
+          console.warn("[MatchCreatePage] 오픈 매칭 채팅방 준비 실패 (무시):", e);
+        }
       }
+      clearHubRecommendationNav();
 
-      navigate(`/match?sport=${encodeURIComponent(teamSportType || "soccer")}`);
+      const sportQ = encodeURIComponent(teamSportType || routeSportSlug);
+      const hubQuery = openedChat ? "&hubCreated=1&hubChat=1" : "&hubCreated=1";
+      navigate(`/match?sport=${sportQ}${hubQuery}`);
     } catch (err: unknown) {
       console.error("❌ [MatchCreatePage] 저장 실패:", err);
       setError("글 작성 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -406,8 +472,8 @@ export default function MatchCreatePage() {
   if (!myTeam || teamMembers.length === 0 || teams.length === 0) {
     return (
       <div className="min-h-screen bg-[#f9fafb]">
-        <CreateHeader title="경기 매칭" />
-        <div className="mx-auto max-w-[480px] px-4 py-8">
+        <div className="w-full max-w-none px-3 md:mx-auto md:max-w-[480px] py-8">
+          <CreatePageContextBadges sportSlug={routeSportSlug} kind="match" />
           <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-3xl">
               🏆
@@ -419,7 +485,10 @@ export default function MatchCreatePage() {
               먼저 팀을 만들거나 가입해주세요.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <Button onClick={() => navigate("/team/create")} className="sm:min-w-[140px]">
+              <Button
+                onClick={() => navigate(`/sports/${encodeURIComponent(routeSportSlug)}/team/create`)}
+                className="sm:min-w-[140px]"
+              >
                 팀 만들기
               </Button>
               <Button variant="outline" onClick={() => navigate("/team")} className="sm:min-w-[140px]">
@@ -445,16 +514,24 @@ export default function MatchCreatePage() {
   } = form;
 
   const contactOk = isContactDetailValid(contact, contactDetail);
-  const canSubmit = Boolean(
-    teamId && date && time && region.trim() && contactOk
-  );
+  const submitBlockReason = (() => {
+    if (!teamId) return "팀을 선택해주세요.";
+    if (!date) return "경기 날짜를 입력해주세요.";
+    if (!time) return "경기 시간을 입력해주세요.";
+    if (!region.trim()) return "경기 지역을 입력해주세요.";
+    if (!contactOk) {
+      if (contact === "카카오톡") return "카카오톡 ID를 2자 이상 입력해주세요.";
+      if (contact === "전화" || contact === "문자") return "전화번호를 숫자 9~15자리로 입력해주세요.";
+    }
+    return null;
+  })();
+  const canSubmit = submitBlockReason == null;
 
   return (
     <>
     <div className="relative min-h-screen bg-gray-50 pb-32">
-      <CreateHeader title="경기 매칭" />
-
       <div className="mx-auto w-full max-w-[480px] px-4 py-6">
+        <CreatePageContextBadges sportSlug={routeSportSlug} kind="match" />
         <form id="match-create-form" className="space-y-4" onSubmit={handleSubmit}>
           {error ? (
             <div
@@ -799,6 +876,11 @@ export default function MatchCreatePage() {
         }}
       >
         <div className="mx-auto flex max-w-[480px] gap-2 px-4 py-3">
+          {!canSubmit ? (
+            <p className="absolute -top-6 left-1/2 w-full max-w-[480px] -translate-x-1/2 px-4 text-center text-xs text-amber-700">
+              {submitBlockReason}
+            </p>
+          ) : null}
           <Button
             type="button"
             variant="outline"

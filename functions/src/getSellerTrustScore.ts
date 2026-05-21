@@ -1,17 +1,12 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
-import OpenAI from "openai";
+import { getOpenAIClient } from "./lib/openaiClient";
 
 // Firebase Admin 초기화
 if (!getApps().length) {
   initializeApp();
 }
-
-// OpenAI 클라이언트
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
 
 /**
  * AI 판매자 신뢰도 평가 시스템
@@ -43,6 +38,7 @@ export const getSellerTrustScore = onRequest(
     }
 
     try {
+      const openai = getOpenAIClient();
       const { seller, stats } = req.body;
 
       if (!seller || !seller.uid) {

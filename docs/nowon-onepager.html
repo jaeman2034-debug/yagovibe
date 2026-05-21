@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>노원구축구협회 운영 현황 요약 (자동)</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "맑은 고딕", "Malgun Gothic", "나눔고딕", "Nanum Gothic", Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #000000;
+            background: #FFFFFF;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 170mm;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        /* 헤더 */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #6B7280;
+            line-height: 1.5;
+        }
+
+        /* 구분선 */
+        .divider {
+            height: 1px;
+            background: #E5E7EB;
+            margin: 20px 0;
+        }
+
+        /* 섹션 제목 */
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #000000;
+            margin: 20px 0 15px 0;
+        }
+
+        /* 카드 그리드 */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10mm;
+            margin: 20px 0;
+        }
+
+        .card {
+            width: 100%;
+            height: 50mm;
+            background: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .card-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #000000;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 4px;
+        }
+
+        .card-note {
+            font-size: 12px;
+            color: #6B7280;
+            margin-top: 4px;
+        }
+
+        /* AI 요약 */
+        .ai-summary {
+            margin: 20px 0;
+        }
+
+        .ai-summary-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #000000;
+            margin: 15px 0;
+            padding: 15px;
+            background: #F9FAFB;
+            border-left: 3px solid #2563EB;
+        }
+
+        .ai-summary-note {
+            font-size: 12px;
+            color: #6B7280;
+            font-style: italic;
+            margin-top: 8px;
+        }
+
+        /* 리스트 */
+        .benefits-list {
+            margin: 20px 0;
+        }
+
+        .benefit-item {
+            margin-bottom: 20px;
+        }
+
+        .benefit-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 8px;
+        }
+
+        .benefit-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #000000;
+        }
+
+        /* 다음 단계 */
+        .next-steps {
+            margin: 20px 0;
+        }
+
+        .next-steps-list {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #000000;
+            margin: 15px 0;
+        }
+
+        .next-steps-quote {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #6B7280;
+            font-style: italic;
+            margin-top: 15px;
+            padding-left: 15px;
+            border-left: 2px solid #E5E7EB;
+        }
+
+        /* 문의 */
+        .contact {
+            margin: 20px 0;
+        }
+
+        .contact-info {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #000000;
+            margin: 15px 0;
+        }
+
+        /* 인쇄 최적화 */
+        @media print {
+            body {
+                width: 210mm;
+                height: 297mm;
+            }
+
+            .container {
+                width: 170mm;
+            }
+
+            .divider {
+                page-break-inside: avoid;
+            }
+
+            .card {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1>노원구축구협회 운영 현황 요약 (자동)</h1>
+            <p>이 자료는 노원구축구협회의 실제 운영 데이터를<br>자동으로 정리해 보여주는 화면 예시입니다.</p>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 핵심 현황 -->
+        <div class="section-title">📊 핵심 현황 한눈에 보기</div>
+        
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-label">산하 클럽 수</div>
+                <div class="card-value">20개 클럽</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-label">등록 회원 수</div>
+                <div class="card-value">2,134명</div>
+                <div class="card-note">(성인·실버·유소년 포함)</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-label">회비 납부율</div>
+                <div class="card-value">78%</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-label">올해 개최 대회</div>
+                <div class="card-value">6회</div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- AI 자동 요약 -->
+        <div class="section-title">🤖 AI 자동 요약</div>
+        
+        <div class="ai-summary">
+            <div class="ai-summary-text">
+                "현재 노원구축구협회는<br>
+                20개 클럽, 2,134명의 회원이 활동 중이며,<br>
+                올해 총 6회의 대회를 운영했습니다.<br>
+                회비 납부율은 78%로 안정적인 수준을 유지하고 있으며,<br>
+                전반적인 운영 현황은 작년 대비 소폭 개선되었습니다."
+            </div>
+            <div class="ai-summary-note">(이 문장은 시스템이 자동으로 생성합니다)</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 협회가 얻는 것 -->
+        <div class="section-title">✅ 협회가 얻는 것 (핵심 3가지)</div>
+        
+        <div class="benefits-list">
+            <div class="benefit-item">
+                <div class="benefit-title">1️⃣ 시간 절약</div>
+                <div class="benefit-text">
+                    엑셀 정리, 수기 집계 불필요<br>
+                    보고 자료 자동 생성
+                </div>
+            </div>
+            
+            <div class="benefit-item">
+                <div class="benefit-title">2️⃣ 누락 감소</div>
+                <div class="benefit-text">
+                    회원 / 회계 / 대회 데이터 자동 집계<br>
+                    사람 손으로 생기던 오류 최소화
+                </div>
+            </div>
+            
+            <div class="benefit-item">
+                <div class="benefit-title">3️⃣ 보고 자동화</div>
+                <div class="benefit-text">
+                    회장 보고, 상급 단체 제출용 자료<br>
+                    이 화면 하나로 바로 활용 가능
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 다음 단계 -->
+        <div class="section-title">▶️ 다음 단계 제안 (시범 운영)</div>
+        
+        <div class="next-steps">
+            <div class="next-steps-list">
+                기간: 2~4주<br>
+                범위: 대회 1개 + 주요 클럽 5~8개<br>
+                협회 부담: 기존 자료만 제공 (추가 입력 없음)<br>
+                비용: 시범 운영 무료
+            </div>
+            <div class="next-steps-quote">
+                "현재 방식은 그대로 두고,<br>
+                한 번 비교해보셔도 됩니다."
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 문의 -->
+        <div class="section-title">📞 문의 / 담당</div>
+        
+        <div class="contact">
+            <div class="contact-info">
+                담당: YAGO VIBE<br>
+                목적: 협회 운영 자동화 시범 지원
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

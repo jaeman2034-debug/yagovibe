@@ -1,0 +1,119 @@
+---
+alwaysApply: false
+description: YAGO SPORTS 플랫폼 UI 구조 및 컴포넌트 가이드
+globs: *.tsx,*.ts,*.jsx,*.js
+---
+
+# YAGO SPORTS 플랫폼 UI 구조 가이드
+
+## 📋 핵심 원칙
+
+1. **Dashboard는 진입점**: Quick Start 섹션에서 주요 기능으로 이동
+2. **Sports Activity는 기능 허브**: 대회/팀/선수/통계 기능 그리드
+3. **단순한 진입 카드**: Dashboard에서는 기능 그리드 표시 안 함
+4. **기능은 별도 페이지**: 실제 기능은 각각의 전용 페이지에서 제공
+
+## 🎯 Dashboard 구조
+
+### Quick Start 섹션
+
+**위치**: `src/pages/hub/HubHome.tsx`의 `QuickActions` 컴포넌트
+
+**구조**:
+```typescript
+빠른 시작
+├─ 거래 (🛒) → /sports/:sport/market
+├─ 경기 활동 (⚽) → /sports/activity
+└─ 이벤트 (📅) → /activity/events
+```
+
+**규칙**:
+- 각 카드는 **아이콘 + 텍스트만** 표시
+- 내부 그리드 버튼 **절대 사용 안 함**
+- 클릭 시 해당 페이지로 이동
+
+## 🏃 Sports Activity Hub
+
+### 페이지 위치
+
+**파일**: `src/pages/sports/SportsActivityPage.tsx`  
+**경로**: `/sports/activity`
+
+### 기능 그리드
+
+```typescript
+경기 활동
+├─ 대회 (🏆) → /tournaments
+├─ 팀 (👥) → /activity/team
+├─ 선수 (👤) → /players
+└─ 통계 (📊) → /stats
+```
+
+### 컴포넌트 구조
+
+```typescript
+// components/activity/ActivityGrid.tsx
+export function ActivityGrid({ activities }: ActivityGridProps) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {activities.map((activity) => (
+        <ActivityCard key={activity.id} activity={activity} />
+      ))}
+    </div>
+  );
+}
+```
+
+## 🎨 디자인 규칙
+
+### 카드 스타일
+
+```typescript
+// Quick Start 카드
+className="flex flex-col items-center justify-center p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
+
+// Activity Grid 카드
+className="flex flex-col items-center justify-center p-6 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all"
+```
+
+### 컬러 시스템
+
+```typescript
+// Primary
+primary-500: "#0F3D75"
+
+// Accent
+accent-500: "#16A34A"
+
+// Status
+success: "#16A34A"
+warning: "#F59E0B"
+danger: "#EF4444"
+```
+
+## 🔄 UX 흐름
+
+```
+Dashboard (/home)
+  ↓
+Quick Start: 경기 활동 클릭
+  ↓
+Sports Activity Hub (/sports/activity)
+  ↓
+기능 선택 (대회/팀/선수/통계)
+  ↓
+상세 페이지
+```
+
+## ⚠️ 주의사항
+
+1. **Dashboard에서 기능 그리드 표시 금지**
+2. **경기 활동 카드는 단순 진입 카드만**
+3. **실제 기능은 Sports Activity Hub에서만 표시**
+4. **라우팅은 명확하게 정의**
+
+## 📁 파일 참조
+
+- Dashboard: [src/pages/hub/HubHome.tsx](mdc:src/pages/hub/HubHome.tsx)
+- Sports Activity: [src/pages/sports/SportsActivityPage.tsx](mdc:src/pages/sports/SportsActivityPage.tsx)
+- UI Components: [src/components/ui/](mdc:src/components/ui/)

@@ -34,7 +34,7 @@ export async function exportReportToPDF(reportText: string, elementId: string) {
   // 4️⃣ 메타정보 추가
   const today = new Date().toISOString().slice(0, 10);
   pdf.setFontSize(10);
-  pdf.text(`YAGO VIBE SPORTS | Generated: ${today}`, 10, 290);
+  pdf.text(`YAGO SPORTS | Generated: ${today}`, 10, 290);
 
   // 5️⃣ 로컬 저장
   pdf.save(`weekly-report_${today}.pdf`);

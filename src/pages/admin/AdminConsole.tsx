@@ -41,7 +41,7 @@ export default function AdminConsole() {
             await fetch(`https://asia-northeast3-${projectId}.cloudfunctions.net/slackShare`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: `📊 YAGO VIBE 리포트 공유: ${msg}` }),
+                body: JSON.stringify({ text: `📊 YAGO SPORTS 리포트 공유: ${msg}` }),
             });
             speak("슬랙 전송이 완료되었습니다.");
         } catch (err) {
@@ -65,7 +65,7 @@ export default function AdminConsole() {
     return (
         <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-2xl shadow-lg">
-                <h1 className="text-4xl font-bold mb-2">⚙️ YAGO VIBE 관리 콘솔</h1>
+                <h1 className="text-4xl font-bold mb-2">⚙️ YAGO SPORTS 관리 콘솔</h1>
                 <p className="text-lg opacity-90">AI 자동화 시스템 제어 센터</p>
             </div>
 

@@ -1,0 +1,3938 @@
+/* ===== TradePage 안정 레이아웃 (겹침 100% 제거 버전) ===== */
+/* 🔥 핵심: 검색창 + 토글 버튼을 하나의 툴바로 묶기 */
+
+.trade-page {
+  width: 100%;
+  padding-bottom: 120px; /* FAB + 하단 nav 공간 확보 */
+  background: #f6f7f9;
+  min-height: 100vh;
+  display: block !important; /* ⭐ flex 레이아웃 제거 */
+  /* 🔥 모바일 핵심: 스크롤 체이닝 방지 */
+  overscroll-behavior-y: contain; /* ✅ 세로 스크롤 체이닝 방지 */
+}
+
+/* 🔥 모바일: 지도 영역에서 스크롤 완전 차단 */
+@media (max-width: 768px) {
+  .trade-page {
+    overscroll-behavior: none; /* ✅ 모든 스크롤 체이닝 방지 */
+  }
+  
+  /* 🔥 모바일: 지도 영역은 스크롤 안 됨 */
+  .map-visibility.map,
+  .map-visibility.map .map-wrapper,
+  .map-visibility.map .map-canvas {
+    overscroll-behavior: none !important;
+    -webkit-overflow-scrolling: auto !important; /* ✅ iOS 스크롤 비활성화 */
+  }
+}
+
+/* ===== Desktop 기본 레이아웃 ===== */
+.market-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px; /* ✅ 데스크탑 높이 동기화 */
+  gap: 16px;
+  width: 100%;
+  align-items: stretch; /* ✅ Grid가 높이 자동 동기화 */
+  min-height: 520px; /* ✅ 데스크탑 최소 높이 보장 */
+  height: calc(100vh - 120px) !important; /* ✅ 핵심: 뷰포트 높이에서 헤더 높이 제외 (강제 적용) */
+  max-height: calc(100vh - 120px); /* ✅ 최대 높이 제한 */
+}
+
+/* 🔥 핵심: 지도 모드일 때 리스트 섹션 완전히 숨김 */
+.market-layout.is-map .product-list-section,
+.market-layout.is-map section.product-list-section,
+.market-layout.is-map > section:not(.map-container):not(.popular-section):not(.search-toolbar) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  position: absolute !important; /* ✅ absolute로 완전히 제거 */
+  top: -9999px !important; /* ✅ 화면 밖으로 이동 */
+  left: -9999px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 🔥 핵심: 리스트 모드일 때 지도 컨테이너 숨김 (이미 조건부 렌더링이지만 CSS로도 보강) */
+.market-layout.is-list .map-container,
+.market-layout.is-list .map-visibility.map {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  position: absolute !important; /* ✅ absolute로 완전히 제거 */
+  top: -9999px !important; /* ✅ 화면 밖으로 이동 */
+  left: -9999px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ✅ UX 개선: 지도 모드일 때 탭에 shadow 추가 (지도 위에 떠있는 느낌) */
+.market-layout.is-map {
+  position: relative;
+}
+
+.market-layout.is-map::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* ✅ 데스크탑 높이 동기화 */
+@media (min-width: 769px) {
+  .market-layout .map-container,
+  .market-layout .side-panel {
+    height: 520px !important; /* ✅ 고정 높이로 동기화 */
+    min-height: 520px !important;
+    max-height: 520px !important; /* ✅ 최대 높이도 동일하게 */
+  }
+
+  .market-layout .map-wrapper {
+    height: 100% !important; /* ✅ 부모 높이에 맞춤 */
+    min-height: 520px !important;
+  }
+  
+  /* ✅ map-visibility도 동일한 높이 */
+  .map-visibility.map {
+    height: 520px !important;
+    min-height: 520px !important;
+    max-height: 520px !important;
+  }
+}
+
+/* ✅ 패널 없으면 1열 */
+.market-layout.no-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* 🔥 핵심: 지도 모드일 때 grid를 1열로 변경 (리스트 제거) */
+.market-layout.is-map {
+  grid-template-columns: 1fr !important; /* ✅ 지도만 표시 */
+  /* 🔥 핵심: 리스트가 grid에 남아있지 않도록 */
+  grid-template-rows: 1fr !important;
+}
+
+/* 🔥 핵심: 리스트 모드일 때 grid를 1열로 변경 (지도 제거) */
+.market-layout.is-list {
+  grid-template-columns: 1fr !important; /* ✅ 리스트만 표시 */
+  /* 🔥 핵심: 지도가 grid에 남아있지 않도록 */
+  grid-template-rows: 1fr !important;
+}
+
+/* 🔥 지도 컨테이너 강제 이벤트 허용 (핵심) */
+.market-layout .map-container {
+  min-width: 0;
+  position: relative;
+  width: 100%;
+  /* ✅ 핵심: 높이 설정 - 부모 높이에 맞춤 (강제 적용) */
+  height: 100% !important; /* ✅ 부모(market-layout) 높이에 맞춤 (강제) */
+  min-height: 400px !important; /* ✅ 최소 높이 보장 (데스크탑/모바일 공통) */
+  z-index: 1; /* ✅ 레이어 명확화: 지도는 기본 레이어 */
+  pointer-events: auto !important; /* ✅ 핵심: 지도 컨테이너는 이벤트 허용 */
+}
+
+/* ✅ 데스크탑 지도 컨테이너 높이 */
+@media (min-width: 769px) {
+  .market-layout .map-container {
+    height: 520px !important; /* ✅ 데스크탑 고정 높이 */
+    min-height: 520px;
+  }
+}
+
+/* ✅ 지도 컨테이너 내부는 모두 이벤트 허용 */
+.market-layout .map-container * {
+  pointer-events: auto !important;
+}
+
+/* 🔥 응급 패치: 지도 위에 어떤 것도 터치 못막게 강제 */
+#map,
+.map-wrapper,
+.map-wrapper > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.map-wrapper > *:not(.map-canvas):not(.optimized-map-root) {
+  position: relative !important;
+  z-index: 2 !important;
+  pointer-events: none !important; /* ✅ 지도 위 overlay는 이벤트 차단 */
+}
+
+/* 🔥 핵심: overlay 클릭 차단 (제일 중요) */
+.overlay,
+.card-overlay,
+.search-overlay,
+.map-overlay,
+.white-bar,
+.filter-bar {
+  pointer-events: none !important;
+}
+
+/* ❌ 제거: absolute 위치 요소를 무작정 막으면 지도 이벤트까지 죽음 */
+/* 지도 라이브러리(Google Maps)는 내부적으로 position:absolute를 사용하므로 */
+/* 이 코드는 지도 이벤트를 막아버림 */
+
+/* ✅ 지도 관련 absolute는 무조건 이벤트 허용 */
+.map-wrapper,
+.map-wrapper *,
+.map-container,
+.map-container *,
+.optimized-map-root,
+.optimized-map-root *,
+.map-canvas,
+.map-canvas *,
+.gm-style,
+.gm-style * {
+  pointer-events: auto !important;
+}
+
+/* ✅ 지도 영역 기본: 반드시 height가 있어야 함 */
+.market-layout .map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100% !important; /* ✅ 핵심: 부모 높이에 맞춤 (강제) */
+  min-height: 400px !important; /* ✅ 최소 높이 보장 */
+  overflow: hidden;
+  border-radius: 16px;
+  background: #f5f6f7;
+  /* 🔥 지도 wrapper 터치 허용 */
+  touch-action: pan-x pan-y;
+  /* 🔥 transform 제거 (모바일 이벤트 깨짐 방지) */
+  transform: none !important;
+}
+
+.market-layout .map-wrapper * {
+  touch-action: auto;
+}
+
+/* ✅ 데스크탑 지도 높이 */
+@media (min-width: 769px) {
+  .market-layout .map-wrapper {
+    height: 520px !important; /* ✅ 데스크탑 고정 높이 */
+    min-height: 520px;
+  }
+}
+
+/* ✅ 모바일 지도 높이 고정 */
+@media (max-width: 768px) {
+  /* 🔥 모바일: market-layout을 block으로 전환 (grid 완전 제거) + full width + transform 제거 */
+  .market-layout {
+    display: block !important; /* ✅ 핵심: grid 완전 제거 */
+    grid-template-columns: none !important;
+    gap: 0 !important;
+    width: 100vw !important; /* ✅ 핵심: 모바일 full width */
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 320px !important; /* ✅ 모바일 최소 높이 보장 */
+    height: auto !important; /* ✅ 모바일은 자동 높이 */
+    transform: none !important; /* ✅ 핵심: Google overlay 위치 정상화 */
+  }
+  
+  .market-layout .map-wrapper {
+    height: 320px !important; /* ✅ 모바일 지도 높이 고정 */
+    min-height: 320px !important;
+    max-height: 320px !important; /* ✅ 최대 높이도 고정 */
+    /* 🔥 모바일 핵심: 터치 이벤트 보장 */
+    touch-action: pan-x pan-y !important;
+    -webkit-touch-callout: none; /* ✅ iOS 롱프레스 메뉴 비활성화 */
+    -webkit-user-select: none; /* ✅ iOS 텍스트 선택 비활성화 */
+    user-select: none; /* ✅ 텍스트 선택 비활성화 */
+    overscroll-behavior: none; /* ✅ 스크롤 체이닝 방지 */
+  }
+  
+  /* 🔥 모바일: 지도 컨테이너 터치 이벤트 보장 + full width 강제 */
+  .market-layout .map-container {
+    width: 100vw !important; /* ✅ 핵심: 모바일 지도 full width */
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 320px !important; /* ✅ 모바일 지도 컨테이너 높이 고정 */
+    min-height: 320px !important;
+    max-height: 320px !important;
+    touch-action: pan-x pan-y !important;
+    overscroll-behavior: none !important;
+    transform: none !important; /* ✅ 핵심: Google overlay 위치 정상화 */
+  }
+  
+  /* 🔥 모바일: map-visibility 터치 이벤트 보장 */
+  .map-visibility.map {
+    height: 320px !important; /* ✅ 모바일 높이 고정 */
+    min-height: 320px !important;
+    max-height: 320px !important;
+    touch-action: pan-x pan-y !important;
+    overscroll-behavior: none !important;
+    -webkit-overflow-scrolling: auto !important; /* ✅ iOS 스크롤 비활성화 */
+  }
+  
+  /* ✅ 모바일: optimized-map-root 높이 명시적 설정 (핵심) + full width + transform 제거 */
+  .market-layout .map-wrapper .optimized-map-root {
+    width: 100% !important; /* ✅ full width 강제 */
+    max-width: 100% !important;
+    height: 320px !important; /* ✅ 부모 높이 100% 대신 명시적 높이 */
+    min-height: 320px !important;
+    max-height: 320px !important;
+    transform: none !important; /* ✅ 핵심: Google overlay 위치 정상화 */
+  }
+  
+  /* ✅ 모바일: map-canvas 높이 명시적 설정 (핵심) */
+  .market-layout .map-wrapper .map-canvas {
+    height: 320px !important; /* ✅ 부모 높이 100% 대신 명시적 높이 */
+    min-height: 320px !important;
+    max-height: 320px !important;
+  }
+}
+
+/* ✅ 데스크탑 높이 */
+@media (min-width: 769px) {
+  .market-layout .map-wrapper {
+    height: 100%; /* ✅ Grid stretch로 높이 자동 동기화 */
+    min-height: 420px; /* ✅ 데스크탑 최소 높이 */
+  }
+}
+
+/* ✅ 지도 캔버스는 "진짜 클릭 가능"해야 함 */
+.map-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  inset: 0 !important;
+
+  /* 🔥 모바일 드래그/줌 핵심 */
+  pointer-events: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* ✅ Google Maps 내부 레이어에도 강제 적용 */
+.market-layout .map-wrapper .gm-style,
+.market-layout .map-wrapper .gm-style * {
+  pointer-events: auto !important;
+}
+
+/* 🔥 Google attribution / overlay 터치 차단 (핵심) */
+.gm-style .gm-style-cc,
+.gm-style .gm-style-cc + div,
+.gm-style .gmnoprint,
+.gm-style a {
+  pointer-events: none !important;
+}
+
+/* ✅ Google Maps 컨트롤은 클릭 가능하게 */
+.gm-style .gm-style-cc button,
+.gm-style .gm-style-cc a[href] {
+  pointer-events: auto !important;
+}
+
+/* 🔥 지도 위 덮는 모든 레이어 차단 (핵심) */
+.overlay,
+.card-overlay,
+.panel,
+.white-bar,
+.map-header,
+.map-filter,
+.map-info-bar,
+.map-marker-info,
+.map-overlay,
+.map-footer {
+  pointer-events: none !important;
+}
+
+/* ✅ 핵심: 높은 z-index overlay 자동 차단 */
+div[style*="z-index: 100000"],
+div[style*="z-index: 1000001"],
+div[style*="z-index: 1000002"],
+div[style*="z-index: 1000000"] {
+  pointer-events: none !important;
+}
+
+/* ✅ 핵심: absolute/fixed inset-0 overlay 자동 차단 */
+div[style*="position: absolute"][style*="inset: 0"],
+div[style*="position: fixed"][style*="inset: 0"],
+.absolute.inset-0,
+.fixed.inset-0 {
+  pointer-events: none !important;
+}
+
+/* ✅ 지도 컨테이너 내부의 모든 overlay 차단 */
+.mobile-map-wrapper div[style*="z-index"]:not(.gm-style):not(.gm-style *) {
+  pointer-events: none !important;
+}
+
+.mobile-map-canvas div[style*="z-index"]:not(.gm-style):not(.gm-style *) {
+  pointer-events: none !important;
+}
+
+.optimized-map-root div[style*="z-index"]:not(.gm-style):not(.gm-style *) {
+  pointer-events: none !important;
+}
+
+/* ❌ 지도 위를 덮는 오버레이는 클릭 막으면 안됨(표시만) */
+.market-layout .map-wrapper .map-overlay,
+.market-layout .map-wrapper .map-info-bar {
+  pointer-events: none !important;
+}
+
+/* ✅ 만약 상품 카드가 지도 위에 있다면, 카드만 클릭되게 */
+.map-product-card {
+  pointer-events: auto;
+  z-index: 20;
+}
+
+/* ✅ 지도 canvas만 클릭 허용 (overlay 차단) */
+.market-layout .map-wrapper .map-canvas,
+.market-layout .map-wrapper .optimized-map-root {
+  pointer-events: auto !important; /* ✅ 지도 canvas만 클릭 가능 */
+}
+
+/* ✅ Google Map overlay 깨짐 방지 (모바일 흰색 바 해결) */
+.market-layout .map-wrapper * {
+  max-width: none !important; /* ✅ 핵심: overlay 폭 제한 해제 */
+}
+
+.market-layout .map-wrapper .gm-style,
+.market-layout .map-wrapper .gm-style * {
+  box-sizing: content-box !important; /* ✅ 핵심: Google Maps 기본 box-sizing 유지 */
+}
+
+/* ✅ 모바일 오버레이 클릭 막힘 방지 */
+.market-layout .map-wrapper::before {
+  content: none; /* ✅ 가상 요소 제거 */
+}
+
+.map-product-card,
+.side-panel {
+  pointer-events: auto; /* ✅ 클릭 이벤트 보장 */
+}
+
+/* 🔥 지도 위에 떠있는 모든 UI 클릭 차단 (가장 중요) */
+.map-product-card,
+.side-panel,
+.map-overlay,
+.map-info,
+.map-info-bar,
+.map-footer,
+.floating-button,
+.bottom-nav,
+.market-layout::before,
+.market-layout::after {
+  pointer-events: none !important; /* ✅ 핵심: 지도 위 모든 UI 클릭 차단 */
+}
+
+/* 단 카드 내부 버튼만 클릭 허용 */
+.map-product-card *,
+.mobile-product-card *,
+.side-panel * {
+  pointer-events: auto !important; /* ✅ 카드/패널 내부 요소만 클릭 가능 */
+}
+
+/* ✅ overlay div pointer 차단 */
+.map-marker-info,
+.optimized-map-root > div[class*="absolute"] {
+  pointer-events: none !important;
+}
+
+.optimized-map-root > div[class*="absolute"] button,
+.optimized-map-root > div[class*="absolute"] a {
+  pointer-events: auto !important; /* ✅ 버튼/링크는 클릭 가능 */
+}
+
+/* ✅ 주의: Google Map 내부 UI 강제 스타일 제거 (모바일 흰색 바 원인) */
+/* .market-layout .map-wrapper > * { width: 100% !important; height: 100% !important; } */
+/* 위 스타일이 Google 내부 UI를 망가뜨려서 제거함 */
+
+/* ✅ map-wrapper 내부 모든 요소 클릭 가능 + 터치 이벤트 보장 */
+.market-layout .map-wrapper * {
+  pointer-events: auto !important; /* ✅ 핵심: 지도 내부 모든 요소 클릭 허용 */
+  touch-action: auto !important; /* ✅ 모바일 터치 이벤트 보장 */
+}
+
+/* ✅ Google Maps 기본 UI (attribution, controls) 이벤트 보장 */
+.market-layout .map-wrapper .gm-style,
+.market-layout .map-wrapper .gm-style * {
+  pointer-events: auto !important;
+}
+
+/* ✅ Google Maps attribution 영역 제한 (모바일 흰 바 방지) */
+.market-layout .map-wrapper .gm-style-cc,
+.market-layout .map-wrapper .gm-style-cc * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* ===== OptimizedProductMap 캔버스 안정화 ===== */
+/* ✅ 지도 캔버스는 "진짜 클릭 가능"해야 함 */
+.map-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  inset: 0 !important;
+  overflow: hidden;
+
+  /* 🔥 모바일 드래그/줌 핵심 */
+  pointer-events: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* ============================================ */
+/* 🔥 지도는 무조건 터치/드래그/클릭 허용 (강제 덮어쓰기) */
+/* ============================================ */
+/* ✅ 지도는 무조건 터치/드래그/클릭 허용 */
+.market-layout .map-container,
+.market-layout .map-wrapper,
+.market-layout .map-wrapper * {
+  pointer-events: auto !important;
+}
+
+/* ✅ 모바일에서 스크롤/제스처 충돌 방지 */
+.market-layout .map-wrapper,
+.market-layout .map-wrapper .map-canvas,
+.market-layout .map-wrapper .gm-style {
+  touch-action: pan-x pan-y !important;
+}
+
+/* ✅ 혹시 상위에 pointer-events:none 걸려있으면 죽는다 → 강제 해제 */
+/* ⚠️ 주의: .map-visibility는 제외 (자식 요소만 이벤트 허용) */
+.market-layout {
+  pointer-events: auto !important;
+}
+
+.market-layout *:not(.map-visibility) {
+  pointer-events: auto !important;
+}
+
+/* ✅ map-visibility 내부는 별도로 처리 */
+.market-layout .map-visibility.map * {
+  pointer-events: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* ============================================ */
+/* 🚑 응급 패치: 지도 위에 어떤 것도 터치 못막게 강제 */
+/* ============================================ */
+/* 지도 위에 어떤 것도 터치 못막게 강제 */
+.map-container,
+.map-container *,
+.map-wrapper,
+.map-wrapper *,
+.map-visibility.map,
+.map-visibility.map *,
+.map-visibility.map .map-wrapper,
+.map-visibility.map .map-wrapper *,
+.map-visibility.map .optimized-map-root,
+.map-visibility.map .optimized-map-root *,
+.map-visibility.map .map-canvas,
+.map-visibility.map .map-canvas * {
+  pointer-events: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* 지도 외 레이어는 터치 못받게 */
+/* ⚠️ 주의: .map-visibility는 제외 (지도는 별도 처리) */
+.market-layout > *:not(.map-container):not(.map-visibility) {
+  pointer-events: none !important;
+}
+
+/* ✅ 지도는 반드시 이벤트 허용 (중복 보강) */
+.market-layout .map-visibility.map,
+.market-layout .map-visibility.map *,
+.market-layout .map-container,
+.market-layout .map-container * {
+  pointer-events: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* 카드만 다시 활성화 */
+.mobile-product-card,
+.mobile-product-card *,
+.map-product-card,
+.map-product-card * {
+  pointer-events: auto !important;
+}
+
+/* 패널만 다시 활성화 */
+.side-panel,
+.side-panel * {
+  pointer-events: auto !important;
+}
+
+/* ✅ 지도 canvas만 타겟팅 (광역 강제 CSS 제거) */
+.market-layout .map-wrapper .map-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* ✅ OptimizedProductMap 루트도 안정적으로 */
+.market-layout .map-wrapper .optimized-map-root {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto !important; /* ✅ 핵심: 지도 루트는 이벤트 허용 */
+  z-index: 1;
+}
+
+/* 🔥 map-visibility div가 지도 위를 덮지 않도록 (핵심) */
+.map-visibility {
+  position: relative; /* ✅ absolute 제거 */
+  z-index: 0 !important; /* ✅ 지도보다 낮은 z-index */
+  /* ✅ 핵심: 높이 설정 - 부모 높이에 맞춤 (강제 적용) */
+  height: 100% !important; /* ✅ 부모(map-container) 높이에 맞춤 */
+  min-height: 400px !important; /* ✅ 최소 높이 보장 */
+  width: 100%;
+}
+
+.map-visibility.map {
+  display: block !important; /* ✅ 지도 모드일 때 표시 */
+  /* ✅ 핵심: map-visibility.map 자체도 이벤트 허용 */
+  pointer-events: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* ✅ map-visibility 내부 지도는 반드시 이벤트 허용 (핵심) - 모든 선택자 강화 */
+.map-visibility.map,
+.map-visibility.map *,
+.map-visibility.map > *,
+.map-visibility.map > * > *,
+.map-visibility.map .map-wrapper,
+.map-visibility.map .map-wrapper *,
+.map-visibility.map .map-wrapper > *,
+.map-visibility.map .map-wrapper > * > *,
+.map-visibility.map .optimized-map-root,
+.map-visibility.map .optimized-map-root *,
+.map-visibility.map .optimized-map-root > *,
+.map-visibility.map .optimized-map-root > * > *,
+.map-visibility.map .map-canvas,
+.map-visibility.map .map-canvas *,
+.map-visibility.map .map-canvas > *,
+.map-visibility.map .map-canvas > * > *,
+.map-visibility.map .gm-style,
+.map-visibility.map .gm-style *,
+.map-visibility.map .gm-style > *,
+.map-visibility.map .gm-style > * > *,
+.map-visibility.map .gm-style div,
+.map-visibility.map .gm-style div * {
+  pointer-events: auto !important; /* ✅ 지도만 이벤트 허용 */
+  touch-action: pan-x pan-y !important; /* ✅ 모바일 터치 이벤트 보장 */
+}
+
+/* 🔥 핵심: 지도 위의 모든 overlay 무력화 (z-index 1000002 등) */
+.map-visibility.map ~ *,
+.map-visibility.map + *,
+body > div[style*="z-index: 100000"],
+body > div[style*="z-index: 1000002"],
+div[style*="pointer-events: none"][style*="z-index: 100000"] {
+  pointer-events: none !important; /* ✅ overlay는 이벤트 차단 */
+}
+
+/* 🔥 핵심: 지도 영역 내부의 모든 overlay 무력화 */
+.map-visibility.map div[style*="pointer-events: none"][style*="z-index"],
+.map-visibility.map div[style*="opacity: 0"][style*="z-index"] {
+  pointer-events: none !important; /* ✅ 투명 overlay는 이벤트 차단 */
+  display: none !important; /* ✅ 완전히 숨김 */
+}
+
+.map-visibility.map .map-wrapper {
+  z-index: 1 !important; /* ✅ 지도 wrapper는 높은 z-index */
+  pointer-events: auto !important; /* ✅ 핵심: wrapper도 이벤트 허용 */
+  touch-action: pan-x pan-y !important;
+}
+
+/* ✅ 데스크탑 map-visibility 높이 */
+@media (min-width: 769px) {
+  .map-visibility {
+    height: 520px !important; /* ✅ 데스크탑 고정 높이 */
+    min-height: 520px;
+  }
+}
+
+/* ✅ 데스크탑 우측 패널: 지도 높이에 맞춤 */
+.market-layout .side-panel {
+  width: 360px;
+  height: 100%; /* ✅ Grid stretch로 높이 자동 동기화 */
+  min-height: 420px; /* ✅ 지도와 동일한 최소 높이 */
+  max-height: 600px; /* ✅ 데스크탑 최대 높이 제한 */
+  overflow-y: auto;
+  border-radius: 16px;
+  position: relative !important; /* ✅ 핵심: fixed 절대 금지 */
+  pointer-events: auto; /* ✅ 클릭 이벤트 보장 */
+  z-index: 10; /* ✅ 레이어 명확화: 패널은 최상위 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ✅ 데스크탑: 지도와 패널 높이 완전 동기화 */
+@media (min-width: 769px) {
+  .market-layout .side-panel {
+    height: 520px !important; /* ✅ 지도와 동일한 높이 */
+    min-height: 520px !important;
+    max-height: 520px !important; /* ✅ 최대 높이도 동일하게 */
+  }
+}
+
+/* ✅ 데스크탑: 지도와 패널 높이 완전 동기화 */
+@media (min-width: 769px) {
+  .market-layout .side-panel {
+    height: 520px !important; /* ✅ 지도와 동일한 높이 */
+    min-height: 520px !important;
+    max-height: 520px !important; /* ✅ 최대 높이도 동일하게 */
+  }
+}
+
+/* ✅ 지도 visibility 제어 (조건부 렌더링 대신 CSS로 제어) */
+.map-visibility.list {
+  display: none !important; /* ✅ 리스트 모드일 때 지도 숨김 */
+}
+
+.map-visibility.map {
+  display: block; /* ✅ 지도 모드일 때 지도 표시 */
+  pointer-events: auto !important; /* ✅ 핵심: 지도 visibility는 이벤트 허용 */
+}
+
+/* 🔥 지도 위에 올라가는 모든 UI 막기 (핵심) */
+/* ✅ trade-page 기본: 지도는 제외하고 설정 */
+.trade-page {
+  pointer-events: auto;
+}
+
+/* ⚠️ 주의: .map-visibility.map은 제외 (지도는 별도 처리) */
+.trade-page *:not(.map-visibility.map):not(.map-visibility.map *) {
+  pointer-events: auto;
+}
+
+/* ✅ 지도는 반드시 이벤트 허용 */
+.trade-page .map-visibility.map,
+.trade-page .map-visibility.map * {
+  pointer-events: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
+.trade-page .overlay,
+.trade-page .panel,
+.trade-page .white-bar,
+.trade-page .filter-bar,
+.trade-page .card-floating,
+.trade-page .map-visibility:not(.map),
+.trade-page .map-overlay {
+  pointer-events: none !important;
+}
+
+/* 🔥 핵심: 지도 위 overlay 클릭 막지 않게 (제일 중요) */
+.map-overlay {
+  pointer-events: none !important;
+}
+
+/* 🔥 지도 모드일 때 1컬럼 레이아웃 전환 (패널 없으면 자동 풀폭) */
+.trade-page.map-mode {
+  display: block !important;
+}
+
+.trade-page.map-mode .page-wrap {
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+/* 🔥 지도 모드: map-layer를 컨테이너에서 브레이크아웃 → 100vw 풀폭 (흰 박스/좌우 여백 제거) */
+/* 🔥 map-list-stack: map과 list를 absolute로 겹쳐 배치 (흰 박스 레이어 충돌 해결) */
+.map-list-stack {
+  position: relative;
+  width: 100%;
+}
+
+.map-container {
+  flex: 1 !important; /* flex column에서 map이 shrink되지 않도록 */
+  min-height: 0 !important; /* flex 오버플로우 허용 */
+}
+
+.map-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.list-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+
+.trade-page.map-mode .map-list-stack {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin-left: calc(-50vw + 50%) !important;
+  margin-right: calc(-50vw + 50%) !important;
+  box-sizing: border-box;
+}
+
+/* 🔥 지도 모드: main에서 flex flex-col 제거 → map height가 flex에서 무시되지 않도록 */
+main:has(.trade-page.map-mode) {
+  display: block !important;
+  min-height: 0 !important;
+}
+
+/* 🔥 지도 모드: map-layer fixed → 화면 끝까지 채움 (회색 빈 영역 제거) */
+.trade-page.map-mode .map-layer {
+  position: fixed !important;
+  top: 56px !important;   /* header */
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 64px !important; /* bottom nav */
+  z-index: 1 !important;
+  width: 100% !important;
+  /* 명시적 높이 → 중간에서 잘리지 않도록, 회색 빈 영역 제거 */
+  height: calc(100dvh - 56px - 64px) !important;
+  min-height: calc(100vh - 56px - 64px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.trade-page.map-mode .map-layer .map-container {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  max-height: none !important; /* 320px 등 다른 규칙 덮어쓰기 → 회색 빈 영역 제거 */
+  max-width: 100vw !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+.trade-page.map-mode .content-wrapper {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* ===== 중앙 컨테이너 래퍼 (데스크탑 중앙 정렬 핵심) ===== */
+.page-wrap {
+  width: 100%;
+  max-width: 720px; /* 모바일 기본 폭 */
+  margin: 0 auto; /* 데스크탑 중앙정렬 */
+  padding: 0 16px;
+  box-sizing: border-box;
+  display: block !important; /* ⭐ flex 레이아웃 제거 */
+}
+
+/* 데스크탑에서 컨테이너 폭 확대 */
+@media (min-width: 1024px) {
+  .page-wrap {
+    max-width: 1200px;
+    padding: 0 32px;
+  }
+}
+
+/* ===== 인기 카드 섹션 ===== */
+.popular-section {
+  padding: 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.popular-section .recommended-list,
+.popular-section .recommended-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 8px;
+  justify-content: flex-start; /* 기본값: left 정렬 */
+}
+
+.popular-section .recommended-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================= */
+/* 🔥 인기상품 카드 전용 CSS (리스트 카드와 완전 분리) */
+/* ============================= */
+
+/* 인기상품 카드 컨테이너 */
+.popular-section .recommended-card {
+  flex: 0 0 120px; /* 모바일 기준 카드 폭 고정 */
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
+  padding: 8px;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 데스크탑에서 카드 크기 확대 */
+@media (min-width: 1024px) {
+  .popular-section .recommended-card {
+    flex: 0 0 160px;
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
+    padding: 12px;
+  }
+}
+
+/* 인기상품 이미지 영역 */
+.popular-section .recommended-card .trade-card-image,
+.popular-section .recommended-card .product-card-image {
+  width: 100%;
+  height: 90px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.popular-section .recommended-card .trade-card-image img,
+.popular-section .recommended-card .product-card-image img,
+.popular-section .recommended-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 10px;
+}
+
+/* 인기상품 텍스트 영역 */
+.popular-section .recommended-card .trade-card-body,
+.popular-section .recommended-card .product-info {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100%;
+  gap: 4px;
+  padding: 0;
+  margin: 0;
+}
+
+/* 인기상품 제목 */
+.popular-section .recommended-card .product-title,
+.popular-section .recommended-card .trade-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  margin: 0;
+}
+
+/* 인기상품 가격 */
+.popular-section .recommended-card .product-price,
+.popular-section .recommended-card .trade-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2563eb;
+  text-align: center;
+  margin: 0;
+}
+
+/* 인기상품 위치 정보 숨김 (작은 카드에서는 불필요) */
+.popular-section .recommended-card .product-location-group,
+.popular-section .recommended-card .trade-meta {
+  display: none !important;
+}
+
+/* 모바일에서 인기상품 카드 추가 최적화 */
+@media (max-width: 768px) {
+  .popular-section .recommended-card {
+    flex: 0 0 110px !important;
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+    padding: 8px 6px !important;
+  }
+
+  .popular-section .recommended-card .trade-card-image,
+  .popular-section .recommended-card .product-card-image {
+    height: 80px;
+  }
+
+  .popular-section .recommended-card .product-title,
+  .popular-section .recommended-card .trade-title {
+    font-size: 11px;
+  }
+
+  .popular-section .recommended-card .product-price,
+  .popular-section .recommended-card .trade-price {
+    font-size: 12px;
+  }
+}
+
+/* ===== 검색 + 리스트/지도 토글 툴바 (핵심) ===== */
+.search-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: center;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.search-input {
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  padding: 0 44px 0 12px;
+  border: 1px solid #ddd;
+  outline: none;
+  font-size: 14px;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 4px;
+  line-height: 1;
+}
+
+.search-clear-btn:hover {
+  opacity: 1;
+}
+
+/* 토글 버튼 */
+.toggle-btn {
+  width: 72px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-btn:hover {
+  background: #e5e7eb;
+}
+
+.toggle-btn-active {
+  background: #2f7cf6;
+  border-color: #2f7cf6;
+  color: #fff;
+}
+
+.toggle-btn-active:hover {
+  background: #2563eb;
+}
+
+/* 검색 액션 (AI 검색 버튼 등) */
+.search-actions {
+  padding: 0 16px 12px;
+  background: #fff;
+}
+
+.ai-search-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 0;
+  background: #9333ea;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-search-btn:hover:not(:disabled) {
+  background: #7e22ce;
+}
+
+.ai-search-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* 오타 교정 결과 */
+.search-fixed-query {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #1e40af;
+}
+
+/* 추천 검색어 리스트 (흐르는 패널) */
+.suggest-panel {
+  margin: 0 16px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  max-height: 256px;
+  overflow-y: auto;
+}
+
+.suggest-item {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  transition: background 0.15s ease;
+}
+
+.suggest-item:hover {
+  background: #f3f4f6;
+}
+
+/* 검색 로딩 */
+.search-loading {
+  margin: 0 16px 12px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.search-loading p {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ===== 상품 리스트 영역 ===== */
+.product-list-section {
+  padding: 16px 0; /* 좌우 패딩은 page-wrap에서 처리 */
+}
+
+/* ===== 지도 하단 상품 카드 슬라이드 ===== */
+.map-wrap {
+  position: relative; /* 🔥 카드 위치 기준점 */
+  width: 100%;
+  height: 600px;
+  margin-top: 16px;
+  overflow: hidden; /* 🔥 핵심: 지도 레이어가 컨테이너 밖으로 삐져나오지 않도록 */
+  border-radius: 14px; /* 🔥 둥근 모서리 */
+}
+
+/* 🔥 지도 wrapper (내부 div들) */
+.map-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ❌ 제거: .map-wrapper > div { ... } 같은 광역 강제 CSS는 드래그/클릭 좌표계를 죽임 */
+
+.trade-map {
+  position: relative; /* 🔥 카드 위치 기준점 */
+  width: 100% !important; /* 🔥 강제 풀폭 */
+  max-width: 100% !important;
+  overflow: hidden; /* 🔥 핵심: 지도 레이어가 컨테이너 밖으로 삐져나오지 않도록 */
+  border-radius: 14px; /* 🔥 둥근 모서리 */
+}
+
+.map-canvas {
+  width: 100% !important;
+  height: 100%;
+}
+
+/* 🔥 모바일: 사이드 카드 제거 (지도 위 레이어 충돌 방지) */
+@media (max-width: 768px) {
+  .trade-page:has(.trade-map) .side-column,
+  .trade-page:has(.map-mode) .side-column {
+    display: none !important;
+  }
+  
+  .trade-page:has(.trade-map) .content-wrapper,
+  .trade-page:has(.map-mode) .content-wrapper {
+    display: block !important;
+    width: 100% !important;
+  }
+}
+
+/* 🔥 지도 모드: 리스트 패널 완전 제거 */
+.trade-page.map-mode .product-list-section:not(:has(.trade-map)),
+.trade-page.map-mode section.product-list-section {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  position: absolute !important; /* ✅ absolute로 완전히 제거 */
+  top: -9999px !important; /* ✅ 화면 밖으로 이동 */
+  left: -9999px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 🔥 모바일 지도 모드: MobileMapView가 렌더링될 때 일반 레이아웃 완전 숨김 */
+@media (max-width: 768px) {
+  /* 🔥 핵심: MobileMapView가 렌더링되면 trade-page 전체를 숨김 */
+  body:has(.mobile-map-page) .trade-page:not(.mobile-map-active),
+  body:has(.mobile-map-page) .page-wrap:not(.mobile-map-mode),
+  body:has(.mobile-map-page) .market-layout,
+  body:has(.mobile-map-page) .product-list-section {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
+  }
+  
+  /* ⚠️ .trade-page.mobile-map-active 숨김 제거: 지도/리스트 공통 레이아웃이 모바일에서도 보이도록 */
+
+  /* 🔥 모바일 지도 모드 활성화 시: 리스트 섹션 완전 숨김 */
+  .trade-page.mobile-map-active .product-list-section,
+  .trade-page.map-mode.mobile-map-active .product-list-section,
+  .trade-page.mobile-map-active .page-wrap > .product-list-section,
+  .trade-page.map-mode.mobile-map-active .page-wrap > .product-list-section {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    z-index: -1 !important; /* ✅ 지도 아래로 완전히 숨김 */
+    pointer-events: none !important; /* ✅ 클릭 이벤트 차단 */
+  }
+  
+  /* 🔥 모바일 지도 모드: page-wrap이 지도를 가리지 않도록 */
+  .trade-page.map-mode.mobile-map-active .page-wrap,
+  .trade-page.mobile-map-active .page-wrap.mobile-map-mode {
+    position: relative !important;
+    z-index: 0 !important; /* ✅ 지도보다 낮은 z-index */
+    background: transparent !important; /* ✅ 배경 투명 */
+    padding: 0 !important; /* ✅ 패딩 제거 */
+    margin: 0 !important; /* ✅ 마진 제거 */
+    max-width: 100% !important; /* ✅ full width */
+  }
+  
+  /* 🔥 모바일 지도 모드: 지도 컨테이너가 항상 위에 오도록 */
+  .trade-page.map-mode.mobile-map-active .map-container,
+  .trade-page.mobile-map-active .map-container,
+  .trade-page.map-mode.mobile-map-active .map-visibility.map,
+  .trade-page.mobile-map-active .map-visibility.map,
+  .trade-page.map-mode.mobile-map-active .map-wrapper,
+  .trade-page.mobile-map-active .map-wrapper {
+    position: relative !important;
+    z-index: 10 !important; /* ✅ 지도가 다른 요소 위에 */
+  }
+  
+  /* 🔥 모바일 지도 모드: 인기 섹션과 검색 툴바는 유지하되 z-index 조정 */
+  .trade-page.map-mode.mobile-map-active .popular-section,
+  .trade-page.mobile-map-active .popular-section,
+  .trade-page.map-mode.mobile-map-active .search-toolbar,
+  .trade-page.mobile-map-active .search-toolbar {
+    position: relative !important;
+    z-index: 5 !important; /* ✅ 지도보다 낮지만 리스트보다 높음 */
+  }
+  
+  /* 🔥 모바일 지도 모드: market-layout이 지도를 가리지 않도록 */
+  .trade-page.map-mode.mobile-map-active .market-layout,
+  .trade-page.mobile-map-active .market-layout {
+    position: relative !important;
+    z-index: 1 !important; /* ✅ 지도보다 낮음 */
+    background: transparent !important; /* ✅ 배경 투명 */
+  }
+  
+  /* 🔥 모바일 지도 모드: 하얀 박스(빈 컨테이너) 완전 제거 */
+  .trade-page.map-mode.mobile-map-active .market-layout:not(:has(.map-container)),
+  .trade-page.mobile-map-active .market-layout:not(:has(.map-container)) {
+    display: none !important;
+  }
+  
+  /* 🔥 모바일 지도 모드: 지도가 없는 빈 섹션 숨김 */
+  .trade-page.map-mode.mobile-map-active section:not(:has(.map-container)):not(.popular-section):not(.search-toolbar),
+  .trade-page.mobile-map-active section:not(:has(.map-container)):not(.popular-section):not(.search-toolbar) {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  /* 🔥 핵심: AppShellLayout의 app-root / main이 지도를 가리지 않도록 (흰 박스 방지) */
+  body:has(.mobile-map-page) .app-root,
+  body:has(.mobile-map-page) main,
+  body:has(.mobile-map-page) .app-scroll,
+  body:has(.mobile-map-page) .page-content {
+    z-index: 0 !important;
+    background: transparent !important;
+    position: relative !important;
+    pointer-events: none !important; /* ✅ 모바일 지도 모드: main 요소 이벤트 차단 */
+  }
+
+  /* 🔥 필수: main에 transform이 있으면 .mobile-map-page(fixed)가 main 기준으로 고정됨 → 스크롤 시 지도 밑으로 흰 영역 노출 */
+  body:has(.mobile-map-page) main,
+  body:has(.mobile-map-page) main.app-scroll {
+    transform: none !important;
+    -webkit-transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* 🔥 핵심: main 내부의 모든 요소도 이벤트 차단 (지도만 클릭 가능) */
+  body:has(.mobile-map-page) main > *:not(.mobile-map-page) {
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
+  
+  /* 🔥 핵심: MobileMapView만 이벤트 허용 */
+  body:has(.mobile-map-page) .mobile-map-page {
+    pointer-events: auto !important;
+    z-index: 9999 !important;
+  }
+}
+
+/* 🔥 모바일: 레이아웃 block (grid 완전 제거) */
+@media (max-width: 768px) {
+  .market-layout {
+    display: block; /* grid 완전 제거 */
+  }
+
+  /* ✅ 상위 @media (163줄)에서 이미 map-container, map-wrapper 설정 완료 - 중복 제거 */
+
+  /* ✅ 모바일: 패널을 지도 아래로 이동 (fixed 제거) */
+  .market-layout .side-panel,
+  .side-panel {
+    position: static !important; /* ✅ 핵심: fixed 제거, static으로 지도 아래 배치 */
+    width: 100% !important;
+    margin-top: 12px;
+    box-shadow: none;
+    border-radius: 16px;
+    z-index: auto !important;
+  }
+
+  /* ✅ 모바일 지도 영역 (중복 제거) */
+  .market-layout .map-area {
+    width: 100% !important;
+    height: 320px !important;
+    position: relative;
+  }
+
+  /* ✅ 모바일 상품 카드 (map-container 밖으로 이동 - 지도 아래 배치) */
+  .map-container + .mobile-product-card,
+  .mobile-product-card {
+    position: static !important; /* ✅ 핵심: static으로 지도 아래 배치 */
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    margin-top: 16px; /* ✅ 지도 아래 여백 */
+    width: 100%;
+    z-index: 5; /* ✅ 카드는 지도 아래 레이어 */
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: auto !important; /* ✅ 모바일 카드만 클릭 가능하게 */
+  }
+  
+  /* ✅ 모바일: map-container 내부의 mobile-product-card는 숨김 (중복 방지) */
+  .map-container .mobile-product-card,
+  .map-visibility .mobile-product-card,
+  .map-wrapper .mobile-product-card {
+    display: none !important;
+  }
+
+  /* ✅ 모바일 detail-area (카드 영역) */
+  .market-layout .detail-area {
+    width: 100% !important;
+    margin-top: 16px !important;
+    position: static !important; /* ✅ 핵심: static으로 지도 아래 배치 */
+  }
+  
+  .trade-page .side-column,
+  .trade-page .product-panel {
+    display: none !important;
+  }
+  
+  .trade-page .content-wrapper {
+    display: block !important;
+    width: 100% !important;
+  }
+  
+  .trade-page.map-mode .map-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* 🔥 지도 모드일 때 2컬럼 레이아웃 제거 (데스크탑) */
+@media (min-width: 1024px) {
+  .trade-page.map-mode .page-wrap {
+    display: block !important; /* flex 레이아웃 제거 */
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  
+  .trade-page.map-mode .content-wrapper {
+    display: block !important;
+  }
+  
+  .trade-page.map-mode .side-column {
+    display: none !important; /* 오른쪽 빈 패널 제거 */
+  }
+}
+
+/* ✅ 모바일 카드 - 기본 숨김 */
+.map-product-card {
+  display: none; /* 기본 숨김 */
+}
+
+/* 활성화된 카드만 표시 */
+.map-product-card.active {
+  display: flex;
+  animation: slideUp 0.3s ease-out;
+}
+
+/* 🔥 모바일 카드 - absolute로 지도 안에 배치 (지도 덮지 않음) */
+@media (max-width: 768px) {
+  .map-product-card {
+    position: absolute !important; /* ✅ 핵심: fixed 절대 금지, absolute로 지도 안에 배치 */
+    bottom: 12px; /* ✅ 핵심: 하단 여백 */
+    left: 12px;
+    right: 12px;
+    z-index: 5; /* ✅ 레이어 명확화: 카드는 지도 위 */
+    width: auto;
+    max-width: none;
+    border-radius: 20px; /* ✅ 전체 둥글게 */
+    background: white;
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.15);
+    flex-direction: column;
+    padding: 16px;
+    gap: 12px;
+    pointer-events: auto; /* ✅ 클릭 이벤트 보장 */
+  }
+}
+
+/* 데스크탑에서는 모바일 카드 숨김 */
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateX(-50%) translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+.map-product-card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  transition: background 0.2s;
+  z-index: 1;
+}
+
+.map-product-card-close:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.map-product-card-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: #f0f0f0;
+}
+
+.map-product-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.map-product-card .row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.map-product-card-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #111;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.map-product-card-location {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+.map-product-card-price {
+  color: #1976ff;
+  font-weight: 800;
+  font-size: 16px;
+  margin-top: 6px;
+}
+
+.map-product-card-button {
+  margin-top: 10px;
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: #1976ff;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.map-product-card-button:hover {
+  background: #1565c0;
+}
+
+.map-product-card-button:active {
+  background: #0d47a1;
+}
+
+/* ===== 우측 상품 패널 스타일 ===== */
+.side-panel {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  height: fit-content; /* ✅ 기본값 (데스크탑에서 override) */
+  position: sticky;
+  top: 20px;
+}
+
+/* ✅ 데스크탑: side-panel 높이 고정 (지도와 동일) */
+@media (min-width: 769px) {
+  .side-panel {
+    height: 520px !important; /* ✅ 지도와 동일한 높이 */
+    min-height: 520px !important;
+    max-height: 520px !important;
+    position: relative !important; /* ✅ sticky 제거 (높이 동기화를 위해) */
+    top: auto !important;
+    overflow-y: auto; /* ✅ 내용이 많으면 스크롤 */
+  }
+}
+
+/* 🔥 데스크톱 지도 모드: map-layer 안의 상품 미리보기 패널 → 지도 위 우측 고정 */
+.map-layer .side-panel.map-mode-panel {
+  position: absolute !important;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  min-height: 200px;
+  max-height: none !important;
+  height: auto !important;
+  z-index: 20;
+  pointer-events: auto !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  overflow-y: auto;
+}
+
+.product-panel-content {
+  padding: 20px;
+}
+
+.product-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.product-panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+}
+
+.product-panel-close {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.product-panel-close:hover {
+  color: #111;
+}
+
+.product-panel-image {
+  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  object-fit: cover;
+  max-height: 300px;
+}
+
+.product-panel-info {
+  margin-bottom: 16px;
+}
+
+.product-panel-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.product-panel-location {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.product-panel-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1976ff;
+  margin-bottom: 16px;
+}
+
+.product-panel-button {
+  width: 100%;
+  padding: 12px;
+  background: #1976ff;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.product-panel-button:hover {
+  background: #1565c0;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .map-product-card {
+    width: calc(100% - 32px);
+    bottom: 16px;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .map-product-card-image {
+    width: 70px;
+    height: 70px;
+  }
+
+  .map-product-card-title {
+    font-size: 14px;
+  }
+
+  .map-product-card-price {
+    font-size: 15px;
+  }
+
+  .map-product-card-button {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+}
+
+/* 🔥 지도 모드일 때 부모 컨테이너 flex 레이아웃 제거 */
+@media (min-width: 1024px) {
+  /* 🔥 핵심: 지도 모드일 때는 리스트 섹션 완전히 숨김 (위 규칙과 충돌 방지) */
+  .trade-page.map-mode .product-list-section {
+    display: none !important; /* ✅ 지도 모드: 리스트 숨김 */
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    top: -9999px !important;
+    left: -9999px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* 상태 메시지 */
+.status-message {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.status-ai {
+  background: #faf5ff;
+  color: #7c3aed;
+  border: 1px solid #e9d5ff;
+}
+
+.status-info {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.status-warning {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.status-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #faf5ff;
+  color: #7c3aed;
+  border: 1px solid #e9d5ff;
+  padding: 20px;
+}
+
+.status-loading .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e9d5ff;
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.status-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* 로딩 */
+.trade-loading {
+  padding: 24px 0;
+  text-align: center;
+  opacity: 0.7;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* 빈 상태 */
+.trade-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* 지도 컨테이너 */
+/* 🔵 지도 섹션: 전체 폭 + 중앙 정렬 */
+.trade-map {
+  width: 100% !important;
+  padding: 40px 20px;
+  padding-bottom: 120px;
+  box-sizing: border-box;
+  display: flex !important;
+  justify-content: center !important; /* ⭐ 중앙 정렬 핵심 */
+  align-items: center !important;
+  margin: 0 auto !important;
+  position: relative; /* 중앙 정렬을 위한 기준점 */
+}
+
+/* 🔵 지도 컨테이너 기본 중앙 정렬 (모든 화면 크기) */
+.trade-map > div {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* 🔵 내부 중앙 정렬 컨테이너 */
+@media (min-width: 1024px) {
+  .trade-map {
+    width: 100vw !important; /* 뷰포트 전체 폭 */
+    max-width: none !important; /* 부모 max-width 제한 제거 */
+    margin-left: calc(-50vw + 50%) !important; /* 부모 컨테이너 중앙 기준으로 좌측 확장 */
+    margin-right: calc(-50vw + 50%) !important; /* 부모 컨테이너 중앙 기준으로 우측 확장 */
+    padding: 40px 24px;
+    padding-bottom: 120px;
+    display: flex !important;
+    justify-content: center !important; /* ⭐ 중앙 정렬 핵심 */
+    align-items: center !important;
+    position: relative; /* 레이아웃 기준점 */
+  }
+  
+  /* 지도 모드일 때 부모 컨테이너 제한 해제 (더 안전한 방법) */
+  .product-list-section .trade-map {
+    /* 이미 .trade-map 자체가 100vw로 확장되므로 추가 조정 불필요 */
+  }
+  
+  /* 지도 컨테이너 중앙 정렬 + 적절한 최대폭 */
+  .trade-map > div {
+    width: min(1100px, 100%) !important; /* 최대폭 제한 + 반응형 */
+    max-width: 1100px !important; /* 지도 최대폭 */
+    margin: 0 auto !important; /* ⭐ 중앙 정렬 핵심 (상하 0, 좌우 auto) */
+    height: 600px !important; /* 데스크탑 지도 높이 */
+    border-radius: 14px; /* 둥근 모서리 */
+    overflow: hidden; /* 둥근 모서리 적용 */
+    background: #eee; /* 로딩 중 배경 */
+    position: relative; /* z-index 적용을 위해 */
+    z-index: 1; /* 지도가 기본 레이어 */
+    flex-shrink: 0 !important; /* flex에서 축소 방지 */
+  }
+  
+  /* 구글맵 div 강제 채움 */
+  .trade-map > div > div {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* 지도 위 오버레이 요소들 */
+  .trade-map > div > div[class*="absolute"] {
+    z-index: 10; /* 로딩/에러 오버레이 */
+  }
+}
+
+/* 모바일 지도 높이 */
+@media (max-width: 1023px) {
+  .trade-map {
+    padding: 20px 16px;
+    padding-bottom: 120px;
+    display: flex;
+    justify-content: center; /* ⭐ 모바일도 중앙 정렬 */
+  }
+  
+  .trade-map > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important; /* ⭐ 중앙 정렬 핵심 */
+    height: 420px !important; /* 모바일 지도 높이 */
+    border-radius: 12px; /* 모바일 둥근 모서리 */
+    overflow: hidden;
+    background: #eee;
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* 구글맵 div 강제 채움 */
+  .trade-map > div > div {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.map-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 520px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  color: #6b7280;
+}
+
+.map-loading p {
+  margin: 4px 0;
+}
+
+/* 상품 리스트: 기본(모바일)은 1열 리스트 */
+.trade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 120px; /* FAB 공간 확보 */
+}
+
+/* 상품 그리드: 모바일 1열, 태블릿 2열, 데스크탑 4열 */
+.product-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* 모바일: 1열 */
+  gap: 16px;
+  padding-bottom: 120px;
+  width: 100%;
+}
+
+/* 카드 안정화 */
+.product-card.trade-card:not(.recommended-card),
+.trade-card:not(.recommended-card) {
+  width: 100% !important;
+}
+
+/* 태블릿: 2열 (최소폭 강제) */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .product-grid,
+  .trade-list.product-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(160px, 1fr)) !important;
+    gap: 16px !important;
+  }
+}
+
+/* 데스크탑: 4열 (최소폭 강제로 점 카드 방지) */
+@media (min-width: 1201px) {
+  .product-grid,
+  .trade-list.product-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 20px !important;
+    align-items: stretch;
+    max-width: 1200px !important; /* 핵심: 컨테이너 최대폭 */
+    margin: 0 auto !important; /* 가운데 정렬 */
+    padding: 0 20px !important;
+  }
+}
+
+/* 카드 최소폭 강제 (점 카드 방지) */
+.product-card.trade-card:not(.recommended-card),
+.trade-card:not(.recommended-card) {
+  min-width: 220px !important; /* 데스크탑 최소폭 */
+}
+
+@media (max-width: 1200px) {
+  .product-card.trade-card:not(.recommended-card),
+  .trade-card:not(.recommended-card) {
+    min-width: 160px !important; /* 태블릿 최소폭 */
+  }
+}
+
+@media (max-width: 640px) {
+  .product-card.trade-card:not(.recommended-card),
+  .trade-card:not(.recommended-card) {
+    min-width: auto !important; /* 모바일: 자동 */
+  }
+}
+
+/* ProductCard(컨테이너)가 폭 100% 먹더라도, 내부 이미지가 과대 확장되지 않게 */
+.product-card,
+.trade-card {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 16px;
+  border-radius: 18px;
+}
+
+/* 데스크탑에서 카드 크기 확대 */
+@media (min-width: 1024px) {
+  .product-card,
+  .trade-card {
+    padding: 20px;
+    border-radius: 22px;
+  }
+}
+
+/* "이미지가 카드 높이를 폭발시키는" 걸 막는 핵심: aspect-ratio + object-fit */
+.product-card img,
+.trade-card img,
+.trade-card-image img,
+.product-thumb img,
+.product-card-image img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1; /* 정사각형 */
+  object-fit: cover;
+  display: block;
+  border-radius: 14px;
+}
+
+/* 데스크탑에서 이미지 크기 확대 */
+@media (min-width: 1024px) {
+  .product-card img,
+  .trade-card img,
+  .trade-card-image img,
+  .product-thumb img,
+  .product-card-image img {
+    max-height: 280px; /* 데스크탑에서 더 크게 */
+    border-radius: 18px;
+  }
+}
+
+/* ===== 플로팅 등록 버튼 ===== */
+.floating-register-button,
+body > button.floating-register-button {
+  position: fixed !important;
+  right: 24px !important;
+  bottom: calc(24px + 64px) !important; /* 네비 높이만큼 위로 */
+  height: 48px !important;
+  padding: 0 18px !important;
+  border-radius: 24px !important;
+  border: 0 !important;
+  background: #3b82f6 !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25) !important;
+  cursor: pointer !important;
+  transition: opacity 0.3s ease, visibility 0.3s ease !important;
+  z-index: 11000 !important;
+  white-space: nowrap !important;
+  /* 🔥 부모의 transform/perspective/filter 영향 완전 차단 */
+  contain: layout style paint !important;
+  isolation: isolate !important;
+  /* 🔥 transform 제거 - fixed 기준점 유지 */
+  transform: none !important;
+  -webkit-transform: none !important;
+}
+
+.floating-register-button:hover {
+  background: #2563eb;
+  box-shadow: none !important;   /* ✅ 그림자 완전 제거 */
+  transform: none !important;
+  margin-top: 0;
+}
+
+.floating-register-button {
+  box-shadow: none !important;   /* ✅ 기본 상태에서도 제거 */
+}
+
+/* ===== 모바일 전용 스타일 (데스크탑 CSS는 건드리지 않음) ===== */
+@media (max-width: 768px) {
+  /* 🔥 1️⃣ 전체 컨테이너: 모바일에서 왼쪽 기준선으로 완전히 재설정 */
+  .page-wrap {
+    margin: 0 !important;
+    max-width: 100% !important;
+    padding: 0 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 🔥 컨테이너 중앙정렬 완전 제거 */
+  .trade-page {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 🔥 1️⃣ 인기 섹션: 모바일에서 left 정렬 강제 (중앙정렬 금지) + 기준선 통일 */
+  .popular-section {
+    padding: 12px 0; /* 좌우 패딩 제거 (page-wrap에서 처리) */
+    margin: 0;
+  }
+
+  /* 인기상품 가로 스크롤: 모바일에서 left 정렬 강제 */
+  .popular-section .recommended-list,
+  .popular-section .recommended-scroll {
+    justify-content: flex-start !important; /* 중앙정렬 금지, left 정렬 강제 */
+    padding: 0 !important;
+  }
+
+  .popular-section .recommended-card {
+    width: 140px;
+  }
+
+  /* 🔥 2️⃣ 검색 툴바: 모바일에서 세로 배치 + 모바일 spacing */
+  .search-toolbar {
+    flex-direction: column;
+    gap: 8px; /* 모바일 spacing 축소 */
+    padding: 12px 16px;
+    margin: 8px 0; /* 모바일 margin 축소 */
+  }
+
+  /* 🔥 4️⃣ 토글 버튼: 모바일에서 100% width 안정화 */
+  .toggle-btn {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+
+  /* 검색 액션 */
+  .search-actions {
+    padding: 0 16px 12px;
+  }
+
+  .search-fixed-query,
+  .suggest-panel,
+  .search-loading {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  /* 🔥 3️⃣ 상품 리스트 섹션: 하단 버튼 공간 확보 (140px) */
+  .product-list-section {
+    padding: 12px 0;
+    padding-bottom: 140px !important; /* FAB 버튼 공간 확보 */
+  }
+
+  /* 상품 그리드: 모바일 1열 강제 */
+  .product-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+    padding-bottom: 140px !important; /* FAB 버튼 공간 확보 */
+  }
+
+  /* 🔥 3️⃣ FAB 버튼: 하단 네비 위로 확실히 배치 (70px + safe-area) */
+  .floating-register-button {
+    right: 16px;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+    min-width: 120px;
+  }
+
+  /* 🔥 3️⃣ 메인 콘텐츠: 하단 버튼 공간 확보 (140px) */
+  .trade-page {
+    padding-bottom: 140px !important; /* FAB + 하단 nav 공간 확보 */
+  }
+
+}
+
+/* 작은 모바일 (640px 이하) */
+@media (max-width: 640px) {
+  .page-wrap {
+    padding: 0 10px;
+  }
+
+  .search-toolbar {
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .toggle-btn {
+    font-size: 13px;
+    height: 42px;
+  }
+
+  .product-grid {
+    gap: 12px;
+  }
+}
+
+/* ================================= */
+/* 📱 FORCE Mobile Layout Override */
+/* ================================= */
+
+@media (max-width: 768px) {
+
+  .trade-page .page-wrap {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 16px !important;
+  }
+
+  .trade-page .recommended-scroll {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  .trade-page .search-toolbar {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .trade-page .toggle-btn {
+    width: 100% !important;
+  }
+
+  .trade-page .floating-register-button {
+    bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .trade-page .product-list-section {
+    padding-bottom: 140px !important;
+  }
+
+}
+
+/* ================================= */
+/* 📱 Card Layout Fix */
+/* ================================= */
+
+@media (max-width: 768px) {
+
+  /* 인기상품 카드 shrink 방지 */
+  .recommended-scroll > * {
+    flex: 0 0 auto;
+    width: 140px;
+  }
+
+  /* 카드 내부 텍스트 보이게 */
+  .recommended-scroll img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+  }
+
+  /* FAB 버튼 위치 더 아래로 */
+  .floating-register-button {
+    bottom: calc(90px + env(safe-area-inset-bottom)) !important;
+  }
+
+}
+
+/* ================================= */
+/* 📱 Final Mobile Polish */
+/* ================================= */
+
+@media (max-width: 768px) {
+
+  /* FAB 버튼 슬림화 (최종) */
+  .floating-register-button {
+    height: 52px;
+    font-size: 14px;
+    border-radius: 26px;
+    bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 인기상품 카드 간격 조정 */
+  .recommended-scroll {
+    gap: 10px;
+    padding-left: 4px;
+  }
+
+  .recommended-scroll > * {
+    width: 132px;
+  }
+
+}
+
+
+/* ============================== */
+/* 🚀 Smooth Card Scroll */
+/* ============================== */
+
+.recommended-scroll {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.recommended-scroll > * {
+  scroll-snap-align: start;
+  transition: transform 0.15s ease;
+}
+
+.recommended-scroll > *:active {
+  transform: scale(0.96);
+}
+
+/* ============================== */
+/* 🚀 Premium Search Box */
+/* ============================== */
+
+.search-input-wrapper {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  padding: 6px 12px;
+  border: 1px solid #f1f3f5;
+}
+
+.search-input {
+  font-size: 15px;
+}
+
+/* ============================== */
+/* 🚀 Product Card Motion */
+/* ============================== */
+
+.product-grid > * {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+.product-grid > *:active {
+  transform: scale(0.98);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.product-grid > *:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* 모바일 터치 피드백 강화 */
+@media (max-width: 768px) {
+  .product-grid > *:active {
+    transform: scale(0.96);
+  }
+}
+
+/* ============================== */
+/* 🚀 FAB Scroll Hide/Show */
+/* ============================== */
+
+.floating-register-button {
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+}
+
+.floating-register-button.fab-visible {
+  opacity: 1;
+  /* 🔥 transform 제거 - position: fixed가 제대로 작동하도록 */
+  transform: none !important;
+  -webkit-transform: none !important;
+  visibility: visible;
+}
+
+.floating-register-button.fab-hidden {
+  opacity: 0;
+  /* 🔥 transform 제거 - position: fixed가 제대로 작동하도록 */
+  transform: none !important;
+  -webkit-transform: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ============================== */
+/* 🚀 Recommended Section Highlight */
+/* ============================== */
+
+.popular-section {
+  position: relative;
+  background: linear-gradient(to bottom, #f8fafc, #ffffff);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  padding: 20px 16px;
+}
+
+.popular-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+  border-radius: 16px 16px 0 0;
+}
+
+.recommended-section .section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recommended-section .section-title::after {
+  content: "→";
+  font-size: 16px;
+  color: #64748b;
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+@media (max-width: 768px) {
+  .popular-section {
+    border-radius: 12px;
+    padding: 16px 12px;
+    margin-bottom: 16px;
+  }
+  
+  .recommended-section .section-title {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+}
+
+/* ============================= */
+/* 🔵 Real Mobile FAB */
+/* ============================= */
+
+@media (max-width: 768px) {
+  .floating-register-button {
+    position: fixed !important;
+    right: 18px;
+    bottom: 82px; /* 네비 높이 + 여백 */
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 50% !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    padding: 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    z-index: 999;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    left: auto !important;
+    transform: none !important;
+  }
+  
+  .floating-register-button.fab-visible {
+    opacity: 1;
+    transform: none !important;
+    visibility: visible;
+  }
+  
+  .floating-register-button.fab-hidden {
+    opacity: 0;
+    transform: none !important;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* ===============================
+   🔥 인기상품 전용 카드 (리스트와 완전 분리)
+================================ */
+
+.popular-section {
+  margin-bottom: 18px;
+}
+
+.recommended-container {
+  overflow: hidden;
+}
+
+.recommended-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 8px 4px 10px 4px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 🔥 카드 크기 강제 고정 */
+.popular-card {
+  flex: 0 0 130px;
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 🔥 이미지 - 정사각형 강제 */
+.popular-image {
+  width: 100%;
+  aspect-ratio: 1 / 1; /* 🔥 핵심: 정사각형 강제 */
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* 🔥 텍스트 */
+.popular-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 3px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.popular-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2563eb;
+  text-align: center;
+}
+
+/* 🔥 모바일 최적화 */
+@media (max-width: 768px) {
+  .popular-card {
+    flex: 0 0 115px;
+    width: 115px;
+    min-width: 115px;
+    max-width: 115px;
+    padding: 8px;
+  }
+
+  .popular-image {
+    /* 모바일에서도 aspect-ratio 유지 (height 제거) */
+  }
+
+  .popular-title {
+    font-size: 12px;
+  }
+
+  .popular-price {
+    font-size: 11px;
+  }
+}
+
+/* ============================= */
+/* 🔥 Google Maps 내부 단축키 다이얼로그 숨김 (모바일 UX 개선) */
+/* ============================= */
+@media (max-width: 768px) {
+  /* Google Maps 내부 단축키/다이얼로그 계열 완전 숨김 */
+  .gm-internal-dialog,
+  .gmnoscreen,
+  .gm-style .gm-style-cc,
+  [class*="gm-internal"],
+  /* Google Maps 키보드 단축키 안내 다이얼로그 */
+  div[role="dialog"][class*="gm"],
+  div[aria-label*="keyboard"],
+  div[aria-label*="단축키"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+/* ============================= */
+/* 🔥 모바일 전체 화면 지도 뷰 (MobileMapView) - FULL SCREEN 구조 */
+/* ============================= */
+/* 🔥 핵심: 모바일 지도 전체 화면 컨테이너 (기존 레이아웃 위에 표시) */
+.mobile-map-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 2000 !important; /* ✅ 기존 레이아웃 위에 표시 */
+  background: #fff !important; /* ✅ 배경 흰색 */
+  overflow: hidden !important;
+  pointer-events: auto !important;
+}
+
+.mobile-map-page,
+.trade-mobile-layout {
+  position: fixed !important;
+  /* 🔥 모바일: 헤더(56px)~하단네비(64px) 구간만 사용 → 지도가 가려지지 않도록 */
+  top: 56px !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 64px !important;
+  width: 100vw !important;
+  height: calc(100dvh - 56px - 64px) !important; /* 명시적 높이로 flex 자식이 꽉 채움 */
+  min-height: calc(100vh - 56px - 64px) !important;
+  background: transparent !important; /* ✅ 배경 투명 (지도가 보이도록) */
+  z-index: 10 !important; /* ✅ 적절한 z-index (너무 높으면 다른 요소와 충돌) */
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  /* ✅ 검색바는 overlay이므로 padding 제거 */
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box !important;
+  /* 🔥 핵심: 다른 요소가 지도를 가리지 않도록 */
+  isolation: isolate !important;
+  contain: layout style paint !important;
+  /* 🔥 핵심: 포인터 이벤트 보장 */
+  pointer-events: auto !important;
+}
+
+/* ✅ 핵심: 지도 영역 (FULL SCREEN - fixed inset) */
+.mobile-map-wrapper,
+.trade-map-layer {
+  /* ✅ position은 부모(mobile-map-page)가 fixed이므로 relative로 변경 */
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 0 !important; /* ✅ 지도가 가장 아래 레이어 */
+  overflow: hidden !important;
+  /* 🔥 핵심: 다른 요소가 지도를 가리지 않도록 */
+  pointer-events: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* ✅ 핵심: 실제 지도 캔버스 (absolute fill) */
+.mobile-map-canvas {
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 0 !important; /* ✅ 지도가 가장 아래 레이어 */
+  /* ✅ 기본: 지도 터치 허용 */
+  pointer-events: auto !important;
+  background: transparent !important; /* ✅ 배경 투명 (지도가 보이도록) */
+}
+
+/* ✅ Sheet가 열렸을 때 지도 터치 차단 (동적 스타일과 함께 작동) */
+.mobile-map-wrapper:has(.mobile-map-card) .mobile-map-canvas {
+  pointer-events: none !important;
+}
+
+.mobile-map-canvas .optimized-map-root,
+.trade-map-layer .optimized-map-root {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  z-index: 0 !important; /* ✅ 지도가 가장 아래 레이어 */
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+.mobile-map-canvas .map-canvas,
+.trade-map-layer .map-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 0 !important; /* ✅ 지도가 가장 아래 레이어 */
+  pointer-events: auto !important;
+  background: transparent !important;
+}
+
+/* ✅ 전역 지도 캔버스 필수 스타일 (사용자 요청) */
+.optimized-map-root,
+.map-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* ✅ 기존 클래스명 호환성 유지 - 지도가 남는 세로 공간 전부 차지 (모바일 흰 박스 방지) */
+.mobile-map-page > .mobile-map-container {
+  position: relative !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* 🔥 지도 위 검색 바 fixed overlay (최종 구조) */
+.mobile-searchbar-overlay {
+  position: fixed; /* ✅ 핵심: fixed로 지도 위에 고정 */
+  top: calc(env(safe-area-inset-top, 0px) + 56px); /* ✅ safe-area + 헤더 높이 */
+  left: 0;
+  right: 0;
+  z-index: 50; /* ✅ 지도 위에 확실히 표시 */
+  padding: 12px;
+  pointer-events: none; /* 지도 이벤트 통과 */
+}
+
+.mobile-searchbar-overlay .mobile-map-search-bar {
+  pointer-events: auto; /* 검색 바만 클릭 가능 */
+}
+
+/* ✅ 레거시 호환성 유지 */
+.map-overlay-top,
+.trade-search-bar {
+  position: fixed;
+  top: calc(120px + 12px);
+  left: 12px;
+  right: 12px;
+  z-index: 20;
+  pointer-events: none;
+  padding: 8px 0;
+}
+
+.trade-search-bar > * {
+  pointer-events: auto;
+}
+
+.mobile-map-search-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  pointer-events: auto; /* 검색 바만 클릭 가능 */
+}
+
+.mobile-map-search-input {
+  flex: 1;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+.mobile-map-search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.mobile-map-back-btn {
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 12px;
+  border: 0;
+  background: white;
+  color: #333;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.mobile-map-back-btn:active {
+  transform: scale(0.98);
+}
+
+/* 🔥 지도 중심 검색 버튼 overlay (fixed) */
+.map-overlay-reload {
+  position: fixed; /* ✅ 핵심: fixed로 지도 위에 고정 */
+  top: calc(env(safe-area-inset-top, 0px) + 56px + 60px); /* ✅ safe-area + 헤더 + 검색바 높이 */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50; /* ✅ 검색바보다 높음 */
+  pointer-events: none;
+}
+
+/* 🔥 자동 갱신 로딩 인디케이터 */
+.map-overlay-loading {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 56px + 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  pointer-events: none;
+}
+
+.map-loading-indicator {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: auto;
+}
+
+.map-loading-indicator .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* 🔥 지도 로딩 오버레이 (지도 이동 중 표시) - 지도 가리지 않도록 수정 */
+.map-loading-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none !important; /* ✅ 핵심: 지도 클릭 방해 안함 */
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.1); /* ✅ 반투명도 낮춤 (지도 가리지 않도록) */
+  backdrop-filter: blur(1px); /* ✅ 블러 효과 낮춤 */
+}
+
+.map-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid rgba(47, 107, 255, 0.2);
+  border-top-color: #2f6bff;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 🔥 Skeleton 마커 (로딩 중 표시) */
+.map-skeleton-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 20px;
+}
+
+.marker-skeleton {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(47, 107, 255, 0.3);
+  animation: pulse 1.2s infinite ease-in-out;
+  box-shadow: 0 2px 8px rgba(47, 107, 255, 0.2);
+}
+
+@keyframes pulse {
+  0% { 
+    transform: scale(0.8); 
+    opacity: 0.4;
+  }
+  50% { 
+    transform: scale(1.2); 
+    opacity: 0.8;
+  }
+  100% { 
+    transform: scale(0.8); 
+    opacity: 0.4;
+  }
+}
+
+/* ✅ 사용자 요청: map-search-btn 클래스명 추가 (기존 map-reload-btn과 동일) */
+.map-search-btn {
+  position: fixed;
+  top: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 30px;
+  padding: 10px 16px;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+  border: 0;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  min-width: 180px;
+  justify-content: center;
+}
+
+.map-search-btn:active:not(:disabled) {
+  transform: translateX(-50%) scale(0.98);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+}
+
+.map-search-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.map-search-btn.loading {
+  opacity: 0.8;
+}
+
+.map-search-btn .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.map-reload-btn {
+  background: white;
+  border: 0;
+  border-radius: 30px;
+  padding: 10px 20px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  min-width: 180px;
+  justify-content: center;
+}
+
+.map-reload-btn:active:not(:disabled) {
+  transform: translateX(-50%) scale(0.98);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+}
+
+.map-reload-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.map-reload-btn.loading {
+  opacity: 0.8;
+}
+
+/* 🔥 로딩 스피너 */
+.map-reload-btn .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 🔥 지도 위 하단 버튼 overlay - 카드가 없을 때만 표시 (fixed) */
+.map-overlay-bottom {
+  position: fixed; /* ✅ 핵심: fixed로 지도 위에 고정 */
+  bottom: calc(70px + 16px + env(safe-area-inset-bottom, 0px)); /* 하단 네비 + 여백 + safe-area */
+  left: 12px;
+  right: 12px;
+  z-index: 25; /* ✅ 카드보다 낮지만 지도보다 높음 */
+  pointer-events: none;
+}
+
+/* ✅ 카드가 있을 때는 하단 버튼 숨김 */
+.mobile-map-page:has(.mobile-map-product-card) .map-overlay-bottom {
+  display: none;
+}
+
+.mobile-map-list-btn {
+  width: 100%;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 12px;
+  border: 0;
+  background: white;
+  color: #333;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mobile-map-list-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* 🔥 지도 ↔ 리스트 모드 전환 UX: 토글 버튼 */
+.mobile-map-mode-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.mobile-map-mode-toggle:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.mobile-map-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 🔥 리스트 뷰 (슬라이드 애니메이션) */
+.mobile-list-view {
+  position: fixed;
+  inset: 0;
+  top: calc(56px + env(safe-area-inset-top, 0px) + 68px); /* ✅ 헤더 + 검색바 높이 */
+  background: white;
+  overflow-y: auto;
+  z-index: 40; /* ✅ 지도 위에 표시 */
+  transform: translateY(100%); /* ✅ 기본: 화면 아래 숨김 */
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); /* ✅ 부드러운 슬라이드 애니메이션 */
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1); /* ✅ 위쪽 그림자 */
+}
+
+.mobile-list-view.visible {
+  transform: translateY(0); /* ✅ 리스트 모드: 화면에 표시 */
+}
+
+/* 🔥 리스트 헤더 */
+.mobile-list-header {
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-list-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.mobile-list-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #f0f0f0;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.mobile-list-close:active {
+  background: #e0e0e0;
+}
+
+/* 🔥 리스트 콘텐츠 */
+.mobile-list-content {
+  padding: 0;
+}
+
+.mobile-list-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: #999;
+}
+
+.mobile-list-empty p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* 🔥 리스트 아이템 */
+.mobile-list-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  gap: 12px;
+}
+
+.mobile-list-item:active {
+  background: #f8f8f8;
+}
+
+.mobile-list-item-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f0f0f0;
+}
+
+.mobile-list-item-image-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.mobile-list-item-info {
+  flex: 1;
+  min-width: 0; /* ✅ 텍스트 오버플로우 방지 */
+}
+
+.mobile-list-item-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin: 0 0 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-list-item-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2f6bff;
+  margin: 4px 0;
+}
+
+.mobile-list-item-distance {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.mobile-list-item-arrow {
+  font-size: 24px;
+  color: #ccc;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* 🔥 모드별 스타일 */
+.mode-list .mobile-map-wrapper {
+  pointer-events: none; /* ✅ 리스트 모드: 지도 이벤트 차단 */
+}
+
+.mode-list .mobile-map-card {
+  display: none; /* ✅ 리스트 모드: 시트 숨김 */
+}
+
+/* 🔥 상세 페이지 overlay (push 애니메이션) */
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  background: white;
+  z-index: 50; /* ✅ 지도 위에 표시 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateX(100%); /* ✅ 기본: 화면 오른쪽에 숨김 */
+  animation: slideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.detail-overlay.closing {
+  animation: slideOut 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* 🔥 상세 페이지 헤더 */
+.detail-overlay-header {
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.detail-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #f0f0f0;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  color: #333;
+}
+
+.detail-close:active {
+  background: #e0e0e0;
+}
+
+.detail-overlay-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+/* 🔥 상세 페이지 콘텐츠 */
+.detail-overlay-content {
+  padding: 16px;
+  min-height: calc(100vh - 60px);
+}
+
+.detail-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+}
+
+.detail-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f0f0f0;
+  border-top-color: #2f6bff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.detail-loading p {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
+.detail-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  text-align: center;
+}
+
+.detail-error p {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
+.detail-retry-btn {
+  padding: 12px 24px;
+  background: #2f6bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.detail-retry-btn:active {
+  background: #2563eb;
+}
+
+.detail-product-card {
+  max-width: 100%;
+}
+
+/* ✅ 핵심: 상품 카드 (지도 위 overlay - fixed bottom sheet) */
+.mobile-map-card,
+.trade-bottom-sheet {
+  position: fixed; /* ✅ 핵심: fixed로 지도 위에 떠있게 */
+  left: 0;
+  right: 0;
+  bottom: calc(70px + env(safe-area-inset-bottom, 0px)); /* ✅ 하단 네비 높이 + safe-area */
+  z-index: 99999 !important; /* ✅ Google Maps 캔버스보다 위에 (지도가 팝업 가리는 현상 방지, 100000은 pointer-events 차단됨) */
+  padding: 0 12px 12px; /* ✅ 좌우 여백 + 하단 여백 */
+  pointer-events: auto !important; /* ✅ 핵심: Sheet는 항상 클릭 가능 (지도 터치 차단 후) */
+  isolation: isolate; /* ✅ 별도 스태킹 컨텍스트로 지도 레이어와 분리 */
+}
+
+/* ✅ bottom-sheet 내부 카드 스타일 */
+.trade-bottom-sheet > * {
+  background: white;
+  border-radius: 18px 18px 0 0; /* ✅ 하단 sheet 느낌 */
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); /* ✅ safe-area 여백 */
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.15); /* ✅ 위쪽 그림자 */
+  pointer-events: auto !important; /* ✅ 핵심: 카드 영역 터치 확실히 보장 */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideUp 0.3s ease-out; /* ✅ 하단에서 올라오는 애니메이션 */
+  max-height: calc(60vh - 70px); /* ✅ 화면 60% 이하로 제한 */
+  overflow-y: auto; /* ✅ 내용이 많으면 스크롤 */
+  -webkit-overflow-scrolling: touch; /* ✅ iOS 부드러운 스크롤 */
+}
+
+/* ✅ 기존 mobile-map-card 스타일 유지 + Bottom Sheet 기능 */
+.mobile-map-card {
+  left: 12px;
+  right: 12px;
+  background: white;
+  border-radius: 18px 18px 0 0; /* ✅ 하단 sheet 느낌 */
+  padding: 0; /* ✅ 핸들 영역을 위해 padding 제거 */
+  padding-top: 8px; /* ✅ UX 개선: 상단 여백 최소화 */
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 
+    0 -10px 40px rgba(0, 0, 0, 0.18),
+    0 -2px 10px rgba(0, 0, 0, 0.08); /* ✅ UX 개선: 시트 shadow 강화 (떠있는 카드 느낌) */
+  pointer-events: auto !important;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.28s ease, transform 0.28s ease; /* ✅ UX 개선: height + transform 애니메이션 */
+  max-height: 92vh; /* ✅ UX 개선: full 상태 높이 제한 (92vh) */
+  overflow: hidden; /* ✅ 내부 스크롤은 .mobile-map-card-content에서 처리 */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y; /* ✅ 세로 드래그만 허용 */
+}
+
+/* ✅ Bottom Sheet 3단 높이 시스템 (closed/mid/full) */
+.mobile-map-card.bottom-sheet.closed {
+  height: 80px; /* ✅ UX 개선: closed = 80px (핸들만 보임) */
+  transform: translateY(0);
+}
+
+.mobile-map-card.bottom-sheet.mid {
+  height: 42vh; /* ✅ UX 개선: mid = 42vh (카드 미리보기) */
+  transform: translateY(0);
+}
+
+.mobile-map-card.bottom-sheet.full {
+  height: 92vh; /* ✅ UX 개선: full = 92vh (상세 탐색) */
+  transform: translateY(0);
+}
+
+/* ✅ 호환성: 기존 collapsed/half 클래스명 유지 */
+.mobile-map-card.bottom-sheet.collapsed {
+  height: 80px;
+  transform: translateY(0);
+}
+
+.mobile-map-card.bottom-sheet.half {
+  height: 42vh;
+  transform: translateY(0);
+}
+
+/* ✅ Bottom Sheet 드래그 핸들 */
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #ddd;
+  margin: 6px auto 4px; /* ✅ UX 개선: 핸들을 더 위쪽으로 */
+  border-radius: 10px;
+  cursor: grab;
+  touch-action: none; /* ✅ 드래그 전용 */
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sheet-handle:active {
+  cursor: grabbing;
+  background: #bbb;
+}
+
+/* ✅ 카드 내용 영역 (스크롤 가능 + 스와이프 네비게이션) */
+.mobile-map-card-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  padding-top: 0; /* ✅ UX 개선: 상단 여백 제거 */
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* 🔥 카드 네비게이션 (이전/다음 상품) - UX 개선: 레이아웃 재구성 */
+.card-navigation {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px; /* ✅ 좌측 버튼 | 중앙 인디케이터 | 우측 버튼 */
+  align-items: center;
+  padding: 8px 0; /* ✅ UX 개선: 여백 줄이기 */
+  margin-bottom: 4px; /* ✅ UX 개선: 하단 여백 줄이기 */
+  border-bottom: 1px solid #eee;
+  position: relative;
+  gap: 8px;
+}
+
+/* ✅ UX 개선: 인디케이터를 중앙에 정확히 배치 (grid 사용) */
+.card-navigation .card-nav-indicator {
+  grid-column: 2; /* ✅ 중앙 컬럼에 배치 */
+  justify-self: center; /* ✅ 중앙 정렬 */
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+  text-align: center;
+}
+
+.card-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #333;
+}
+
+/* ✅ 좌측 버튼 (이전) */
+.card-nav-prev {
+  grid-column: 1;
+  justify-self: start;
+}
+
+/* ✅ 우측 버튼 (다음) */
+.card-nav-next {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.card-nav-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.card-nav-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.card-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* .card-nav-indicator는 .card-navigation 내부에서 정의됨 */
+
+/* ✅ 카드 내용 영역 내부 요소들 스타일 */
+.mobile-map-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 🔥 닫기(×) 버튼을 화살표 네비 밑으로 분리 (겹침 방지) */
+.mobile-map-card-close-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0;
+  margin-bottom: 4px;
+  padding-right: 0;
+}
+
+.mobile-map-card-close-wrap .mobile-map-card-close {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+.mobile-map-card-content .mobile-map-card-close {
+  align-self: flex-end;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* 🔥 상품 사진 영역: 닫기(×) 버튼을 사진 안 우측 상단에 배치 */
+.mobile-map-card-image-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.mobile-map-card-image-wrap .mobile-map-card-close {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.mobile-map-card-image-wrap .mobile-map-card-image-placeholder {
+  min-height: 120px;
+  background: #f0f0f0;
+  border-radius: 12px;
+}
+
+.mobile-map-card-content .mobile-map-card-image {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  object-fit: cover;
+  margin: 0;
+}
+
+.mobile-map-card-content .mobile-map-card-info {
+  margin: 0;
+}
+
+.mobile-map-card-content .mobile-map-card-button {
+  margin: 0;
+  margin-top: 4px;
+}
+
+/* ✅ 기존 클래스명 호환성 유지 */
+.mobile-map-product-card {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px)); /* ✅ 하단 네비 높이 + safe-area */
+  z-index: 20;
+  pointer-events: auto !important;
+}
+
+.mobile-map-card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(0, 0, 0, 0.1);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+/* 🔥 .mobile-map-card-close-wrap 안에서는 화살표 밑 한 줄에 원형만 표시 */
+.mobile-map-card-close-wrap .mobile-map-card-close {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+.mobile-map-card-close:active {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.mobile-map-card-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #f0f0f0;
+  transition: max-height 0.28s ease; /* ✅ UX 개선: 높이 변경 애니메이션 */
+}
+
+/* ✅ UX 개선: 시트 상태에 따라 이미지 높이 조정 */
+.mobile-map-card.bottom-sheet.mid .mobile-map-card-image {
+  max-height: 260px; /* ✅ mid = 카드 preview 느낌 */
+  height: auto;
+}
+
+.mobile-map-card.bottom-sheet.full .mobile-map-card-image {
+  max-height: none; /* ✅ full = 상세 느낌 (제한 없음) */
+  height: auto;
+}
+
+.mobile-map-card.bottom-sheet.closed .mobile-map-card-image {
+  display: none; /* ✅ closed = 이미지 숨김 */
+}
+
+.mobile-map-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-map-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1.4;
+}
+
+.mobile-map-card-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1976ff;
+}
+
+/* ✅ 거리 + 예상 시간 표시 */
+.mobile-map-card-distance {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mobile-map-card-button {
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #1976ff;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.mobile-map-card-button:active {
+  background: #1565c0;
+  transform: scale(0.98);
+}
+
+/* ✅ 구글 길찾기 버튼 스타일 */
+.mobile-map-card-button-navigation {
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #f5f5f5;
+  color: #333;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-map-card-button-navigation:active {
+  background: #e0e0e0;
+  transform: scale(0.98);
+}
+
+.mobile-map-card-button-navigation:hover {
+  background: #eeeeee;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ============================= */
+/* ✅ 당근 스타일 리스트 카드 (하단 세로 리스트) */
+/* ============================= */
+
+/* 카드 전체 - 당근마켓 스타일 (리스트 느낌) */
+.product-card.trade-card:not(.recommended-card),
+.trade-card:not(.recommended-card) {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 12px 14px !important; /* 당근 스타일: 패딩 줄이기 */
+  margin: 0 !important;
+  background: white !important;
+  border-bottom: 1px solid #eee !important; /* 당근 스타일: border-bottom */
+  border-radius: 0 !important; /* 카드 박스 없음 */
+  box-shadow: none !important; /* 그림자 제거 */
+  width: 100% !important;
+  transition: all 0.2s ease !important; /* hover 애니메이션 준비 */
+}
+
+/* 🔥 카드 hover shadow 효과 (당근 스타일) */
+.product-card.trade-card:not(.recommended-card):hover,
+.trade-card:not(.recommended-card):hover {
+  background: #fafafa !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 모바일에서는 active 효과만 (hover 대신) */
+@media (max-width: 768px) {
+  .product-card.trade-card:not(.recommended-card):active,
+  .trade-card:not(.recommended-card):active {
+    background: #f5f5f5 !important;
+    transform: scale(0.98) !important;
+  }
+}
+
+/* 이미지 영역 - 당근 스타일 크게 (140px) */
+.product-card.trade-card:not(.recommended-card) .trade-card-image,
+.trade-card:not(.recommended-card) .trade-card-image {
+  width: 140px !important;
+  height: 140px !important;
+  min-width: 140px !important;
+  max-width: 140px !important;
+  flex-shrink: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.product-card.trade-card:not(.recommended-card) .trade-card-image img,
+.trade-card:not(.recommended-card) .trade-card-image img {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  object-fit: cover !important;
+  display: block !important;
+  border-radius: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+/* 텍스트 영역 - 왼쪽 정렬, 정보 밀도 높게 (컴팩트) */
+.product-card.trade-card:not(.recommended-card) .trade-card-body,
+.product-card.trade-card:not(.recommended-card) .product-info,
+.trade-card:not(.recommended-card) .trade-card-body,
+.trade-card:not(.recommended-card) .product-info {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important; /* 당근 스타일: 세로 중앙 정렬 */
+  gap: 4px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* 제목 - 당근 스타일 */
+.product-card.trade-card:not(.recommended-card) .product-title,
+.product-card.trade-card:not(.recommended-card) .trade-title,
+.trade-card:not(.recommended-card) .product-title,
+.trade-card:not(.recommended-card) .trade-title {
+  font-size: 15px !important;
+  font-weight: 500 !important; /* 당근 스타일: 500 */
+  line-height: 1.3 !important;
+  color: #222 !important; /* 당근 스타일: #222 */
+  margin: 0 0 6px 0 !important;
+  padding: 0 !important;
+}
+
+/* 가격 - 당근 스타일 */
+.product-card.trade-card:not(.recommended-card) .product-price,
+.product-card.trade-card:not(.recommended-card) .trade-price,
+.trade-card:not(.recommended-card) .product-price,
+.trade-card:not(.recommended-card) .trade-price {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #222 !important; /* 당근 스타일: #222 */
+  margin: 0 0 4px 0 !important;
+  padding: 0 !important;
+}
+
+/* 상태 - 당근 스타일 */
+.product-card.trade-card:not(.recommended-card) .trade-status,
+.trade-card:not(.recommended-card) .trade-status {
+  font-size: 13px !important;
+  color: #16a34a !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 위치 정보 - 당근 스타일 */
+.product-card.trade-card:not(.recommended-card) .product-location-group,
+.product-card.trade-card:not(.recommended-card) .trade-meta,
+.trade-card:not(.recommended-card) .product-location-group,
+.trade-card:not(.recommended-card) .trade-meta {
+  font-size: 13px !important; /* 당근 스타일: 13px */
+  color: #888 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* 모바일 최적화 (컴팩트) */
+@media (max-width: 768px) {
+  .product-card.trade-card:not(.recommended-card),
+  .trade-card:not(.recommended-card) {
+    padding: 14px !important;
+    gap: 14px !important;
+    flex-direction: row !important; /* 모바일: 가로 리스트 */
+  }
+
+  .product-card.trade-card:not(.recommended-card) .trade-card-image,
+  .trade-card:not(.recommended-card) .trade-card-image {
+    width: 120px !important;
+    height: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+  }
+
+  .product-card.trade-card:not(.recommended-card) .product-title,
+  .product-card.trade-card:not(.recommended-card) .trade-title,
+  .trade-card:not(.recommended-card) .product-title,
+  .trade-card:not(.recommended-card) .trade-title {
+    font-size: 15px !important;
+  }
+
+  .product-card.trade-card:not(.recommended-card) .product-price,
+  .product-card.trade-card:not(.recommended-card) .trade-price,
+  .trade-card:not(.recommended-card) .product-price,
+  .trade-card:not(.recommended-card) .trade-price {
+    font-size: 16px !important;
+  }
+}
+
+/* 🖥 데스크탑: 세로 카드 (이미지 위/텍스트 아래), 가로 4개 배치 */
+@media (min-width: 1024px) {
+  /* 상품 리스트 섹션: 가로 4개 그리드 */
+  .product-list-section {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 16px !important;
+    padding: 16px !important;
+  }
+
+  /* 카드: 세로 방향 (이미지 위/텍스트 아래) */
+  .product-card.trade-card:not(.recommended-card),
+  .trade-card:not(.recommended-card) {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+
+  /* 이미지: 카드 전체 폭, 정사각형 */
+  .product-card.trade-card:not(.recommended-card) .trade-card-image,
+  .trade-card:not(.recommended-card) .trade-card-image {
+    width: 100% !important;
+    height: auto !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    aspect-ratio: 1 / 1 !important;
+  }
+
+  .product-card.trade-card:not(.recommended-card) .trade-card-image img,
+  .trade-card:not(.recommended-card) .trade-card-image img {
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: 1 / 1 !important;
+    object-fit: cover !important;
+    border-radius: 14px !important;
+  }
+
+  /* 텍스트 영역: 세로 정렬 */
+  .product-card.trade-card:not(.recommended-card) .trade-card-body,
+  .product-card.trade-card:not(.recommended-card) .product-info,
+  .trade-card:not(.recommended-card) .trade-card-body,
+  .trade-card:not(.recommended-card) .product-info {
+    width: 100% !important;
+    gap: 6px !important;
+  }
+}

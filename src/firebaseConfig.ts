@@ -1,19 +1,6 @@
-import { initializeApp } from "firebase/app";
-import { getStorage } from "firebase/storage";
-
-// TODO: Replace the placeholder values below with your Firebase project's config.
-// You can find the config in Firebase Console → Project settings → General → Your apps.
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
-
-const app = initializeApp(firebaseConfig);
-
-export const storage = getStorage(app);
-
-
+/**
+ * @deprecated 단일 앱/Auth는 `src/lib/firebase.ts`에서만 초기화한다.
+ * 예전 `initializeApp`+placeholder 는 [DEFAULT] 앱 이중 생성·순서 역전(잘못된 앱에 Auth 붙기)의 원인이 됨.
+ * Storage 등은 `import { storage, auth, db, ... } from "@/lib/firebase"` 를 사용.
+ */
+export { app, storage, auth, db, functions, getGoogleProvider, googleProvider } from "@/lib/firebase";

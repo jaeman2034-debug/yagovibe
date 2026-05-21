@@ -100,7 +100,17 @@ app.post("/nlu", (req, res) => {
   res.json({ intent, message });
 });
 
-// ✅ 서버 실행
-app.listen(5183, () => {
-  console.log("🚀 NLU Server running at http://localhost:5183");
-});
+export { app as nluExpressApp };
+
+/**
+ * Cloud Functions에서는 절대 app.listen() 하지 말 것 — 배포 시 코드 로드가 멈추거나 타임아웃 난다.
+ * 로컬 전용 스탠드얼론 서버만 필요할 때:
+ *   PowerShell: $env:NLU_STANDALONE_SERVER="1"; npx ts-node src/nluServer.ts
+ *   (또는 별도 스크립트에서 이 파일을 import 한 뒤 listen)
+ */
+if (process.env.NLU_STANDALONE_SERVER === "1") {
+  const port = Number(process.env.NLU_PORT || 5183);
+  app.listen(port, () => {
+    console.log(`🚀 NLU Server (standalone) http://localhost:${port}`);
+  });
+}

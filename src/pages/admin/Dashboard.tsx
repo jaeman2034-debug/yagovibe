@@ -1,146 +1,222 @@
 import React, { useEffect, useState } from "react";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, onSnapshot, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { YagoButton, YagoCard, YagoStatCard } from "@/components/ui/YagoComponents";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { YagoCard, YagoStatCard } from "@/components/ui/YagoComponents";
 import YagoLayout from "@/layouts/YagoLayout";
 import dayjs from "dayjs";
-import { FileDown, Presentation } from "lucide-react";
 import { generateWeeklyReport, generateAndShareReport } from "@/api/generateReport";
 import { exportReportPDF } from "@/lib/pdf";
 import { sendSlackReport } from "@/api/shareSlack";
-import AdminSummaryCard from "@/components/AdminSummaryCard";
-import AdminChart from "@/components/AdminChart";
 
-interface LogEntry {
-  id?: string;
-  ts?: { seconds: number };
-  uid?: string | null;
-  text?: string;
-  intent?: string;
-  action?: string;
-  keyword?: string;
-  lat?: number;
-  lng?: number;
-  resultCount?: number;
-  note?: string;
+type BillingStatus = "trialing" | "active" | "past_due" | "canceled";
+
+interface BillingRow {
+  id: string;
+  status: BillingStatus;
+  mrr: number;
+  currency: string;
+  eventAtMs: number | null;
+}
+
+interface PaymentRow {
+  id: string;
+  amount: number;
+  currency: string;
+  paid: boolean;
+  eventAtMs: number | null;
+}
+
+interface BillingKpi {
+  totalSubscriptions: number;
+  trial: number;
+  active: number;
+  pastDue: number;
+  canceled: number;
+  mrr: number;
+}
+
+function toMillis(value: unknown): number | null {
+  if (!value) return null;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "object" && typeof (value as { toMillis?: () => number }).toMillis === "function") {
+    return (value as { toMillis: () => number }).toMillis();
+  }
+  return null;
+}
+
+function normalizeStatus(raw: unknown): BillingStatus {
+  const status = String(raw || "").trim().toLowerCase();
+  if (status === "trial" || status === "trialing") return "trialing";
+  if (status === "past_due") return "past_due";
+  if (status === "canceled") return "canceled";
+  return "active";
+}
+
+function normalizeCurrency(raw: unknown): string {
+  const c = String(raw || "").trim().toUpperCase();
+  return c || "KRW";
+}
+
+function formatMoney(amount: number, currency = "KRW"): string {
+  try {
+    return new Intl.NumberFormat("ko-KR", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${amount.toLocaleString("ko-KR")} ${currency}`;
+  }
+}
+
+function calculateBillingKpi(rows: BillingRow[]): BillingKpi {
+  return rows.reduce<BillingKpi>(
+    (acc, row) => {
+      acc.totalSubscriptions += 1;
+      if (row.status === "trialing") acc.trial += 1;
+      if (row.status === "active") {
+        acc.active += 1;
+        acc.mrr += row.mrr;
+      }
+      if (row.status === "past_due") acc.pastDue += 1;
+      if (row.status === "canceled") acc.canceled += 1;
+      return acc;
+    },
+    { totalSubscriptions: 0, trial: 0, active: 0, pastDue: 0, canceled: 0, mrr: 0 }
+  );
+}
+
+function buildRecentTrend(rows: BillingRow[], days: 7 | 30): Array<{ name: string; count: number }> {
+  const now = dayjs();
+  const labels = Array.from({ length: days }, (_, idx) => now.subtract(days - 1 - idx, "day"));
+  return labels.map((d) => {
+    const start = d.startOf("day").valueOf();
+    const end = d.endOf("day").valueOf();
+    const count = rows.filter((row) => row.eventAtMs && row.eventAtMs >= start && row.eventAtMs <= end).length;
+    return { name: d.format("M/D"), count };
+  });
+}
+
+function buildRevenueTrend(
+  rows: PaymentRow[],
+  days: 7 | 30,
+  currency: string
+): Array<{ name: string; amount: number }> {
+  const now = dayjs();
+  const labels = Array.from({ length: days }, (_, idx) => now.subtract(days - 1 - idx, "day"));
+  return labels.map((d) => {
+    const start = d.startOf("day").valueOf();
+    const end = d.endOf("day").valueOf();
+    const amount = rows
+      .filter(
+        (row) =>
+          row.paid &&
+          row.currency === currency &&
+          row.eventAtMs != null &&
+          row.eventAtMs >= start &&
+          row.eventAtMs <= end
+      )
+      .reduce((sum, row) => sum + row.amount, 0);
+    return { name: d.format("M/D"), amount };
+  });
 }
 
 export default function Dashboard() {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [intents, setIntents] = useState<{ [key: string]: number }>({});
-  const [keywords, setKeywords] = useState<{ [key: string]: number }>({});
-  const [loading, setLoading] = useState(true);
   const [aiReport, setAiReport] = useState<string>("");
   const [reportLoading, setReportLoading] = useState(false);
-  const [aiSummary, setAiSummary] = useState<string>("데이터 로딩 중...");
-  const [summaryStats, setSummaryStats] = useState({
-    users: 0,
-    activeTeams: 0,
-    insights: 0,
-  });
-  const [weeklyReports, setWeeklyReports] = useState<any[]>([]);
+  const [billingRows, setBillingRows] = useState<BillingRow[]>([]);
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [billingLoading, setBillingLoading] = useState(true);
+  const [range, setRange] = useState<7 | 30>(7);
 
-  // ✅ AI 요약 자동 로드
+  // ✅ subscriptions 실시간 구독 (Stripe Webhook 미러 기준)
   useEffect(() => {
-    const fetchAISummary = async () => {
-      try {
-        const response = await fetch("/api/generateWeeklyReport_new", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "text/plain"
-          },
-          body: JSON.stringify({
-            summaryData: { users: logs.length, newUsers: 41, activeTeams: 18 },
-            insightsData: { region: "경기북부", trend: "활동 증가" },
-          }),
-        });
-
-        if (response.ok) {
-          const text = await response.text();
-          setAiSummary(text.slice(0, 200) + "...");
-          setSummaryStats({
-            users: logs.length,
-            activeTeams: Math.floor(logs.length / 10),
-            insights: 12
-          });
-        }
-      } catch (error) {
-        console.error("AI 요약 로드 실패:", error);
-        setAiSummary("❌ AI 요약 로드 실패");
-      }
-    };
-
-    if (logs.length > 0) {
-      fetchAISummary();
-    }
-  }, [logs]);
-
-  // ✅ 실시간 Firestore 로그 읽기 (voice_logs + logs)
-  useEffect(() => {
-    const voiceLogsQuery = query(collection(db, "voice_logs"), orderBy("ts", "desc"));
-    const unsub1 = onSnapshot(voiceLogsQuery, (snap) => {
-      const arr: LogEntry[] = [];
-      snap.forEach((doc) => {
-        arr.push({ id: doc.id, ...doc.data() } as LogEntry);
-      });
-
-      setLogs(arr);
-
-      // Intent 통계 계산
-      const intentCount: { [key: string]: number } = {};
-      const keywordCount: { [key: string]: number } = {};
-
-      arr.forEach((l) => {
-        const intent = l.intent || "미확인";
-        intentCount[intent] = (intentCount[intent] || 0) + 1;
-
-        if (l.keyword) {
-          keywordCount[l.keyword] = (keywordCount[l.keyword] || 0) + 1;
-        }
-      });
-
-      setIntents(intentCount);
-      setKeywords(keywordCount);
-      setLoading(false);
-    });
-
-    return () => unsub1();
-  }, []);
-
-  // ✅ weeklyReports 데이터 로드
-  useEffect(() => {
-    const q = query(collection(db, "weeklyReports"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "subscriptions"));
     const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setWeeklyReports(data);
+      const rows: BillingRow[] = snap.docs.map((d) => {
+        const data = d.data() as Record<string, unknown>;
+        const rawMrr = Number(data.price ?? 0);
+        const mrr = Number.isFinite(rawMrr) ? Math.max(0, rawMrr) : 0;
+        const eventAtMs =
+          toMillis(data.stripeCreatedAt) ?? toMillis(data.updatedAt) ?? toMillis(data.createdAt) ?? null;
+        return {
+          id: d.id,
+          status: normalizeStatus(data.status),
+          mrr,
+          currency: normalizeCurrency(data.currency),
+          eventAtMs,
+        };
+      });
+      setBillingRows(rows);
+      setBillingLoading(false);
     });
     return () => unsub();
   }, []);
 
-  const total = logs.length;
+  // ✅ payments 실시간 구독 (invoice.paid 미러 기준)
+  useEffect(() => {
+    const q = query(collection(db, "payments"));
+    const unsub = onSnapshot(q, (snap) => {
+      const rows: PaymentRow[] = snap.docs.map((d) => {
+        const data = d.data() as Record<string, unknown>;
+        const amount = Number(data.amount ?? 0);
+        return {
+          id: d.id,
+          amount: Number.isFinite(amount) ? Math.max(0, amount) : 0,
+          currency: normalizeCurrency(data.currency),
+          paid: data.paid !== false,
+          eventAtMs: toMillis(data.stripeCreatedAt) ?? toMillis(data.createdAt) ?? null,
+        };
+      });
+      setPayments(rows);
+    });
+    return () => unsub();
+  }, []);
+
   const today = dayjs().format("YYYY-MM-DD");
-  const todayLogs = logs.filter(log => {
-    if (!log.ts?.seconds) return false;
-    return dayjs(log.ts.seconds * 1000).format("YYYY-MM-DD") === today;
-  });
-
-  // ✅ 그래프 데이터 (recharts 형식)
-  const intentLabels = Object.keys(intents);
-  const intentValues = Object.values(intents);
-  const chartData = intentLabels.map((label, index) => ({
-    name: label,
-    value: intentValues[index] || 0,
+  const billingKpi = calculateBillingKpi(billingRows);
+  const trendData = buildRecentTrend(billingRows, range);
+  const mrrByCurrency = billingRows.reduce<Record<string, number>>((acc, row) => {
+    if (row.status !== "active") return acc;
+    acc[row.currency] = (acc[row.currency] ?? 0) + row.mrr;
+    return acc;
+  }, {});
+  const mrrCurrencyEntries = Object.entries(mrrByCurrency).sort((a, b) => b[1] - a[1]);
+  const currencyBreakdown = mrrCurrencyEntries.map(([currency, amount]) => ({
+    currency,
+    amount,
+    text: `${currency} ${Number(amount).toLocaleString("ko-KR")}`,
   }));
-
-  // ✅ AI 리포트 차트 데이터 (recharts 형식)
-  const reportData = [
-    { name: "10월 1주", "신규 가입자 수": 21 },
-    { name: "10월 2주", "신규 가입자 수": 32 },
-    { name: "10월 3주", "신규 가입자 수": 45 },
-    { name: "10월 4주", "신규 가입자 수": 53 },
-  ];
+  const [primaryCurrency, primaryMrr] = mrrCurrencyEntries[0] ?? ["KRW", 0];
+  const mrrDisplay = formatMoney(primaryMrr, primaryCurrency);
+  const mrrChangeLabel =
+    mrrCurrencyEntries.length > 1
+      ? `${mrrCurrencyEntries.length}개 통화`
+      : billingLoading
+        ? "동기화 중"
+        : primaryCurrency;
+  const churnBase = billingKpi.active + billingKpi.canceled;
+  const churnRate = churnBase > 0 ? (billingKpi.canceled / churnBase) * 100 : 0;
+  const arpu = billingKpi.active > 0 ? primaryMrr / billingKpi.active : 0;
+  const arpuDisplay = formatMoney(arpu, primaryCurrency);
+  const revenueByCurrency = payments.reduce<Record<string, number>>((acc, row) => {
+    acc[row.currency] = (acc[row.currency] ?? 0) + row.amount;
+    return acc;
+  }, {});
+  const revenueSummary = Object.entries(revenueByCurrency)
+    .sort((a, b) => b[1] - a[1])
+    .map(([currency, amount]) => `${currency} ${Number(amount).toLocaleString("ko-KR")}`)
+    .join(" / ");
+  const [primaryRevenueCurrency] = Object.keys(revenueByCurrency).sort(
+    (a, b) => (revenueByCurrency[b] ?? 0) - (revenueByCurrency[a] ?? 0)
+  );
+  const revenueTrend = buildRevenueTrend(
+    payments,
+    range,
+    primaryRevenueCurrency || primaryCurrency || "KRW"
+  );
 
   // ✅ 완전 전환 API 리포트 요청 (모든 플랫폼 지원)
   const handleCompleteMigrationAPI = async (period: string = "thisweek") => {
@@ -374,7 +450,7 @@ export default function Dashboard() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              text: `📊 *YAGO VIBE IR 슬라이드 생성됨*\n파일: ${data.filePath}`,
+              text: `📊 *YAGO SPORTS IR 슬라이드 생성됨*\n파일: ${data.filePath}`,
             }),
           });
         }
@@ -385,262 +461,185 @@ export default function Dashboard() {
     }
   };
 
-  // Top 키워드 계산
-  const topKeywords = Object.entries(keywords)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
-
   return (
-    <YagoLayout title="YAGO VIBE 실시간 대시보드">
+    <YagoLayout title="YAGO SPORTS 실시간 대시보드">
       <div className="space-y-6">
         {/* 📊 헤더 섹션 */}
         <div className="text-center">
           <h1 className="text-4xl font-display font-bold text-yago-purple mb-2">
-            📊 YAGO VIBE 실시간 리포트
+            📊 YAGO SPORTS 실시간 리포트
           </h1>
           <p className="text-lg text-yago-gray">
             날짜: <strong className="text-yago-purple">{today}</strong> /
-            총 명령 <strong className="text-yago-purple">{total}</strong>건
+            총 구독 <strong className="text-yago-purple">{billingKpi.totalSubscriptions}</strong>건
           </p>
         </div>
 
         {/* 📈 통계 카드 그리드 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <YagoStatCard
-            title="총 명령어"
-            value={total.toLocaleString()}
-            change={`+${todayLogs.length} 오늘`}
+            title="Trial"
+            value={billingKpi.trial}
+            change="trialing"
             trend="up"
-            icon="🎙️"
+            icon="T"
           />
           <YagoStatCard
-            title="오늘 명령어"
-            value={todayLogs.length}
-            change="실시간 업데이트"
+            title="Active"
+            value={billingKpi.active}
+            change="active"
             trend="up"
-            icon="📅"
+            icon="A"
           />
           <YagoStatCard
-            title="인기 의도"
-            value={Object.keys(intents).length > 0 ? Object.entries(intents).sort(([, a], [, b]) => b - a)[0][0] : "없음"}
-            change={`${Object.keys(intents).length}개 의도`}
-            trend="neutral"
-            icon="🎯"
+            title="Past Due"
+            value={billingKpi.pastDue}
+            change="결제 실패"
+            trend={billingKpi.pastDue > 0 ? "down" : "neutral"}
+            icon="P"
+          />
+          <YagoCard className="hover:shadow-yago-lg transition-shadow duration-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-yago-gray font-medium">MRR</p>
+                <p className="text-2xl font-bold text-yago-purple mt-1">{mrrDisplay}</p>
+                <p className="text-xs mt-1 text-green-600">↗ {mrrChangeLabel}</p>
+                {currencyBreakdown.length > 1 && (
+                  <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] text-gray-500">
+                    {currencyBreakdown.map((row) => (
+                      <span key={row.currency}>{row.text}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="text-yago-purple/20 text-3xl">₩</div>
+            </div>
+          </YagoCard>
+          <YagoStatCard
+            title="Churn"
+            value={`${churnRate.toFixed(1)}%`}
+            change={`${billingKpi.canceled} / ${churnBase}`}
+            trend={churnRate > 10 ? "down" : "neutral"}
+            icon="C"
           />
           <YagoStatCard
-            title="인기 키워드"
-            value={topKeywords.length > 0 ? topKeywords[0][0] : "없음"}
-            change={`${topKeywords.length > 0 ? topKeywords[0][1] : 0}회`}
+            title="ARPU"
+            value={arpuDisplay}
+            change={billingKpi.active > 0 ? `${billingKpi.active} active` : "active 없음"}
             trend="neutral"
-            icon="🔥"
+            icon="A"
           />
         </div>
 
-        {/* 🧠 AI 요약 카드 섹션 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <AdminSummaryCard
-            title="이번 주 신규 사용자"
-            value={`${summaryStats.users}명`}
-            icon="👥"
-            trend="+23%"
-            highlight
-          />
-          <AdminSummaryCard
-            title="활성 팀 수"
-            value={`${summaryStats.activeTeams}개`}
-            icon="⚽"
-            trend="+9%"
-          />
-          <AdminSummaryCard
-            title="AI 인사이트 수"
-            value={`${summaryStats.insights}건`}
-            icon="🧠"
-            trend="+12%"
-          />
-        </div>
-
-        {/* 🧠 AI 자동 요약 */}
-        <YagoCard title="🧠 AI 자동 요약" icon="🤖">
-          <div className="bg-white/90 p-6 rounded-xl">
-            <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-              {aiSummary}
-            </p>
-          </div>
-        </YagoCard>
-
-        {/* 📊 AI 리포트 그래프 섹션 */}
-        <AdminChart
-          title="📊 주간 사용자 활동 통계"
-          labels={["월", "화", "수", "목", "금", "토", "일"]}
-          dataValues={[23, 41, 38, 52, 45, 33, 28]}
-          backgroundColor="rgba(59,130,246,0.5)"
-          borderColor="rgba(59,130,246,1)"
-        />
-
-        <AdminChart
-          title="🏘️ 지역별 경기북부 팀 활동량"
-          labels={["포천", "의정부", "양주", "동두천", "연천"]}
-          dataValues={[120, 98, 80, 75, 55]}
-          backgroundColor="rgba(139,92,246,0.5)"
-          borderColor="rgba(139,92,246,1)"
-        />
-
-        {/* 📈 AI 리포트 차트 섹션 */}
+        {/* 최근 구독 이벤트 추이 */}
         <section className="p-4 mt-6 bg-white rounded-2xl shadow-md border border-gray-100">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800">📈 주간 신규 가입자 추이</h2>
-          <div className="h-64">
-            <LineChart width={800} height={256} data={reportData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
-                stroke="#6B7280"
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis 
-                stroke="#6B7280"
-                tick={{ fontSize: 12 }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: '#F9FAFB',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="신규 가입자 수" 
-                stroke="#4bc0c0" 
-                strokeWidth={2}
-                dot={{ fill: "#4bc0c0", r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-gray-800">최근 구독 추이</h2>
+            <div className="inline-flex items-center rounded-lg border bg-white p-1">
+              <button
+                onClick={() => setRange(7)}
+                className={`h-8 rounded-md px-3 text-xs font-medium ${
+                  range === 7 ? "bg-black text-white" : "text-gray-600"
+                }`}
+              >
+                7일
+              </button>
+              <button
+                onClick={() => setRange(30)}
+                className={`h-8 rounded-md px-3 text-xs font-medium ${
+                  range === 30 ? "bg-black text-white" : "text-gray-600"
+                }`}
+              >
+                30일
+              </button>
+            </div>
+          </div>
+          <div className="w-full h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#6B7280"
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis 
+                  stroke="#6B7280"
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#F9FAFB',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="#4bc0c0" 
+                  strokeWidth={2}
+                  dot={{ fill: "#4bc0c0", r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </section>
 
-        {/* 🎮 액션 버튼들 */}
-        <YagoCard title="🎮 관리자 액션" icon="⚙️">
-          <div className="flex flex-wrap gap-4">
-            <YagoButton
-              text={reportLoading ? "🚀 자동 리포트 생성 중..." : "🚀 완전 자동 리포트"}
-              onClick={handleAutoReport}
-              variant="success"
-              icon="🚀"
-              disabled={reportLoading}
-            />
-            <YagoButton
-              text={reportLoading ? "🧠 AI 리포트 생성 중..." : "🧠 AI 리포트 생성"}
-              onClick={handleGenerateAIReport}
-              variant="primary"
-              icon="🧠"
-              disabled={reportLoading}
-            />
-            <YagoButton
-              text="📄 AI 리포트 PDF 저장"
-              onClick={handleExportAIReportPDF}
-              variant="accent"
-              icon={<FileDown className="w-4 h-4" />}
-            />
-            <YagoButton
-              text="📱 Slack 전송"
-              onClick={handleSendSlack}
-              variant="secondary"
-              icon="📱"
-            />
-            <YagoButton
-              text="📄 AI 리포트 다운로드"
-              onClick={handleDownloadPDF}
-              variant="primary"
-              icon="📄"
-            />
-            <YagoButton
-              text="📊 주간 리포트 생성"
+        {payments.length > 0 && (
+          <section className="p-4 bg-white rounded-2xl shadow-md border border-gray-100">
+            <h2 className="text-lg font-semibold mb-4 text-gray-800">최근 매출 추이</h2>
+            <div className="w-full h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={revenueTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="#6B7280" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="#6B7280" tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#F9FAFB",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Line type="monotone" dataKey="amount" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="mt-2 text-sm text-gray-600">
+              기준 통화: {primaryRevenueCurrency || primaryCurrency || "KRW"} / 누적: {revenueSummary}
+            </p>
+            {Object.keys(revenueByCurrency).length > 1 && (
+              <p className="mt-1 text-xs text-gray-500">다중 통화 포함 (대표 통화 기준 차트 표시)</p>
+            )}
+          </section>
+        )}
+
+        <section className="bg-white rounded-xl border p-5">
+          <h3 className="text-base font-semibold mb-4">빠른 실행</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <button
               onClick={handleWeeklyReport}
-              variant="primary"
-              icon="📊"
-            />
-            <YagoButton
-              text="📑 PDF IR 내보내기"
-              onClick={() => handleExportIR("pdf")}
-              variant="accent"
-              icon={<FileDown className="w-4 h-4" />}
-            />
-            <YagoButton
-              text="📊 PPTX 슬라이드"
-              onClick={() => handleExportIR("pptx")}
-              variant="secondary"
-              icon={<Presentation className="w-4 h-4" />}
-            />
-            <YagoButton
-              text="📈 IR 슬라이드 자동 생성"
+              className="h-11 rounded-lg bg-black text-white text-sm font-medium"
+            >
+              리포트 생성
+            </button>
+            <button
               onClick={handleGenerateIRSlides}
-              variant="success"
-              icon="📈"
-            />
-            <YagoButton
-              text="🚀 완전 전환 API (이번주)"
-              onClick={() => handleCompleteMigrationAPI("thisweek")}
-              variant="accent"
-              icon="🚀"
-            />
-            <YagoButton
-              text="📅 완전 전환 API (지난주)"
-              onClick={() => handleCompleteMigrationAPI("lastweek")}
-              variant="accent"
-              icon="📅"
-            />
-            <YagoButton
-              text="📱 Slack으로 전송"
-              onClick={handleSlackTest}
-              variant="secondary"
-              icon="📱"
-            />
-            <YagoButton
-              text="📍 Geo Analytics"
-              onClick={() => window.location.href = '/admin/geo'}
-              variant="secondary"
-              icon="📍"
-            />
-            <YagoButton
-              text="🧠 AI Insights"
-              onClick={() => window.location.href = '/admin/insights'}
-              variant="accent"
-              icon="🧠"
-            />
-            <YagoButton
-              text="📄 Insights Page"
-              onClick={() => window.location.href = '/admin/insights-page'}
-              variant="secondary"
-              icon="📄"
-            />
-            <YagoButton
-              text="📅 리포트 히스토리"
-              onClick={() => window.location.href = '/admin/reports'}
-              variant="secondary"
-              icon="📅"
-            />
-            <YagoButton
-              text="🎙️ 음성 어시스턴트"
-              onClick={() => window.location.href = '/voice-assistant'}
-              variant="accent"
-              icon="🎙️"
-            />
-            <YagoButton
-              text="📊 상세 로그 보기"
-              onClick={handleViewLogs}
-              variant="secondary"
-              icon="📊"
-            />
-            <YagoButton
-              text="🔄 새로고침"
+              className="h-11 rounded-lg border bg-white px-4 text-sm font-medium"
+            >
+              IR 슬라이드 생성
+            </button>
+            <button
               onClick={() => window.location.reload()}
-              variant="outline"
-              icon="🔄"
-            />
+              className="h-11 rounded-lg border bg-white px-4 text-sm font-medium"
+            >
+              새로고침
+            </button>
           </div>
-        </YagoCard>
+        </section>
 
         {/* 🧠 AI 리포트 섹션 */}
         {aiReport && (
@@ -664,139 +663,7 @@ export default function Dashboard() {
           </YagoCard>
         )}
 
-        {/* 📈 의도별 차트 */}
-        <YagoCard title="🎯 Intent별 명령 사용량" icon="📊">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yago-purple"></div>
-            </div>
-          ) : (
-            <div className="h-64">
-              <BarChart width={800} height={256} data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#6B7280"
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke="#6B7280"
-                  tick={{ fontSize: 12 }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    padding: '12px'
-                  }}
-                />
-                <Bar 
-                  dataKey="value" 
-                  fill="#6366F1"
-                  stroke="#4F46E5"
-                  strokeWidth={2}
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </div>
-          )}
-        </YagoCard>
 
-        {/* 🔥 상위 키워드 */}
-        {topKeywords.length > 0 && (
-          <YagoCard title="🔥 상위 키워드 Top 5" icon="🔥">
-            <div className="space-y-3">
-              {topKeywords.map(([keyword, count], index) => (
-                <div key={keyword} className="flex items-center justify-between p-3 bg-yago-soft rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-yago-purple text-white text-xs font-bold rounded-full flex items-center justify-center">
-                      {index + 1}
-                    </span>
-                    <span className="font-medium text-gray-800">{keyword}</span>
-                  </div>
-                  <span className="px-3 py-1 bg-yago-purple text-white text-sm font-semibold rounded-full">
-                    {count}회
-                  </span>
-                </div>
-              ))}
-            </div>
-          </YagoCard>
-        )}
-
-        {/* 📋 최근 명령 로그 */}
-        <YagoCard title="📋 최근 명령 로그" icon="📝">
-          <div className="max-h-64 overflow-y-auto">
-            {logs.length === 0 ? (
-              <div className="text-center text-yago-gray py-8">
-                <div className="text-4xl mb-2">📭</div>
-                <p>아직 로그가 없습니다.</p>
-                <p className="text-sm">음성 명령을 사용하면 여기에 표시됩니다.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {logs.slice(0, 20).map((log, i) => (
-                  <div key={log.id || i} className="flex items-center justify-between p-3 bg-yago-soft rounded-lg hover:bg-yago-purple/10 transition-colors">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-800 truncate">
-                        {log.text || "명령 내용 없음"}
-                      </p>
-                      <p className="text-xs text-yago-gray">
-                        {log.ts?.seconds ? dayjs(log.ts.seconds * 1000).format('MM-DD HH:mm:ss') : "시간 없음"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {log.keyword && (
-                        <span className="px-2 py-1 bg-yago-pink/10 text-yago-pink text-xs rounded-full">
-                          {log.keyword}
-                        </span>
-                      )}
-                      <span className="px-2 py-1 bg-yago-purple/10 text-yago-purple text-xs rounded-full">
-                        {log.intent || "미확인"}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </YagoCard>
-
-        {/* 🚀 빠른 링크 */}
-        <YagoCard title="🚀 빠른 링크" icon="🔗" gradient>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <a
-              href="/voice-map"
-              className="p-4 bg-white/20 rounded-xl text-center hover:bg-white/30 transition-colors"
-            >
-              <div className="text-2xl mb-2">🗺️</div>
-              <div className="text-sm font-medium">음성 지도</div>
-            </a>
-            <a
-              href="/voice-map-dashboard"
-              className="p-4 bg-white/20 rounded-xl text-center hover:bg-white/30 transition-colors"
-            >
-              <div className="text-2xl mb-2">📊</div>
-              <div className="text-sm font-medium">로그 대시보드</div>
-            </a>
-            <a
-              href="http://localhost:3001/api/test-signature-pdf"
-              target="_blank"
-              className="p-4 bg-white/20 rounded-xl text-center hover:bg-white/30 transition-colors"
-            >
-              <div className="text-2xl mb-2">📄</div>
-              <div className="text-sm font-medium">PDF 테스트</div>
-            </a>
-            <a
-              href="#"
-              className="p-4 bg-white/20 rounded-xl text-center hover:bg-white/30 transition-colors"
-            >
-              <div className="text-2xl mb-2">⚙️</div>
-              <div className="text-sm font-medium">설정</div>
-            </a>
-          </div>
-        </YagoCard>
       </div>
     </YagoLayout>
   );

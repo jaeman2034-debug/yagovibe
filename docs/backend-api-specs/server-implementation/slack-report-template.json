@@ -1,0 +1,62 @@
+{
+  "text": "📊 AI 분석 성공률 주간 리포트 (2024-01-01 ~ 2024-01-07)",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "📊 AI 분석 성공률 주간 리포트"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*기간:*\n2024-01-01 ~ 2024-01-07"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*📈 전체 요약*\n• 총 요청: 1,250건\n• 성공률: 92.0% (1,150/1,250)\n• 평균 응답 시간: 2.5초\n• 느린 요청: 125건 (10.0%)"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*🌐 환경별 비교*\n• 카카오 인앱: 84.4% 성공률 (380/450)\n• 모바일 전체: 91.3% 성공률 (730/800)\n• 데스크탑: 93.3% 성공률 (420/450)"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*⚠️ 주요 에러*\n• NETWORK_FAILED: 45건 (3.6%)\n• AUTH_REQUIRED: 20건 (1.6%)\n• FILE_TOO_LARGE: 15건 (1.2%)"
+      }
+    },
+    {
+      "type": "divider"
+    },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "*💡 인사이트*\n• 카카오 인앱 성공률이 외부 브라우저 대비 8.9%p 낮음\n• 외부 브라우저 유도 UX 유지 권장\n\n🔥 *외부 브라우저 전환 ROI: +14.0%p*\n• 인앱 유지 성공률: 83.0% (n=1,240)\n• 외부 전환 성공률: 97.0% (n=860)\n• *자동 외부 전환 정책 검토 권장*"
+        }
+      }
+  ]
+}
+

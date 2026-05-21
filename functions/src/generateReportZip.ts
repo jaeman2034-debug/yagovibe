@@ -2,7 +2,7 @@ import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 import JSZip from "jszip";
 import * as nodemailer from "nodemailer";
 
@@ -12,7 +12,6 @@ if (!admin.apps.length) {
 }
 
 const db = getFirestore();
-const storage = getStorage().bucket();
 
 /**
  * 요약 텍스트 가져오기
@@ -42,7 +41,7 @@ async function sendMultiPlatformNotification(zipUrl: string) {
         const summary = await getSummaryText();
         
         // 기본 메시지 템플릿
-        const baseMessage = `🎉 *YAGO VIBE SPORTS 주간 AI 리포트 업데이트!*\n\n` +
+        const baseMessage = `🎉 *YAGO SPORTS 주간 AI 리포트 업데이트!*\n\n` +
             `🧠 _${summary}_\n\n` +
             `📎 ${zipUrl}\n\n` +
             `📦 포함 내용: 📄 PDF 요약 + 🔊 TTS 음성 파일\n\n` +
@@ -55,7 +54,7 @@ async function sendMultiPlatformNotification(zipUrl: string) {
         const slackWebhook = process.env.SLACK_WEBHOOK_URL;
         if (slackWebhook) {
             try {
-                const slackMessage = `🎉 *YAGO VIBE SPORTS 주간 AI 리포트 업데이트!*\n\n` +
+                const slackMessage = `🎉 *YAGO SPORTS 주간 AI 리포트 업데이트!*\n\n` +
                     `🧠 _${summary}_\n\n` +
                     `📎 <${zipUrl}|ZIP 다운로드 링크>\n\n` +
                     `📦 포함 내용: 📄 PDF 요약 + 🔊 TTS 음성 파일\n\n` +
@@ -161,12 +160,12 @@ async function sendEmailNotification(zipUrl: string, summary: string) {
         });
 
         const mailOptions = {
-            from: '"YAGO VIBE AI" <no-reply@yagovibe.com>',
+            from: '"YAGO SPORTS AI" <no-reply@yagovibe.com>',
             to: emailTo,
             subject: "🧠 AI 주간 리포트 도착!",
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #3b82f6;">📊 YAGO VIBE AI 주간 리포트</h2>
+                    <h2 style="color: #3b82f6;">📊 YAGO SPORTS AI 주간 리포트</h2>
                     <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
                         <h3 style="color: #1f2937; margin-top: 0;">🧠 AI 요약</h3>
                         <p style="color: #4b5563; line-height: 1.6;">${summary}</p>
@@ -182,7 +181,7 @@ async function sendEmailNotification(zipUrl: string, summary: string) {
                     </p>
                     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
                     <p style="color: #9ca3af; font-size: 12px;">
-                        이 메일은 YAGO VIBE AI 시스템에서 자동으로 생성되었습니다.
+                        이 메일은 YAGO SPORTS AI 시스템에서 자동으로 생성되었습니다.
                     </p>
                 </div>
             `,
@@ -260,7 +259,7 @@ export const generateReportZip = onDocumentUpdated(
             const filePath = `reports/weekly_report_${timestamp}.zip`;
 
             // Firebase Storage에 ZIP 파일 업로드
-            await storage.file(filePath).save(zipContent, {
+            await getDefaultStorageBucket().file(filePath).save(zipContent, {
                 contentType: "application/zip",
                 metadata: { cacheControl: "public, max-age=3600" },
             });
@@ -268,7 +267,7 @@ export const generateReportZip = onDocumentUpdated(
             logger.info("✅ ZIP 파일 Storage 업로드 완료:", filePath);
 
             // ZIP URL 생성 (Firebase Storage)
-            const zipUrl = `https://storage.googleapis.com/${storage.name}/${filePath}`;
+            const zipUrl = `https://storage.googleapis.com/${getDefaultStorageBucket().name}/${filePath}`;
 
             // Firestore에 ZIP URL 업데이트
             await event.data?.after?.ref.update({ zipURL: zipUrl });

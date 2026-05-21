@@ -17,7 +17,7 @@ export default function MarketAIReportCard() {
   const handleGenerate = async () => {
     setLoading(true);
     setTimeout(() => {
-      setReport(`📊 YAGO VIBE AI 상품 리포트
+      setReport(`📊 YAGO SPORTS AI 상품 리포트
 
 
 상품명: ${normalizedQuery}

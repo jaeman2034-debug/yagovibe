@@ -11,7 +11,7 @@ export default function MarketPageAIReport() {
   // 🧠 AI 리포트 생성 (mock 예시)
   const generateReport = () => {
     const text = `
-    📊 YAGO VIBE AI 리포트
+    📊 YAGO SPORTS AI 리포트
     - 상품명: 축구공
     - 분석요약: 품질 양호, 중고 A급 상태. 
     - 판매예측: 85% 확률로 3일 내 거래 성사 예상.

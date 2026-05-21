@@ -41,7 +41,7 @@ export const autoWeeklyReport = functions
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    title: "YAGO VIBE 주간 AI 리포트",
+                    title: "YAGO SPORTS 주간 AI 리포트",
                     summary: `활성 사용자 수: ${activeUsers}명, 총 로그: ${totalLogs}건`,
                     generatedAt,
                 }),

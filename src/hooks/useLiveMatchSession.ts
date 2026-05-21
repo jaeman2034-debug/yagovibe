@@ -68,6 +68,7 @@ import {
   findAlienPlayerKeys,
   isOpponentPoseEchoingOwn,
   logRtdbPlayersRead,
+  logRtdbPlayersSmoke,
   warnRtdbPlayerSlotCollision,
 } from "@/lib/live/liveRtdbDiagnostics";
 
@@ -872,6 +873,7 @@ export function useLiveMatchSession({ sessionId, myUid, playerUids: rawUids }: O
             console.error("[liveMatch] RTDB alien player keys", { aliens, rawKeys: Object.keys(raw) });
           }
           logRtdbPlayersRead(sessionId, sorted, authUid, raw, val);
+          logRtdbPlayersSmoke(sessionId, authUid, raw);
         }
         if (Object.keys(val).length === 0) return;
         rtdbPlayersRef.current = { ...rtdbPlayersRef.current, ...val };

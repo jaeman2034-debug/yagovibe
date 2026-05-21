@@ -1,11 +1,22 @@
 {
-  "functions": {
-    "source": "functions",
-    "runtime": "nodejs20",
-    "predeploy": [
-      "npm --prefix \"$RESOURCE_DIR\" run build"
-    ]
-  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22",
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    },
+    {
+      "source": "functions-chat",
+      "codebase": "chat",
+      "runtime": "nodejs22",
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ],
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -19,13 +30,26 @@
         "destination": "/index.html"
       },
       {
+        "source": "/__/firebase/**",
+        "destination": "/index.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
     ],
     "headers": [
       {
-        "source": "**/*.@(js|css|woff|woff2|ttf|otf)",
+        "source": "**/*.@(js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(woff|woff2|ttf|otf)",
         "headers": [
           {
             "key": "Cache-Control",
@@ -54,7 +78,10 @@
       {
         "source": "**",
         "headers": [
-          { "key": "Access-Control-Allow-Origin", "value": "*" }
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          }
         ]
       }
     ]
@@ -63,16 +90,47 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "database": {
+    "rules": "database.rules.json"
+  },
   "storage": {
     "rules": "storage.rules"
   },
   "emulators": {
-    "functions": { "port": 5001 },
-    "firestore": { "port": 8081 },
-    "auth": { "port": 9099 },
-    "storage": { "port": 9199 },
-    "ui": { "port": 4001 },
-    "hub": { "port": 4401 },
-    "logging": { "port": 4501 }
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8081
+    },
+    "database": {
+      "port": 9000
+    },
+    "auth": {
+      "port": 9099
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "port": 4001
+    },
+    "hub": {
+      "port": 4401
+    },
+    "logging": {
+      "port": 4501
+    }
+  },
+  "apphosting": {
+    "backendId": "my-web-app",
+    "rootDir": "/",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "functions"
+    ]
   }
 }

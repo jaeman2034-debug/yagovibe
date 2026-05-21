@@ -121,7 +121,7 @@ export const generateVisualQualityReport = onSchedule(
                     plugins: { 
                         title: { 
                             display: true, 
-                            text: "YAGO VIBE 품질 트렌드 (최근 4주)",
+                            text: "YAGO SPORTS 품질 트렌드 (최근 4주)",
                             font: { size: 16 }
                         },
                         legend: {
@@ -169,7 +169,7 @@ Include:
 - Metrics summary cards
 - Short note like "Quality ${scoreChange > 0 ? "improving" : "needs attention"}"
 - Color palette: blue & green tones, modern UI style
-- Title: "YAGO VIBE AI Quality Insight"
+- Title: "YAGO SPORTS AI Quality Insight"
 
 Style: Clean, professional dashboard design with gradient backgrounds.
 `;
@@ -189,7 +189,7 @@ Style: Clean, professional dashboard design with gradient backgrounds.
             if (SLACK_WEBHOOK) {
                 try {
                     // Slack 메시지 본문
-                    const slackText = `📊 *YAGO VIBE AI 품질 시각화 리포트*\n\n` +
+                    const slackText = `📊 *YAGO SPORTS AI 품질 시각화 리포트*\n\n` +
                         `• Score 상승세 유지 (평균 ${avgScore.toFixed(2)})\n` +
                         `• Coverage 안정적 (${avgCoverage.toFixed(1)}% 이상)\n` +
                         `• 다음 주 예측: ${forecastScore.toFixed(3)} ${scoreChange > 0 ? `(+${scoreChange.toFixed(3)})` : `(${scoreChange.toFixed(3)})`}\n\n` +
@@ -253,9 +253,9 @@ Style: Clean, professional dashboard design with gradient backgrounds.
                     await transporter.sendMail({
                         from: MAIL_USER,
                         to: MAIL_TO,
-                        subject: "YAGO VIBE AI 품질 시각화 리포트",
+                        subject: "YAGO SPORTS AI 품질 시각화 리포트",
                         html: `
-                            <h2>📊 YAGO VIBE AI 품질 시각화 리포트</h2>
+                            <h2>📊 YAGO SPORTS AI 품질 시각화 리포트</h2>
                             <p>• Score 상승세 유지 (평균 ${avgScore.toFixed(2)})</p>
                             <p>• Coverage 안정적 (${avgCoverage.toFixed(1)}% 이상)</p>
                             <p>• 다음 주 예측: ${forecastScore.toFixed(3)} ${scoreChange > 0 ? `(+${scoreChange.toFixed(3)})` : `(${scoreChange.toFixed(3)})`}</p>

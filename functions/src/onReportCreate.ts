@@ -117,7 +117,7 @@ export const onReportCreate = onDocumentCreated(
           elements: [
             {
               type: "mrkdwn",
-              text: "_YAGO VIBE · 자동 발행_",
+              text: "_YAGO SPORTS · 자동 발행_",
             },
           ],
         },

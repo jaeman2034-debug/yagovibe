@@ -58,7 +58,7 @@ export const generateOpsReport = onSchedule(
         const writeStream = fs.createWriteStream(pdfPath);
         doc.pipe(writeStream);
 
-        doc.fontSize(20).text("📈 YAGO VIBE Weekly Ops Report", { align: "center" });
+        doc.fontSize(20).text("📈 YAGO SPORTS Weekly Ops Report", { align: "center" });
         doc.moveDown();
         doc.fontSize(12).text(fullSummary, { align: "left" });
         doc.end();
@@ -78,7 +78,7 @@ export const generateOpsReport = onSchedule(
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    text: `📢 이번 주 YAGO VIBE AI 운영 리포트가 업로드되었습니다.\nhttps://storage.googleapis.com/YOUR_BUCKET/${dest}`,
+                    text: `📢 이번 주 YAGO SPORTS AI 운영 리포트가 업로드되었습니다.\nhttps://storage.googleapis.com/YOUR_BUCKET/${dest}`,
                 }),
             });
         }

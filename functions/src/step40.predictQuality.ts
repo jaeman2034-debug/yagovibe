@@ -135,7 +135,7 @@ BigQuery ML 모델이 예측한 다음 주 품질 점수는 ${forecastScore.toFi
             // 4️⃣ Slack 발송
             if (SLACK_WEBHOOK) {
                 try {
-                    const slackText = `📊 *YAGO VIBE 다음 주 품질 예측 리포트*\n\n` +
+                    const slackText = `📊 *YAGO SPORTS 다음 주 품질 예측 리포트*\n\n` +
                         `예측 점수: ${forecastScore.toFixed(3)} (전주 대비 ${scoreChange})\n\n` +
                         `${aiText}`;
 

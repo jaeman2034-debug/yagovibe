@@ -117,6 +117,69 @@
   .pc-center-ui .product-grid {
     @apply grid grid-cols-3 gap-6; /* 🔥 항상 3열 가로형 */
   }
+
+  /* 필요 시 개별 영역에만 스크롤바 숨김 */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.15s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.16s ease-out;
+}
+
+@keyframes bell-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(-14deg);
+  }
+  40% {
+    transform: rotate(14deg);
+  }
+  60% {
+    transform: rotate(-8deg);
+  }
+  80% {
+    transform: rotate(8deg);
+  }
+}
+
+.animate-bell-shake {
+  animation: bell-shake 0.55s ease-in-out;
+  transform-origin: top center;
 }
 
 /* 🔥 모든 상품 이미지 정사각형으로 고정 */
@@ -184,4 +247,60 @@
 
 .recommend-tag {
   @apply text-[11px] px-2 py-[2px] bg-blue-100 text-blue-700 rounded-full;
+}
+
+/*
+ * 스크롤은 유지하고 스크롤바 트랙만 숨김 (허브/데스크톱에서 보이던 세로 막대 제거)
+ * — 휠·트랙패드·키보드 스크롤은 그대로 동작
+ */
+html,
+body,
+#root {
+  height: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+main.app-scroll,
+.page-content {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+main.app-scroll::-webkit-scrollbar,
+.page-content::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* 거래 1:1 ChatRoom 메시지 영역 — overflow-y 유지, 스크롤바만 숨김 (모든 뷰포트; 로컬 데스크톱 포함) */
+.chat-messages {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.chat-messages::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* 채팅 하단 입력 textarea — overflow-y 유지, 스크롤바만 숨김 (카톡/인스타 스타일) */
+.chat-input-textarea {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.chat-input-textarea::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }

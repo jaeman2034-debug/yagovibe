@@ -4,7 +4,7 @@ import { storage } from "@/lib/firebase";
 
 async function testStorage() {
   try {
-    const testBlob = new Blob(["Hello YAGO VIBE Storage!"], { type: "text/plain" });
+    const testBlob = new Blob(["Hello YAGO SPORTS Storage!"], { type: "text/plain" });
     const testRef = ref(storage, `test/test_${Date.now()}.txt`);
     await uploadBytes(testRef, testBlob);
     const url = await getDownloadURL(testRef);

@@ -30,7 +30,7 @@ export const vibeTTSReport = onDocumentCreated(
                 body: JSON.stringify({
                     model: "tts-1",
                     voice: "alloy",
-                    input: `이번 주 YAGO VIBE 리포트입니다. ${data.report}`,
+                    input: `이번 주 YAGO SPORTS 리포트입니다. ${data.report}`,
                 }),
             });
 

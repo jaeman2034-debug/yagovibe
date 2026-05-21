@@ -1,8 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { History, Eye, EyeOff, RotateCcw, Save } from "lucide-react";
-import { DiffMatchPatch } from "diff-match-patch";
+import diff_match_patch from "diff-match-patch";
 import { db } from "@/lib/firebase";
+
+type DmpApi = {
+    diff_main: (a: string, b: string) => [number, string][];
+    diff_cleanupSemantic: (diffs: [number, string][]) => void;
+};
+const DiffMatchPatchCtor = diff_match_patch as unknown as new () => DmpApi;
 
 interface Version {
     ts: number;
@@ -16,7 +22,7 @@ interface DeltaViewProps {
 
 // diff-match-patch를 사용한 정확한 diff 계산
 function computeDiff(base: string, compare: string): Array<[number, string]> {
-    const dmp = new DiffMatchPatch();
+    const dmp = new DiffMatchPatchCtor();
     const diffs = dmp.diff_main(base, compare);
     dmp.diff_cleanupSemantic(diffs); // 의미론적 정리
 

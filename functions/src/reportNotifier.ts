@@ -37,7 +37,7 @@ export const notifyWeeklyReport = onSchedule(
 
       // 3️⃣ Slack 메시지 작성
       const message = {
-        text: `📊 *YAGO VIBE 주간 리포트*\n\n👥 총 회원 수: ${latest.totalMembers}\n⚽ 경기 수: ${latest.totalMatches}\n\n📄 [PDF 다운로드](${url})`,
+        text: `📊 *YAGO SPORTS 주간 리포트*\n\n👥 총 회원 수: ${latest.totalMembers}\n⚽ 경기 수: ${latest.totalMatches}\n\n📄 [PDF 다운로드](${url})`,
       };
 
       // 4️⃣ Slack 전송

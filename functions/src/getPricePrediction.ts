@@ -2,7 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import OpenAI from "openai";
+import { getOpenAIClient } from "./lib/openaiClient";
 
 // Firebase Admin 초기화
 if (!getApps().length) {
@@ -10,11 +10,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-
-// OpenAI 클라이언트
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
 
 /**
  * AI 가격 미래 예측 시스템
@@ -46,6 +41,7 @@ export const getPricePrediction = onRequest(
     }
 
     try {
+      const openai = getOpenAIClient();
       const { productName, category, currentPrice, condition } = req.body;
 
       if (!productName || !category) {

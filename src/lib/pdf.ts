@@ -6,7 +6,7 @@ export function exportReportPDF(content: string, type: "weekly" | "daily" = "wee
         const date = new Date().toLocaleDateString("ko-KR");
         const filename = type === "weekly" ? "YAGO_VIBE_Weekly_Report" : "YAGO_VIBE_Daily_Report";
 
-        const fullContent = `🎯 YAGO VIBE AI 리포트
+        const fullContent = `🎯 YAGO SPORTS AI 리포트
 생성일: ${date}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -34,7 +34,7 @@ ${content}
  */
 export function exportReportWithChart(summary: string, chartData?: any) {
     const date = new Date().toLocaleDateString("ko-KR");
-    const fullContent = `📊 YAGO VIBE 상세 리포트
+    const fullContent = `📊 YAGO SPORTS 상세 리포트
 생성일: ${date}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

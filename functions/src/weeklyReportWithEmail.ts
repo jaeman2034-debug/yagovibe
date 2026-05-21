@@ -171,7 +171,7 @@ export const generateWeeklyReportAndEmail = onSchedule(
                         const pdf = new jsPDF({ unit: "mm", format: "a4" });
                         pdf.setFont("helvetica", "bold");
                         pdf.setFontSize(16);
-                        pdf.text("YAGO VIBE · AI 주간 리포트", 20, 30);
+                        pdf.text("YAGO SPORTS · AI 주간 리포트", 20, 30);
                         pdf.setFont("helvetica", "normal");
                         pdf.setFontSize(11);
                         pdf.text(`닉네임: ${reportData.nickname}`, 20, 50);
@@ -196,7 +196,7 @@ export const generateWeeklyReportAndEmail = onSchedule(
                         logger.info(`   📄 PDF 생성 완료`);
 
                         // ✉️ 이메일 발송
-                        const emailSubject = process.env.GMAIL_SUBJECT || "YAGO VIBE AI 주간 리포트";
+                        const emailSubject = process.env.GMAIL_SUBJECT || "YAGO SPORTS AI 주간 리포트";
                         const emailBody = `
 안녕하세요 ${reportData.nickname}님,
 
@@ -205,10 +205,10 @@ AI 코치가 지난주 운동 데이터를 분석한 결과,
 
 ${cleanReport}
 
-YAGO VIBE · AI 주간 리포트를 첨부합니다.
+YAGO SPORTS · AI 주간 리포트를 첨부합니다.
 
 감사합니다.
-YAGO VIBE AI Team
+YAGO SPORTS AI Team
 `;
 
                         await sendReportEmail(userData.email, emailSubject, emailBody, pdfBuffer);
@@ -237,7 +237,7 @@ YAGO VIBE AI Team
                             nickname: reportData.nickname,
                             reportDate,
                             sentAt: admin.firestore.FieldValue.serverTimestamp(),
-                            subject: process.env.GMAIL_SUBJECT || "YAGO VIBE AI 주간 리포트",
+                            subject: process.env.GMAIL_SUBJECT || "YAGO SPORTS AI 주간 리포트",
                             status: "error",
                             error: emailError.message,
                         });

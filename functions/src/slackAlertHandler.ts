@@ -22,12 +22,12 @@ export async function sendSlackAlert(
     const color = severity === "error" ? "#FF0000" : severity === "warning" ? "#FFA500" : "#36A2EB";
 
     const payload = {
-      text: `${emoji} YAGO VIBE 워크플로우 알림`,
+      text: `${emoji} YAGO SPORTS 워크플로우 알림`,
       attachments: [
         {
           color: color,
           text: message,
-          footer: "YAGO VIBE AI 시스템",
+          footer: "YAGO SPORTS AI 시스템",
           ts: Math.floor(Date.now() / 1000),
         },
       ],

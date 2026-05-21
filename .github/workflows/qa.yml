@@ -1,0 +1,71 @@
+name: Voice Agent QA
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Build
+        working-directory: functions
+        run: npm run build
+
+      - name: Run QA Simulator
+        working-directory: tests
+        env:
+          STEP_ENDPOINT: ${{ secrets.VOICE_STEP_ENDPOINT || 'https://asia-northeast3-yago-vibe-spt.cloudfunctions.net/voiceStep' }}
+          CASES_PATH: ./cases.json
+          OUTPUT_PATH: ./results.json
+        run: |
+          npm install -D @types/node
+          npx tsx run-sim.ts
+
+      - name: Upload QA Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-results
+          path: tests/results.json
+          retention-days: 7
+
+      - name: QA Summary
+        if: always()
+        run: |
+          if [ -f tests/results.json ]; then
+            echo "## QA 결과" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat tests/results.json | jq -r '
+              "### 통계\n" +
+              "- 총 테스트: \(.total)\n" +
+              "- 통과: \(.pass) ✅\n" +
+              "- 실패: \(.fail) ❌\n" +
+              "- 실패율: \(.failRate | floor)%\n" +
+              "\n" +
+              "### Latency\n" +
+              "- 평균: \(.avgLatency | floor)ms\n" +
+              "- P95: \(.p95Latency | floor)ms\n" +
+              "- P99: \(.p99Latency | floor)ms\n" +
+              "\n" +
+              "### Fallback\n" +
+              "- Fallback 비율: \(.fallbackRate | floor)%\n"
+            ' >> $GITHUB_STEP_SUMMARY
+          fi

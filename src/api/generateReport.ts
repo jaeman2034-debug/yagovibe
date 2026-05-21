@@ -34,7 +34,7 @@ export async function generateWeeklyReport() {
             .join("\n");
 
         // 3️⃣ GPT 프롬프트 작성
-        const prompt = `다음은 YAGO VIBE 스포츠 플랫폼의 사용자 음성 로그입니다:
+        const prompt = `다음은 YAGO SPORTS 스포츠 플랫폼의 사용자 음성 로그입니다:
 
 ${logText}
 

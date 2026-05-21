@@ -51,7 +51,7 @@ export const sendReportEmail = async (
 
         // MIME 메시지 구성
         const messageParts = [
-            `From: YAGO VIBE <${sender}>`,
+            `From: YAGO SPORTS <${sender}>`,
             `To: ${to}`,
             `Subject: ${subject}`,
             "MIME-Version: 1.0",

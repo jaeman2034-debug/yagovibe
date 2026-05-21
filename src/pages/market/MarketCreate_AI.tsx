@@ -3,7 +3,8 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { app, db, auth } from "@/lib/firebase";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
+import type { User } from "firebase/auth";
 
 function createTtsMessage(data: any): string {
   if (!data) return "";
@@ -223,7 +224,7 @@ export default function MarketCreate_AI() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-4">
+    <div className="w-full max-w-none px-3 md:mx-auto md:max-w-3xl p-4 space-y-4">
       <h1 className="text-2xl font-bold text-center">🤖 AI 상품 등록</h1>
 
       {/* 이미지 업로드 */}

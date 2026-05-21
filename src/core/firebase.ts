@@ -1,10 +1,10 @@
 // === CORE PROTECTED: DO NOT MODIFY BELOW ===
-// 🧠 YAGO VIBE Firebase Configuration
+// 🧠 YAGO SPORTS Firebase Configuration
 // 이 파일은 Cursor가 자동 수정하지 못하도록 보호됩니다.
 
 // ======================================================
 // 🧠 GENIUS MODE PATCH INSTRUCTION
-// Project: YAGO VIBE CLEAN BUILD (SPT Edition)
+// Project: YAGO SPORTS CLEAN BUILD (SPT Edition)
 // Author: ChatGPT (천재모드)
 // Purpose: Firebase + AuthProvider + Router 구조 세팅
 // ======================================================

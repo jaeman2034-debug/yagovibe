@@ -128,7 +128,7 @@ export default function AdminMonthlyDashboard() {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 mb-2">YAGO VIBE</div>
+                    <div className="text-2xl font-bold text-gray-900 mb-2">YAGO SPORTS</div>
                     <div className="text-gray-500">로딩 중...</div>
                 </div>
             </div>

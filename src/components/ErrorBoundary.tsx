@@ -57,8 +57,11 @@ export default class ErrorBoundary extends Component<Props, State> {
                                 <summary className="cursor-pointer font-medium text-gray-700">
                                     오류 상세 정보
                                 </summary>
-                                <pre className="mt-2 text-xs text-gray-600 overflow-auto">
+                                <pre className="mt-2 text-xs text-gray-600 overflow-auto whitespace-pre-wrap break-words">
                                     {this.state.error.message}
+                                    {this.state.error.stack
+                                        ? `\n\n--- stack ---\n${this.state.error.stack}`
+                                        : ""}
                                 </pre>
                             </details>
                         )}

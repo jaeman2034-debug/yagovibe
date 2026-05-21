@@ -76,7 +76,7 @@ export default function VoiceAssistant_AI() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-6">
-      <h1 className="text-2xl font-bold mb-6">🎙️ YAGO VIBE Voice Assistant</h1>
+      <h1 className="text-2xl font-bold mb-6">🎙️ YAGO SPORTS Voice Assistant</h1>
 
       <button
         onClick={startListening}
@@ -87,14 +87,14 @@ export default function VoiceAssistant_AI() {
       </button>
 
       {text && (
-        <div className="mt-6 p-4 bg-gray-800 rounded-xl w-full max-w-md">
+        <div className="mt-6 p-4 bg-gray-800 rounded-xl w-full max-w-none md:max-w-3xl">
           <p className="text-gray-300 text-sm mb-2">음성 인식 결과</p>
           <p className="text-lg">{text}</p>
         </div>
       )}
 
       {aiResult && (
-        <div className="mt-6 p-6 bg-green-800 rounded-2xl shadow-lg w-full max-w-md transition-all">
+        <div className="mt-6 p-6 bg-green-800 rounded-2xl shadow-lg w-full max-w-none md:max-w-3xl transition-all">
           <h2 className="text-xl font-semibold mb-2">🧠 AI 분석 결과</h2>
           <p className="text-gray-100">{aiResult.aiResult?.summary || "분석 중..."}</p>
           <p className="text-sm text-gray-400 mt-3">

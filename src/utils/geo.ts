@@ -7,6 +7,20 @@ export interface LatLng {
 // 타입 별칭
 export type LatLngType = LatLng;
 
+/** 단일 좌표값이 유한 숫자인지 */
+export function isValidCoord(n: unknown): n is number {
+  return typeof n === "number" && Number.isFinite(n);
+}
+
+/**
+ * 위도·경도 범위 내의 유효 좌표인지 (허브 피드 거리·추천 상품 등에서 공통 사용)
+ */
+export function isValidLatLng(p: { lat?: unknown; lng?: unknown } | null | undefined): boolean {
+  if (p == null) return false;
+  if (!isValidCoord(p.lat) || !isValidCoord(p.lng)) return false;
+  return p.lat >= -90 && p.lat <= 90 && p.lng >= -180 && p.lng <= 180;
+}
+
 // 지구 반지름 (km)
 const EARTH_RADIUS_KM = 6371;
 

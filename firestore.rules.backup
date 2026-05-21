@@ -1,0 +1,7 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 🔥 임시 백업: 원본 rules 저장
+    // 원본은 firestore.rules에 있음
+  }
+}

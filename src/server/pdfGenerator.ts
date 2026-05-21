@@ -216,7 +216,7 @@ AI 시스템의 성공률은 95.5%로 매우 높은 수준을 유지하고 있�
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'OK',
-    service: 'YAGO VIBE PDF Generator',
+    service: 'YAGO SPORTS PDF Generator',
     timestamp: new Date().toISOString()
   });
 });

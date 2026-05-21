@@ -21,7 +21,7 @@ export async function buildReportPdf(product: AIProduct, analysisText: string) {
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-  page.drawText("YAGO VIBE AI 분석 리포트", {
+  page.drawText("YAGO SPORTS AI 분석 리포트", {
     x: 40,
     y: height - 70,
     size: 20,

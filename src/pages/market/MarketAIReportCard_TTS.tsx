@@ -53,7 +53,7 @@ export default function MarketAIReportCardTTS() {
   const handleGenerate = async () => {
     setLoading(true);
     setTimeout(() => {
-      setReport(`📊 YAGO VIBE AI 리포트
+      setReport(`📊 YAGO SPORTS AI 리포트
 
 상품명: ${normalizedQuery}
 

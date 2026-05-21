@@ -1,9 +1,9 @@
 // src/pages/PhoneLoginPage.tsx
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { sendSMSCode, confirmSMSCode, cleanupRecaptcha } from "@/utils/authPhone";
-import { useAuth } from "@/context/AuthProvider";
-import logo from "@/assets/logo/YagoVibeLogo.svg";
+import Logo from "@/components/common/Logo";
+import { isValidKoreanPhone, normalizePhoneNumber } from "@/utils/phone";
 
 export default function PhoneLoginPage() {
   const [phone, setPhone] = useState("");
@@ -11,25 +11,6 @@ export default function PhoneLoginPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
-  const { user } = useAuth();
-
-  // 로그인된 상태면 홈으로 리디렉션
-  useEffect(() => {
-    if (user) {
-      navigate("/sports-hub");
-    }
-  }, [user, navigate]);
-
-  // 컴포넌트 마운트 후 reCAPTCHA 컨테이너 확인
-  useEffect(() => {
-    // reCAPTCHA 컨테이너가 DOM에 있는지 확인
-    const container = document.getElementById("recaptcha-container");
-    if (!container) {
-      console.warn("⚠️ reCAPTCHA 컨테이너를 찾을 수 없습니다.");
-    }
-  }, []);
-
   // 컴포넌트 언마운트 시 reCAPTCHA 정리
   useEffect(() => {
     return () => {
@@ -42,15 +23,15 @@ export default function PhoneLoginPage() {
     setLoading(true);
 
     try {
-      if (!phone) {
+      if (!phone.trim()) {
         throw new Error("전화번호를 입력해주세요.");
       }
 
-      if (!phone.startsWith("+")) {
-        throw new Error("전화번호는 국가 코드와 함께 입력해주세요 (예: +821012345678)");
+      if (!isValidKoreanPhone(phone)) {
+        throw new Error("휴대폰 번호를 올바르게 입력해주세요. (예: 01056890800)");
       }
 
-      await sendSMSCode(phone);
+      await sendSMSCode(normalizePhoneNumber(phone));
       alert("인증번호가 전송되었습니다.");
       setStep(2);
     } catch (e: any) {
@@ -74,9 +55,7 @@ export default function PhoneLoginPage() {
       console.log("✅ 로그인 성공:", result.user);
 
       alert("로그인 성공!");
-      
-      // 홈으로 이동
-      navigate("/sports-hub");
+      // /hub 이동은 PublicRoute(sessionUser)가 처리
     } catch (e: any) {
       console.error("❌ 인증번호 확인 실패:", e);
       setError(e.message || "인증코드가 올바르지 않습니다.");
@@ -94,39 +73,41 @@ export default function PhoneLoginPage() {
 
   return (
     <div className="flex flex-col items-center text-center min-h-screen justify-center p-6">
-      <img
-        src={logo}
-        alt="YAGO VIBE"
-        className="w-24 h-24 mb-6 drop-shadow-md"
-      />
+      <Logo size={96} alt="YAGO SPORTS" className="mb-6 drop-shadow-md" />
       <h1 className="text-3xl font-extrabold text-gray-900 mb-1">
-        YAGO VIBE
+        YAGO SPORTS
       </h1>
       <p className="text-sm text-gray-500 mb-8">
-        AI Platform for Sports & Community
+        AI Platform for Sports Enthusiasts
       </p>
-
-      {/* reCAPTCHA Invisible Container - 반드시 렌더링되어야 함 */}
-      <div id="recaptcha-container" style={{ display: "none" }}></div>
 
       <div style={{ maxWidth: 360, width: "100%", margin: "0 auto" }}>
         {step === 1 && (
           <>
             <h2 className="text-2xl font-bold mb-4">📱 전화번호 로그인</h2>
             
-            <input
-              type="tel"
-              placeholder="+821012345678"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              onKeyPress={(e) => {
+            <div
+              className="mb-4 text-left"
+              onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   handleSend();
                 }
               }}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm mb-4"
-              disabled={loading}
-            />
+            >
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel-national"
+                placeholder="전화번호를 입력해주세요"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={loading}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
+              />
+              <p className="mt-1 text-left text-xs text-gray-500">
+                전송 시 자동으로 +82 형식으로 변환됩니다.
+              </p>
+            </div>
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
@@ -136,16 +117,18 @@ export default function PhoneLoginPage() {
 
             <button
               onClick={handleSend}
-              disabled={loading || !phone}
+              disabled={loading || !isValidKoreanPhone(phone)}
               className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "전송 중..." : "인증번호 받기"}
             </button>
 
-            <div className="text-center text-xs text-gray-500 mt-4">
-              <p>테스트 번호: +821056890800</p>
-              <p>테스트 코드: 123456</p>
-            </div>
+            {import.meta.env.DEV && (
+              <div className="text-center text-xs text-gray-500 mt-4">
+                <p>[개발] 테스트 번호: 01056890800 → +821056890800</p>
+                <p>[개발] 테스트 코드: 123456</p>
+              </div>
+            )}
           </>
         )}
 
@@ -209,7 +192,7 @@ export default function PhoneLoginPage() {
       </div>
 
       <footer className="mt-10 text-xs text-gray-400">
-        © 2025 YAGO VIBE · Powered by AI
+        © 2025 YAGO SPORTS · Powered by AI
       </footer>
     </div>
   );

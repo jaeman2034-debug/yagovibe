@@ -14,7 +14,7 @@ export default function TeamList() {
     }, []);
 
     return (
-        <section className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6">
+        <section className="w-full space-y-6 py-6 md:mx-auto md:max-w-5xl">
             <h1 className="text-center text-2xl font-bold text-gray-800 dark:text-gray-100">👥 팀 목록</h1>
 
             {teams.length === 0 ? (

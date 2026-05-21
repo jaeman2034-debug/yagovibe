@@ -1,17 +1,13 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
-import OpenAI from "openai";
+import { getOpenAIClient } from "./lib/openaiClient";
+import type OpenAI from "openai";
 
 // Firebase Admin 초기화
 if (!getApps().length) {
   initializeApp();
 }
-
-// OpenAI 클라이언트
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
 
 /**
  * AI 제목 생성 시스템
@@ -43,6 +39,7 @@ export const generateProductTitle = onRequest(
     }
 
     try {
+      const openai = getOpenAIClient();
       const {
         name,
         category,

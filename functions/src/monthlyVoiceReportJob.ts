@@ -2,12 +2,10 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { admin } from "./lib/firebaseAdmin";
 import { getFirestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
-import jsPDF from "jspdf";
 import fetch from "node-fetch";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 
 const db = getFirestore();
-const bucket = getStorage().bucket();
 
 /**
  * AI 리포트에서 점수 추출 (휴리스틱)
@@ -138,7 +136,7 @@ export const generateVoiceAndPdfReport = onSchedule(
 
             // 4️⃣ 🎙️ AI 음성 리포트 생성 (OpenAI TTS)
             let audioUrl: string | null = null;
-            const ttsText = `${latestMonth}월 YAGO VIBE 팀 리포트입니다. 
+            const ttsText = `${latestMonth}월 YAGO SPORTS 팀 리포트입니다. 
 팀 평균 점수는 ${avgScore}점입니다. 
 최고 점수는 ${maxScore}점, 최저 점수는 ${minScore}점입니다.
 상위 3명은 ${top3.join(", ")} 입니다.
@@ -172,7 +170,7 @@ export const generateVoiceAndPdfReport = onSchedule(
 
                     // 5️⃣ MP3 파일 Storage 업로드
                     const audioPath = `autoReports/VoiceReport_${latestMonth}.mp3`;
-                    const audioFile = bucket.file(audioPath);
+                    const audioFile = getDefaultStorageBucket().file(audioPath);
 
                     await audioFile.save(audioBuffer, {
                         contentType: "audio/mpeg",
@@ -203,7 +201,8 @@ export const generateVoiceAndPdfReport = onSchedule(
                 logger.warn("⚠️ OPENAI_API_KEY가 설정되지 않아 음성 리포트 생성을 건너뜁니다.");
             }
 
-            // 6️⃣ PDF 리포트 생성
+            // 6️⃣ PDF 리포트 생성 (jspdf 지연 로드)
+            const { default: jsPDF } = await import("jspdf");
             const pdf = new jsPDF("p", "mm", "a4");
             const pdfWidth = 210;
             const margin = 20;
@@ -212,7 +211,7 @@ export const generateVoiceAndPdfReport = onSchedule(
             // 헤더
             pdf.setFont("helvetica", "bold");
             pdf.setFontSize(20);
-            pdf.text("📊 YAGO VIBE AI 월간 리포트", pdfWidth / 2, y, { align: "center" });
+            pdf.text("📊 YAGO SPORTS AI 월간 리포트", pdfWidth / 2, y, { align: "center" });
             y += 15;
 
             pdf.setFont("helvetica", "normal");
@@ -272,11 +271,11 @@ export const generateVoiceAndPdfReport = onSchedule(
                 290,
                 { align: "center" }
             );
-            pdf.text("© 2025 YAGO VIBE · Powered by AI", pdfWidth / 2, 295, { align: "center" });
+            pdf.text("© 2025 YAGO SPORTS · Powered by AI", pdfWidth / 2, 295, { align: "center" });
 
             // 7️⃣ PDF 파일 Storage 업로드
             const pdfPath = `autoReports/TeamReport_${latestMonth}.pdf`;
-            const pdfFile = bucket.file(pdfPath);
+            const pdfFile = getDefaultStorageBucket().file(pdfPath);
             const pdfBuffer = Buffer.from(pdf.output("arraybuffer"));
 
             await pdfFile.save(pdfBuffer, {

@@ -2,7 +2,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 import OpenAI from "openai";
 import { sendSlack } from "./slack";
 import { logWorkflowEvent } from "./logWorkflowEvent";
@@ -13,7 +13,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const storage = getStorage().bucket();
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
@@ -97,7 +96,7 @@ export const generateInsightAudio = onDocumentWritten(
       const mp3Path = `audio/insights/weekly.mp3`;
 
       // Firebase Storage에 업로드
-      await storage.file(mp3Path).save(audioBuffer, {
+      await getDefaultStorageBucket().file(mp3Path).save(audioBuffer, {
         contentType: "audio/mpeg",
         resumable: false,
         metadata: {
@@ -112,7 +111,7 @@ export const generateInsightAudio = onDocumentWritten(
       logger.info("✅ MP3 파일 Storage 업로드 완료:", mp3Path);
 
       // Signed URL 생성 (30일 유효)
-      const [ttsUrl] = await storage.file(mp3Path).getSignedUrl({
+      const [ttsUrl] = await getDefaultStorageBucket().file(mp3Path).getSignedUrl({
         action: "read",
         expires: Date.now() + 30 * 24 * 60 * 60 * 1000,
       });

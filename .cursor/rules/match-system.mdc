@@ -1,0 +1,184 @@
+---
+alwaysApply: false
+description: Match (경기 매칭) 시스템 생성 가이드
+globs: **/match/**
+---
+
+# ⚽ Match 시스템 생성 가이드
+
+## 📋 기능 요구사항
+
+### 페이지
+- `MatchListPage` - 매칭 목록
+- `MatchCreatePage` - 매칭글 작성
+- `MatchDetailPage` - 매칭 상세 + 신청
+
+### 컴포넌트
+- `MatchCard` - 매칭 카드
+- `MatchForm` - 매칭 작성 폼
+
+### 서비스
+- `matchService.ts` - Firestore 작업
+
+### 훅
+- `useMatches()` - 실시간 매칭 조회
+
+## 🗄️ Firestore 구조
+
+### 컬렉션: `matches`
+```typescript
+{
+  teamId: string
+  teamName: string
+  authorId: string
+  date: Timestamp
+  time: string  // "19:00"
+  region: string
+  stadium?: string
+  level: "취미" | "아마추어"
+  fee?: number
+  contact: "채팅" | "전화"
+  description?: string
+  status: "open" | "matched" | "finished"
+  createdAt: Timestamp
+}
+```
+
+### 컬렉션: `match_requests`
+```typescript
+{
+  matchId: string
+  teamId: string
+  teamName: string
+  message?: string
+  status: "pending" | "accepted" | "rejected"
+  createdAt: Timestamp
+}
+```
+
+## 📝 구현 패턴
+
+### 1. 타입 정의 (`src/types/match.ts`)
+```typescript
+export interface Match {
+  id: string;
+  teamId: string;
+  teamName: string;
+  authorId: string;
+  date: Timestamp;
+  time: string;
+  region: string;
+  stadium?: string;
+  level: "취미" | "아마추어";
+  fee?: number;
+  contact: "채팅" | "전화";
+  description?: string;
+  status: "open" | "matched" | "finished";
+  createdAt: Timestamp;
+}
+
+export interface MatchRequest {
+  id: string;
+  matchId: string;
+  teamId: string;
+  teamName: string;
+  message?: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: Timestamp;
+}
+```
+
+### 2. 서비스 (`src/services/matchService.ts`)
+```typescript
+export async function createMatch(
+  input: CreateMatchInput,
+  authorId: string
+): Promise<string>
+
+export async function getMatches(
+  options?: {
+    status?: "open" | "matched" | "finished";
+    date?: Date;
+    limit?: number;
+  }
+): Promise<Match[]>
+
+export async function getMatch(
+  matchId: string
+): Promise<Match | null>
+
+export async function requestMatch(
+  matchId: string,
+  teamId: string,
+  teamName: string,
+  message?: string
+): Promise<string>
+```
+
+### 3. 훅 (`src/hooks/useMatches.ts`)
+```typescript
+export function useMatches(options?: {
+  status?: "open" | "matched" | "finished";
+  date?: Date;
+  limit?: number;
+  teamId?: string;
+}): { matches: Match[]; loading: boolean; error: Error | null }
+```
+
+### 4. 페이지 구조
+```typescript
+// MatchCreatePage
+- 팀 선택 (팀 없으면 Empty State)
+- 경기 날짜 (date input)
+- 경기 시간 (time input)
+- 지역
+- 구장
+- 팀 수준
+- 참가비 (선택)
+- 연락 방법
+- 상세 내용
+- [매칭 등록] 버튼
+```
+
+### 5. 권한 체크
+```typescript
+// 팀 없을 때
+if (!hasTeams) {
+  return (
+    <EmptyState
+      message="팀에 가입해야 매칭글을 작성할 수 있습니다"
+      actions={[
+        { label: "팀 만들기", onClick: () => navigate("/team/create") },
+        { label: "팀 찾기", onClick: () => navigate("/team/search") }
+      ]}
+    />
+  );
+}
+```
+
+## 🔥 Activity Feed 연동
+
+매칭글 생성 시 `activities` 컬렉션에 자동 생성:
+```typescript
+{
+  type: "match_created",
+  refType: "match",
+  refId: matchId,
+  authorId: user.uid,
+  teamId: teamId,
+  title: `${teamName} - ${date} ${time} 경기 매칭`,
+  summary: description || `${region} ${stadium ? `· ${stadium}` : ""}`,
+  visibility: "public",
+  likeCount: 0,
+  commentCount: 0,
+  createdAt: serverTimestamp()
+}
+```
+
+## 📍 라우팅
+
+```typescript
+<Route path="/match" element={<MatchListPage />} />
+<Route path="/match/create" element={<MatchCreatePage />} />
+<Route path="/match/:id" element={<MatchDetailPage />} />
+```

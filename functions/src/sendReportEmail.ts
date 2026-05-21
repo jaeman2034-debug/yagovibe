@@ -33,12 +33,12 @@ export const sendReportEmail = functions.https.onCall(async (data, context) => {
 
         // 이메일 옵션
         const mailOptions = {
-            from: `"YAGO VIBE AI 리포트" <${gmailUser}>`,
+            from: `"YAGO SPORTS AI 리포트" <${gmailUser}>`,
             to: "admin@yagovibe.com", // 관리자 이메일 (실제 이메일로 변경 필요)
-            subject: `📊 YAGO VIBE AI 주간 리포트 (${reportDate})`,
+            subject: `📊 YAGO SPORTS AI 주간 리포트 (${reportDate})`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #3b82f6;">📊 YAGO VIBE AI 주간 리포트</h2>
+                    <h2 style="color: #3b82f6;">📊 YAGO SPORTS AI 주간 리포트</h2>
                     <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
                         <h3 style="color: #1f2937; margin-top: 0;">🧠 AI 요약</h3>
                         <p style="color: #4b5563; line-height: 1.6;">${summary || "리포트 요약이 준비되었습니다."}</p>
@@ -54,7 +54,7 @@ export const sendReportEmail = functions.https.onCall(async (data, context) => {
                     </p>
                     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
                     <p style="color: #9ca3af; font-size: 12px;">
-                        이 메일은 YAGO VIBE AI 시스템에서 자동으로 생성되었습니다.
+                        이 메일은 YAGO SPORTS AI 시스템에서 자동으로 생성되었습니다.
                     </p>
                 </div>
             `,

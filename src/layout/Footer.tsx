@@ -6,7 +6,7 @@ export default function Footer() {
                     <div>
                         <h3 className="font-bold text-lg mb-4 flex items-center space-x-2">
                             <span>⚽</span>
-                            <span>YAGO VIBE</span>
+                            <span>YAGO SPORTS</span>
                         </h3>
                         <p className="text-gray-400 text-sm">
                             음성 기반 스마트 지도 서비스
@@ -34,7 +34,7 @@ export default function Footer() {
                     <div>
                         <h4 className="font-semibold mb-3">정보</h4>
                         <p className="text-gray-400 text-sm">
-                            © 2025 YAGO VIBE Platform
+                            © 2025 YAGO SPORTS Platform
                         </p>
                         <p className="text-gray-400 text-sm mt-2">
                             음성으로 쉽고 빠르게

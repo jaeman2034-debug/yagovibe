@@ -2,12 +2,10 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { admin } from "./lib/firebaseAdmin";
 import { getFirestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
-import jsPDF from "jspdf";
 import fetch from "node-fetch";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 
 const db = getFirestore();
-const bucket = getStorage().bucket();
 
 /**
  * AI 리포트에서 점수 추출 (휴리스틱)
@@ -173,7 +171,8 @@ export const generatePlayerInsightReports = onSchedule(
                         }
                     }
 
-                    // 🧾 PDF 리포트 생성
+                    // 🧾 PDF 리포트 생성 (jspdf 지연 로드)
+                    const { default: jsPDF } = await import("jspdf");
                     const pdf = new jsPDF("p", "mm", "a4");
                     const pdfWidth = 210;
                     const margin = 20;
@@ -221,10 +220,10 @@ export const generatePlayerInsightReports = onSchedule(
                     y = 280;
                     pdf.setFontSize(8);
                     pdf.text(`생성일: ${new Date().toLocaleString("ko-KR")}`, pdfWidth / 2, y, { align: "center" });
-                    pdf.text("© 2025 YAGO VIBE · Powered by AI", pdfWidth / 2, y + 5, { align: "center" });
+                    pdf.text("© 2025 YAGO SPORTS · Powered by AI", pdfWidth / 2, y + 5, { align: "center" });
 
                     const pdfPath = `playerReports/${uid}_${nickname}_${latest.month}.pdf`;
-                    const pdfFile = bucket.file(pdfPath);
+                    const pdfFile = getDefaultStorageBucket().file(pdfPath);
                     await pdfFile.save(Buffer.from(pdf.output("arraybuffer")), {
                         contentType: "application/pdf",
                         metadata: {
@@ -268,7 +267,7 @@ export const generatePlayerInsightReports = onSchedule(
                                 const audioBuffer = Buffer.from(await ttsResp.arrayBuffer());
 
                                 const audioPath = `playerReports/${uid}_${nickname}_${latest.month}.mp3`;
-                                const audioFile = bucket.file(audioPath);
+                                const audioFile = getDefaultStorageBucket().file(audioPath);
                                 await audioFile.save(audioBuffer, {
                                     contentType: "audio/mpeg",
                                     metadata: {

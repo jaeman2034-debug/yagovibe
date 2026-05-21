@@ -1,47 +1,44 @@
 /**
  * 🔥 OpenAI 클라이언트 중앙 집중식 Lazy Initialization
- * 
- * Firebase Functions 배포 시 코드 분석 단계에서
- * API 키가 없어도 오류가 발생하지 않도록 지연 초기화 사용
- * 
- * 사용법:
- * import { getOpenAIClient } from "./lib/openaiClient";
- * const openai = getOpenAIClient();
- * 
- * 환경변수 설정:
- * - Firebase Console > Functions > Configuration > Environment variables
- * - 또는 .env 파일 (로컬 개발용)
+ *
+ * 배포 시 코드 로드/분석 단계에서 `openai` npm 패키지가 로드되지 않도록
+ * 최초 호출 시점에만 require 합니다.
+ *
+ * 환경변수: Firebase Console → Functions → Environment variables 의 OPENAI_API_KEY
  */
 
-import OpenAI from "openai";
+import type OpenAI from "openai";
 
 let client: OpenAI | null = null;
 
+/** 환경변수·레거시 functions.config()에서 API 키만 조회 (클라이언트 생성 없음) */
+export function resolveOpenAIApiKey(): string | undefined {
+  let apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const functions = require("firebase-functions");
+      apiKey = functions.config()?.openai?.key;
+    } catch {
+      // ignore
+    }
+  }
+  return apiKey;
+}
+
 export function getOpenAIClient(): OpenAI {
   if (!client) {
-    // Firebase Functions 환경변수 우선순위:
-    // 1. process.env.OPENAI_API_KEY (환경변수 - Firebase Console에서 설정)
-    // 2. functions.config().openai.key (레거시 방식, 2026년 3월 이후 사용 불가)
-    let apiKey = process.env.OPENAI_API_KEY;
-    
-    // 레거시 functions.config() 지원 (deprecated, 2026년 3월 이후 제거 예정)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("openai") as typeof import("openai");
+    const OpenAIConstructor = mod.default;
+
+    const apiKey = resolveOpenAIApiKey();
+
     if (!apiKey) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const functions = require("firebase-functions");
-        apiKey = functions.config()?.openai?.key;
-      } catch (e) {
-        // firebase-functions가 없거나 config가 없는 경우 무시
-      }
+      console.warn("[OpenAI] Missing OPENAI_API_KEY. Set Functions env or legacy functions.config().openai.key");
     }
-    
-    if (!apiKey) {
-      console.warn("[OpenAI] Missing OPENAI_API_KEY. Please set it in:");
-      console.warn("  Firebase Console > Functions > Configuration > Environment variables");
-      console.warn("  or set OPENAI_API_KEY environment variable");
-    }
-    client = new OpenAI({ apiKey: apiKey || "" });
+
+    client = new OpenAIConstructor({ apiKey: apiKey || "" });
   }
   return client;
 }
-

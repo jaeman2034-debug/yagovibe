@@ -1,12 +1,133 @@
 /**
- * 🔥 Firebase Functions 최적화된 엔트리 포인트
- * 
- * ✅ 얇은 라우터 구조로 모든 함수를 그룹별로 export
- * ✅ top-level import 최소화로 cold start 시간 대폭 단축
- * ✅ 10초 timeout 문제 해결
- * ✅ 그룹 단위로 주석 처리하여 배포 테스트 가능
+ * Firebase Functions 엔트리 — discovery 10초 타임아웃 방지를 위해 전부 지연 require
  */
 
-export * from "./src/exports/reporting";
-export * from "./src/exports/voice";
-export * from "./src/exports/market";
+import {
+  attachLazyBarrelExports,
+  attachLazyModuleExports,
+  barrelPathFromLibIndex,
+} from "./src/exports/attachLazyBarrels";
+
+attachLazyBarrelExports(module.exports, barrelPathFromLibIndex("reporting"), [
+  "generateWeeklyReportJobOld",
+  "generateWeeklyReportJob",
+  "generateWeeklyReportAndEmail",
+  "generateMonthlyReportAndEmail",
+  "generateAndSendMonthlyTeamReport",
+  "generateVoiceAndPdfReport",
+  "generatePlayerInsightReports",
+  "generateInsightChartReport",
+  "notifyWeeklyReport",
+  "generateOpsReport",
+  "selfLearningGovernance",
+  "runDigitalTwinSimulation",
+  "generatePredictiveInsights",
+  "autonomousActionEngine",
+  "orchestrateAIModules",
+] as const);
+
+attachLazyBarrelExports(module.exports, barrelPathFromLibIndex("voice"), [
+  "subscribeAdminTopic",
+  "predictEventTrends",
+  "dispatchAIReport",
+  "voiceTriggerReport",
+  "routeVoiceCommand",
+  "voiceAnalyticsAssistant",
+  "voiceAdminConsole",
+  "voiceMemoryAssistant",
+  "teamVoiceAgent",
+  "generateTeamSummaries",
+  "analyzeVoiceFeedback",
+  "generateEmotionHeatmap",
+] as const);
+
+attachLazyBarrelExports(module.exports, barrelPathFromLibIndex("market"), [
+  "handleImageAndVoiceAnalyze",
+  "generateTags",
+  "getPriceRecommendation",
+  "generateSearchMeta",
+  "getSearchSuggestions",
+  "getRelatedProducts",
+  "getProductSummary",
+  "detectFraudRisk",
+  "getImageQualityScore",
+  "getConditionScore",
+  "getPricePrediction",
+  "predictFuturePrice",
+  "generateProductTitle",
+  "detectComponents",
+  "generateAITags",
+  "generateCategory",
+  "generateOneLineSummary",
+  "generateTotalScore",
+  "getRecommendedFeed",
+  "negotiateHelper",
+  "searchProducts",
+  "recommendSimilar",
+  "getSellerTrustScore",
+  "askAdminAI",
+] as const);
+
+attachLazyModuleExports(module.exports, barrelPathFromLibIndex("rootBundle"), [
+  "inviteTeamMemberByPhone",
+  "claimPhoneInvitedTeamMemberships",
+  "updateInvitedMemberPhone",
+  "previewTeamMemberInvite",
+  "createTeamMemberInvite",
+  "claimTeamMemberInvite",
+  "onAuthUserCreateLinkPhoneInvites",
+  "recordManualTeamFeePayment",
+  "registerAnnualPrepaidPayment",
+  "cancelAnnualPrepaidPayment",
+  "initializeTeamAccounting",
+  "teamFeeAutoCloseScheduler",
+  "weeklySeasonSettleScheduler",
+  "submitPlayMatchFeedback",
+  "sendPushOnNotificationCreate",
+  "onTeamGameCompletedPlayFeedbackPush",
+  "applyGameProgressionEvent",
+  "applyReferralCallable",
+  "applyReviewRatingAggregate",
+  "grantUserXpBonus",
+  "finalizeMiniShotSession",
+  "joinQueue",
+  "leaveQueue",
+  "leaveMatch",
+  "clearActiveMatch",
+  "readyCheck",
+  "getGameSession",
+  "getCurrentSeasonInfo",
+  "settleWeeklySeason",
+  "claimSeasonReward",
+  "listPendingWeeklySeasonRewards",
+  "syncOrganizationMemberRole",
+  "onMarketReviewCreatedTrustRisk",
+  "onMarketWriteTrustRisk",
+  "completeMarketTransaction",
+  "ensureCanonicalTradeChat",
+  "createTeam",
+  "backfillMyTeamMemberships",
+  "ensureTeamMediaUploadAccess",
+  "uploadTeamGalleryMedia",
+  "finalizeTeamBranding",
+  "updateTeamPublicCopy",
+  "setTeamCaptainPhotoMeta",
+  "setTeamCaptainMessage",
+  "uploadTeamCaptainPhoto",
+  "uploadTeamPublicStaffPhoto",
+  "setTeamPublicStaff",
+  "setTeamCoverPhotoMeta",
+  "uploadTeamCoverPhoto",
+  "getPublicTeamStaff",
+  "revertTeamPublicField",
+  "regenerateTeamPublicField",
+  "improveTeamPublicTextSelection",
+  "onTeamMemberCreatedAvatarXp",
+  "onTeamScheduledRsvpAvatarXp",
+  "onTeamActivityCreatedAvatarXp",
+  "requestFriendship",
+  "acceptFriendship",
+  "blockFriendship",
+  "previewFriendInvite",
+  "claimChallengeReward",
+] as const);

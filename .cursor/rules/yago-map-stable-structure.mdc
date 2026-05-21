@@ -1,0 +1,113 @@
+---
+alwaysApply: false
+description: TradePage·Google Maps 레이아웃(height 0) 안정화 CSS/구조 참고
+---
+
+# YAGO 지도 안정 구조 (참고용)
+
+## 현재 프로젝트 스택 (실제)
+
+| 구분 | 사용 기술 | 비고 |
+|------|-----------|------|
+| 빌드/개발 | **Vite** | Next.js 아님 |
+| UI | **React** + **Tailwind** | `@import "tailwindcss"`, clsx |
+| 지도 | **Google Maps JavaScript API** | `@react-google-maps/api`, `loadGoogleMap` |
+| 주소/로그인 | Kakao REST API, Kakao SDK | 지도는 Google, Kakao는 로그인·주소 변환용 |
+
+---
+
+## 지도가 안 보이던 원인 (요약)
+
+- **원인**: `#root` scroll + `app-root` / `main` 의 **flex column** + **fixed header/bottom-nav** 조합으로 인해 map-container **height가 0**으로 계산됨.
+- **해결 방향**: 지도를 **flex 레이아웃 밖**으로 빼고, **map-layer를 `position: fixed`** 로 두어 header(56px) ~ bottom-nav(64px) 사이를 채움.
+
+---
+
+## 표준 구조 (당근/번개/토스/네이버 지도 방식)
+
+```
+body
+ ├ header (fixed, 56px)
+ ├ map-layer (fixed full screen)
+ ├ FAB
+ ├ BottomSheet / ProductPreview
+ └ BottomNav (fixed, 64px)
+```
+
+**원칙**: 지도는 layout(flex) 안에 두지 않는다. **map-layer만 fixed** 로 두고, 그 안에 map-container를 100%로 채움.
+
+---
+
+## 이미 적용된 CSS (TradePage.css)
+
+### map-layer (지도 모드일 때만)
+
+```css
+.trade-page.map-mode .map-layer {
+  position: fixed !important;
+  top: 56px !important;   /* header */
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 64px !important; /* bottom nav */
+  z-index: 1 !important;
+  width: 100% !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+
+.trade-page.map-mode .map-layer .map-container {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  /* + position, overflow, background 등 */
+}
+```
+
+### main에서 flex-col 제거 (지도 모드)
+
+```css
+main:has(.trade-page.map-mode) {
+  display: block !important;
+  min-height: 0 !important;
+}
+```
+
+---
+
+## 지도 페이지에서 #root / body (index.css)
+
+- `#root:has(.trade-page.map-mode)`: `height: 100%`, `overflow: hidden` (스크롤 컨테이너 아님).
+- `body:has(.trade-page.map-mode)`: `overflow-y: auto`, `position: static` (스크롤은 body가 담당).
+
+---
+
+## React 구조 (현재 MarketPage)
+
+- `trade-page` → `page-wrap` → 탭 / (popular-section: 리스트 모드만) / search-toolbar / **map-list-stack**.
+- **map-list-stack** 안: **map-layer** (지도 모드일 때 CSS로 fixed) + **list-layer** (리스트 모드일 때 표시).
+- 지도 모드일 때 map-layer에는 **인라인 position을 주지 않음** → CSS `position: fixed` 가 적용되도록 함.
+
+---
+
+## 확장 시 참고 (당근마켓 스타일)
+
+- **MapLayer**: fixed, 그 안에 MapCanvas / MarkerLayer / ClusterLayer / UserLocation / MapControls / FilterButton / FAB 등.
+- **BottomSheet**: ProductPreview / ProductList / FilterPanel.
+- 지도 라이브러리는 **Google Maps** 유지 시: `OptimizedProductMap`, `loadGoogleMap`, `@react-google-maps/api` 기준으로 확장하면 됨.
+
+---
+
+## ⚠️ 지도가 500px에서 잘리던 핵심 원인 (해결됨)
+
+- **OptimizedProductMap** 기본 prop이 `height = "500px"`였음 → 지도 래퍼가 500px로 고정되어 아래가 회색 빈 영역으로 보임.
+- **조치**: MarketPage에서 `height="100%"` 전달 + OptimizedProductMap 기본값을 `"100%"`로 변경.
+
+## 관련 파일
+
+- `src/pages/market/MarketPage.tsx` – trade-page, map-list-stack, map-layer, list-layer, viewMode, **OptimizedProductMap height="100%"**.
+- `src/components/market/OptimizedProductMap.tsx` – Google Map 초기화, 마커, resize, **height 기본값 "100%"**.
+- `src/pages/market/TradePage.css` – .trade-page.map-mode .map-layer (fixed), .map-container, main:has(), **.trade-page.mobile-map-active display:none 제거**.
+- `src/index.css` – #root/body :has(.trade-page.map-mode) overflow (**최종 확정 블록 뒤에 중복 배치**).

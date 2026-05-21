@@ -9,7 +9,7 @@ export async function GET() {
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             version: "1.0.0",
-            service: "YAGO VIBE AI"
+            service: "YAGO SPORTS AI"
         };
 
         return new Response(

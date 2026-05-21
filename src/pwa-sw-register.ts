@@ -25,7 +25,7 @@ export function initPWA() {
     onNeedRefresh() {
       // 여기서 토스트/다이얼로그 띄울 수 있음
       console.log("🔄 새로운 버전이 있습니다. 새로고침하면 업데이트 됩니다.");
-      if (confirm("YAGO VIBE 새 버전이 있습니다. 지금 새로고침할까요?")) {
+      if (confirm("YAGO SPORTS 새 버전이 있습니다. 지금 새로고침할까요?")) {
         updateSW();
       }
     },

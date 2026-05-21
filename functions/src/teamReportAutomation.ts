@@ -2,12 +2,10 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { admin } from "./lib/firebaseAdmin";
 import { getFirestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
-import jsPDF from "jspdf";
 import fetch from "node-fetch";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 
 const db = getFirestore();
-const bucket = getStorage().bucket();
 
 /**
  * AI 리포트에서 점수 추출 (휴리스틱)
@@ -136,7 +134,8 @@ export const generateAndSendMonthlyTeamReport = onSchedule(
             logger.info(`📊 평균 점수: ${avgScore}점 | 최고: ${maxScore}점 | 최저: ${minScore}점`);
             logger.info(`🏅 상위 3명: ${top3.join(", ")}`);
 
-            // 4️⃣ PDF 생성
+            // 4️⃣ PDF 생성 (jspdf 지연 로드)
+            const { default: jsPDF } = await import("jspdf");
             const pdf = new jsPDF("p", "mm", "a4");
             const pdfWidth = 210;
             const margin = 20;
@@ -145,7 +144,7 @@ export const generateAndSendMonthlyTeamReport = onSchedule(
             // 헤더
             pdf.setFont("helvetica", "bold");
             pdf.setFontSize(20);
-            pdf.text("📊 YAGO VIBE AI 월간 리포트", pdfWidth / 2, y, { align: "center" });
+            pdf.text("📊 YAGO SPORTS AI 월간 리포트", pdfWidth / 2, y, { align: "center" });
             y += 15;
 
             pdf.setFont("helvetica", "normal");
@@ -205,11 +204,11 @@ export const generateAndSendMonthlyTeamReport = onSchedule(
                 290,
                 { align: "center" }
             );
-            pdf.text("© 2025 YAGO VIBE · Powered by AI", pdfWidth / 2, 295, { align: "center" });
+            pdf.text("© 2025 YAGO SPORTS · Powered by AI", pdfWidth / 2, 295, { align: "center" });
 
             // 5️⃣ Firebase Storage 업로드
             const fileName = `autoReports/TeamReport_${latestMonth}.pdf`;
-            const file = bucket.file(fileName);
+            const file = getDefaultStorageBucket().file(fileName);
             const pdfBuffer = Buffer.from(pdf.output("arraybuffer"));
 
             await file.save(pdfBuffer, {

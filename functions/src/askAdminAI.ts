@@ -65,7 +65,7 @@ export const askAdminAI = onRequest(
       const dailyStatsData = dailyStats || {};
 
       const prompt = `
-너는 중고거래 플랫폼 YAGO VIBE의 운영자용 AI 도우미야.
+너는 중고거래 플랫폼 YAGO SPORTS의 운영자용 AI 도우미야.
 
 운영자의 질문에 대해 아래 데이터를 바탕으로 정확히 답변해줘.
 
@@ -109,7 +109,7 @@ ${JSON.stringify(dailyStatsData, null, 2)}
           messages: [
             {
               role: "system",
-              content: "당신은 중고거래 플랫폼 YAGO VIBE의 운영자용 AI 도우미입니다. 운영자의 질문에 대해 플랫폼 데이터를 기반으로 정확하고 실용적인 답변을 제공합니다.",
+              content: "당신은 중고거래 플랫폼 YAGO SPORTS의 운영자용 AI 도우미입니다. 운영자의 질문에 대해 플랫폼 데이터를 기반으로 정확하고 실용적인 답변을 제공합니다.",
             },
             {
               role: "user",

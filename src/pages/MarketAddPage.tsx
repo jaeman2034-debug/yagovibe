@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { uploadMarketImage } from "@/lib/uploadImage";
@@ -13,10 +13,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Upload, Sparkles, Mic } from "lucide-react";
 import { testFirestoreConnection } from "@/testFirestoreConnection";
 import { FUNCTIONS_ORIGIN, TAGS_FUNCTION_ORIGIN, SEARCH_META_FUNCTION_ORIGIN, ANALYZE_PRODUCT_ENDPOINT } from "@/config/env";
+import { resolveLastSportId, sportMarketDetailUrl } from "@/utils/sportHubHref";
+import { MarketSportCategoryPicker } from "@/components/market/MarketSportCategoryPicker";
+import type { Sport } from "@/features/market/types";
+import { normalizeSportId } from "@/constants/sports";
+import { isHomeSportsCategorySportId } from "@/data/sportsCategories";
 
 export default function MarketAddPage() {
-  const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const { id, sport: sportParam } = useParams<{ id?: string; sport?: string }>();
   const isEditMode = !!id; // 수정 모드 여부
+  const [searchParams] = useSearchParams();
+  const createType = (searchParams.get("type") as "sale" | "share" | "lost" | null) ?? "sale";
+  const createTypeLabelMap: Record<"sale" | "share" | "lost", string> = {
+    sale: "상품 등록",
+    share: "나눔 등록",
+    lost: "유실물 등록",
+  };
+  const createTypeLabel = createTypeLabelMap[createType] ?? createTypeLabelMap.sale;
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
@@ -34,6 +48,7 @@ export default function MarketAddPage() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [selectedSportId, setSelectedSportId] = useState<Sport | null>(null);
   const [condition, setCondition] = useState<string>("중"); // 상/중/하
   const [priceRecommendation, setPriceRecommendation] = useState<any>(null);
   const [priceRecommendationLoading, setPriceRecommendationLoading] = useState(false);
@@ -63,6 +78,38 @@ export default function MarketAddPage() {
   }, []);
 
   const navigate = useNavigate();
+  const navState = (location.state as { from?: "hub" | "category" | "market"; sport?: string } | null) ?? null;
+  const from = navState?.from;
+  const targetSport = String(navState?.sport || selectedSportId || sportParam || "soccer");
+
+  useEffect(() => {
+    if (isEditMode) return;
+    const n = normalizeSportId(sportParam);
+    if (n && isHomeSportsCategorySportId(n)) {
+      setSelectedSportId(n);
+    } else {
+      setSelectedSportId(null);
+    }
+  }, [sportParam, isEditMode]);
+
+  const handleSelectSport = (next: Sport) => {
+    setSelectedSportId(next);
+    setErrorMsg("");
+    if (isEditMode && id) return;
+    navigate(
+      {
+        pathname: `/sports/${encodeURIComponent(next)}/market/ai-create`,
+        search: location.search,
+      },
+      { replace: true, state: location.state }
+    );
+  };
+
+  const resolveAfterSubmitPath = () => {
+    if (from === "hub") return "/hub";
+    if (from === "category") return `/sports/${targetSport}`;
+    return `/sports/${targetSport}/market`;
+  };
 
   const ensureAuthenticated = useCallback(
     () =>
@@ -144,7 +191,16 @@ export default function MarketAddPage() {
         const productUserId = productData.userId || productData.ownerId;
         if (productUserId !== user.uid) {
           alert("본인 상품만 수정할 수 있습니다.");
-          navigate(`/app/market/${id}`);
+          navigate(
+            sportMarketDetailUrl(
+              String(
+                (productData as { sport?: string }).sport ||
+                  sportParam ||
+                  resolveLastSportId()
+              ),
+              id
+            )
+          );
           return;
         }
 
@@ -152,6 +208,13 @@ export default function MarketAddPage() {
         if (productData.name) setName(productData.name);
         if (productData.price) setPrice(String(productData.price));
         if (productData.category) setCategory(productData.category);
+        const loadedSport = (productData as { sport?: string }).sport;
+        const normSport = loadedSport ? normalizeSportId(loadedSport) : null;
+        if (normSport && isHomeSportsCategorySportId(normSport)) {
+          setSelectedSportId(normSport);
+        } else {
+          setSelectedSportId(null);
+        }
         if (productData.description) setDesc(productData.description);
         if (productData.imageUrl) setImageUrl(productData.imageUrl);
         if (productData.tags) {
@@ -852,6 +915,11 @@ export default function MarketAddPage() {
       setErrorMsg("이미지와 음성을 모두 입력해주세요.");
       return;
     }
+    if (!selectedSportId) {
+      setErrorMsg("스포츠 카테고리를 선택해주세요.");
+      alert("스포츠 카테고리를 선택해주세요.");
+      return;
+    }
 
     try {
       const user = await ensureAuthenticated();
@@ -1047,6 +1115,8 @@ export default function MarketAddPage() {
         name: productName,
         price: Number(data.product?.price?.replace(/[^\d.-]/g, "") || price.replace(/[^\d.-]/g, "") || 0),
         category: productCategory,
+        sport: selectedSportId,
+        sportCategory: selectedSportId,
         description: productDesc,
         latitude: finalLatitude,
         longitude: finalLongitude,
@@ -1062,6 +1132,25 @@ export default function MarketAddPage() {
       const docRef = await addDoc(collection(db, "marketProducts"), productData);
       const productId = docRef.id;
 
+      try {
+        const { publishMarketListingToHub } = await import("@/services/marketListingHubSync");
+        const priceNum = Number(
+          data.product?.price?.replace(/[^\d.-]/g, "") || price.replace(/[^\d.-]/g, "") || 0
+        );
+        await publishMarketListingToHub({
+          postId: productId,
+          author: user,
+          sport: selectedSportId,
+          title: productName,
+          description: productDesc,
+          price: Number.isFinite(priceNum) ? priceNum : 0,
+          images: imageUrl ? [imageUrl] : [],
+          createType,
+        });
+      } catch (hubErr) {
+        console.warn("[MarketAddPage] 음성 등록 허브/activities 동기화 실패 (무시):", hubErr);
+      }
+
       // 6. 🎧 TTS 피드백
       const utterance = new SpeechSynthesisUtterance(
         `상품이 등록되었습니다. ${data.product.name}`
@@ -1073,9 +1162,9 @@ export default function MarketAddPage() {
       // 성공 메시지
       setSuccessMsg(`✅ AI가 상품을 등록했습니다! ${data.product.name}`);
 
-      // 2초 후 상품 상세 페이지로 이동
+      // 2초 후 의도 기반 위치로 복귀
       setTimeout(() => {
-        navigate(`/app/market/${productId}`);
+        navigate(resolveAfterSubmitPath(), { replace: true });
       }, 2000);
     } catch (error: any) {
       if (error?.message === "로그인이 필요합니다.") {
@@ -1092,6 +1181,12 @@ export default function MarketAddPage() {
   // 🔹 Firestore 저장 (단순/안정 버전)
   const handleSave = async () => {
     console.log("🔥 handleSave 시작");
+
+    if (!selectedSportId) {
+      setErrorMsg("스포츠 카테고리를 선택해주세요.");
+      alert("스포츠 카테고리를 선택해주세요.");
+      return;
+    }
     
     if (!name.trim() || !price) {
       setErrorMsg("필수 항목을 모두 입력해주세요.");
@@ -1222,6 +1317,8 @@ export default function MarketAddPage() {
         name: name.trim() || "",
         price: storedPrice !== null && storedPrice !== undefined ? storedPrice : null,
         category: category.trim() || "",
+        sport: selectedSportId,
+        sportCategory: selectedSportId,
         description: desc.trim() || "",
         latitude: typeof finalLatitude === "number" && !Number.isNaN(finalLatitude) ? finalLatitude : 37.5665,
         longitude: typeof finalLongitude === "number" && !Number.isNaN(finalLongitude) ? finalLongitude : 126.9780,
@@ -1315,6 +1412,25 @@ export default function MarketAddPage() {
         productId = docRef.id;
         console.log("✅ Firestore 저장 완료! 상품 ID:", productId);
         setSuccessMsg("✅ 상품이 등록되었습니다!");
+
+        try {
+          const { publishMarketListingToHub } = await import("@/services/marketListingHubSync");
+          const imgs = finalImageUrl ? [finalImageUrl] : [];
+          const p =
+            typeof storedPrice === "number" && Number.isFinite(storedPrice) ? storedPrice : 0;
+          await publishMarketListingToHub({
+            postId: productId,
+            author: user,
+            sport: selectedSportId,
+            title: name.trim(),
+            description: desc.trim(),
+            price: createType === "share" ? 0 : p,
+            images: imgs,
+            createType,
+          });
+        } catch (hubErr) {
+          console.warn("[MarketAddPage] 허브/activities 동기화 실패 (무시):", hubErr);
+        }
       }
 
       savedProductId = productId; // 🔥 저장 성공한 상품 ID 저장
@@ -1353,11 +1469,11 @@ export default function MarketAddPage() {
       console.log("✅ 상품 저장 로딩 상태 종료 (finally) - saveLoading = false");
 
       // 🔥 navigate도 finally 블록에서 처리 (Firestore 저장 실패 여부와 상관없이)
-      // 단, 저장 성공한 경우에만 상세 페이지로 이동
+      // 단, 저장 성공한 경우에만 의도 기반 위치로 이동
       if (savedProductId) {
         setTimeout(() => {
-          console.log("➡ navigate 실행:", savedProductId);
-          navigate(`/app/market/${savedProductId}`);
+          console.log("➡ navigate 실행:", resolveAfterSubmitPath());
+          navigate(resolveAfterSubmitPath(), { replace: true });
         }, 300);
       } else {
         // 저장 실패 시 마켓 목록으로 이동하지 않음 (사용자가 다시 시도할 수 있도록)
@@ -1371,8 +1487,21 @@ export default function MarketAddPage() {
       <Card className="max-w-lg mx-auto shadow-md">
         <CardContent className="p-6 space-y-4">
           <h1 className="text-xl font-bold mb-4 text-center">
-            {isEditMode ? "✏️ 상품 수정" : "🛒 AI 상품 등록"}
+            {isEditMode ? "✏️ 상품 수정" : `🛒 AI ${createTypeLabel}`}
           </h1>
+
+          <div className="rounded-xl border border-gray-100 bg-gray-50/90 p-3 dark:border-gray-700 dark:bg-gray-800/60">
+            <MarketSportCategoryPicker
+              value={selectedSportId}
+              onSelect={handleSelectSport}
+              disabled={saveLoading || analyzeLoading || loading}
+            />
+            {!selectedSportId ? (
+              <p className="mt-2 text-center text-xs font-medium text-red-500">
+                스포츠를 선택해야 등록할 수 있습니다.
+              </p>
+            ) : null}
+          </div>
 
           {/* 📸🎙️ 이미지 + 음성 결합 등록 */}
           <div className="border-b pb-4 mb-4 space-y-3">
@@ -1421,9 +1550,9 @@ export default function MarketAddPage() {
             {imageFile && transcript && (
               <button
                 onClick={() => handleImageAndVoiceAnalyze(imageFile, transcript)}
-                disabled={loading}
+                disabled={loading || !selectedSportId}
                 className={`w-full py-3 rounded-xl font-semibold text-white transition ${
-                  loading
+                  loading || !selectedSportId
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-indigo-600 hover:bg-indigo-700 active:scale-95"
                 }`}
@@ -1724,7 +1853,7 @@ export default function MarketAddPage() {
               </div>
             )}
             {imageUrl && (
-              <div className="flex justify-center mt-4 w-full max-w-md mx-auto">
+              <div className="flex justify-center mt-4 w-full w-full max-w-none px-3 md:mx-auto md:max-w-3xl">
                 <img
                   src={imageUrl}
                   alt="preview"
@@ -1867,30 +1996,40 @@ export default function MarketAddPage() {
             </div>
           )}
 
+          {/* 하단 고정 CTA 공간 확보 */}
+          <div className="h-20" />
+        </CardContent>
+      </Card>
+
+      {/* CTA 통일: 하단 고정 저장 버튼 */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur">
+        <div className="mx-auto w-full max-w-[480px] p-4">
           <Button
             onClick={handleSave}
-            disabled={saveLoading || analyzeLoading}
-            className={`w-full mt-6 text-white transition ${
-              saveLoading || analyzeLoading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700 active:scale-95"
+            disabled={saveLoading || analyzeLoading || !selectedSportId}
+            className={`h-12 w-full rounded-lg text-base font-semibold text-white transition ${
+              saveLoading || analyzeLoading || !selectedSportId
+                ? "cursor-not-allowed bg-gray-400"
+                : "bg-blue-600 hover:bg-blue-700 active:scale-[0.99]"
             }`}
           >
             {saveLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="animate-spin w-4 h-4" /> 
+                <Loader2 className="h-4 w-4 animate-spin" />
                 {imageFile ? "이미지 업로드 및 저장 중..." : "저장 중..."}
               </span>
             ) : analyzeLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="animate-spin w-4 h-4" /> AI 분석 중...
+                <Loader2 className="h-4 w-4 animate-spin" /> AI 분석 중...
               </span>
+            ) : isEditMode ? (
+              "상품 수정하기"
             ) : (
-              isEditMode ? "수정 완료" : "상품 등록 완료"
+              `${createTypeLabel}하기`
             )}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

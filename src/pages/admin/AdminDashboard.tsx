@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pencil, Trash2, PlusCircle, Save, Upload, X } from "lucide-react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/firebaseConfig";
+import { storage } from "@/lib/firebase";
 
 type AdminProduct = {
   id: number;

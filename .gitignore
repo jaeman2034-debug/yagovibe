@@ -18,6 +18,11 @@ dist-ssr
 .env.production
 .env.development
 .env.*.local
+functions/.env
+functions/.env.*
+
+# 실수로 생긴 중첩 functions 복사본 (Firebase CLI/경로 혼선 방지)
+functions/functions/
 
 # Firebase Service Account Key (절대 Git에 올리면 안 됨!)
 serviceAccountKey.json

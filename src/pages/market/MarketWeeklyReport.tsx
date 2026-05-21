@@ -13,7 +13,7 @@ export default function MarketWeeklyReport() {
   const generateWeeklyReport = async () => {
     setLoading(true);
     setTimeout(() => {
-      setReport(`📅 YAGO VIBE 주간 AI 리포트 (11월 6주차)
+      setReport(`📅 YAGO SPORTS 주간 AI 리포트 (11월 6주차)
 
 - 신규 등록 상품: 42건 (+12%)
 - 거래 성사 건수: 31건 (+18%)
@@ -76,7 +76,7 @@ AI 요약: 이번 주 거래 활성도는 전주 대비 17% 상승했으며, 특
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: `📢 YAGO VIBE 주간 AI 리포트\n\n${report}`,
+          text: `📢 YAGO SPORTS 주간 AI 리포트\n\n${report}`,
         }),
       });
 

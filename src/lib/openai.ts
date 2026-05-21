@@ -19,7 +19,7 @@ export const generateAIResponse = async (userMessage: string, conversationHistor
       messages: [
         {
           role: "system" as const,
-          content: "당신은 YAGO VIBE SPT의 AI 음성 비서입니다. 사용자의 질문에 친근하고 도움이 되는 답변을 제공하세요. 한국어로 응답하세요.",
+          content: "당신은 YAGO SPORTS SPT의 AI 음성 비서입니다. 사용자의 질문에 친근하고 도움이 되는 답변을 제공하세요. 한국어로 응답하세요.",
           name: "system"
         },
         ...conversationHistory.map(msg => {

@@ -1,17 +1,13 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
-import OpenAI from "openai";
+import { getOpenAIClient } from "./lib/openaiClient";
+import type OpenAI from "openai";
 
 // Firebase Admin 초기화
 if (!getApps().length) {
   initializeApp();
 }
-
-// OpenAI 클라이언트
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
 
 /**
  * AI 카테고리 자동 분류 시스템
@@ -42,6 +38,7 @@ export const generateCategory = onRequest(
     }
 
     try {
+      const openai = getOpenAIClient();
       const { name, description, imageUrl } = req.body;
 
       if (!name && !description && !imageUrl) {
@@ -61,7 +58,7 @@ export const generateCategory = onRequest(
 - 설명: ${description || ""}
 - 이미지 있음: ${imageUrl ? "예" : "아니오"}
 
-### 카테고리 목록 (YAGO VIBE 기준)
+### 카테고리 목록 (YAGO SPORTS 기준)
 - 휴대폰·스마트폰
 - 태블릿
 - 노트북·PC

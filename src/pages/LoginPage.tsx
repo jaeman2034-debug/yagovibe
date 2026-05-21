@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, sendPasswordResetEmail, GoogleAuthProvider } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
+import { Link } from "react-router-dom";
+import { signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { upgradeGuestAccount } from "@/utils/upgradeGuestAccount";
-import loginWordmark from "@/assets/logo/YagoSportsWordmark.svg?url";
+import { ensureDurableAuthPersistence, isRealInAppBrowser, signInWithGoogleAdaptive } from "@/utils/authHelpers";
+import { openExternalBrowser } from "@/utils/openExternalBrowser";
+import Logo from "@/components/common/Logo";
 
 interface SpeechRecognition extends EventTarget {
     lang: string;
@@ -45,44 +46,133 @@ export default function LoginPage() {
     const [, setListening] = useState(false);
     const [, setRecognition] = useState<SpeechRecognition | null>(null);
     const [targetField, setTargetField] = useState<"email" | "password" | null>(null);
-    const navigate = useNavigate();
-    
+    const targetFieldRef = useRef<"email" | "password" | null>(null);
     // 🔥 React StrictMode 이중 렌더링 방지용 ref
     const isSigningInRef = useRef(false);
-    
-    // 모바일/좁은 화면은 기본적으로 Redirect(팝업 차단 대비).
-    // 단, localhost + 개발 빌드에서는 Chrome 기기 에뮬레이터(UA만 모바일)도 팝업으로 두어
-    // 리다이렉트 복귀·getRedirectResult 타이밍 이슈로 로그인이 튕기는 것을 줄임.
-    const canUsePopup = (): boolean => {
-        const ua = navigator.userAgent.toLowerCase();
-        const host = typeof window !== "undefined" ? window.location.hostname : "";
-        const isLocalDev =
-            import.meta.env.DEV &&
-            (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local"));
 
-        if (isLocalDev) {
-            const realWebView = /(;\s*wv\)|webview|kakaotalk|instagram|fbav|fban|line\/|naver\(|daum)/i.test(
-                navigator.userAgent
-            );
-            if (!realWebView) {
-                console.log("🔧 [Google Login] 로컬 개발 — 팝업 로그인 사용 (에뮬레이터 UA 무시)");
-                return true;
+    /** 카카오·인스타·FB 인앱 — 안내 배너만, 구글 버튼은 항상 표시 */
+    const inAppStrict = isRealInAppBrowser();
+
+    /**
+     * 카카오톡 인앱 → 로그인 진입 시 외부 브라우저 자동 유도(세션당 1회).
+     * Android: Chrome intent + 1.2s 후 동일 URL fallback. iOS: 동일 URL 재진입.
+     * 보장 불가 — 실패 시「Chrome·Safari에서 열기」버튼으로 보완.
+     */
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const ua = navigator.userAgent;
+        const isKakao = /KAKAOTALK/i.test(ua);
+        const isAndroid = /Android/i.test(ua);
+
+        try {
+            if (sessionStorage.getItem("kakao_redirected")) return;
+        } catch {
+            return;
+        }
+
+        if (!isKakao) return;
+
+        try {
+            sessionStorage.setItem("kakao_redirected", "1");
+        } catch {
+            /* 비공개 모드 등 */
+        }
+
+        if (import.meta.env.DEV) {
+            console.log("[Auto Redirect] 카카오 인앱 → 외부 브라우저 이동 시도");
+        }
+
+        const url = window.location.href;
+        const pathAndHost = url.replace(/^https?:\/\//, "");
+
+        if (isAndroid) {
+            const intentUrl = `intent://${pathAndHost}#Intent;scheme=https;package=com.android.chrome;end`;
+            const iframe = document.createElement("iframe");
+            iframe.style.display = "none";
+            iframe.src = intentUrl;
+            document.body.appendChild(iframe);
+
+            setTimeout(() => {
+                try {
+                    iframe.remove();
+                } catch {
+                    /* ignore */
+                }
+                window.location.href = url;
+            }, 1200);
+        } else {
+            window.location.href = url;
+        }
+    }, []);
+
+    useEffect(() => {
+        targetFieldRef.current = targetField;
+    }, [targetField]);
+
+    useEffect(() => {
+        if (!import.meta.env.DEV) return;
+        console.log("[LoginPage] Google CTA", { inAppStrict });
+    }, [inAppStrict]);
+
+    // redirect·세션 복구는 AuthProvider + PublicRoute만 사용 (여기서 /hub navigate 금지)
+
+    const handleGoogleLogin = useCallback(async () => {
+        if (import.meta.env.DEV) {
+            console.log("[Google Login] click", {
+                googleLoading,
+                isSigningIn: isSigningInRef.current,
+            });
+        }
+        if (googleLoading || isSigningInRef.current) {
+            if (import.meta.env.DEV) {
+                console.warn("[Google Login] skip (already in progress)");
+            }
+            return;
+        }
+        isSigningInRef.current = true;
+        setGoogleLoading(true);
+        setError("");
+
+        try {
+            const provider = new GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: "select_account" });
+            const outcome = await signInWithGoogleAdaptive(auth, provider);
+            if (import.meta.env.DEV) {
+                console.log("[Google Login] done", {
+                    mode: outcome.mode,
+                    uid: auth.currentUser?.uid ?? null,
+                });
+            }
+            isSigningInRef.current = false;
+            setGoogleLoading(false);
+        } catch (error: any) {
+            console.error("[Google Login] 실패", {
+                code: error?.code,
+                message: error?.message,
+            });
+            isSigningInRef.current = false;
+            setGoogleLoading(false);
+
+            if (
+                error.code === "auth/requests-from-referer-are-blocked" ||
+                error.message?.includes("requests-from-referer")
+            ) {
+                const msg =
+                    "인증 요청이 차단되었습니다. Firebase Console → Authentication → 승인된 도메인에\n" +
+                    window.location.hostname +
+                    "\n을(를) 추가해 주세요.";
+                alert(msg);
+                setError(msg);
+            } else if (error.code === "auth/operation-not-allowed") {
+                const m =
+                    "Google 로그인이 비활성화되어 있습니다. Firebase Console에서 활성화해 주세요.";
+                alert(m);
+                setError(m);
+            } else {
+                setError(error.message || "구글 로그인을 시작할 수 없습니다.");
             }
         }
-
-        if (/android|iphone|ipad|ipod|mobile|wv|webview/i.test(ua)) {
-            console.log("📱 [Google Login] 모바일/웹뷰 환경 감지 - Redirect 방식 사용");
-            return false;
-        }
-
-        if (window.innerWidth < 768) {
-            console.log("📱 [Google Login] 작은 화면 감지 - Redirect 방식 사용");
-            return false;
-        }
-
-        console.log("💻 [Google Login] 데스크톱 환경 - Popup 방식 사용");
-        return true;
-    };
+    }, [googleLoading]);
 
     // 🔊 TTS 안내 함수
     const speak = (text: string) => {
@@ -134,7 +224,7 @@ export default function LoginPage() {
     };
 
     // 🎯 로그인 처리
-    const handleLogin = async (e?: React.FormEvent) => {
+    const handleLogin = async (e?: FormEvent) => {
         if (e) e.preventDefault();
         setError("");
         if (!email || !password) {
@@ -143,6 +233,7 @@ export default function LoginPage() {
             return;
         }
         try {
+            await ensureDurableAuthPersistence(auth);
             // 게스트 계정이면 승격 시도
             if (auth.currentUser?.isAnonymous) {
                 console.log("🎯 게스트 계정 발견 → 정식 계정으로 승격 시도");
@@ -153,7 +244,7 @@ export default function LoginPage() {
                 await signInWithEmailAndPassword(auth, email, password);
                 speak("로그인에 성공했습니다. 홈 화면으로 이동합니다.");
             }
-            navigate("/sports-hub");
+            // /hub 이동은 PublicRoute(sessionUser)가 처리
         } catch (error: any) {
             console.error("❌ 로그인 오류:", error);
             
@@ -183,6 +274,7 @@ export default function LoginPage() {
 
     // 🧠 음성 인식 로직 (UI 버튼 제거됨 — 초기화는 유지)
     useEffect(() => {
+        let recog: SpeechRecognition | null = null;
         try {
             const SpeechRecognitionClass =
                 (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -192,67 +284,83 @@ export default function LoginPage() {
                 return;
             }
 
-            const recog = new SpeechRecognitionClass() as SpeechRecognition;
+            recog = new SpeechRecognitionClass() as SpeechRecognition;
             recog.lang = "ko-KR";
             recog.continuous = false;
             recog.interimResults = false;
 
             recog.onresult = (event: SpeechRecognitionEvent) => {
-            const transcript = event.results[0][0].transcript.trim();
-            console.log("🎤 음성 인식 결과:", transcript);
+                try {
+                    const first = event.results[0]?.[0];
+                    const transcript = first?.transcript?.trim() ?? "";
+                    if (!transcript) return;
 
-            // 명령어 인식
-            if (transcript.includes("이메일")) {
-                speak("이메일 입력을 시작합니다. 말씀해주세요.");
-                setTargetField("email");
-                // 이메일 입력 모드에서 다음 음성을 기다리기 위해 다시 시작
-                setTimeout(() => {
-                    recog.start();
-                }, 100);
-                return;
-            } else if (transcript.includes("비밀번호")) {
-                speak("비밀번호 입력을 시작합니다.");
-                setTargetField("password");
-                setTimeout(() => {
-                    recog.start();
-                }, 100);
-                return;
-            } else if (transcript.includes("로그인")) {
-                handleLogin();
-                return;
-            }
+                    console.log("🎤 음성 인식 결과:", transcript);
 
-            // 필드 입력 처리
-            setTargetField((prevField) => {
-                if (prevField === "email") {
-                    // "at" -> "@", "dot" -> "." 변환
-                    const processedText = transcript
-                        .replace(/\s+at\s+/gi, "@")
-                        .replace(/\s+dot\s+/gi, ".")
-                        .replace(/\s+/g, "");
-                    setEmail(processedText);
-                    speak(`이메일 ${processedText} 입력되었습니다.`);
-                    return null;
-                } else if (prevField === "password") {
-                    setPassword(transcript.replace(/\s+/g, ""));
-                    speak("비밀번호가 입력되었습니다.");
-                    return null;
-                } else {
-                    speak("명령을 인식하지 못했습니다. 다시 말씀해주세요.");
-                    return null;
+                    if (transcript.includes("이메일")) {
+                        speak("이메일 입력을 시작합니다. 말씀해주세요.");
+                        setTargetField("email");
+                        setTimeout(() => {
+                            try {
+                                recog?.start();
+                            } catch {
+                                /* ignore */
+                            }
+                        }, 100);
+                        return;
+                    }
+                    if (transcript.includes("비밀번호")) {
+                        speak("비밀번호 입력을 시작합니다.");
+                        setTargetField("password");
+                        setTimeout(() => {
+                            try {
+                                recog?.start();
+                            } catch {
+                                /* ignore */
+                            }
+                        }, 100);
+                        return;
+                    }
+                    if (transcript.includes("로그인")) {
+                        void handleLogin();
+                        return;
+                    }
+
+                    setTargetField((prevField) => {
+                        if (prevField === "email") {
+                            const processedText = transcript
+                                .replace(/\s+at\s+/gi, "@")
+                                .replace(/\s+dot\s+/gi, ".")
+                                .replace(/\s+/g, "");
+                            setEmail(processedText);
+                            speak(`이메일 ${processedText} 입력되었습니다.`);
+                            return null;
+                        }
+                        if (prevField === "password") {
+                            setPassword(transcript.replace(/\s+/g, ""));
+                            speak("비밀번호가 입력되었습니다.");
+                            return null;
+                        }
+                        speak("명령을 인식하지 못했습니다. 다시 말씀해주세요.");
+                        return null;
+                    });
+                } catch (err) {
+                    console.error("음성 인식 결과 처리 오류:", err);
                 }
-            });
-        };
+            };
 
-        recog.onend = () => {
-            setListening(false);
-            // targetField가 설정되어 있으면 계속 듣기
-            if (targetField) {
-                setTimeout(() => {
-                    recog.start();
-                }, 100);
-            }
-        };
+            recog.onend = () => {
+                setListening(false);
+                if (targetFieldRef.current) {
+                    setTimeout(() => {
+                        try {
+                            recog?.start();
+                        } catch {
+                            /* ignore */
+                        }
+                    }, 100);
+                }
+            };
 
             (recog as any).onerror = (event: any) => {
                 console.error("음성 인식 오류:", event.error);
@@ -263,23 +371,35 @@ export default function LoginPage() {
             setRecognition(recog);
         } catch (error) {
             console.error("음성 인식 초기화 오류:", error);
-            // 오류가 발생해도 로그인 페이지는 정상 작동하도록 함
         }
+
+        return () => {
+            if (!recog) return;
+            try {
+                recog.onresult = null;
+                recog.onend = null;
+                (recog as any).onerror = null;
+                if (typeof (recog as any).abort === "function") {
+                    (recog as any).abort();
+                } else {
+                    recog.stop();
+                }
+            } catch {
+                /* ignore */
+            }
+        };
     }, []);
 
     const inputClass =
-        "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_rgb(255,255,255)] [&:-webkit-autofill]:[-webkit-text-fill-color:#111827]";
+        "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_rgb(255,255,255)] [&:-webkit-autofill]:[-webkit-text-fill-color:#111827]";
 
     return (
         <div className="flex min-h-dvh flex-col items-center bg-gray-50 px-4 pb-16 pt-8 sm:pb-12 sm:pt-10">
             <div className="flex w-full max-w-sm flex-col items-center text-center">
-                <img
-                    src={loginWordmark}
-                    alt="YAGO"
-                    width={200}
-                    height={72}
-                    decoding="async"
-                    className="mx-auto mb-3 h-14 w-auto max-w-[200px] object-contain sm:mb-4 sm:h-16"
+                <Logo
+                    size={128}
+                    alt="YAGO SPORTS"
+                    className="mx-auto mb-4"
                 />
                 <h1 className="text-2xl font-bold tracking-tight text-gray-900">
                     YAGO SPORTS
@@ -288,305 +408,35 @@ export default function LoginPage() {
                     AI Platform for Sports Enthusiasts
                 </p>
 
-                <div className="mt-6 w-full rounded-xl bg-white p-6 text-left shadow-md">
+                <div className="mt-6 flex w-full flex-col gap-3 rounded-xl border border-gray-200 bg-white p-6 text-left">
+                {/* 인앱: 자동 크롬 유도(useEffect) + 수동 열기. 구글 버튼은 항상 노출(자동 실패·직접 시도) */}
+                {inAppStrict ? (
+                    <div className="flex flex-col gap-2">
+                        <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-center text-xs leading-relaxed text-amber-900">
+                            인앱 브라우저에서는 구글 로그인이 <strong>불안정하거나 차단</strong>될 수 있습니다.
+                            가능하면 <strong>Chrome·Safari</strong>에서 여세요.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => openExternalBrowser(window.location.href)}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:bg-blue-800"
+                        >
+                            Chrome·Safari에서 열기
+                        </button>
+                        <p className="text-center text-[11px] text-gray-500">
+                            문제가 있으면 아래 <strong>이메일</strong>·
+                            <Link to="/login/phone" className="font-semibold text-blue-600 underline">
+                                전화번호 로그인
+                            </Link>
+                        </p>
+                    </div>
+                ) : null}
                 <button
                     type="button"
-                    onClick={async () => {
-                        // 🔥 이중 방지: state + ref (React StrictMode 대응)
-                        if (googleLoading || isSigningInRef.current) {
-                            console.log("⚠️ [Google Login] 이미 로그인 진행 중... (중복 호출 차단)");
-                            return;
-                        }
-                        
-                        // 🔥 즉시 ref 설정 (동기적 - React StrictMode 이중 렌더링 방지)
-                        isSigningInRef.current = true;
-                        setGoogleLoading(true);
-                        setError("");
-                        
-                        console.log("✅ [Google Login] 로그인 시작 - 중복 방지 활성화");
-                        
-                        try {
-                            // 🔍 1. 사전 검증: 현재 환경 정보 로깅
-                            const currentUrl = window.location.href;
-                            const referer = document.referrer || currentUrl;
-                            const hostname = window.location.hostname;
-                            
-                            console.log("🔍 [Google Login] 사전 검증 시작:", {
-                                currentUrl,
-                                referer,
-                                hostname,
-                                authDomain: auth.app.options.authDomain,
-                                projectId: auth.app.options.projectId,
-                                apiKey: auth.app.options.apiKey ? `${auth.app.options.apiKey.substring(0, 10)}...` : "없음",
-                                timestamp: new Date().toISOString(),
-                            });
-                            
-                            // 🔍 2. Firebase Auth 인스턴스 정보 확인
-                            console.log("🔍 [Google Login] Firebase Auth 인스턴스 정보:", {
-                                appName: auth.app.name,
-                                authDomain: auth.app.options.authDomain,
-                                projectId: auth.app.options.projectId,
-                                apiKey: auth.app.options.apiKey ? "✅ 설정됨" : "❌ 없음",
-                            });
-                            
-                            // 🔍 3. GoogleAuthProvider 생성 및 로깅
-                            const provider = new GoogleAuthProvider();
-                            // 🔥 Provider에 명시적 설정 추가 (referer 문제 해결)
-                            provider.setCustomParameters({
-                                prompt: 'select_account'
-                            });
-                            console.log("🔍 [Google Login] GoogleAuthProvider 생성 완료:", {
-                                providerId: provider.providerId,
-                            });
-                            
-                            // 🔍 4. signInWithPopup 호출 전 최종 확인
-                            console.log("🔍 [Google Login] signInWithPopup 호출 직전:", {
-                                authInstance: auth ? "✅ 존재" : "❌ 없음",
-                                provider: provider ? "✅ 존재" : "❌ 없음",
-                                currentDomain: hostname,
-                                expectedAuthDomain: auth.app.options.authDomain,
-                                domainMatch: hostname === auth.app.options.authDomain || 
-                                            hostname.includes(auth.app.options.authDomain?.replace('.firebaseapp.com', '') || ''),
-                            });
-                            
-                            // 🔥 5. 실제 로그인 시도
-                            // ⚠️ 중복 호출 최종 확인 (마지막 방어선)
-                            if (!isSigningInRef.current) {
-                                console.error("❌ [Google Login] 중복 방지 실패 - ref가 false입니다!");
-                            }
-                            
-                            // 🔥 모바일 환경 감지 및 적절한 로그인 방식 선택
-                            const usePopup = canUsePopup();
-                            
-                            if (usePopup) {
-                                // 💻 데스크톱 환경: Popup 방식 사용
-                                console.log("🔥 [Google Login] signInWithPopup 호출 시작:", {
-                                    timestamp: new Date().toISOString(),
-                                    refValue: isSigningInRef.current,
-                                    loadingState: googleLoading
-                                });
-                                
-                                try {
-                                    const result = await signInWithPopup(auth, provider);
-                                    
-                                    console.log("✅ [Google Login] Google 로그인 성공:", {
-                                        userEmail: result.user.email,
-                                        userUid: result.user.uid,
-                                    });
-                                    
-                                    // 🔥 Firestore에 사용자 프로필이 없으면 생성
-                                    const userDocRef = doc(db, "users", result.user.uid);
-                                    const userDoc = await getDoc(userDocRef);
-                                    
-                                    if (!userDoc.exists()) {
-                                        console.log("📝 [Google Login] Firestore에 사용자 프로필 생성");
-                                        
-                                        // 위치 정보 가져오기
-                                        let location = "위치 정보 없음";
-                                        try {
-                                            if (navigator.geolocation) {
-                                                const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                                                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-                                                });
-                                                location = `lat:${pos.coords.latitude.toFixed(4)}, lng:${pos.coords.longitude.toFixed(4)}`;
-                                            }
-                                        } catch (err) {
-                                            console.warn("⚠️ [Google Login] 위치 정보 가져오기 실패:", err);
-                                        }
-                                        
-                                        // Firestore에 프로필 생성
-                                        await setDoc(userDocRef, {
-                                            uid: result.user.uid,
-                                            email: result.user.email,
-                                            displayName: result.user.displayName || result.user.email?.split("@")[0] || "사용자",
-                                            photoURL: result.user.photoURL || null,
-                                            location,
-                                            aiProfile: true,
-                                            createdAt: new Date().toISOString(),
-                                            updatedAt: new Date().toISOString(),
-                                        }, { merge: true });
-                                        
-                                        console.log("✅ [Google Login] Firestore 사용자 프로필 생성 완료");
-                                    }
-                                    
-                                    // 로그인 성공 시 홈으로 이동
-                                    navigate("/sports-hub", { replace: true });
-                                    
-                                    // 상태 해제
-                                    isSigningInRef.current = false;
-                                    setGoogleLoading(false);
-                                    return;
-                                } catch (popupError: any) {
-                                    // 팝업이 차단되거나 실패한 경우 redirect로 fallback
-                                    if (popupError.code === "auth/popup-closed-by-user" || 
-                                        popupError.code === "auth/popup-blocked" ||
-                                        popupError.code === "auth/cancelled-popup-request") {
-                                        console.log("⚠️ [Google Login] 팝업 실패 → Redirect 방식으로 전환");
-                                        await signInWithRedirect(auth, provider);
-                                        // redirect는 페이지가 이동하므로 여기서 return
-                                        return;
-                                    }
-                                    // 다른 오류는 아래 catch 블록에서 처리
-                                    throw popupError;
-                                }
-                            } else {
-                                // 📱 모바일 환경: Redirect 방식 사용
-                                console.log("🔥 [Google Login] signInWithRedirect 호출 시작 (모바일 환경):", {
-                                    timestamp: new Date().toISOString(),
-                                    userAgent: navigator.userAgent,
-                                    screenWidth: window.innerWidth,
-                                });
-                                
-                                await signInWithRedirect(auth, provider);
-                                // redirect는 페이지가 이동하므로 여기서 return
-                                // 리다이렉션 후 결과는 App.tsx에서 처리
-                                console.log("✅ [Google Login] 리다이렉션 시작 - Google 로그인 페이지로 이동합니다.");
-                                return;
-                            }
-                        } catch (error: any) {
-                            console.error("❌ [Google Login] 오류 발생:", {
-                                code: error.code,
-                                message: error.message,
-                                timestamp: new Date().toISOString(),
-                                refValue: isSigningInRef.current,
-                                loadingState: googleLoading
-                            });
-                            
-                            // 🔥 오류 발생 시 상태 해제 (무한 로그인 루프 방지)
-                            isSigningInRef.current = false;
-                            setGoogleLoading(false);
-                            
-                            // 🔥 오류 처리 순서 중요: popup-closed-by-user를 먼저 확인
-                            if (error.code === "auth/popup-closed-by-user") {
-                                console.log("⚠️ [Google Login] 사용자가 팝업을 닫았습니다.");
-                                setError("로그인 창이 닫혔습니다. 다시 시도해주세요.");
-                                // 상태는 이미 catch 블록 시작 부분에서 해제됨
-                                return;
-                            }
-                            
-                            // 🔥 cancelled-popup-request 오류 특별 처리
-                            if (error.code === "auth/cancelled-popup-request") {
-                                console.log("⚠️ [Google Login] 팝업 요청이 취소되었습니다. (중복 호출 감지)");
-                                setError("로그인 창이 이미 열려있습니다. 기다려주세요...");
-                                // 상태는 이미 catch 블록 시작 부분에서 해제됨
-                                return;
-                            }
-                            
-                            // 🔥 "The requested action is invalid" 오류 특별 처리
-                            // ⚠️ 이 오류는 보통 팝업이 예기치 않게 닫혔을 때 발생
-                            if (error.code === "auth/invalid-action" || 
-                                error.message?.includes("invalid") || 
-                                error.message?.includes("The requested action is invalid")) {
-                                console.error("❌ [Google Login] 'The requested action is invalid' 오류 발생!");
-                                console.error("   원인: 팝업이 예기치 않게 닫혔거나 OAuth state가 꼬였습니다.");
-                                console.error("   해결: 잠시 후 다시 시도하거나 브라우저를 새로고침하세요.");
-                                
-                                setError("인증 요청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-                                // 상태는 이미 catch 블록 시작 부분에서 해제됨
-                                return;
-                            }
-                            // 🔍 6. 오류 발생 시 상세 정보 로깅
-                            const errorDetails = {
-                                code: error.code,
-                                message: error.message,
-                                email: error.email,
-                                credential: error.credential,
-                                customData: error.customData,
-                                stack: error.stack,
-                                currentUrl: window.location.href,
-                                referer: document.referrer,
-                                hostname: window.location.hostname,
-                                authDomain: auth.app.options.authDomain,
-                                projectId: auth.app.options.projectId,
-                                timestamp: new Date().toISOString(),
-                            };
-                            
-                            console.error("❌ [Google Login] 로그인 실패 - 상세 정보:", errorDetails);
-                            console.error("❌ [Google Login] 전체 오류 객체:", error);
-                            
-                            let errorMsg = "";
-
-                            // 🔥 7. auth/requests-from-referer-are-blocked 오류 특별 처리
-                            if (error.code === "auth/requests-from-referer-are-blocked" || 
-                                error.message?.includes("requests-from-referer") || 
-                                error.message?.includes("are-blocked") ||
-                                error.code?.includes("requests-from-referer")) {
-                                
-                                errorMsg = 
-                                    "❌ 인증 요청이 차단되었습니다.\n\n" +
-                                    "🔍 발견된 문제: 승인된 도메인 누락 또는 클라이언트 ID 불일치\n\n" +
-                                    "현재 도메인: " + window.location.hostname + "\n" +
-                                    "예상 도메인: " + auth.app.options.authDomain + "\n\n" +
-                                    "✅ 해결 방법:\n" +
-                                    "1. Firebase Console → Authentication → Settings → Authorized domains\n" +
-                                    "   - '" + window.location.hostname + "' 추가\n" +
-                                    "   - '" + auth.app.options.authDomain + "' 확인\n\n" +
-                                    "2. Firebase Console → Authentication → Sign-in method → Google\n" +
-                                    "   - '웹 클라이언트 ID' 확인\n" +
-                                    "   - Google Cloud Console의 OAuth 2.0 Web Client ID와 일치하는지 확인\n\n" +
-                                    "3. Google Cloud Console → APIs & Services → Credentials\n" +
-                                    "   - OAuth 2.0 클라이언트 ID 확인\n" +
-                                    "   - '승인된 JavaScript 원본'에 현재 도메인 포함 여부 확인\n\n" +
-                                    "4. 브라우저 캐시 삭제 후 새로고침 (Ctrl+Shift+R)\n\n" +
-                                    `에러 코드: ${error.code || "unknown"}\n` +
-                                    `에러 메시지: ${error.message || "없음"}\n\n` +
-                                    "💡 개발자 콘솔(F12)에서 상세 정보를 확인하세요.";
-                                
-                                alert(errorMsg);
-                                
-                                // 🔍 개발 환경에서만 추가 디버깅 정보 표시
-                                if (import.meta.env.DEV) {
-                                    console.group("🔍 [개발 모드] 추가 디버깅 정보");
-                                    console.log("현재 URL:", window.location.href);
-                                    console.log("Referer:", document.referrer);
-                                    console.log("Hostname:", window.location.hostname);
-                                    console.log("Firebase Auth Domain:", auth.app.options.authDomain);
-                                    console.log("Firebase Project ID:", auth.app.options.projectId);
-                                    console.log("Firebase API Key:", auth.app.options.apiKey ? "✅ 설정됨" : "❌ 없음");
-                                    console.groupEnd();
-                                }
-                            } else if (error.code === "auth/operation-not-allowed") {
-                                errorMsg =
-                                    "Google 로그인이 활성화되지 않았습니다.\n\nFirebase Console에서 활성화해주세요:\n1. Firebase Console > Authentication > Sign-in method\n2. Google 활성화\n3. Project support email 설정";
-                                alert(errorMsg);
-                            } else if (error.code === "auth/popup-closed-by-user") {
-                                errorMsg = "로그인 창이 닫혔습니다. 다시 시도해주세요.";
-                            } else if (error.code === "auth/popup-blocked") {
-                                errorMsg =
-                                    "팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.";
-                            } else if (error.message?.includes("invalid") || error.message?.includes("invalid action") || error.code === "auth/invalid-action") {
-                                errorMsg = 
-                                    "❌ 인증 요청이 거부되었습니다.\n\n" +
-                                    "🔍 발견된 문제: OAuth 설정 문제\n\n" +
-                                    "OAuth 동의 화면 또는 클라이언트 ID 설정에 문제가 있을 수 있습니다.\n\n" +
-                                    "✅ 해결 방법:\n" +
-                                    "1. Google Cloud Console → APIs & Services → OAuth consent screen\n" +
-                                    "   - 앱 상태 확인 (테스트/프로덕션)\n" +
-                                    "   - 테스트 상태라면 테스트 사용자 목록에 이메일 추가\n\n" +
-                                    "2. Google Cloud Console → APIs & Services → Credentials\n" +
-                                    "   - OAuth 2.0 클라이언트 ID 확인\n" +
-                                    "   - '승인된 JavaScript 원본' 확인\n\n" +
-                                    "3. Firebase Console → Authentication → Sign-in method → Google\n" +
-                                    "   - '웹 클라이언트 ID' 확인\n\n" +
-                                    "4. 브라우저 새로고침 (Ctrl+Shift+R)\n" +
-                                    "5. Google 로그인 재시도\n\n" +
-                                    `에러 코드: ${error.code || "unknown"}\n` +
-                                    `에러 메시지: ${error.message || "없음"}`;
-                                alert(errorMsg);
-                            } else {
-                                errorMsg = error.message || "구글 로그인에 실패했습니다.";
-                            }
-
-                            setError(errorMsg);
-                        } finally {
-                            // 🔥 반드시 로딩 상태 해제 (모든 경우에 실행)
-                            isSigningInRef.current = false; // ref도 함께 해제
-                            setGoogleLoading(false);
-                            console.log("✅ [Google Login] 로그인 완료 - 중복 방지 해제");
-                        }
-                    }}
+                    data-yago-google-login="1"
+                    onClick={handleGoogleLogin}
                     disabled={googleLoading}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="relative z-20 flex w-full touch-manipulation items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden>
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -625,7 +475,7 @@ export default function LoginPage() {
                 )}
                 <button
                     type="submit"
-                    className="mt-1 w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-blue-700"
+                    className="mt-1 w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700"
                 >
                     로그인
                 </button>
@@ -642,7 +492,7 @@ export default function LoginPage() {
 
                 <Link
                     to="/login/phone"
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-center text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-center text-sm font-medium text-gray-800 hover:bg-gray-50"
                 >
                     전화번호로 로그인
                 </Link>
