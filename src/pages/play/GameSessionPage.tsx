@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { LiveMatchView } from "@/components/live/LiveMatchView";
+import { TeamMatchSessionPlaceholder } from "@/components/live/TeamMatchSessionPlaceholder";
 import { useAuth } from "@/context/AuthProvider";
 import { callGetGameSession } from "@/lib/matchmaking/matchmakingClient";
+import { is1v1LiveSessionMode, isTeamLiveSessionMode } from "@/lib/matchmaking/sessionMode";
+import type { MatchmakingMode } from "@/lib/matchmaking/types";
 import {
   gameSessionPath,
   matchmakingPath,
@@ -20,7 +23,9 @@ type SessionDoc = {
 };
 
 /**
- * 매치메이킹 완료 후 1v1 라이브 매치 (Phaser + RTDB)
+ * 매치메이킹 세션 — mode 분기
+ * - `1v1` → LiveMatchView (LiveMatchScene)
+ * - `5v5` / `8v8` → TeamMatchScene placeholder (팀전 씬 미구현)
  */
 export default function GameSessionPage() {
   const { sessionId: rawSessionId = "" } = useParams<{ sessionId: string }>();
@@ -73,6 +78,16 @@ export default function GameSessionPage() {
             sessionId: sessionId.slice(0, 8),
             playerUids: doc.playerUids?.map((u) => u.slice(0, 8)),
             uid: user.uid.slice(0, 8),
+          });
+          console.info("[session] mode route", {
+            mode: doc.mode,
+            route: isTeamLiveSessionMode(doc.mode)
+              ? "team-placeholder"
+              : is1v1LiveSessionMode(doc.mode)
+                ? "live-1v1"
+                : "unknown",
+            sessionId: sessionId.slice(0, 12),
+            playerCount: doc.playerUids?.length ?? 0,
           });
         }
       })
@@ -149,8 +164,7 @@ export default function GameSessionPage() {
   }
 
   const uids = session.playerUids ?? [];
-  const sorted = sortPlayerUids(uids);
-  if (!sorted || !sorted.includes(user.uid)) {
+  if (!uids.includes(user.uid)) {
     return (
       <div className="mx-auto min-h-screen max-w-lg bg-[#070b14] px-4 py-8 text-slate-100">
         <p className="text-sm text-rose-300">이 세션의 참가자가 아닙니다.</p>
@@ -161,12 +175,74 @@ export default function GameSessionPage() {
     );
   }
 
+  const sessionMode = session.mode as MatchmakingMode | undefined;
+
+  if (import.meta.env.DEV) {
+    console.info("[GameSession] render route", {
+      mode: sessionMode,
+      route: isTeamLiveSessionMode(sessionMode)
+        ? "team-placeholder"
+        : is1v1LiveSessionMode(sessionMode)
+          ? "live-1v1"
+          : "unknown",
+      sessionId: sessionId.slice(0, 12),
+    });
+  }
+
+  if (isTeamLiveSessionMode(sessionMode)) {
+    return (
+      <>
+        {import.meta.env.DEV ? (
+          <div className="pointer-events-none fixed left-2 top-2 z-[100] rounded-lg border border-indigo-500/40 bg-black/80 px-2 py-1 font-mono text-[10px] text-indigo-200">
+            GameSession · mode={sessionMode} → TeamMatch (5v5/8v8)
+          </div>
+        ) : null}
+        <TeamMatchSessionPlaceholder
+          sessionId={sessionId}
+          mode={sessionMode}
+          playerUids={uids}
+          matchId={session.matchId}
+        />
+      </>
+    );
+  }
+
+  if (!is1v1LiveSessionMode(sessionMode)) {
+    return (
+      <div className="mx-auto min-h-screen max-w-lg bg-[#070b14] px-4 py-8 text-slate-100">
+        <p className="text-sm text-rose-300">
+          알 수 없는 세션 모드({session.mode ?? "없음"})입니다. 1v1은 즉시 플레이, 팀전은 /matchmaking을
+          이용해 주세요.
+        </p>
+        <Link to={matchmakingPath()} className="mt-4 inline-block text-sm text-cyan-400 underline">
+          매치메이킹으로
+        </Link>
+      </div>
+    );
+  }
+
+  const sorted = sortPlayerUids(uids);
+  if (!sorted) {
+    return (
+      <div className="mx-auto min-h-screen max-w-lg bg-[#070b14] px-4 py-8 text-slate-100">
+        <p className="text-sm text-rose-300">1v1 세션에는 플레이어 2명이 필요합니다.</p>
+      </div>
+    );
+  }
+
   return (
-    <LiveMatchView
-      sessionId={sessionId}
-      myUid={user.uid}
-      playerUids={sorted}
-      matchId={session.matchId}
-    />
+    <>
+      {import.meta.env.DEV ? (
+        <div className="pointer-events-none fixed left-2 top-2 z-[100] rounded-lg border border-cyan-500/40 bg-black/80 px-2 py-1 font-mono text-[10px] text-cyan-200">
+          GameSession · mode={sessionMode ?? "?"} → LiveMatchView (1v1)
+        </div>
+      ) : null}
+      <LiveMatchView
+        sessionId={sessionId}
+        myUid={user.uid}
+        playerUids={sorted}
+        matchId={session.matchId}
+      />
+    </>
   );
 }

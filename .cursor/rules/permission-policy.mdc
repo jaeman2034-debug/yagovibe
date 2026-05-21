@@ -1,0 +1,149 @@
+---
+alwaysApply: false
+description: 권한 정책 및 Empty State 패턴 (Recruit/Match/Guest·팀 필수 UX 작업 시 참고)
+---
+
+# 🔐 권한 정책 및 Empty State 패턴
+
+## 📋 권한 정책
+
+### 팀 필수 기능
+- **Recruit 생성**: 팀 소속 필수
+- **Match 생성**: 팀 소속 필수
+
+### 팀 불필요 기능
+- **Guest Player 생성**: 팀 없어도 가능 (트래픽 핵심)
+
+## 📝 구현 패턴
+
+### 1. 팀 필수 기능 (Recruit, Match)
+
+```typescript
+// RecruitCreatePage, MatchCreatePage
+import { useMyTeams } from "@/hooks/useMyTeams";
+
+export default function RecruitCreatePage() {
+  const { hasTeams, teamMembers, loading: teamsLoading } = useMyTeams();
+
+  if (teamsLoading) {
+    return <LoadingState />;
+  }
+
+  // ⚠️ 팀 없을 때 Empty State
+  if (!hasTeams) {
+    return (
+      <EmptyState
+        icon={<Users className="w-16 h-16 text-gray-400" />}
+        title="팀에 가입해야 모집글을 작성할 수 있습니다"
+        message="먼저 팀을 만들거나 기존 팀에 가입해주세요."
+        actions={[
+          {
+            label: "팀 만들기",
+            onClick: () => navigate("/team/create"),
+            variant: "default"
+          },
+          {
+            label: "팀 찾기",
+            onClick: () => navigate("/team/search"),
+            variant: "outline"
+          }
+        ]}
+      />
+    );
+  }
+
+  // 팀 있을 때 폼 표시
+  return <RecruitForm />;
+}
+```
+
+### 2. 팀 불필요 기능 (Guest Player)
+
+```typescript
+// GuestPlayerCreatePage
+// ⚠️ 권한 체크 없이 바로 폼 표시
+export default function GuestPlayerCreatePage() {
+  return <GuestPlayerForm />;
+}
+```
+
+### 3. Empty State 컴포넌트
+
+```typescript
+// src/components/ui/EmptyState.tsx
+interface EmptyStateProps {
+  icon?: React.ReactNode;
+  title: string;
+  message?: string;
+  actions?: Array<{
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "outline";
+  }>;
+}
+
+export function EmptyState({ icon, title, message, actions }: EmptyStateProps) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header title="..." />
+      <div className="p-6">
+        <div className="text-center py-12 flex flex-col items-center justify-center">
+          {icon}
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            {title}
+          </h2>
+          {message && (
+            <p className="text-gray-600 mb-6">{message}</p>
+          )}
+          {actions && actions.length > 0 && (
+            <div className="flex gap-4">
+              {actions.map((action, idx) => (
+                <Button
+                  key={idx}
+                  variant={action.variant || "default"}
+                  onClick={action.onClick}
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+## 🔥 useMyTeams 훅 사용
+
+```typescript
+import { useMyTeams } from "@/hooks/useMyTeams";
+
+const { 
+  teamMembers,      // 팀 멤버 목록
+  teamIds,          // 팀 ID 목록
+  hasTeams,         // 팀 소속 여부
+  loading,          // 로딩 상태
+} = useMyTeams();
+
+// 첫 번째 팀
+const myTeam = teamMembers[0];
+```
+
+## 📍 라우팅 가드
+
+```typescript
+// App.tsx
+<Route
+  path="/recruit/create"
+  element={
+    <ProtectedRoute>
+      <RecruitCreatePage />
+    </ProtectedRoute>
+  }
+/>
+
+// ProtectedRoute는 인증만 체크
+// 팀 소속은 페이지 내부에서 체크
+```

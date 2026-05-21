@@ -1,0 +1,167 @@
+/* 월간 리포트 PDF 템플릿 스타일 */
+
+@page {
+  size: A4;
+  margin: 20mm;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  font-size: 12pt;
+  line-height: 1.6;
+  color: #333;
+  background: #fff;
+}
+
+/* 페이지 브레이크 제어 */
+.page-break {
+  break-after: page;
+  page-break-after: always;
+}
+
+.section {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 30px 0;
+}
+
+table {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* 헤더 */
+.report-header {
+  border-bottom: 3px solid #2563eb;
+  padding-bottom: 20px;
+  margin-bottom: 30px;
+}
+
+.report-header h1 {
+  font-size: 24pt;
+  font-weight: bold;
+  color: #2563eb;
+  margin-bottom: 15px;
+}
+
+.report-meta {
+  font-size: 10pt;
+  color: #6b7280;
+}
+
+.report-meta p {
+  margin: 5px 0;
+}
+
+/* 섹션 */
+.section h2 {
+  font-size: 18pt;
+  font-weight: bold;
+  color: #1e40af;
+  margin-bottom: 15px;
+  border-left: 4px solid #2563eb;
+  padding-left: 10px;
+}
+
+/* 통계 카드 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  background-color: #f9fafb;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+}
+
+.stat-value {
+  font-size: 28pt;
+  font-weight: bold;
+  color: #2563eb;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 10pt;
+  color: #6b7280;
+}
+
+/* 테이블 */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  break-inside: avoid;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* 차트 컨테이너 */
+.chart-container {
+  margin: 20px 0;
+  text-align: center;
+  break-inside: avoid;
+}
+
+.chart-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 알림 */
+.alerts-list {
+  margin: 20px 0;
+}
+
+.alert {
+  padding: 15px;
+  margin: 10px 0;
+  border-left: 4px solid #f59e0b;
+  background-color: #fef3c7;
+  break-inside: avoid;
+}
+
+.alert strong {
+  color: #92400e;
+}
+
+/* 푸터 */
+.report-footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 10pt;
+  color: #6b7280;
+  text-align: center;
+}
+
+.report-footer p {
+  margin: 5px 0;
+}
+

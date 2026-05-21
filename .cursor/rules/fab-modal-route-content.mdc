@@ -1,0 +1,102 @@
+---
+description: FAB 글쓰기 — 라우트별 모달 콘텐츠 분기·공통 셸·컴포넌트 분리 (실전 지시문)
+globs: src/layout/AppShellLayout.tsx,src/components/FloatingWriteButton.tsx,src/components/create/**,src/components/market/**
+alwaysApply: false
+---
+
+# FAB 모달 구조 리팩토링 지시문 (YAGO VIBE)
+
+## 목표
+
+전역 FAB 클릭 시 **라우트(페이지) 컨텍스트에 맞는 메뉴만** 노출한다. 한 컴포넌트에 메뉴를 몰아넣지 않고 **콘텐츠만 분리**한다.
+
+## 현재 문제 (금지 패턴)
+
+- 모든 경로에서 동일한 `CreateModal`만 열림 → `/market`에서도 협회/팀 생성 등 **다른 도메인 메뉴**가 보임.
+- FAB는 전역 하나인데 **모달 내부가 페이지와 무관**함.
+
+## 목표 구조
+
+```
+FAB (공통, 1곳)
+  ↓
+Modal Shell (공통 — 오버레이·닫기·포커스·스크롤 잠금)
+  ↓
+Content (라우트별 전용 컴포넌트만 스위칭)
+```
+
+## 설계 원칙
+
+1. **FAB**는 `AppShellLayout`(또는 단일 Shell)에서만 렌더.
+2. **모달 셸**(레이아웃·애니메이션·닫기)은 **하나**로 통일.
+3. **본문**은 `pathname` 기준으로 **자식 컴포넌트만** 교체.
+4. 마켓/협회/기본 등 **도메인별 메뉴는 파일·컴포넌트 단위로 분리**.
+
+## 라우트 매핑 (이 프로젝트 기준)
+
+`useLocation().pathname`으로 분기할 때 아래를 반영한다.
+
+| 영역 | pathname 예시 | FAB 콘텐츠 방향 |
+|------|----------------|-----------------|
+| 마켓·거래 | `/market`, `/trade`, `/sports/:sport/market` | 상품/모집/매칭 등 **마켓 글쓰기** (기존 `PostTypeSelectModal` 또는 동급 컴포넌트) |
+| 협회 포털 | `/federations/:slug`, `/federation/:slug` | 팀·아카데미·협회 등 **협회 맥락 생성 메뉴** |
+| 그 외 | `/home`, `/activity`, … | 플랫폼 기본 생성 메뉴 (기존 `CreateModal` 옵션 또는 전용 `DefaultCreateMenu`) |
+
+- 레거시·리다이렉트 경로가 있으면 **실제 canonical 경로**와 동일하게 동작하도록 분기 조건을 나란히 둔다.
+
+## 구현 스케치
+
+```tsx
+import { useLocation } from "react-router-dom";
+
+function renderFabModalContent(pathname: string) {
+  if (
+    pathname.startsWith("/market") ||
+    pathname.startsWith("/trade") ||
+    /^\/sports\/[^/]+\/market(\/|$)/.test(pathname)
+  ) {
+    return <MarketFabCreateContent pathname={pathname} />;
+  }
+  if (
+    pathname.startsWith("/federations/") ||
+    pathname.startsWith("/federation/")
+  ) {
+    return <FederationFabCreateContent pathname={pathname} />;
+  }
+  return <DefaultFabCreateContent />;
+}
+
+// 단일 셸
+<WriteModalShell open={open} onOpenChange={setOpen}>
+  {renderFabModalContent(location.pathname)}
+</WriteModalShell>
+```
+
+- `MarketFabCreateContent` / `FederationFabCreateContent` / `DefaultFabCreateContent`는 **각각 별도 파일**로 둔다 (예: `src/components/fab/content/`).
+
+## 금지 사항
+
+- **거대한 단일 모달 파일** 안에서 수십 줄짜리 `if/else`로 메뉴 JSX를 전부 나열하기.
+- “안 쓰는 항목만 `display:none`”으로 숨기기.
+- 라우트와 무관한 **하드코딩된 단일 옵션 리스트**만 유지하기.
+
+## UX 기준 (요약)
+
+- **마켓 계열**: 해당 스포츠/카테고리에 맞는 글쓰기 플로우만.
+- **협회 포털**: 협회·팀·아카데미 등 그 맥락에 맞는 생성만.
+- **기타**: 플랫폼 기본 생성 메뉴.
+
+## 작업 시 확인할 파일
+
+- `src/layout/AppShellLayout.tsx` — FAB·모달 오픈 상태
+- `src/components/FloatingWriteButton.tsx` — FAB 트리거
+- `src/components/create/CreateModal.tsx` — 기본 메뉴 (셸 분리 시 본문만 추출)
+- `src/components/market/PostTypeSelectModal.tsx` — 마켓 메뉴 참고/재사용
+
+## 한 줄 요약
+
+**FAB = 공통, Modal Shell = 공통, Content = 라우트별 분리 컴포넌트.**
+
+## 참고 (과도기)
+
+동작 우선으로 **조건부로 서로 다른 모달 컴포넌트**를 렌더하는 방식이 있을 수 있다. 리팩터링 시에는 위 구조대로 **셸 1개 + content 스위칭**으로 수렴시킨다.

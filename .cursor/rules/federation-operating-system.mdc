@@ -1,0 +1,22 @@
+---
+description: 협회 운영 OS — 팀·회비·대회·Transaction 중심 회계 설계 (Federation subcollections)
+alwaysApply: false
+---
+
+# Federation Operating System
+
+협회 **팀 기반 운영 + 단일 Transaction 레저** 설계 문서:
+
+- **스펙**: [docs/FEDERATION_OPERATING_SYSTEM_SPEC.md](mdc:docs/FEDERATION_OPERATING_SYSTEM_SPEC.md)
+- **Rules 초안**: [docs/FEDERATION_OPERATING_SYSTEM_RULES.md](mdc:docs/FEDERATION_OPERATING_SYSTEM_RULES.md)
+- **인덱스**: [docs/FEDERATION_OPERATING_SYSTEM_INDEXES.md](mdc:docs/FEDERATION_OPERATING_SYSTEM_INDEXES.md)
+
+구현 시 준수:
+
+- 기존 콘텐츠/AI 경로는 건드리지 말고 `services` / `types` / `hooks` / `components` / `pages` 에 점진 추가.
+- 금액은 **정수 원**; 상태·도메인은 **고정 enum** 문자열.
+- 회비 납부 시 **`transactions` 필수 동반**, **멱등** (결정적 문서 ID 또는 단일 서버 경로).
+- 입출금은 **`federations/{slug}/transactions`** 에 남기고 `relatedRef` 로 도메인 연결.
+- Firestore는 **협회 slug 아래 flat 서브컬렉션**; 서비스 레이어에서 Firestore 접근.
+
+UI 맵은 `FEDERATION_OPERATING_SYSTEM_UI_MAP.md` 예정.

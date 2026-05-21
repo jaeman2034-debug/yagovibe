@@ -3,7 +3,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
-export type UserRole = "owner" | "coach" | "editor" | "viewer";
+export type UserRole = "owner" | "coach" | "editor" | "viewer" | "secops";
 
 export interface RoleAccess {
     role: UserRole | null;
@@ -33,20 +33,37 @@ export function useRoleAccess(reportId: string): RoleAccess {
             }
 
             try {
+                const rid = String(reportId ?? "").trim();
+                if (!rid) {
+                    setRole("viewer");
+                    return;
+                }
                 // reports/{reportId}/roles/{uid}에서 역할 확인
                 const { db } = await import("@/lib/firebase");
-                const roleRef = doc(db, "reports", reportId, "roles", user.uid);
+                const roleRef = doc(db, "reports", rid, "roles", user.uid);
                 const roleSnap = await getDoc(roleRef);
 
                 if (roleSnap.exists()) {
                     const roleData = roleSnap.data();
                     setRole(roleData.role || "viewer");
                 } else {
-                    // 기본값: viewer
                     setRole("viewer");
                 }
-            } catch (error) {
-                console.error("역할 로드 실패:", error);
+            } catch (error: unknown) {
+                const code =
+                    error && typeof error === "object" && "code" in error
+                        ? String((error as { code?: string }).code)
+                        : "";
+                if (code === "permission-denied" || code === "missing-or-insufficient-permissions") {
+                    if (import.meta.env.DEV) {
+                        console.debug(
+                            "[useRoleAccess] reports 역할 문서 읽기 거부(경로·Rules 확인):",
+                            { reportId, code }
+                        );
+                    }
+                } else {
+                    console.error("역할 로드 실패:", error);
+                }
                 setRole("viewer");
             } finally {
                 setLoading(false);

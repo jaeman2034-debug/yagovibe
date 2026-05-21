@@ -1,0 +1,644 @@
+/* =========================================================
+   YAGO SPORTS Trade Page 전용 CSS (천재 모드)
+   =========================================================
+   
+   핵심 원칙:
+   - .trade-page 스코프로만 작동
+   - 전역 .market-grid 절대 건드리지 않음
+   - 계정/캐시/로드순서 상관없이 동일하게 작동
+   ========================================================= */
+
+/* ===== 레이아웃 축 고정 (가장 중요) ===== */
+.trade-page.layout-root {
+  width: 100% !important;
+  max-width: 980px !important;
+  margin: 0 auto !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+}
+
+/* ===== (A) RecommendedSection — 가로 스크롤 유지 ===== */
+/* RecommendedSection 컨테이너 (절대 위치/100vw 제거) */
+.recommended-container {
+  width: 100% !important;
+  position: relative !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 인기 섹션 블록 레이아웃 고정 (높이 확보) */
+.trade-page .recommended-section,
+.recommended-section {
+  display: block !important;
+  width: 100% !important;
+  margin-bottom: 12px !important;
+}
+
+.trade-page .recommended-section .section-title {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #111 !important;
+  margin-bottom: 8px !important;
+  padding: 0 4px !important;
+}
+
+/* 내부 스크롤 컨테이너 */
+.trade-page .recommended-scroll,
+.recommended-scroll,
+.recommended-list {
+  display: flex !important;
+  gap: 12px !important;
+  overflow-x: auto !important;
+  padding-bottom: 6px !important;
+  width: 100% !important;
+  scroll-snap-type: x mandatory !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+  /* 스크롤바 숨김 (크로스브라우저) */
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE/Edge */
+  /* 🔥 overflow 제한으로 레이아웃 밀림 방지 */
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  /* 🔥 기본값: left 정렬 (중앙정렬 금지) */
+  justify-content: flex-start !important;
+}
+
+.trade-page .recommended-scroll::-webkit-scrollbar,
+.recommended-scroll::-webkit-scrollbar,
+.recommended-list::-webkit-scrollbar {
+  display: none !important; /* Chrome/Safari */
+}
+
+.trade-page .recommended-card,
+.recommended-card {
+  min-width: 120px !important; /* 🔥 핵심: 카드 폭 고정 */
+  flex-shrink: 0 !important; /* shrink 방지 */
+  box-sizing: border-box !important;
+}
+
+/* 모바일: 인기 카드 폭 고정 강화 */
+@media (max-width: 767px) {
+  .trade-page .recommended-card {
+    flex: 0 0 140px !important; /* 모바일에서도 폭 고정 */
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+  }
+
+  /* 🔥 모바일: 가로 스크롤 left 정렬 강제 (중앙정렬 절대 금지) */
+  .trade-page .recommended-scroll,
+  .recommended-scroll,
+  .recommended-list {
+    justify-content: flex-start !important;
+  }
+}
+
+/* recommended-card 내부 ProductCard도 width 제한 */
+.trade-page .recommended-card.trade-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* 추천 영역이 절대 그리드로 변하지 않도록 보장 */
+.trade-page .recommended-list,
+.trade-page .recommended-card {
+  display: flex !important;
+  flex-direction: row !important;
+  grid-template-columns: none !important;
+  grid: none !important;
+}
+
+/* ===== (B) 메인 리스트 — 모바일: 당근형 (1열 세로 리스트) / PC: 그리드 ===== */
+/* 기본: grid 레이아웃 */
+.trade-page .market-grid.trade-list,
+.trade-page .trade-list.market-grid,
+.trade-page .trade-list {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  gap: 16px !important;
+}
+
+/* 모바일: flex column (당근형) */
+@media (max-width: 767px) {
+  .trade-page .market-grid.trade-list,
+  .trade-page .trade-list.market-grid,
+  .trade-page .trade-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 0 12px !important; /* 모바일 패딩 */
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    grid: none !important;
+  }
+}
+
+/* 태블릿/PC: grid 레이아웃 (서비스급 UI) */
+@media (min-width: 768px) {
+  .trade-page .market-grid.trade-list,
+  .trade-page .trade-list.market-grid,
+  .trade-page .trade-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; /* 카드 크기 조정 */
+    gap: 16px !important; /* 간격 조정 */
+    padding: 0 !important; /* 데스크탑은 패딩 제거 (부모에서 처리) */
+    flex-direction: unset !important;
+  }
+}
+
+/* ===== (C) 카드 레이아웃 — 모바일: 당근형 / PC: 그리드 카드 ===== */
+/* 모바일: 가로형 카드 (당근형) */
+@media (max-width: 640px) {
+  .trade-page .trade-card,
+  .product-card,
+  .trade-card {
+    display: flex !important;
+    flex-direction: column !important; /* 🔥 모바일에서 column 강제 */
+    gap: 14px !important;
+    padding: 12px !important;
+    border-radius: 16px !important;
+    background: white !important;
+    border: 1px solid #eee !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+    cursor: pointer !important;
+  }
+}
+
+/* 태블릿/PC: 카드 전체 구조 안정화 */
+@media (min-width: 768px) {
+  /* 🔥 바로 잡는 "안 깨지는 보호 CSS" - 어떤 CSS가 와도 카드 구조 안 깨짐 */
+  .trade-page .trade-card {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 12px !important; /* 카드 내부 패딩 */
+    border-radius: 18px !important;
+    background: white !important;
+    border: 1px solid #eee !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    align-items: stretch !important;
+    transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+    cursor: pointer !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+  }
+
+  .trade-page .trade-card img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+}
+
+/* 🔥 당근형 카드 완성 인터랙션: 살짝 떠오르는 효과 */
+.trade-page .trade-card:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(-2px) !important;
+}
+
+.trade-page .trade-card:active {
+  background-color: #f9f9f9 !important;
+  transform: scale(0.98) !important;
+}
+
+/* 클릭 가능한 서비스 느낌 */
+.trade-page .trade-card.clickable {
+  cursor: pointer !important;
+}
+
+/* 모바일: 90x90px 이미지 (당근형) */
+@media (max-width: 767px) {
+  .trade-page .trade-card {
+    display: flex !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+
+  .trade-page .trade-card-image {
+    width: 90px !important;
+    height: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+    border-radius: 12px !important;
+    background: #f3f4f6 !important;
+  }
+
+  .trade-page .trade-card-image img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* 태블릿/PC: 그리드 카드 정사각형 이미지 만들기 */
+@media (min-width: 768px) {
+  .trade-page .trade-card-image {
+    width: 100% !important;
+    aspect-ratio: 1 / 1 !important; /* 🔥 핵심: 정사각형 */
+    overflow: hidden !important;
+    border-radius: 14px !important;
+    background: #f3f4f6 !important;
+    flex-shrink: 0 !important; /* 이미지 영역이 줄어들지 않도록 */
+  }
+
+  .trade-page .trade-card-image img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+}
+
+/* ProductCard 이미지 정사각형 처리 (공통) */
+.trade-page .trade-card-image img,
+.trade-page .product-thumb {
+  width: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  object-fit: cover !important;
+  border-radius: 14px !important;
+}
+
+/* 모바일: 카드 본문 (당근형) */
+@media (max-width: 767px) {
+  .trade-page .trade-card-body,
+  .trade-page .product-info.trade-card-body {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+    padding: 0 !important;
+    margin-left: 12px !important;
+  }
+}
+
+/* 모바일: 카드 본문 (당근형) */
+@media (max-width: 767px) {
+  .trade-page .trade-card-body,
+  .trade-page .product-info.trade-card-body {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+    padding: 0 !important;
+    margin-left: 12px !important;
+  }
+}
+
+/* 태블릿/PC: 카드 텍스트 좌측 정렬 고정 */
+@media (min-width: 768px) {
+  .trade-page .trade-card-body,
+  .trade-page .product-info.trade-card-body {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important; /* 🔥 핵심: 좌측 정렬 */
+    text-align: left !important; /* 🔥 핵심: 텍스트 왼쪽 정렬 */
+    gap: 4px !important;
+    margin-top: 10px !important; /* 이미지와 텍스트 사이 여백 */
+    padding: 0 !important; /* 카드 padding에서 처리 */
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+}
+
+/* 카드 내부 텍스트 정렬 정리 (당근 느낌) */
+.trade-page .trade-card-body > *:first-child,
+.trade-page .trade-card-body .product-title,
+.trade-page .trade-card-body .trade-title {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.trade-page .trade-card-body > *:nth-child(2),
+.trade-page .trade-card-body .product-price,
+.trade-page .trade-card-body .trade-price {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 제목 — 모바일 */
+@media (max-width: 767px) {
+  .trade-page .trade-card .product-title,
+  .trade-page .trade-card .trade-title {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #111 !important;
+    line-height: 1.3 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* 제목 — 태블릿/PC (서비스급 UI) */
+@media (min-width: 768px) {
+  .trade-page .trade-card .product-title,
+  .trade-page .trade-card .trade-title {
+    font-size: 16px !important; /* 텍스트 크기 조정 */
+    font-weight: 600 !important;
+    color: #111 !important;
+    line-height: 1.4 !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    text-overflow: ellipsis !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 2.8em !important;
+  }
+}
+
+/* 가격 — 모바일 */
+@media (max-width: 767px) {
+  .trade-page .trade-card .product-price,
+  .trade-page .trade-card .trade-price {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: #2563eb !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* 가격 — 태블릿/PC (서비스급 UI) */
+@media (min-width: 768px) {
+  .trade-page .trade-card .product-price,
+  .trade-page .trade-card .trade-price {
+    font-size: 17px !important; /* 텍스트 크기 조정 */
+    font-weight: 800 !important;
+    color: #2563eb !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* 위치/거리 (거래 서비스 느낌 강화) */
+.trade-page .trade-card .product-location-group,
+.trade-page .trade-card .trade-meta {
+  font-size: 12px !important;
+  color: #6b7280 !important; /* 더 명확한 회색 */
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important; /* flex 제거, block으로 변경 */
+  font-weight: 400 !important;
+}
+
+/* 위치 정보 텍스트 (flex 제거, block으로 변경) */
+.trade-page .product-location {
+  display: block !important;
+  font-size: 12px !important;
+  color: #6b7280 !important;
+  line-height: 1.4 !important;
+}
+
+.trade-page .product-location .location-text,
+.trade-page .product-location .location-separator,
+.trade-page .product-location .distance-text {
+  display: inline !important;
+  font-size: 12px !important;
+  color: #6b7280 !important;
+}
+
+.trade-page .product-location-empty {
+  display: block !important;
+  font-size: 12px !important;
+  color: #9ca3af !important;
+}
+
+/* 거래 상태 표시 (중고 서비스 핵심 정보) */
+.trade-page .trade-status {
+  font-size: 12px !important;
+  color: #16a34a !important; /* 초록색: 거래 가능 */
+  font-weight: 600 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.trade-page .trade-status.sold {
+  color: #dc2626 !important; /* 빨간색: 판매 완료 */
+}
+
+.trade-page .trade-status.reserved {
+  color: #f59e0b !important; /* 주황색: 예약 중 */
+}
+
+/* ===== 뱃지 스타일 (당근 감성) ===== */
+.trade-page .trade-badge-row {
+  display: flex !important;
+  gap: 6px !important;
+  margin-bottom: 4px !important;
+  flex-wrap: wrap !important;
+}
+
+.trade-page .badge {
+  font-size: 11px !important;
+  padding: 2px 6px !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
+}
+
+.trade-page .badge-ai {
+  background: #EEF3FF !important;
+  color: #4A6BFF !important;
+}
+
+.trade-page .badge-hot {
+  background: #FFF1E6 !important;
+  color: #FF7A00 !important;
+}
+
+.trade-page .badge-new {
+  background: #F0FDF4 !important;
+  color: #16A34A !important;
+}
+
+/* 추천 뱃지, AI 한줄 요약, 추천 태그 숨김 (메인 리스트에서) */
+.trade-page .market-grid.trade-list .inline-flex.items-center.rounded-full,
+.trade-page .market-grid.trade-list .text-xs.text-gray-600,
+.trade-page .market-grid.trade-list .recommend-tag-container {
+  display: none !important;
+}
+
+/* ===== (D) 태블릿/PC: 당근형 세로 리스트 유지 (grid 사용 안 함) ===== */
+/* 🔥 핵심: 모든 화면 크기에서 당근형 세로 리스트 유지 */
+/* 중고거래 UI는 "리스트 기반 서비스", 그리드는 쇼핑몰 UX */
+/* 태블릿/PC 그리드 레이아웃은 위의 @media (min-width: 768px)에서 처리됨 */
+
+/* ===== 컨테이너 폭 재정렬 (서비스급 UI) ===== */
+/* 🔥 PC에서도 콘텐츠 중앙 정렬, 서비스 느낌 강화 */
+.trade-page {
+  width: 100% !important;
+  max-width: 1100px !important; /* PC에서 적절한 폭 유지 */
+  margin: 0 auto !important;
+  padding: 0 20px !important; /* 좌우 여백 동일 */
+  box-sizing: border-box !important;
+}
+
+.trade-page *[class*="max-w"] {
+  max-width: 100% !important;
+}
+
+.trade-page .mx-auto {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* ===== 상품 등록 FAB (Floating Action Button) ===== */
+.trade-page .add-product-fab {
+  position: fixed !important;
+  right: 16px !important;
+  bottom: 90px !important; /* 네비게이션 위 */
+  width: auto !important; /* 🔥 핵심: 절대 커지지 않게 */
+  min-width: auto !important; /* 최소 폭 제거 */
+  max-width: none !important; /* 최대 폭 제거 */
+  padding: 12px 18px !important;
+  border-radius: 999px !important; /* 완전히 둥근 버튼 */
+  background: #3b82f6 !important; /* 파란색 */
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important; /* 그림자 강화 */
+  z-index: 40 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  white-space: nowrap !important;
+}
+
+.trade-page .add-product-fab:hover {
+  background: #2563eb !important; /* hover 시 더 진한 파란색 */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22) !important;
+  transform: translateY(-2px) !important; /* 살짝 위로 */
+}
+
+.trade-page .add-product-fab:active {
+  transform: scale(0.95) !important; /* 클릭 시 축소 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 모바일: FAB 위치 조정 */
+@media (max-width: 767px) {
+  .trade-page .add-product-fab {
+    right: 16px !important;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; /* nav 위 + safe-area */
+    padding: 12px 18px !important;
+    font-size: 14px !important;
+    width: auto !important; /* 모바일에서도 크기 고정 */
+    min-width: auto !important;
+    max-width: none !important;
+  }
+}
+
+/* ===== skeleton / placeholder 높이 맞추기 ===== */
+.trade-page .trade-card .placeholder,
+.trade-page .trade-card .skeleton,
+.trade-page .trade-card [class*="skeleton"],
+.trade-page .trade-card [class*="placeholder"] {
+  height: 220px !important; /* 회색 박스 높이 맞추기 */
+  border-radius: 14px !important;
+  background: #f3f4f6 !important;
+}
+
+/* ===== 검색창 sticky (실전 UX) ===== */
+/* JSX에서 Tailwind 클래스 사용: sticky top-[64px] z-20 bg-white px-4 py-3 */
+.trade-page .trade-search {
+  /* Tailwind 클래스로 처리됨 */
+  border-bottom: 1px solid #eee !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ===== 검색바 정상화 (핵심) ===== */
+.trade-page .search-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.trade-page .search-row .flex-1 {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.trade-page .search-input {
+  width: 100% !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  padding: 0 14px !important;
+}
+
+.trade-page .search-input:focus {
+  outline: none !important;
+  border-color: #3b82f6 !important;
+  ring: 2px !important;
+  ring-color: #3b82f6 !important;
+}
+
+.trade-page .view-toggle-group {
+  display: flex !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important; /* 🔥 핵심: 버튼이 줄어들지 않게 */
+  width: auto !important; /* width 고정 제거 */
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .trade-page .search-row {
+    flex-direction: row !important;
+  }
+
+  .trade-page .view-toggle-group button {
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
+
+.trade-page .view-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: #f3f4f6 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.trade-page .view-btn:hover {
+  background: #e5e7eb !important;
+  color: #111 !important;
+}
+
+.trade-page .view-btn-active {
+  background: #3b82f6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+}

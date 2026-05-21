@@ -29,7 +29,7 @@ export const generateReportPdf = onCall(async (req) => {
 
   const pdf = new jsPDF();
   pdf.setFontSize(18);
-  pdf.text("🏆 YAGO VIBE AI 리포트", 20, 20);
+  pdf.text("🏆 YAGO SPORTS AI 리포트", 20, 20);
   pdf.setFontSize(12);
   pdf.text(`제목: ${report.name || "제목 없음"}`, 20, 35);
   pdf.text(`작성자: ${report.author || "익명"}`, 20, 45);

@@ -55,7 +55,7 @@ app.use((req, res, next) => {
 // ============================================
 app.get("/", (req, res) => {
   res.json({
-    message: "YAGO VIBE API Server",
+    message: "YAGO SPORTS API Server",
     version: "1.0.0",
     endpoints: [
       "/getProductSummary",

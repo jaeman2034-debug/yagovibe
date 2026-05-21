@@ -44,7 +44,8 @@ export interface MatchListCardProps {
 export function MatchListCard({ match, onOpenDetail }: MatchListCardProps) {
   const dt = toDate(match.date);
   const dday = ddayLabel(dt);
-  const locationLine = [match.region, match.stadium].filter(Boolean).join(" / ");
+  const matchRegion = match.matchRegion || match.region;
+  const locationLine = [matchRegion, match.stadium].filter(Boolean).join(" / ");
 
   const feeText =
     match.fee != null && match.fee > 0
@@ -95,7 +96,7 @@ export function MatchListCard({ match, onOpenDetail }: MatchListCardProps) {
           onOpenDetail();
         }}
       >
-        {isOpen ? "신청하기" : match.status === "matched" ? "상세 · 채팅" : "결과 보기"}
+        {isOpen ? "👉 바로 참여하기" : match.status === "matched" ? "상세 · 채팅" : "결과 보기"}
       </button>
     </article>
   );

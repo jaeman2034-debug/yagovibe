@@ -1,4 +1,4 @@
-export type MatchmakingMode = "5v5" | "8v8";
+export type MatchmakingMode = "1v1" | "5v5" | "8v8";
 
 export type MatchPlayerState = {
   uid: string;

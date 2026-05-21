@@ -2,7 +2,6 @@ import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { VitePWA } from "vite-plugin-pwa";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
@@ -69,147 +68,8 @@ if (!googleMapsApiKey) {
 }
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tsconfigPaths(),
-    VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: [
-        "favicon.ico",
-        "apple-touch-icon.png",
-        "pwa-192x192.png",
-        "pwa-512x512.png",
-      ],
-      manifest: {
-        name: "YAGO VIBE",
-        short_name: "YAGO VIBE",
-        description: "AI Sports Market & Map Platform",
-        theme_color: "#ffffff",
-        background_color: "#ffffff",
-        display: "standalone",
-        orientation: "portrait",
-        start_url: "/",
-        lang: "ko",
-        categories: ["shopping", "sports", "productivity"],
-        icons: [
-          {
-            src: "/pwa-192x192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "/pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-          {
-            src: "/pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable",
-          },
-        ],
-        shortcuts: [
-          {
-            name: "스포츠 마켓",
-            short_name: "마켓",
-            description: "스포츠 용품 스마트 마켓 열기",
-            url: "/app/market",
-            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" }],
-          },
-          {
-            name: "AI 지도",
-            short_name: "지도",
-            description: "AI 기반 스포츠 시설 지도 열기",
-            url: "/voice-map",
-            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" }],
-          },
-          {
-            name: "AI 리포트",
-            short_name: "리포트",
-            description: "AI 자동 리포트 대시보드 열기",
-            url: "/app/admin/reports",
-            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" }],
-          },
-        ],
-      },
-      workbox: {
-        navigateFallback: "/index.html",
-        runtimeCaching: [
-          // API (Firebase Functions 등) → 항상 네트워크 우선
-          {
-            urlPattern: ({ url }) => url.origin.includes("cloudfunctions.net"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              networkTimeoutSeconds: 10,
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          // Firebase Storage 다운로드 (GET만) → 캐시 우선
-          // 🔥 업로드 요청 (POST/PUT/PATCH)은 절대 캐싱하지 않음
-          {
-            urlPattern: ({ url, request }) => {
-              // Firebase Storage이고 GET 요청만 캐싱
-              if (url.origin.includes("firebasestorage.googleapis.com")) {
-                // 업로드 관련 경로나 POST/PUT/PATCH 요청은 제외
-                if (
-                  request.method !== "GET" ||
-                  url.pathname.includes("upload") ||
-                  url.searchParams.has("uploadType")
-                ) {
-                  return false; // 캐싱하지 않음
-                }
-                return true; // GET 요청만 캐싱
-              }
-              return false;
-            },
-            handler: "CacheFirst",
-            options: {
-              cacheName: "image-cache",
-              expiration: {
-                maxEntries: 60,
-                maxAgeSeconds: 7 * 24 * 60 * 60, // 7일
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          // 구글 지도 JS/CSS → 캐시 우선 + 만료
-          {
-            urlPattern: ({ url }) =>
-              url.origin.includes("maps.googleapis.com") ||
-              url.origin.includes("maps.gstatic.com"),
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-maps-cache",
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 7 * 24 * 60 * 60,
-              },
-            },
-          },
-          // 앱 JS/CSS 정적 리소스
-          {
-            urlPattern: ({ request }) =>
-              request.destination === "script" ||
-              request.destination === "style" ||
-              request.destination === "font",
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "static-resources",
-            },
-          },
-        ],
-      },
-      devOptions: {
-        enabled: false, // 🔥 Service Worker 강제 비활성화 (업로드 문제 해결)
-      },
-    }),
-  ],
+  // vite-plugin-pwa(VitePWA) 비활성화 — 빌드 시 SW/workbox 주입 없음. manifest는 public/manifest.json 사용.
+  plugins: [react(), tsconfigPaths()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
@@ -233,10 +93,10 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    strictPort: true,
+    // 5173 점유 시(이전 dev 프로세스 등) 다음 포트로 기동 — 고정 clientPort는 포트 불일치로 HMR 깨짐 유발
+    strictPort: false,
     hmr: {
       overlay: false,
-      clientPort: 5173,
     },
     // 🔥 SPA 라우팅을 위한 historyApiFallback 설정
     // 모든 경로를 index.html로 리다이렉트하여 React Router가 처리하도록 함

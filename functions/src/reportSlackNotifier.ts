@@ -43,7 +43,7 @@ export const notifySlack = onDocumentCreated(
 
       // 리포트 제목 및 작성자
       const reportTitle = report.title || `주간 AI 리포트 - ${dateStr}`;
-      const reportAuthor = report.author || "YAGO VIBE AI";
+      const reportAuthor = report.author || "YAGO SPORTS AI";
 
       // 요약 텍스트
       const summaryText = report.summary || "요약 정보가 없습니다.";
@@ -146,7 +146,7 @@ export const notifySlackOnReport = onDocumentWritten("reports/{reportId}", async
     const audioUrl = afterData.audioUrl;
 
     const textLines = [
-      "📢 *YAGO VIBE AI 리포트 업데이트*",
+      "📢 *YAGO SPORTS AI 리포트 업데이트*",
       "",
       `🧾 *상품명*: ${name}`,
       `🧠 *AI 요약*: ${summary}`,

@@ -1,0 +1,124 @@
+---
+alwaysApply: true
+description: YAGO VIBE 플랫폼 북극성·2D 우선·데이터 모델·페이즈 — 아바타/게임/3D 확장 시 필수 (명시 변경 전까지 고정)
+---
+
+# YAGO VIBE — Platform Architecture Directive (LOCKED)
+
+제품 아키텍처 결정이다. **명시적으로 변경하지 않는 한** 플랫폼 방향으로 취급한다.
+
+## 1. Platform vision (north star)
+
+YAGO는 **단순 팀 관리 SaaS가 아니다**.
+
+장기 방향: **스포츠 소셜·게임화 플랫폼** — 팀 생성 → 초대 → 가입 → **아바타 정체성** → 참여/활동 → XP → 미니게임 → 소셜 경쟁 → (미래) 3D 스타디움 월드.
+
+**지금은 최종 3D 메타버스 아키텍처를 구축하지 않는다.** 실행 경로: **2D 웹 우선**, 3D는 이후 확장 레이어.
+
+## 2. Current stack (고정)
+
+유지: **React + Vite + Firebase + Firestore + Functions**.
+
+이 단계에서 **도입하지 않는다**:
+
+- Unity
+- Babylon 전역 월드 클라이언트
+- 앱 전역 Three.js 리라이트
+- 커스텀 실시간 게임 엔진
+
+이유: **플랫폼 기반**(퍼널·멤버십·아바타·이벤트)을 먼저 완성한다.
+
+## 3. Core philosophy
+
+**플랫폼 우선.** 팀 관리 앱에 게임 기능을 임의로 붙이는 모델이 아니다.
+
+- **정체성(identity) > 팀** — 사용자가 1차 엔티티, 팀은 참여 레이어.
+
+## 4. Data model principles
+
+**Auth `uid`가 루트 정체성 키다.** 별도 아바타 전용 ID로 `uid`와 분리하지 않는다.
+
+권장 루트 경로 패턴:
+
+- `users/{uid}` — 표시명, 연락, 알림 설정, 멤버십 참조 등
+- `avatars/{uid}` — 외형·성장·스탯(Phase 2)
+- `wallets/{uid}` — 경제(필요 시)
+- `presence/{uid}` — (미래) RTDB 등
+
+**팀 SoT는 깨지 않는다 (canonical):**
+
+- `teams/{teamId}`
+- `teams/{teamId}/members/{uid}`
+
+게임/쿼리 편의용 **파생·인덱스**만 허용:
+
+- `users/{uid}/teamMemberships/{teamId}` 또는 `teamMemberships/{membershipId}`
+
+이들은 **derived/index** — **canonical 멤버십은 항상 `teams/.../members`.**
+
+## 5. Membership strategy (필수)
+
+**실참여자는 모두 YAGO 플랫폼 사용자여야 한다.** 영구 아키텍처로 “가짜 섀도 멤버”에 의존하지 않는다.
+
+**권장 퍼널:** 회장 초대 링크 → 친구 클릭 → **야고 가입/로그인** → 가입 요청/승인 → 플랫폼 멤버 → (Phase 2) 아바타 온보딩.
+
+운영진·임원도 **결국 플랫폼 계정**으로 수렴하는 것이 목표.
+
+## 6. Phase 2 — Avatar foundation (다음 구현 타깃)
+
+`avatars/{uid}` 도입. 예시 축:
+
+- `schemaVersion`, `uid`, `createdAt`, `updatedAt`
+- `appearance`: bodyType, hair, face, skinTone, outfit, shoes, accessories
+- `progression`: level, xp, stamina
+- `stats`: shooting, passing, dribbling, defense, speed
+
+`users/{uid}`는 프로필·연락·알림 등 **계정/소셜 계약** 유지.
+
+## 7. XP / game events (moat)
+
+**실제 활동이 게임 성장에 연결**되어야 한다.
+
+파이프라인 모델: **팀/플랫폼 활동 이벤트 → Cloud Function → XP 부여 → `avatars` progression 갱신.**
+
+향후 소스 예: RSVP 참석, 경기 참여, 활동 업로드, 초대 성공, 스트릭, 미니게임 승리 등.
+
+## 8. UI strategy
+
+현재 UI는 **2D 웹 유지** — 공개 팀 페이지, 팀 허브, 회장 인사, 운영 도구, 초대, 멤버십 퍼널, 아바타 온보딩은 모두 React 웹. **전 제품을 게임 UI 중심으로 재설계하지 않는다.**
+
+## 9. Future 3D strategy
+
+3D는 **연기(deferred)**. 허용되는 미래 형태:
+
+- 메인 플랫폼(2D 웹) + **3D 게임 클라이언트 레이어** (예: `/play`, `/stadium`)
+- 공유 백엔드: Firebase Auth, Firestore, Functions, (미래) RTDB presence
+
+3D는 **확장 레이어**이지 현 제품의 **전면 리라이트**가 아니다.
+
+## 10. Implementation priority (순서)
+
+1. **Phase 1** — 팀 플랫폼 퍼널 완성: 초대 링크, 가입 요청, 승인, 멤버십 정규화, 운영자 등록 정리  
+2. **Phase 2** — 아바타 기반: 스키마, 온보딩, XP 기반, 배지  
+3. **Phase 3** — 소셜: presence, 친구 그래프, 알림, 활동 피드  
+4. **Phase 4** — 2D 미니게임 먼저 (예: PK 슛아웃 → 드리블 등)  
+5. **Phase 5** — 매치메이킹 (5v5, 8v8, 큐)  
+6. **Phase 6** — 3D 확장 (로비, 월드, 팀 소셜 공간)
+
+## 11. Engineering rule
+
+구현 결정 시 **단기 꼼수보다 플랫폼 확장성**을 선택한다. 아래를 **막는** 아키텍처는 피한다:
+
+- 아바타 성장
+- 소셜 그래프
+- 게임 확장
+- 팀 정체성 이식성(portability)
+
+## 12. 관련 기존 규칙
+
+- 멤버십·SoT·초대 퍼널 상세: `yago-vibe-membership-team-os.mdc`
+- 공개 팀 허브·AI 운영 MVP: `yago-product-direction.mdc`
+
+---
+
+**FINAL LOCK:** YAGO는 **먼저 2D 스포츠 소셜 플랫폼**을 쌓고, **이후 3D 몰입 확장**을 한다. 위 결정은 **명시적 변경 전까지 고정**이다.

@@ -47,7 +47,7 @@ export const predictEventTrends = onSchedule(
 
             // 3️⃣ Slack 메시지 작성 (Windows에서 그래프 스킵)
             const message = {
-                text: `🤖 *YAGO VIBE AI 이벤트 예측 리포트*\n\n${aiSummary}\n\n📊 최근 트렌드: 회원 ${members[0]}명, 경기 ${matches[0]}건`,
+                text: `🤖 *YAGO SPORTS AI 이벤트 예측 리포트*\n\n${aiSummary}\n\n📊 최근 트렌드: 회원 ${members[0]}명, 경기 ${matches[0]}건`,
             };
 
             // 4️⃣ Slack 전송

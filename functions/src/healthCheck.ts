@@ -43,7 +43,7 @@ export const vibeHealthCheck = onSchedule(
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            text: `🚨 *YAGO VIBE HealthCheck 경고!*\n\n오류: ${err}\n시간: ${new Date().toISOString()}`,
+                            text: `🚨 *YAGO SPORTS HealthCheck 경고!*\n\n오류: ${err}\n시간: ${new Date().toISOString()}`,
                         }),
                     });
                 } catch (slackErr) {

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Map MVP</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #map {
+      flex: 1;
+      width: 100%;
+    }
+
+    #voiceBtn {
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 500;
+      background: #000;
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+
+    #voiceBtn:hover {
+      background: #333;
+    }
+
+    #voiceBtn:active {
+      background: #555;
+    }
+
+    #voiceBtn.listening {
+      background: #2563eb;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    #resultCard {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 400px;
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+    }
+
+    #resultCard h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #111;
+    }
+
+    #resultCard p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    #resultCard button {
+      width: 100%;
+      padding: 12px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    #resultCard button:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="voiceBtn">🎙️ 말로 장소 찾기</div>
+  <div id="resultCard" style="display: none;"></div>
+
+  <!-- Google Maps API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAP_KEY&callback=initMap" async defer></script>
+  <script src="./app.js"></script>
+</body>
+</html>

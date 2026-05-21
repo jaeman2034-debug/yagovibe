@@ -59,7 +59,7 @@ export const generateWeeklyReportJob = onSchedule(
       const writeStream = fs.createWriteStream(filePath);
       doc.pipe(writeStream);
 
-      doc.fontSize(20).text("📊 YAGO VIBE AI 리포트", { align: "center" });
+      doc.fontSize(20).text("📊 YAGO SPORTS AI 리포트", { align: "center" });
       doc.moveDown();
       doc.fontSize(12).text(`📅 생성일: ${new Date().toLocaleString()}`);
       doc.moveDown();

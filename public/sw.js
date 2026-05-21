@@ -3,7 +3,7 @@
  * Edge Acceleration & Offline-First
  */
 
-const VERSION = 'v67-1';
+const VERSION = 'v67-3';
 const RUNTIME_HTML = /\.(html|htm)$/i;
 
 /**
@@ -70,6 +70,12 @@ self.addEventListener('fetch', (e) => {
         if (e.request.method !== 'GET' || url.pathname.includes('upload') || url.searchParams.has('uploadType')) {
             return; // Service Worker가 가로채지 않음 → 직접 네트워크로 전달
         }
+    }
+
+    // 🔥 주소창으로 `/models/*.glb` 등을 열 때 mode가 `navigate`라서 아래 HTML SWR에 걸리면
+    // index.html이 캐시·반환되어 React 404처럼 보일 수 있음 → 바이너리·모델은 SW 비통과
+    if (url.pathname.match(/\.(glb|gltf|bin|hdr|ktx2|wasm)$/i)) {
+        return;
     }
     
     // HTML: Stale-While-Revalidate
@@ -171,12 +177,12 @@ self.addEventListener('push', (e) => {
     
     const options = {
         body: data.body || '새 알림이 있습니다.',
-        icon: '/icon-192x192.png',
-        badge: '/icon-96x96.png',
+        icon: '/icons/icon-maskable-512.png',
+        badge: '/icons/icon-maskable-512.png',
         data: data.url || '/',
     };
     
-    e.waitUntil(self.registration.showNotification(data.title || 'YAGO VIBE', options));
+    e.waitUntil(self.registration.showNotification(data.title || 'YAGO SPORTS', options));
 });
 
 /**

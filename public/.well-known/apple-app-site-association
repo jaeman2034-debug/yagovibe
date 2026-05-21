@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.com.yagovibe.app",
+        "paths": [
+          "/qr*",
+          "/q/*",
+          "/app/map*",
+          "/market*",
+          "/item/*",
+          "/chat/*",
+          "/seller/*"
+        ]
+      }
+    ]
+  }
+}

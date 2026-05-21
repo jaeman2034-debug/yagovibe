@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#e5e7eb"/>
+  <g fill="none" stroke="#111827" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="14" d="M96 200c32-48 64-48 96 0s64 48 96 0 64-48 96 0 64 48 96 0"/>
+  </g>
+  <text
+    x="256"
+    y="340"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, 'Segoe UI', Arial, sans-serif"
+    font-size="88"
+    font-weight="800"
+    fill="#111827"
+    letter-spacing="4"
+  >YAGO</text>
+</svg>

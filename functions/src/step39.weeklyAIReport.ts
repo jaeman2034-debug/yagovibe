@@ -75,7 +75,7 @@ export const generateWeeklySummary = onSchedule(
             }
 
             const prompt = `
-아래는 지난 주 YAGO VIBE 리포트 품질 통계입니다.
+아래는 지난 주 YAGO SPORTS 리포트 품질 통계입니다.
 
 전체 통계:
 - 총 리포트 수: ${totalReports}개
@@ -122,7 +122,7 @@ ${summaryText}
             const fontSize = 11;
 
             // 제목
-            page.drawText("YAGO VIBE 주간 품질 리포트", {
+            page.drawText("YAGO SPORTS 주간 품질 리포트", {
                 x: margin,
                 y: y,
                 size: 16,
@@ -220,7 +220,7 @@ ${summaryText}
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            text: `🧠 *YAGO VIBE 주간 AI 리포트*\n\n${aiReport}`,
+                            text: `🧠 *YAGO SPORTS 주간 AI 리포트*\n\n${aiReport}`,
                         }),
                     });
                     console.log("✅ Slack 발송 완료");
@@ -245,7 +245,7 @@ ${summaryText}
                     await transporter.sendMail({
                         from: MAIL_USER,
                         to: MAIL_TO,
-                        subject: "YAGO VIBE 주간 AI 품질 리포트",
+                        subject: "YAGO SPORTS 주간 AI 품질 리포트",
                         text: aiReport,
                         attachments: [
                             {

@@ -13,7 +13,7 @@ export async function sendSlackReport(message: string) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                text: `📢 YAGO VIBE AI 리포트\n\n${message}`
+                text: `📢 YAGO SPORTS AI 리포트\n\n${message}`
             }),
         });
         console.log("✅ Slack 전송 완료");
@@ -43,13 +43,13 @@ export const POST = async (request: Request) => {
         }
 
         const slackMessage = {
-            text: `🧠 *YAGO VIBE AI 인사이트 리포트*`,
+            text: `🧠 *YAGO SPORTS AI 인사이트 리포트*`,
             blocks: [
                 {
                     type: "header",
                     text: {
                         type: "plain_text",
-                        text: "🧠 YAGO VIBE AI 인사이트 리포트"
+                        text: "🧠 YAGO SPORTS AI 인사이트 리포트"
                     }
                 },
                 {
@@ -78,7 +78,7 @@ export const POST = async (request: Request) => {
                     elements: [
                         {
                             type: "mrkdwn",
-                            text: `📅 ${new Date().toLocaleString('ko-KR')} | 🤖 YAGO VIBE AI System`
+                            text: `📅 ${new Date().toLocaleString('ko-KR')} | 🤖 YAGO SPORTS AI System`
                         }
                     ]
                 }

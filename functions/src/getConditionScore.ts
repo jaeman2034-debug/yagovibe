@@ -1,17 +1,12 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
-import OpenAI from "openai";
+import { getOpenAIClient } from "./lib/openaiClient";
 
 // Firebase Admin 초기화
 if (!getApps().length) {
   initializeApp();
 }
-
-// OpenAI 클라이언트
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
 
 /**
  * AI 상품 상태 점수 계산
@@ -42,6 +37,7 @@ export const getConditionScore = onRequest(
     }
 
     try {
+      const openai = getOpenAIClient();
       const { description, imageUrl, category, tags } = req.body;
 
       if (!description && !imageUrl) {

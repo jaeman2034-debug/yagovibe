@@ -1,0 +1,128 @@
+/* 🔥 야고 채팅 레이아웃 전용 CSS - 아이폰/안드로이드 완벽 대응 */
+
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --input-height: 68px; /* 입력창 높이 (패딩 포함) */
+}
+
+/* 🔥 앱 컨테이너 - 100dvh 사용 (키보드 대응) */
+.chat-app-container {
+  height: 100dvh; /* 🔥 핵심: 100vh → 100dvh (아이폰 키보드 대응) */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: #fafafa;
+}
+
+/* 🔥 채팅 콘텐츠 영역 */
+.chat-content-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* 🔥 flex 오버플로우 방지 */
+  padding: 16px 12px;
+  padding-bottom: calc(100px + var(--safe-bottom)); /* 입력창 높이 + safe-area */
+  -webkit-overflow-scrolling: touch; /* 🔥 iOS 부드러운 스크롤 */
+}
+
+/* 🔥 입력 영역 - fixed + safe-area 대응 */
+.chat-input-area {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  padding: 12px;
+  padding-bottom: calc(12px + var(--safe-bottom)); /* 🔥 safe-area 대응 */
+  
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+  
+  z-index: 10;
+  
+  /* 🔥 오버플로우 방지 */
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 🔥 입력창 - flex 오버플로우 방지 */
+.chat-input-field {
+  flex: 1;
+  min-width: 0; /* 🔥 핵심: flex 오버플로우 방지 */
+  max-width: 100%;
+  height: 44px;
+  border-radius: 22px;
+  border: 1px solid #e5e7eb;
+  padding: 0 16px;
+  outline: none;
+  font-size: 15px;
+  background: #f9fafb;
+  box-sizing: border-box;
+}
+
+/* 🔥 보내기 버튼 - 절대 줄어들지 않음 */
+.chat-send-button {
+  flex-shrink: 0; /* 🔥 핵심: 절대 줄어들지 않음 */
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-sizing: border-box;
+}
+
+.chat-send-button:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+}
+
+/* 🔥 아이콘 버튼 - 절대 줄어들지 않음 */
+.chat-icon-button {
+  flex-shrink: 0;
+  min-width: 36px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+/* 🔥 [추가 보강 2] 삼성 인터넷 + iOS Safari 전용 방어 */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari + 삼성 인터넷 + 구형 안드로이드 보험 */
+  .chat-app-container {
+    height: -webkit-fill-available; /* iOS Safari fallback */
+  }
+  
+  .chat-content-area {
+    padding-bottom: calc(100px + var(--safe-bottom) + 20px); /* iOS 키보드 여유 공간 */
+  }
+}
+
+/* 🔥 [추가 보강 3] 키보드 열릴 때 버튼 가림 1% 케이스 방어 */
+.chat-input-area {
+  padding-bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)));
+}

@@ -27,7 +27,7 @@ export const selfLearningGovernance = onSchedule(
 
         // 2️⃣ AI 정책 학습 요청
         const prompt = `
-    아래는 최근 YAGO VIBE 운영 데이터입니다.
+    아래는 최근 YAGO SPORTS 운영 데이터입니다.
     이 데이터를 분석해서 다음 정책 파라미터를 조정해줘:
     
     Alerts (최근 30개): ${JSON.stringify(alerts.length > 0 ? alerts : "데이터 없음")}

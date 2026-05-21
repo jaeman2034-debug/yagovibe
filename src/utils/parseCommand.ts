@@ -14,7 +14,7 @@ export function parseCommand(text: string): VoiceCommand {
   
   // ✅ 지도 페이지 이동 명령 추가
   if (/(지도\s*페이지?|지도\s*검색|음성\s*지도|맵\s*페이지?)/.test(t)) {
-    return { type: "navigate", target: "/voice-map" };
+    return { type: "navigate", target: "/market/map" };
   }
 
   // 지도 검색 명령

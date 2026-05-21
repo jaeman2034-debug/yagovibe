@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/logo/YagoVibeLogo.svg";
+import Logo from "@/components/common/Logo";
 import { signInAnonymously } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useState } from "react";
@@ -19,7 +19,7 @@ export default function StartScreen() {
       const userCred = await signInAnonymously(auth);
       console.log("✅ 게스트 로그인 성공:", userCred.user.uid);
       
-      navigate("/sports-hub");
+      navigate("/hub");
     } catch (error) {
       console.error("❌ 게스트 로그인 실패:", error);
       alert("게스트 로그인에 실패했습니다. 다시 시도해주세요.");
@@ -36,18 +36,18 @@ export default function StartScreen() {
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
       {/* 로고 */}
-      <motion.img
-        src={logo}
-        alt="YAGO VIBE Logo"
-        className="w-24 h-24 mb-4 drop-shadow-md"
+      <motion.div
+        className="mb-4"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ duration: 0.8, type: "spring", stiffness: 120 }}
-      />
+      >
+        <Logo size={96} alt="YAGO SPORTS Logo" className="drop-shadow-md mx-auto" />
+      </motion.div>
 
       {/* 제목 */}
       <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
-        YAGO VIBE SPORTS
+        YAGO SPORTS
       </h1>
       <p className="text-gray-500 text-sm max-w-xs">
         AI 기반 스포츠 커뮤니티 플랫폼<br />

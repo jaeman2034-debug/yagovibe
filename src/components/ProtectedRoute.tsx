@@ -1,7 +1,9 @@
 // src/components/ProtectedRoute.tsx
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthProvider";
 import { auth } from "@/lib/firebase";
+import { usePostAuthBootstrapGate } from "@/hooks/usePostAuthBootstrapGate";
+import { AuthBootSplash } from "@/components/auth/AuthBootSplash";
 
 interface ProtectedRouteProps {
   children: JSX.Element;
@@ -13,22 +15,29 @@ interface ProtectedRouteProps {
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
-  /** Context 갱신이 한 틱 늦을 때 잘못 /login 으로 튕기는 것 방지 */
-  const sessionUser = user ?? auth.currentUser;
-
-  if (loading && !sessionUser) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">로딩 중...</p>
-        </div>
-      </div>
-    );
+  const location = useLocation();
+  const waiting = usePostAuthBootstrapGate(loading);
+  /** Auth 초기화 끝나기 전에는 절대 !user로 /login 보내지 않음 */
+  if (waiting) {
+    return <AuthBootSplash />;
   }
 
+  console.log("[ProtectedRoute]", {
+    loading,
+    waiting,
+    user: !!user,
+    userUid: user?.uid ?? null,
+    currentUser: !!auth.currentUser,
+    currentUid: auth.currentUser?.uid ?? null,
+    pathname: location.pathname,
+  });
+
+  const sessionUser = user ?? auth.currentUser;
   if (!sessionUser) {
-    return <Navigate to="/login" replace />;
+    const from = `${location.pathname}${location.search}`;
+    const next =
+      from && from !== "/login" ? `?next=${encodeURIComponent(from)}` : "";
+    return <Navigate to={`/login${next}`} replace />;
   }
 
   return children;

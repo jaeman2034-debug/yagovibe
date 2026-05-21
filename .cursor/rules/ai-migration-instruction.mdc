@@ -1,0 +1,201 @@
+---
+description: AI OpenAI 호출 프론트→서버 마이그레이션 실전 지시문 (순차 실행용)
+globs: 
+alwaysApply: false
+---
+
+# 🚀 AI 구조 서버화 마이그레이션 지시문
+
+현재 프로젝트는 React + Firebase Functions 기반이며, OpenAI 호출 구조를 **프론트 → 서버**로 완전히 이전하는 마이그레이션 단계입니다.
+
+**이 지시문을 순서대로 정확히 수행하세요.**
+
+---
+
+## 🎯 목표
+
+- 프론트에서 OpenAI 직접 호출 **완전 제거**
+- 모든 AI 호출을 Firebase Functions (Callable)로 통합
+- 기존 기능 유지하면서 **점진적 마이그레이션**
+
+---
+
+## 1️⃣ Insights 기능 마이그레이션 (1순위)
+
+### 대상 파일
+
+- `src/pages/admin/InsightsPage.tsx`
+- `src/pages/admin/Insights.tsx`
+
+### ❌ 제거할 코드
+
+```ts
+// 제거
+fetch("https://api.openai.com/...")
+Authorization: Bearer ${VITE_OPENAI_API_KEY}
+new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
+fetch("/api/generateInsight", ...)
+```
+
+### ✅ 변경 방식
+
+```ts
+import { httpsCallable } from "firebase/functions";
+import { functions } from "@/lib/firebase";
+
+const generateInsightFn = httpsCallable<
+  { type: string; payload: { text?: string; [key: string]: unknown } },
+  { result: string }
+>(functions, "generateAI");
+
+const res = await generateInsightFn({
+  type: "insight",
+  payload: { text: inputText, ...logData },
+});
+const result = res.data.result;
+// JSON.parse(result) if insight expects JSON
+```
+
+### InsightsPage.tsx 상세
+
+- `aggregateLogs()` 로 수집한 `logs` 를 `payload` 에 전달
+- `generateAI` 의 `type: "insight"` 응답이 JSON 문자열이면 `JSON.parse(result)` 사용
+
+---
+
+## 2️⃣ Report 기능 마이그레이션 (2순위)
+
+### 대상 파일
+
+- `src/pages/admin/ReportsPage.tsx`
+- `src/pages/ReportsPage.tsx` (functionsOrigin 사용하는 부분)
+
+### ❌ 제거할 코드
+
+```ts
+fetch("/api/generateWeeklyReport", ...)
+fetch("/api/summarizeReport", ...)
+```
+
+### ✅ 변경 방식
+
+- **Callable 사용**: `generateAI` (type: "report") 또는 기존 `generateWeeklyReport` HTTP Function
+- `ReportsPage.tsx` (src/pages/ReportsPage.tsx): 이미 `fetch(functionsOrigin/generateWeeklyReport)` 사용 중 → `getApiBaseUrl()` 또는 `FUNCTIONS_BASE_URL` 사용하여 에뮬레이터 분기만 확보
+- `admin/ReportsPage.tsx`: `/api/generateWeeklyReport` → Callable 또는 `FUNCTIONS_BASE_URL/generateWeeklyReport` 로 교체
+
+### api/generateReport.ts
+
+- `generateWeeklyReport`, `generateDailyReport`, `generateAndShareReport` → 호출처를 Functions Callable로 이전 후, **호출되는 부분만** Callable 호출로 교체
+- 파일 자체는 마이그레이션 완료 후 삭제 또는 비활성화
+
+---
+
+## 3️⃣ Voice / NLU 구조 정리 (3순위)
+
+### 대상 파일
+
+- `src/pages/voice/VoiceMap.tsx`
+- `src/pages/voice/VoiceMapDashboard.tsx`
+- `src/services/NLUService_AI.ts`
+- `src/services/NLMService.ts`
+- `src/lib/openai.ts`
+- `src/core/ai-core.ts`
+
+### ❌ 제거할 코드
+
+```ts
+dangerouslyAllowBrowser: true
+new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
+fetch("https://api.openai.com/...", { headers: { Authorization: `Bearer ${key}` } })
+```
+
+### ✅ 변경 방식
+
+1. **generateAI Callable 확장**: `type: "nlu"` 또는 `type: "voice_analyze"` 추가
+2. 또는 **별도 Callable**: `analyzeCommand`, `generateVoiceResponse` 등
+3. 프론트에서는 `httpsCallable(functions, "generateAI")` 또는 해당 Callable만 호출
+
+---
+
+## 4️⃣ 공통 규칙
+
+### ❌ 금지
+
+- `VITE_OPENAI_API_KEY` 사용
+- `fetch("https://api.openai.com/...")`
+- `new OpenAI()` in frontend
+- `dangerouslyAllowBrowser: true`
+
+### ✅ 허용
+
+- `httpsCallable(functions, "generateAI")` 또는 기존 Callable
+- `FUNCTIONS_BASE_URL` / `getApiBaseUrl()` 기반 HTTP 호출 (Functions HTTP endpoints)
+- 모든 AI 요청은 **반드시** Functions로 전달
+
+---
+
+## 5️⃣ Functions 측 확장 (필요 시)
+
+### functions/src/generateAI.ts
+
+`type` 분기 추가:
+
+```ts
+case "nlu":
+  prompt = `사용자 음성 명령 분석. JSON 형식: { type, query, confidence }:\n${JSON.stringify(payload)}`;
+  break;
+case "voice_response":
+  prompt = `AI 음성 비서 응답:\n${payload.text}`;
+  break;
+```
+
+---
+
+## 6️⃣ 최종 정리 (마이그레이션 완료 후)
+
+1. **전역 검색**:
+   - `VITE_OPENAI_API_KEY` → 결과 0개
+   - `openai.com` (프론트 src) → 결과 0개
+   - `dangerouslyAllowBrowser` → 결과 0개
+
+2. **환경 변수**:
+   - `.env.local` 에서 `VITE_OPENAI_API_KEY` 제거
+   - `src/env.d.ts` 에서 `VITE_OPENAI_API_KEY` 타입 제거 (선택)
+
+3. **미사용 파일 정리**:
+   - `api/generateReport.ts`, `api/generateInsight.ts` 등 프론트 OpenAI 의존 코드 → 호출 제거 후 삭제 또는 비활성화
+
+---
+
+## 7️⃣ 유지할 것
+
+- `generateFederationHistory`, `generateFederationAIContent` 등 기존 Callable
+- `functions/src/lib/ai.ts` 의 `runAI` 유틸
+- `functions/src/lib/openaiClient.ts` 의 `getOpenAIClient`, `resolveOpenAIApiKey`
+
+---
+
+## 8️⃣ 결과 상태
+
+**최종 구조:**
+
+```
+React (프론트)
+  → Firebase Functions (Callable / HTTP)
+    → OpenAI
+```
+
+**프론트에서 OpenAI 직접 호출이 단 한 줄도 없어야 함.**
+
+---
+
+## 9️⃣ 실행 순서 요약
+
+1. InsightsPage, Insights.tsx → generateAI (insight) 로 교체
+2. ReportsPage, admin/ReportsPage → Callable 또는 FUNCTIONS_BASE_URL 사용
+3. VoiceMap, NLUService, lib/openai, ai-core → Callable로 교체
+4. 전역 검색으로 VITE_OPENAI_API_KEY, openai.com 제거
+5. .env.local, env.d.ts 정리
+6. `npm run build` (프론트) + `cd functions && npm run build` 검증
+
+각 단계 완료 후 **빌드 및 테스트** 수행.

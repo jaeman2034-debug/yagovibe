@@ -37,7 +37,7 @@ export const orchestrateAIModules = onSchedule(
         const summaryPrompt = `
     다음은 AI 모듈들의 실행 상태 로그입니다:
     ${JSON.stringify(status, null, 2)}
-    이번 주 YAGO VIBE 운영 상태를 한 문단으로 요약하고 개선 제안을 3가지로 작성해줘.
+    이번 주 YAGO SPORTS 운영 상태를 한 문단으로 요약하고 개선 제안을 3가지로 작성해줘.
     `;
 
         let summary = "AI 요약 생성 실패";
@@ -66,7 +66,7 @@ export const orchestrateAIModules = onSchedule(
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        text: `🎯 *YAGO VIBE Orchestrator Summary*\n\n${summary}`,
+                        text: `🎯 *YAGO SPORTS Orchestrator Summary*\n\n${summary}`,
                     }),
                 });
             } catch (err) {

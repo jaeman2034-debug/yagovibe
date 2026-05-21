@@ -37,7 +37,7 @@ export const onVoiceCommand = onDocumentCreated(
                         {
                             role: "system",
                             content:
-                                "당신은 YAGO VIBE 스포츠 어시스턴트입니다. 사용자의 음성 명령을 분석하고 간결하게 답변하세요.",
+                                "당신은 YAGO SPORTS 스포츠 어시스턴트입니다. 사용자의 음성 명령을 분석하고 간결하게 답변하세요.",
                         },
                         {
                             role: "user",

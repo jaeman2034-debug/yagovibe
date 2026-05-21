@@ -52,7 +52,7 @@ export default function HomeNew() {
       </div>
 
       {/* 🎚️ 음성 제어 UI */}
-      <div className="w-full max-w-md space-y-3 p-4 border rounded-xl bg-white shadow-sm">
+      <div className="w-full max-w-none md:max-w-3xl space-y-3 p-4 border rounded-xl bg-white shadow-sm">
         {/* 음성 선택 */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-600 mb-1">🎙️ 음성 선택</label>

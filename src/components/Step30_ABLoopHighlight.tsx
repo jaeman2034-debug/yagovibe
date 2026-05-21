@@ -176,7 +176,7 @@ export default function Step30_ABLoopHighlight({ reportId, routes = {} }: Step30
         const routeMap = {
             market: routes.market || "/app/market",
             team: routes.team || "/app/teams",
-            map: routes.map || "/voice-map"
+            map: routes.map || "/market/map"
         };
         const route = routeMap[type];
         navigate(`${route}?q=${encodeURIComponent(keyword)}`);

@@ -39,7 +39,7 @@ export const vibeReport = functions.https.onRequest(async (req, res) => {
         let message = "";
         if (openai) {
             try {
-                const prompt = `다음은 YAGO VIBE 스포츠 플랫폼의 현재 운영 지표입니다:
+                const prompt = `다음은 YAGO SPORTS 스포츠 플랫폼의 현재 운영 지표입니다:
 - 회원 수: ${users}명
 - 팀 수: ${teams}개
 - 이벤트 수: ${events}건
@@ -58,7 +58,7 @@ ${period === "thisweek" ? "이번 주" : "지난 주"} 리포트를 한국어로
                 console.error("⚠️ OpenAI 요약 실패:", aiError);
                 // AI 실패 시 기본 메시지 사용
                 message = `
-📊 *YAGO VIBE ${period === "thisweek" ? "이번 주" : "지난 주"} 리포트*
+📊 *YAGO SPORTS ${period === "thisweek" ? "이번 주" : "지난 주"} 리포트*
 • 회원 수: ${users}명
 • 팀 수: ${teams}개
 • 이벤트 수: ${events}건
@@ -67,7 +67,7 @@ ${period === "thisweek" ? "이번 주" : "지난 주"} 리포트를 한국어로
             }
         } else {
             message = `
-📊 *YAGO VIBE ${period === "thisweek" ? "이번 주" : "지난 주"} 리포트*
+📊 *YAGO SPORTS ${period === "thisweek" ? "이번 주" : "지난 주"} 리포트*
 • 회원 수: ${users}명
 • 팀 수: ${teams}개
 • 이벤트 수: ${events}건

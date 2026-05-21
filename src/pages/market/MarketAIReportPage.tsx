@@ -19,7 +19,7 @@ export default function MarketAIReportPage() {
 
     setLoading(true);
     setTimeout(() => {
-      setReport(`📊 YAGO VIBE AI 상품 분석 리포트
+      setReport(`📊 YAGO SPORTS AI 상품 분석 리포트
 
 
 상품명: ${query || "축구공"}

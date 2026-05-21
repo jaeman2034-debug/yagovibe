@@ -15,7 +15,7 @@ export const POST = async (request: Request) => {
         });
 
         const prompt = `
-다음은 YAGO VIBE 주간 활동 리포트입니다.
+다음은 YAGO SPORTS 주간 활동 리포트입니다.
 음성 브리핑용으로 3문장 이내의 자연스러운 한국어 요약문을 만들어주세요.
 
 요약 스타일:

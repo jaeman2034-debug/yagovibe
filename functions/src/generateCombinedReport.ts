@@ -3,7 +3,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 import * as fs from "fs";
 import * as path from "path";
 import { PDFDocument, rgb, StandardFonts, PDFPage } from "pdf-lib";
@@ -17,7 +17,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const storage = getStorage().bucket();
 
 /**
  * PDF에 텍스트를 그리는 헬퍼 함수
@@ -95,7 +94,7 @@ async function generateCombinedReportLogic(): Promise<{
     let cursor = 800;
 
     // 제목
-    page.drawText("📘 YAGO VIBE — AI 종합 리포트", {
+    page.drawText("📘 YAGO SPORTS — AI 종합 리포트", {
       x: 50,
       y: cursor,
       size: 20,
@@ -258,7 +257,7 @@ async function generateCombinedReportLogic(): Promise<{
     const dateStr = new Date().toISOString().slice(0, 10);
     const dest = `reports/combined_report_${dateStr}.pdf`;
 
-    await storage.upload(tempFile, {
+    await getDefaultStorageBucket().upload(tempFile, {
       destination: dest,
       contentType: "application/pdf",
       metadata: {
@@ -272,7 +271,7 @@ async function generateCombinedReportLogic(): Promise<{
 
     logger.info("✅ PDF 파일 Storage 업로드 완료:", dest);
 
-    const [pdfUrl] = await storage.file(dest).getSignedUrl({
+    const [pdfUrl] = await getDefaultStorageBucket().file(dest).getSignedUrl({
       action: "read",
       expires: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30일
     });
@@ -300,7 +299,7 @@ async function generateCombinedReportLogic(): Promise<{
     if (webhookUrl) {
       try {
         const message = {
-          text: `📘 *YAGO VIBE AI 종합 리포트*\n\n📅 ${currentDate}\n✅ PDF 생성 완료\n\n📊 통계:\n• 총 실행: ${stats?.total ?? "-"}회\n• 성공률: ${stats?.successRate ?? "-"}%\n• 오류: ${stats?.error ?? "-"}건`,
+          text: `📘 *YAGO SPORTS AI 종합 리포트*\n\n📅 ${currentDate}\n✅ PDF 생성 완료\n\n📊 통계:\n• 총 실행: ${stats?.total ?? "-"}회\n• 성공률: ${stats?.successRate ?? "-"}%\n• 오류: ${stats?.error ?? "-"}건`,
           attachments: [
             {
               color: "#36a64f",
@@ -312,7 +311,7 @@ async function generateCombinedReportLogic(): Promise<{
                   style: "primary",
                 },
               ],
-              footer: "YAGO VIBE AI 시스템",
+              footer: "YAGO SPORTS AI 시스템",
               ts: Math.floor(Date.now() / 1000),
             },
           ],
@@ -354,10 +353,10 @@ async function generateCombinedReportLogic(): Promise<{
         const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
 
         await transporter.sendMail({
-          from: `"YAGO VIBE AI" <${gmailUser || "noreply@yagovibe.com"}>`,
+          from: `"YAGO SPORTS AI" <${gmailUser || "noreply@yagovibe.com"}>`,
           to: managerEmail,
-          subject: `📘 YAGO VIBE AI 종합 리포트 - ${dateStr}`,
-          text: `YAGO VIBE AI 종합 리포트가 생성되었습니다.\n\n생성일: ${currentDate}\n\n통계:\n• 총 실행: ${stats?.total ?? "-"}회\n• 성공률: ${stats?.successRate ?? "-"}%\n• 평균 지연시간: ${stats?.avgDuration ?? "-"}ms\n• 오류: ${stats?.error ?? "-"}건\n\nPDF 다운로드: ${pdfUrl}`,
+          subject: `📘 YAGO SPORTS AI 종합 리포트 - ${dateStr}`,
+          text: `YAGO SPORTS AI 종합 리포트가 생성되었습니다.\n\n생성일: ${currentDate}\n\n통계:\n• 총 실행: ${stats?.total ?? "-"}회\n• 성공률: ${stats?.successRate ?? "-"}%\n• 평균 지연시간: ${stats?.avgDuration ?? "-"}ms\n• 오류: ${stats?.error ?? "-"}건\n\nPDF 다운로드: ${pdfUrl}`,
           html: `
 <!DOCTYPE html>
 <html>
@@ -374,7 +373,7 @@ async function generateCombinedReportLogic(): Promise<{
 </head>
 <body>
   <div class="header">
-    <h1>📘 YAGO VIBE AI 종합 리포트</h1>
+    <h1>📘 YAGO SPORTS AI 종합 리포트</h1>
     <p style="margin: 0; opacity: 0.9;">생성일: ${currentDate}</p>
   </div>
   
@@ -395,7 +394,7 @@ async function generateCombinedReportLogic(): Promise<{
   </div>
   
   <div class="footer">
-    <p>© 2025 YAGO VIBE · Powered by AI</p>
+    <p>© 2025 YAGO SPORTS · Powered by AI</p>
     <p>이 이메일은 자동으로 생성되었습니다.</p>
   </div>
 </body>

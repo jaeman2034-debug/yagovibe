@@ -1,7 +1,8 @@
 // src/pages/market/MarketPage.tsx
 
-import { useEffect, useMemo, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState, useRef, useCallback, startTransition } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { MapPinned } from "lucide-react";
 import { collection, getDocs, query, where, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ProductCard from "./ProductCard";
@@ -16,6 +17,12 @@ import { getAddressFromLatLng } from "@/utils/getAddressFromLatLng";
 import { formatDistance } from "@/utils/formatDistance";
 import { getDongFromLatLng } from "@/utils/getDongFromLatLng";
 import { useAuth } from "@/context/AuthProvider";
+import {
+  parseMapBoundsParam,
+  marketProductInMapBounds,
+  serializeMapBounds,
+} from "@/utils/mapBoundsQuery";
+import { trackMarketMap } from "@/lib/analytics";
 
 // 정렬 함수
 function sortProducts(
@@ -89,6 +96,7 @@ function sortProducts(
 
 export default function MarketPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [products, setProducts] = useState<MarketProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -590,7 +598,7 @@ export default function MarketPage() {
     }
   };
 
-  // 2) 주소 변환 (Kakao API)
+  // 2) 주소 변환 (Google Geocoding — getAddressFromLatLng)
   useEffect(() => {
     if (!products || products.length === 0) {
       setProductsWithAddress([]);
@@ -653,14 +661,65 @@ export default function MarketPage() {
     [productsWithAddress, sortMode, userLoc]
   );
 
+  const listMapBounds = useMemo(
+    () => parseMapBoundsParam(searchParams.get("bounds")),
+    [searchParams]
+  );
+
+  const displayProducts = useMemo(() => {
+    if (!listMapBounds) return sortedProducts;
+    return sortedProducts.filter((p) => marketProductInMapBounds(p, listMapBounds));
+  }, [sortedProducts, listMapBounds]);
+
+  const clearListMapBounds = () => {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete("bounds");
+        return n;
+      },
+      { replace: true }
+    );
+  };
+
+  const goToMapFromList = useCallback(() => {
+    void trackMarketMap.switchToMap({
+      has_bounds: listMapBounds != null,
+      from_view: searchParams.get("view") ?? undefined,
+    });
+    startTransition(() => {
+      const p = new URLSearchParams(searchParams);
+      p.delete("view");
+      if (listMapBounds) {
+        p.set("bounds", serializeMapBounds(listMapBounds));
+      } else {
+        p.delete("bounds");
+      }
+      navigate(`/market/map?${p.toString()}`);
+    });
+  }, [searchParams, navigate, listMapBounds]);
+
   return (
     <div className="w-full flex justify-center">
       <div className="w-full max-w-[900px] px-4 pb-24 pt-8">
       {/* 🔥 상품 등록 버튼 */}
-      <div className="flex justify-end mb-4">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
         <button
-          className="px-4 py-2 rounded-xl bg-blue-500 text-white font-medium shadow-sm active:scale-95 transition hover:bg-blue-600"
-          onClick={() => navigate("/app/market/create")}
+          type="button"
+          onClick={goToMapFromList}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm transition hover:bg-slate-50 active:scale-[0.98] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+        >
+          <MapPinned className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden />
+          지도에서 보기
+        </button>
+        <button
+          type="button"
+          className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-600 active:scale-95"
+          onClick={() =>
+            navigate("/sports/soccer/market/create?type=sale", {
+              state: { from: "market", sport: "soccer" },
+            })
+          }
         >
           + 상품 등록
         </button>
@@ -851,6 +910,24 @@ export default function MarketPage() {
         </div>
       )}
 
+      {listMapBounds && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-200 bg-blue-50/90 px-3 py-2.5 text-xs text-blue-900 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-100">
+          <div className="min-w-0 pr-1">
+            <p className="font-semibold text-blue-950 dark:text-blue-50">현재 지도와 같은 영역만 보여요</p>
+            <p className="mt-0.5 text-[11px] font-normal text-blue-800/90 dark:text-blue-200/90">
+              리스트는 전체 데이터에서 이 구역만 골라 보여 줍니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={clearListMapBounds}
+            className="shrink-0 rounded-lg border border-blue-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-800 hover:bg-blue-100 dark:border-blue-600 dark:bg-gray-900 dark:text-blue-200 dark:hover:bg-gray-800"
+          >
+            전체 지역 보기
+          </button>
+        </div>
+      )}
+
       {error && (
         <p className="mx-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
           {error}
@@ -864,11 +941,23 @@ export default function MarketPage() {
       ) : sortedProducts.length === 0 ? (
         <div className="mt-8 flex flex-col items-center gap-2 text-sm text-slate-500">
           <span>등록된 상품이 없습니다.</span>
-          <span>오른쪽 아래의 마이크 버튼으로 처음 상품을 등록해 보세요.</span>
+          <span>첫 상품은 거래 등록 화면에서 올릴 수 있어요.</span>
+        </div>
+      ) : displayProducts.length === 0 ? (
+        <div className="mt-8 flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600 dark:border-gray-700 dark:bg-gray-800/60 dark:text-slate-300">
+          <p className="font-medium text-slate-800 dark:text-slate-100">이 지역 안에는 표시할 상품이 없어요.</p>
+          <p className="text-xs">지도에서 보던 구역 기준이에요. 전체 목록으로 넓혀 볼까요?</p>
+          <button
+            type="button"
+            onClick={clearListMapBounds}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+          >
+            전체 지역 보기
+          </button>
         </div>
       ) : (
         <div className="product-grid mt-2">
-          {sortedProducts.map((product) => (
+          {displayProducts.map((product) => (
             <ProductCard
               key={product.id}
               product={product}

@@ -2,7 +2,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 import * as fs from "fs";
 import * as path from "path";
 import PDFDocument from "pdfkit";
@@ -16,7 +16,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const storage = getStorage().bucket();
 
 /**
  * Step 23: AI 주간 인사이트 PDF 자동 생성 및 Slack/이메일 공유
@@ -70,7 +69,7 @@ export const generateInsightPDF = onDocumentWritten(
       doc.pipe(writeStream);
 
       // 페이지 1: 제목 및 요약
-      doc.fontSize(24).font("Helvetica-Bold").text("YAGO VIBE AI 주간 인사이트 리포트", {
+      doc.fontSize(24).font("Helvetica-Bold").text("YAGO SPORTS AI 주간 인사이트 리포트", {
         align: "center",
       });
 
@@ -166,7 +165,7 @@ export const generateInsightPDF = onDocumentWritten(
 
       doc.moveDown(2);
       doc.fontSize(8).font("Helvetica").fillColor("#999999").text(
-        "© 2025 YAGO VIBE · Powered by AI",
+        "© 2025 YAGO SPORTS · Powered by AI",
         {
           align: "center",
         }
@@ -184,7 +183,7 @@ export const generateInsightPDF = onDocumentWritten(
 
       // Firebase Storage에 업로드
       const dest = `reports/insights/weekly_${Date.now()}.pdf`;
-      await storage.upload(pdfPath, {
+      await getDefaultStorageBucket().upload(pdfPath, {
         destination: dest,
         contentType: "application/pdf",
         metadata: {
@@ -199,7 +198,7 @@ export const generateInsightPDF = onDocumentWritten(
       logger.info("✅ PDF 파일 Storage 업로드 완료:", dest);
 
       // Signed URL 생성 (30일 유효)
-      const [pdfUrl] = await storage.file(dest).getSignedUrl({
+      const [pdfUrl] = await getDefaultStorageBucket().file(dest).getSignedUrl({
         action: "read",
         expires: Date.now() + 30 * 24 * 60 * 60 * 1000,
       });
@@ -271,7 +270,7 @@ export const generateInsightPDF = onDocumentWritten(
             ? parsedContent.trends.slice(0, 500)
             : after.content.slice(0, 500);
 
-          const emailSubject = `📄 YAGO VIBE AI 주간 인사이트 PDF 리포트 - ${generatedAt}`;
+          const emailSubject = `📄 YAGO SPORTS AI 주간 인사이트 PDF 리포트 - ${generatedAt}`;
 
           const emailHtml = `
 <!DOCTYPE html>
@@ -289,7 +288,7 @@ export const generateInsightPDF = onDocumentWritten(
 </head>
 <body>
   <div class="header">
-    <h1>📄 YAGO VIBE AI 주간 인사이트 PDF 리포트</h1>
+    <h1>📄 YAGO SPORTS AI 주간 인사이트 PDF 리포트</h1>
     <p style="margin: 0; opacity: 0.9;">생성일: ${generatedAt}</p>
   </div>
   
@@ -308,7 +307,7 @@ export const generateInsightPDF = onDocumentWritten(
   </div>
   
   <div class="footer">
-    <p>© 2025 YAGO VIBE · Powered by AI</p>
+    <p>© 2025 YAGO SPORTS · Powered by AI</p>
     <p>이 이메일은 자동으로 생성되었습니다.</p>
   </div>
 </body>
@@ -320,7 +319,7 @@ export const generateInsightPDF = onDocumentWritten(
             to: recipientEmail,
             subject: emailSubject,
             html: emailHtml,
-            text: `YAGO VIBE AI 주간 인사이트 PDF 리포트\n\n생성일: ${generatedAt}\n분석 리포트 수: ${reportCount || 0}개\n\nPDF 다운로드: ${pdfUrl}`,
+            text: `YAGO SPORTS AI 주간 인사이트 PDF 리포트\n\n생성일: ${generatedAt}\n분석 리포트 수: ${reportCount || 0}개\n\nPDF 다운로드: ${pdfUrl}`,
           });
 
           logger.info("✅ 이메일 PDF 알림 전송 완료");

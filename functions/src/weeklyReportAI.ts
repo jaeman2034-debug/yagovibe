@@ -14,7 +14,7 @@ export const generateWeeklyReportJob = onSchedule(
     timeZone: "Asia/Seoul",
   },
   async () => {
-    console.log("📊 [YAGO VIBE] 주간 리포트 생성 시작");
+    console.log("📊 [YAGO SPORTS] 주간 리포트 생성 시작");
 
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -37,7 +37,7 @@ export const generateWeeklyReportJob = onSchedule(
       ? reports[0].createdAt.toDate().toLocaleString("ko-KR")
       : "-";
 
-    const message = `📢 *YAGO VIBE 주간 리포트 요약*\n\n🗓️ 기간: ${periodText}\n\n📊 총 리포트 수: *${total}*\n✅ 확인 완료: *${read}*\n🕓 미확인: *${unread}*\n⏰ 최신 생성: ${latestDate}\n\n🔗 관리자 대시보드에서 자세히 보기`;
+    const message = `📢 *YAGO SPORTS 주간 리포트 요약*\n\n🗓️ 기간: ${periodText}\n\n📊 총 리포트 수: *${total}*\n✅ 확인 완료: *${read}*\n🕓 미확인: *${unread}*\n⏰ 최신 생성: ${latestDate}\n\n🔗 관리자 대시보드에서 자세히 보기`;
 
     if (!SLACK_WEBHOOK_URL) {
       console.warn("⚠️ SLACK_WEBHOOK_URL 환경 변수가 설정되지 않아 Slack 전송이 생략되었습니다.");

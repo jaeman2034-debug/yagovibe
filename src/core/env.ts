@@ -1,5 +1,5 @@
 // === CORE PROTECTED: DO NOT MODIFY BELOW ===
-// 🧠 YAGO VIBE Environment Configuration
+// 🧠 YAGO SPORTS Environment Configuration
 // 이 파일은 Cursor가 자동 수정하지 못하도록 보호됩니다.
 
 // ✅ Firebase 환경 변수 (보호됨)

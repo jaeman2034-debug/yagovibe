@@ -34,6 +34,47 @@ export function assertCanonicalPlayerWritePath(
 let lastReadLogKey = "";
 let lastReadLogAt = 0;
 
+let lastSmokeLogKey = "";
+let lastSmokeLogAt = 0;
+
+/**
+ * DEV: 5v5 인프라 스모크 — RTDB `players/*` 전체 uid 슬롯 (콘솔 필터 `5v5 SMOKE`)
+ * LiveMatchScene은 1v1이어도 슬롯 분리·write path 검증용.
+ */
+export function logRtdbPlayersSmoke(
+  sessionId: string,
+  authUid: string,
+  raw: Record<string, LivePlayerState | null | undefined> | null | undefined,
+): void {
+  if (!import.meta.env.DEV || !raw) return;
+
+  const slots = Object.entries(raw)
+    .filter(([k]) => Boolean(k))
+    .map(([uid, p]) => ({
+      uid: uid.slice(0, 8),
+      self: uid === authUid,
+      x: p && Number.isFinite(p.x) ? Math.round(p.x) : null,
+      y: p && Number.isFinite(p.y) ? Math.round(p.y) : null,
+      vx: p && Number.isFinite(p.vx) ? Math.round(p.vx ?? 0) : null,
+      vy: p && Number.isFinite(p.vy) ? Math.round(p.vy ?? 0) : null,
+    }));
+
+  const moving = slots.some((s) => Math.hypot(s.vx ?? 0, s.vy ?? 0) > 8);
+  const now = Date.now();
+  const key = slots.map((s) => `${s.uid}:${s.x}:${s.y}`).join("|");
+  if (!moving && slots.length < 2) return;
+  if (key === lastSmokeLogKey && now - lastSmokeLogAt < 450) return;
+  lastSmokeLogKey = key;
+  lastSmokeLogAt = now;
+
+  console.log("[5v5 SMOKE] RTDB players", {
+    session: sessionId.slice(0, 12),
+    auth: authUid.slice(0, 8),
+    rawKeyCount: Object.keys(raw).length,
+    slots,
+  });
+}
+
 /** DEV: onValue players — uid 슬롯별 좌표·이질 키 노출 */
 export function logRtdbPlayersRead(
   sessionId: string,

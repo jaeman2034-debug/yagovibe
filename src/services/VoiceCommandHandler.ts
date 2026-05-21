@@ -141,7 +141,7 @@ export class VoiceCommandHandler {
                     if (place.includes("홈")) {
                         this.options.onNavigation?.("/");
                     } else if (place.includes("지도")) {
-                        this.options.onNavigation?.("/voice-map");
+                        this.options.onNavigation?.("/market/map");
                     } else {
                         // 일반적인 페이지 이동
                         this.options.onNavigation?.("/");
@@ -159,7 +159,7 @@ export class VoiceCommandHandler {
 
             case "go_map":
                 this.speak("지도 페이지로 이동합니다.");
-                this.options.onNavigation?.("/voice-map");
+                this.options.onNavigation?.("/market/map");
                 break;
 
             case "search_place":

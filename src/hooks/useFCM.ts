@@ -1,8 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { app } from "@/lib/firebase";
+import { resolveFcmDeepLinkRoute } from "@/utils/fcmDeepLinkRoute";
 
 export const useFCM = () => {
+    const navigate = useNavigate();
+    const navigateRef = useRef(navigate);
+    navigateRef.current = navigate;
     const messaging = getMessaging(app);
     const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
@@ -31,10 +36,22 @@ export const useFCM = () => {
         onMessage(messaging, (payload) => {
             console.log("📨 포그라운드 메시지:", payload);
             const { title, body } = payload.notification ?? {};
-            new Notification(title ?? "새 알림", {
+            if (typeof Notification === "undefined" || Notification.permission !== "granted") {
+                return;
+            }
+            const tag =
+                (payload.data as Record<string, string> | undefined)?.messageId ?? "fcm-test";
+            const n = new Notification(title ?? "새 알림", {
                 body: body ?? "메시지가 도착했습니다.",
-                icon: "/icon-192x192.png",
+                icon: "/icons/icon-maskable-512.png",
+                tag,
             });
+            n.onclick = () => {
+                window.focus();
+                n.close();
+                const route = resolveFcmDeepLinkRoute(payload.data);
+                if (route) navigateRef.current(route);
+            };
         });
     };
 

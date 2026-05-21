@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    /* =====================
+       Helper Functions
+    ====================== */
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    /* =====================
+       💬 채팅 (Chats) - 거래 성사 가속
+       🔥 이 Rules만 복사해서 붙여넣기
+    ====================== */
+    
+    match /chats/{chatId} {
+      // 🔥 생성: buyerId 또는 sellerId가 현재 사용자면 생성 가능
+      allow create: if 
+        request.auth != null &&
+        (
+          request.auth.uid == request.resource.data.buyerId ||
+          request.auth.uid == request.resource.data.sellerId
+        );
+      
+      // 읽기/수정: 참여자만 가능 (participants 배열 체크)
+      allow read, update: if 
+        request.auth != null &&
+        (
+          request.auth.uid == resource.data.buyerId ||
+          request.auth.uid == resource.data.sellerId ||
+          request.auth.uid in resource.data.get('participants', [])
+        );
+      
+      // 삭제: 참여자만 가능
+      allow delete: if 
+        request.auth != null &&
+        (
+          request.auth.uid == resource.data.buyerId ||
+          request.auth.uid == resource.data.sellerId ||
+          request.auth.uid in resource.data.get('participants', [])
+        );
+      
+      // 메시지 서브컬렉션
+      match /messages/{messageId} {
+        // 읽기/쓰기: 채팅 참여자만 가능
+        allow read, write: if 
+          request.auth != null &&
+          (
+            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.buyerId ||
+            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.sellerId ||
+            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', [])
+          );
+      }
+    }
+  }
+}
+

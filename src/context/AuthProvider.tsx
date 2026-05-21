@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import type { User } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth, authPersistenceReady } from "../lib/firebase";
+import { attachDevAuthDebug } from "../lib/auth/authDevDebug";
 import { setSentryUser } from "../lib/sentry";
 import { useNavigate, useLocation } from "react-router-dom";
 import { registerPushNotifications } from "../lib/pushNotifications";
@@ -29,6 +30,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /** 경로 변경마다 onAuthStateChanged 구독을 끊지 않도록 ref로 최신 경로만 참조 */
   const pathnameRef = useRef(location.pathname);
   pathnameRef.current = location.pathname;
+  /** DEV: 새로고침 후 세션 복구 여부 확인용(토큰 갱신 스팸 방지) */
+  const lastLoggedUidRef = useRef<string | null | undefined>(undefined);
 
   // 🔥 로그아웃 함수
   const logout = async () => {
@@ -42,9 +45,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    let unsub: (() => void) | undefined;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        await authPersistenceReady;
+      } catch {
+        /* firebase.ts에서 로깅 */
+      }
+      if (cancelled) return;
+
+      attachDevAuthDebug(auth);
+
+      unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       setLoading(false);
+
+      if (import.meta.env.DEV) {
+        const uidNow = u?.uid ?? null;
+        if (lastLoggedUidRef.current !== uidNow) {
+          lastLoggedUidRef.current = uidNow;
+          console.log("[AuthProvider] auth UID 변경 (새로고침·로그인·로그아웃)", {
+            uid: uidNow,
+          });
+        }
+      }
 
       if (u) {
         // Sentry에 사용자 정보 설정 (에러 추적 시 사용자 컨텍스트 포함)
@@ -69,8 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           path.startsWith("/login");
         
         if (isAuthPage) {
-          console.log("✅ [AuthProvider] 로그인 상태 감지 - /sports-hub로 리다이렉트");
-          navigate("/sports-hub", { replace: true });
+          console.log("✅ [AuthProvider] 로그인 상태 감지 - /hub로 리다이렉트");
+          navigate("/hub", { replace: true });
         }
       } else {
         // 로그아웃 시 Sentry 사용자 정보 초기화
@@ -83,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // 🔥 자동 리다이렉트 규칙: 로그아웃 상태인데, 보호된 페이지에 있으면 → 로그인으로 보내기
         const path = pathnameRef.current;
-        const protectedPaths = ["/sports-hub", "/home", "/app", "/admin"];
+        const protectedPaths = ["/hub", "/sports-hub", "/home", "/app", "/admin"];
         const isProtected = protectedPaths.some((p) => path.startsWith(p));
 
         // /start 페이지는 예외 (게스트 모드 허용)
@@ -93,8 +119,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     });
-    
-    return () => unsub();
+    })();
+
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }, [navigate]);
 
   return (

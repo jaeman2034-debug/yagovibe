@@ -1,0 +1,145 @@
+---
+description: 팀 공개 홈(/teams/:id) 랜딩·모집·아카데미 확장·Join 플로우 설계 지시문 (team.type 기반)
+globs: src/pages/teams/**/*, src/services/team*.ts, src/pages/team/TeamHome.tsx, firestore.rules, functions/src/lib/teamLifecycleCallables.ts
+alwaysApply: false
+---
+
+# 팀 공개 홈페이지 + 아카데미 확장 (실행 지시문)
+
+## 목표
+
+`/teams/{teamId}`(구현: `src/pages/teams/TeamPage.tsx`)를 **단순 조회·탭 나열**이 아니라 **모집·가입 전환·운영 신뢰를 만드는 랜딩 페이지**로 확장한다.
+
+- **내부 운영 허브**: `/team/{teamId}` → `TeamHome` (멤버·채팅·일정·관리)
+- **외부 공개 홈**: `/teams/{teamId}` → 본 문서의 확장 대상
+
+아카데미는 **별도 제품이 아니라** 동일 `teams` 엔티티 위 **`type` 분기 확장**으로만 처리한다.
+
+---
+
+## [1] 기본 원칙
+
+- **Team 단일 엔티티** 유지: `teams/{teamId}` 하나만 SSOT.
+- **기능 분기**: `teams.type === "normal" | "academy"` (CF `createTeam` 및 기존 스키마와 정렬).
+- **홈페이지는 공통**: `/teams/{teamId}` 레이아웃 공통.
+- **academy 전용 블록**만 `type === "academy"` 일 때 노출.
+
+레거시 필드: `ownerUid` / `ownerUserId` 병행 가능 — **표시·권한 판별 시 둘 다 고려** (내부 페이지와 동일 패턴).
+
+---
+
+## [2] `/teams/{teamId}` 섹션 구성 (랜딩)
+
+1. **Hero**  
+   - 팀명, 지역(`region` 등 문서 필드), **모집 상태**(`teams/{teamId}/academy/meta.recruitOpen` 또는 팀 단위 `recruitOpen` 필드가 있으면 그것)  
+   - CTA: **「선수 신청하기」**, **「문의하기」**(문의는 mailto / 카카오 / 폼 중 제품 결정)
+
+2. **팀 소개**  
+   - `description`: academy면 `academy/meta.description` 우선, 없으면 팀 문서 설명 필드(도입 시 스키마 명시).
+
+3. **활동·신뢰**  
+   - 공개 가능한 `teams/{teamId}/activities` 일부 또는 요약 카드 (Rules·가시성 준수).  
+   - 경기/기록은 기존 `teamSummaryService` 등과 연동 유지.
+
+4. **훈련·운영 (academy만)**  
+   - `academy/meta`: `ageGroup`, `trainingLevel`, `mainCoachUserId`(또는 코치 표시용 denormalized 이름)  
+   - **normal** 팀은 이 섹션 숨김 → 경기/활동 중심 카피.
+
+5. **모집 강조**  
+   - `recruitOpen === true` 일 때 배지·색 대비.  
+   - 정원/현재 인원은 **데이터 있을 때만** (없으면 표시 안 함).
+
+6. **하단 CTA**  
+   - 「지금 참여하기」→ Join과 동일 딥링크  
+   - 「상담하기」→ 별도 채널
+
+---
+
+## [3] CTA → Join URL
+
+```text
+/join?teamId={teamId}
+```
+
+- 라우트·페이지·`ProtectedRoute` 여부는 구현 시 단일 정책으로 결정 (비로그인 시 `next` 보존 권장).
+
+---
+
+## [4] Join 플로우 (구현 시)
+
+`/join` (신규 또는 기존 초대 플로우 확장):
+
+1. 로그인 상태 확인 (`next`에 `/join?...` 유지).
+2. 역할 선택: **player** | **parent**.
+3. **Cloud Function만**으로 멤버십·PII 쓰기 (클라이언트에서 `members` / `playerProfiles` / `parentLinks` 직접 쓰기 금지 — Rules와 정렬).
+
+- **player**: `teams/{teamId}/members/{uid}` (`role: player`), `playerProfiles/{uid}` 등 기존 CF 패턴(`addPlayerToTeam` 등) 재사용·확장.
+- **parent**: `parentLinks` + 필요 시 `members`에 `role: parent` — 기존 `inviteParentAndLinkPlayer` 등과 충돌 없이 설계.
+
+---
+
+## [5] 데이터 경로 (유지·확장)
+
+공통:
+
+- `teams/{teamId}`
+- `teams/{teamId}/members/{uid}`
+- `teams/{teamId}/activities`
+
+academy·운영 확장:
+
+- `teams/{teamId}/academy/meta`
+- `teams/{teamId}/playerProfiles/{playerUserId}`
+- `teams/{teamId}/parentLinks/{...}`
+- 향후: `teams/{teamId}/fees/{feeId}` (지금 구현 X, 경로만 예약 가능)
+
+---
+
+## [6] UI 분기
+
+```ts
+const isAcademy = team?.type === "academy";
+```
+
+- `isAcademy`: 훈련 메타 섹션, 부모 CTA, 유소년 모집 카피, (향후) 회비 영역 placeholder.
+- `normal`: 경기·활동·클럽 모집 중심, 동일 상단/하단 CTA는 유지.
+
+---
+
+## [7] 절대 규칙
+
+- 아카데미를 **별도 최상위 도메인(예: 전용 앱만의 팀 엔티티)** 으로 쪼개지 않는다.  
+- **`teams.type` 기반 확장**만 허용.  
+- **권한 SoT**: `teams/{teamId}/members/{uid}` (및 플랫폼 정책).  
+- **부모–선수**: `parentLinks` 유지.
+
+---
+
+## [8] 향후 (이번 스프린트 비필수)
+
+- 회비(`fees`) + 결제 웹훅  
+- 팀 구독 `subscriptionPlan` / 기능 캡  
+- 모집 자동 전환, 신청 승인 대기열
+
+---
+
+## [9] 목표 UX 한 줄
+
+```text
+유입 → /teams/{teamId} → 정보·신뢰 → 선수 신청(/join) → CF로 멤버 등록 → /team/{teamId} 운영 허브
+```
+
+---
+
+## 구현 시 체크리스트
+
+- [ ] 공개 페이지에서 **비멤버도 읽을 수 있는 필드만** 노출 (Rules 재검토).  
+- [ ] CTA가 **존재하지 않는 라우트**로 가지 않도록 `/join` 라우트 추가 또는 임시 링크 처리.  
+- [ ] `TeamPage` 로딩·빈 상태·academy meta 없음 **세 가지** 분기 명확화.  
+- [ ] 내부 `/team/{id}`와 카피·용어 중복 최소화 (랜딩 vs 대시보드 역할 분리).
+
+---
+
+## 한 줄 요약
+
+**팀 공개 URL = 가입 전환 랜딩**이며, **일반·아카데미는 `team.type` 한 덩어리 위 확장**으로만 진행한다.

@@ -17,10 +17,10 @@ export async function generateVoiceReportPDF(
     margin: 40,
     size: 'A4',
     info: {
-      Title: `YAGO VIBE AI Daily Voice Report - ${date}`,
-      Author: 'YAGO VIBE AI System',
+      Title: `YAGO SPORTS AI Daily Voice Report - ${date}`,
+      Author: 'YAGO SPORTS AI System',
       Subject: 'Daily Voice Command Analysis Report',
-      Creator: 'YAGO VIBE AI System'
+      Creator: 'YAGO SPORTS AI System'
     }
   });
 
@@ -32,7 +32,7 @@ export async function generateVoiceReportPDF(
   doc
     .fontSize(28)
     .fillColor("#4F46E5")
-    .text("YAGO VIBE", { align: "center" });
+    .text("YAGO SPORTS", { align: "center" });
 
   doc
     .fontSize(18)
@@ -180,7 +180,7 @@ export async function generateVoiceReportPDF(
   doc
     .fontSize(10)
     .fillColor("#888")
-    .text("Generated automatically by YAGO VIBE AI System", {
+    .text("Generated automatically by YAGO SPORTS AI System", {
       align: "center",
     });
 

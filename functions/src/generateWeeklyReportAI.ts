@@ -3,9 +3,8 @@ import * as admin from "firebase-admin";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import PDFDocument from "pdfkit";
 import fetch from "node-fetch";
-import { OpenAI } from "openai";
+import { getOpenAIClient } from "./lib/openaiClient";
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -20,8 +19,6 @@ const OPENAI_KEY =
   process.env.openai_key ||
   "";
 
-const openai = new OpenAI({ apiKey: OPENAI_KEY });
-
 const SLACK_WEBHOOK_URL =
   process.env.SLACK_WEBHOOK_URL ||
   process.env.slack_webhook_url ||
@@ -33,12 +30,14 @@ export const generateWeeklyReportAI = onSchedule(
     timeZone: "Asia/Seoul",
   },
   async () => {
-    console.log("📊 [YAGO VIBE] AI 주간 리포트 생성 시작");
+    console.log("📊 [YAGO SPORTS] AI 주간 리포트 생성 시작");
 
     if (!OPENAI_KEY) {
       console.warn("⚠️ OPENAI API 키가 설정되지 않아 주간 AI 리포트를 생성할 수 없습니다.");
       return;
     }
+
+    const openai = getOpenAIClient();
 
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -65,7 +64,7 @@ export const generateWeeklyReportAI = onSchedule(
       })
       .join("\n");
 
-    const prompt = `다음은 지난 주 YAGO VIBE 활동 리포트입니다. 주요 인사이트를 한국어로 명확하게 요약해 주세요.\n\n${summaries}`;
+    const prompt = `다음은 지난 주 YAGO SPORTS 활동 리포트입니다. 주요 인사이트를 한국어로 명확하게 요약해 주세요.\n\n${summaries}`;
 
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -102,7 +101,7 @@ export const generateWeeklyReportAI = onSchedule(
       }
     });
 
-    const speechText = `이번 주 YAGO VIBE 주요 요약입니다. ${summaryText}`;
+    const speechText = `이번 주 YAGO SPORTS 주요 요약입니다. ${summaryText}`;
 
     const speechResponse = await openai.audio.speech.create({
       model: "gpt-4o-mini-tts",
@@ -152,7 +151,7 @@ export const generateWeeklyReportAI = onSchedule(
     }
 
     const slackMessage = {
-      text: `📢 *YAGO VIBE 주간 AI 리포트*\n\n🗓️ ${now.toLocaleDateString("ko-KR")}\n🗂️ 기간: ${periodText}\n📋 리포트 수: ${total}\n\n🧠 AI 요약:\n${summaryText}\n\n📄 PDF 다운로드: ${pdfUrl}\n🔊 음성 리포트: ${mp3Url}`,
+      text: `📢 *YAGO SPORTS 주간 AI 리포트*\n\n🗓️ ${now.toLocaleDateString("ko-KR")}\n🗂️ 기간: ${periodText}\n📋 리포트 수: ${total}\n\n🧠 AI 요약:\n${summaryText}\n\n📄 PDF 다운로드: ${pdfUrl}\n🔊 음성 리포트: ${mp3Url}`,
     };
 
     await fetch(SLACK_WEBHOOK_URL, {
@@ -162,7 +161,7 @@ export const generateWeeklyReportAI = onSchedule(
     });
 
     console.log("✅ Slack으로 주간 AI 리포트를 전송했습니다.");
-    console.log("🎯 [YAGO VIBE] 주간 AI 리포트 완성");
+    console.log("🎯 [YAGO SPORTS] 주간 AI 리포트 완성");
   },
 );
 
@@ -177,13 +176,14 @@ async function generatePdf({
   total: number;
   summaryText: string;
 }) {
+  const PDFDocument = (await import("pdfkit")).default;
   return new Promise<void>((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: "A4", margin: 50 });
       const stream = fs.createWriteStream(path);
       doc.pipe(stream);
 
-      doc.fontSize(20).text("📊 YAGO VIBE 주간 리포트", { align: "left" });
+      doc.fontSize(20).text("📊 YAGO SPORTS 주간 리포트", { align: "left" });
       doc.moveDown();
 
       doc.fontSize(12).text(`🗂️ 기간: ${periodText}`);

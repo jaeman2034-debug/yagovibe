@@ -3,7 +3,6 @@ import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
 // Firebase Admin 초기화는 lib/firebaseAdmin.ts에서 처리됨
 import { getOpenAIClient } from "./lib/openaiClient";
-import PDFDocument from "pdfkit";
 import * as fs from "fs";
 import * as path from "path";
 import { getStorage } from "firebase-admin/storage";
@@ -64,13 +63,14 @@ export const generatePredictiveInsights = onSchedule(
             logger.warn("⚠️ AI 예측 실패");
         }
 
-        // PDF 생성
+        // PDF 생성 (pdfkit은 핸들러 내부에서만 로드 — 배포 분석 타임아웃 방지)
+        const PDFDocument = (await import("pdfkit")).default;
         const pdfPath = path.join("/tmp", `predictive-${Date.now()}.pdf`);
         const doc = new PDFDocument();
         const writeStream = fs.createWriteStream(pdfPath);
         doc.pipe(writeStream);
 
-        doc.fontSize(20).text("🔮 YAGO VIBE Predictive Insight Report", { align: "center" });
+        doc.fontSize(20).text("🔮 YAGO SPORTS Predictive Insight Report", { align: "center" });
         doc.moveDown();
         doc.fontSize(12).text(parsed.globalSummary, { align: "left" });
         doc.moveDown();

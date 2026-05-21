@@ -100,7 +100,7 @@ export const publishInsight = onRequest(
                 // Slack
                 if (channels.slack && process.env.SLACK_WEBHOOK_URL) {
                     try {
-                        const slackMessage = `📣 [YAGO VIBE 인사이트 승인]\n\n` +
+                        const slackMessage = `📣 [YAGO SPORTS 인사이트 승인]\n\n` +
                             `팀: ${data.teamId}\n` +
                             `요약: ${data.summary?.substring(0, 200)}...\n` +
                             `결정: ✅ 승인됨 by ${reviewer?.name || "운영자"} (${now.toLocaleDateString("ko-KR")})\n` +
@@ -128,7 +128,7 @@ export const publishInsight = onRequest(
                             },
                         });
 
-                        const emailSubject = `[YAGO VIBE] 인사이트 승인됨 - ${data.teamId}`;
+                        const emailSubject = `[YAGO SPORTS] 인사이트 승인됨 - ${data.teamId}`;
                         const emailText = `인사이트 리포트가 승인되었습니다.\n\n` +
                             `팀: ${data.teamId}\n` +
                             `요약:\n${data.summary}\n\n` +

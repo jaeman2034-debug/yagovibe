@@ -4,6 +4,7 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { resolveLastSportId, sportMarketDetailUrl } from "@/utils/sportHubHref";
 import { Loader2, TrendingUp, TrendingDown } from "lucide-react";
 
 export default function ReviewHeatmapDashboard() {
@@ -242,7 +243,14 @@ export default function ReviewHeatmapDashboard() {
                       variant="outline"
                       size="sm"
                       className="w-full mt-2"
-                      onClick={() => navigate(`/app/market/${product.id}`)}
+                      onClick={() =>
+                        navigate(
+                          sportMarketDetailUrl(
+                            (product as { sport?: string }).sport || resolveLastSportId(),
+                            product.id
+                          )
+                        )
+                      }
                     >
                       상품 상세 페이지로 이동
                     </Button>

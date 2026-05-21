@@ -1,0 +1,93 @@
+/* src/styles/team-blog-tokens.css */
+/* 🎨 팀 블로그 디자인 토큰 (Figma 기준) */
+
+:root {
+  /* Color Tokens */
+  --color-primary: #1E7F43;
+  --color-primary-soft: #E6F3EC;
+  --color-text-primary: #111111;
+  --color-text-secondary: #555555;
+  --color-border: #E5E7EB;
+  --color-bg-section: #F9FAFB;
+  --color-success: #16A34A;
+  --color-white: #FFFFFF;
+
+  /* Typography Tokens */
+  --font-h1-size: 32px;
+  --font-h1-weight: 700;
+  --font-h1-letter-spacing: -0.02em;
+  --font-h2-size: 24px;
+  --font-h2-weight: 600;
+  --font-h3-size: 18px;
+  --font-h3-weight: 600;
+  --font-body-size: 15px;
+  --font-body-weight: 400;
+  --font-caption-size: 13px;
+  --font-caption-weight: 400;
+
+  /* Spacing Tokens */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 48px;
+
+  /* Border Radius Tokens */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-full: 999px;
+
+  /* Component Tokens */
+  --cta-height: 48px;
+  --cta-min-width: 160px;
+  --badge-height: 24px;
+  --badge-padding: 8px 6px;
+
+  /* Grid Tokens */
+  --grid-mobile-cols: 4;
+  --grid-mobile-margin: 16px;
+  --grid-mobile-gutter: 16px;
+  --grid-desktop-cols: 12;
+  --grid-desktop-margin: 80px;
+  --grid-desktop-gutter: 24px;
+}
+
+/* Breakpoints */
+@media (max-width: 767px) {
+  :root {
+    --container-padding: 16px;
+    --section-padding: 24px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  :root {
+    --container-padding: 24px;
+    --section-padding: 32px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --container-padding: 80px;
+    --section-padding: 48px;
+    --max-content-width: 1120px;
+  }
+}
+
+/* Toast 애니메이션 */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+

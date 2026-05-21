@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Swords } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useMatchmaking } from "@/hooks/useMatchmaking";
 import {
   gameSessionPath,
@@ -15,6 +16,12 @@ import {
   shouldSkipActiveSessionRedirect,
 } from "@/lib/play/liveSessionExit";
 import { isOtherTabQueueError } from "@/lib/play/matchmakingUi";
+import {
+  isNonRetryableMatchmakingJoinError,
+  matchmakingDeployHintForError,
+} from "@/lib/matchmaking/matchmakingJoinErrors";
+import { DevAuthUidBanner } from "@/components/auth/DevAuthUidBanner";
+import { playersRequiredForModeClient } from "@/lib/matchmaking/playersRequired";
 
 /**
  * 즉시 플레이 — 큐 자동 입장 · 준비 자동 표시 · 세션으로 이동
@@ -23,7 +30,7 @@ import { isOtherTabQueueError } from "@/lib/play/matchmakingUi";
 export default function QuickPlayPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const mm = useMatchmaking(user?.uid, "5v5");
+  const mm = useMatchmaking(user?.uid, "1v1");
   const joinStartedRef = useRef(false);
   const readySentRef = useRef(false);
   /** matchId당 stale 정리 1회만 (무한 「이전 매치 정리 중」 방지) */
@@ -45,7 +52,7 @@ export default function QuickPlayPage() {
     setStaleCleanupRunning(true);
     setFlowUi("stale_cleanup");
     setStaleCleanupError(null);
-    void clearStaleActiveMatchForRematch(id, "5v5")
+    void clearStaleActiveMatchForRematch(id, "1v1")
       .then((ok) => {
         if (!ok) {
           setStaleCleanupError(
@@ -123,6 +130,7 @@ export default function QuickPlayPage() {
     if (mm.queued) return;
     if (mm.loading) return;
     if (staleCleanupRunning) return;
+    if (mm.error && isNonRetryableMatchmakingJoinError(mm.error)) return;
     if (joinStartedRef.current) return;
     joinStartedRef.current = true;
     void mm.joinQueue().finally(() => {
@@ -137,6 +145,7 @@ export default function QuickPlayPage() {
     mm.queued,
     mm.loading,
     mm.joinQueue,
+    mm.error,
     activeMatch,
     staleCleanupRunning,
   ]);
@@ -174,9 +183,19 @@ export default function QuickPlayPage() {
 
   const inMatch = Boolean(activeMatch);
   const playerTotal = activeMatch ? Object.keys(activeMatch.players).length : 0;
-  const waitingAlone = mm.queued && mm.queueMetaCount < 2;
+  const requiredPlayers = playersRequiredForModeClient(mm.mode);
+  const waitingAlone = mm.queued && mm.queueMetaCount < requiredPlayers;
   const otherTabBlocked = isOtherTabQueueError(mm.error);
+  const joinBlocked = Boolean(mm.error && isNonRetryableMatchmakingJoinError(mm.error));
+  const deployHint = matchmakingDeployHintForError(mm.error);
   const cleaningStale = flowUi === "stale_cleanup" || staleCleanupRunning;
+  const showSpinner =
+    cleaningStale ||
+    flowUi === "goto_session" ||
+    inMatch ||
+    mm.loading ||
+    (mm.queued && !joinBlocked) ||
+    (!joinBlocked && !mm.error && Boolean(user?.uid));
   const statusLabel = !user
     ? "로그인이 필요합니다"
     : cleaningStale
@@ -224,13 +243,37 @@ export default function QuickPlayPage() {
             <Swords className="h-7 w-7 text-cyan-400" aria-hidden />
           </div>
           <h1 className="mt-4 text-xl font-black text-white">즉시 플레이</h1>
-          <p className="mt-2 text-sm text-slate-400">1v1 실시간 매치 · 자동 매칭</p>
+          <p className="mt-2 text-sm text-slate-400">
+            1v1 LIVE · 큐 <code className="text-cyan-400">1v1</code> 자동 입장 (플레이어 2명)
+          </p>
+
+          <div className="mt-4">
+            <DevAuthUidBanner context="quick-play" />
+          </div>
 
           <div className="mt-6 flex flex-col items-center gap-3">
-            <Loader2 className="h-10 w-10 animate-spin text-cyan-400" aria-hidden />
-            <p className="text-sm font-bold text-white" role="status">
+            {showSpinner ? (
+              <Loader2 className="h-10 w-10 animate-spin text-cyan-400" aria-hidden />
+            ) : (
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/15 text-rose-300"
+                aria-hidden
+              >
+                !
+              </div>
+            )}
+            <p
+              className={cn(
+                "text-sm font-bold",
+                joinBlocked ? "text-rose-200" : "text-white",
+              )}
+              role="status"
+            >
               {statusLabel}
             </p>
+            {deployHint ? (
+              <p className="max-w-xs text-center text-xs leading-relaxed text-amber-200/95">{deployHint}</p>
+            ) : null}
             {import.meta.env.DEV && user?.uid ? (
               <p className="font-mono text-[10px] text-slate-500">
                 uid: {user.uid.slice(0, 8)}…
@@ -239,10 +282,17 @@ export default function QuickPlayPage() {
               </p>
             ) : null}
             {waitingAlone ? (
-              <p className="max-w-xs text-center text-xs leading-relaxed text-amber-200/95">
-                1v1은 <strong className="font-bold">서로 다른 계정</strong> 2개가 큐에 있어야 합니다.
-                다른 쪽 브라우저에서도 즉시 플레이를 열어 주세요. (Chrome + Edge 권장)
-              </p>
+              <div className="max-w-xs space-y-2 text-center text-xs leading-relaxed text-amber-200/95">
+                <p>
+                  지금 큐 <strong className="text-white">{mm.queueMetaCount}명</strong> — 매칭하려면{" "}
+                  <strong className="text-white">최소 {requiredPlayers}명</strong> (다른 uid) 이 같은{" "}
+                  <strong className="text-white">{mm.mode}</strong> 큐에 있어야 합니다.
+                </p>
+                <p className="text-slate-400">
+                  상대 계정: <strong className="text-amber-100">/matchmaking</strong> 에서 「{mm.mode}{" "}
+                  큐 입장」 또는 <strong className="text-amber-100">/game</strong>(즉시 플레이)을 여세요.
+                </p>
+              </div>
             ) : null}
             {import.meta.env.DEV && user?.uid ? (
               <p className="max-w-xs text-center font-mono text-[10px] text-slate-500">

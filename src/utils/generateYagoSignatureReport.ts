@@ -17,10 +17,10 @@ export async function generateYagoSignatureReport(
         margin: 50,
         size: 'A4',
         info: {
-            Title: `YAGO VIBE AI Signature Report - ${date}`,
-            Author: 'YAGO VIBE AI System',
+            Title: `YAGO SPORTS AI Signature Report - ${date}`,
+            Author: 'YAGO SPORTS AI System',
             Subject: 'AI-Powered Voice Command Analysis Report',
-            Creator: 'YAGO VIBE AI System'
+            Creator: 'YAGO SPORTS AI System'
         }
     });
 
@@ -37,7 +37,7 @@ export async function generateYagoSignatureReport(
         .fillColor("white")
         .fontSize(28)
         .font("Helvetica-Bold")
-        .text("YAGO VIBE", 50, 25, { align: "left" });
+        .text("YAGO SPORTS", 50, 25, { align: "left" });
 
     doc
         .fontSize(16)
@@ -232,7 +232,7 @@ export async function generateYagoSignatureReport(
         .fillColor("white")
         .fontSize(10)
         .font("Helvetica")
-        .text("Generated automatically by YAGO VIBE AI System", 50, doc.page.height - 35);
+        .text("Generated automatically by YAGO SPORTS AI System", 50, doc.page.height - 35);
 
     doc
         .fontSize(8)

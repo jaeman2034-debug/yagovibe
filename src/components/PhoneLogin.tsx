@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { sendSMSCode, confirmSMSCode, cleanupRecaptcha } from "@/utils/authPhone";
 import { useAuth } from "@/context/AuthProvider";
+import { isValidKoreanPhone, normalizePhoneNumber } from "@/utils/phone";
 
 export default function PhoneLogin() {
   const [phone, setPhone] = useState("");
@@ -16,7 +17,7 @@ export default function PhoneLogin() {
   // 로그인된 상태면 홈으로 리디렉션
   useEffect(() => {
     if (user) {
-      navigate("/sports-hub");
+      navigate("/hub");
     }
   }, [user, navigate]);
 
@@ -33,15 +34,15 @@ export default function PhoneLogin() {
 
     try {
       // 전화번호 형식 검증
-      if (!phone) {
+      if (!phone.trim()) {
         throw new Error("전화번호를 입력해주세요.");
       }
 
-      if (!phone.startsWith("+")) {
-        throw new Error("전화번호는 국가 코드와 함께 입력해주세요 (예: +821012345678)");
+      if (!isValidKoreanPhone(phone)) {
+        throw new Error("휴대폰 번호를 올바르게 입력해주세요. (예: 01056890800)");
       }
 
-      const confirmation = await sendSMSCode(phone);
+      const confirmation = await sendSMSCode(normalizePhoneNumber(phone));
       console.log("✅ SMS 전송 성공:", confirmation);
       
       alert("인증번호가 전송되었습니다.");
@@ -69,7 +70,7 @@ export default function PhoneLogin() {
       alert("로그인 성공!");
       
       // 홈으로 이동
-      navigate("/sports-hub");
+      navigate("/hub");
     } catch (e: any) {
       console.error("❌ 인증번호 확인 실패:", e);
       setError(e.message || "인증번호가 올바르지 않습니다.");
@@ -87,9 +88,6 @@ export default function PhoneLogin() {
 
   return (
     <div style={{ width: "100%", maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
-      {/* reCAPTCHA Invisible Container */}
-      <div id="recaptcha-container"></div>
-
       {step === 1 && (
         <div className="flex flex-col gap-4">
           <h2 className="text-2xl font-bold text-center mb-4">📱 전화번호 로그인</h2>
@@ -100,10 +98,12 @@ export default function PhoneLogin() {
             </label>
             <input
               type="tel"
-              placeholder="+821012345678"
+              inputMode="tel"
+              autoComplete="tel-national"
+              placeholder="전화번호를 입력해주세요"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   requestSMS();
                 }
@@ -112,7 +112,7 @@ export default function PhoneLogin() {
               disabled={loading}
             />
             <p className="text-xs text-gray-500 mt-1">
-              국가 코드를 포함하여 입력해주세요 (예: +821012345678)
+              전송 시 자동으로 +82 형식으로 변환됩니다.
             </p>
           </div>
 
@@ -124,16 +124,18 @@ export default function PhoneLogin() {
 
           <button
             onClick={requestSMS}
-            disabled={loading || !phone}
+            disabled={loading || !isValidKoreanPhone(phone)}
             className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "전송 중..." : "인증번호 받기"}
           </button>
 
-          <div className="text-center text-sm text-gray-500 mt-4">
-            <p>테스트 번호: +821056890800</p>
-            <p>테스트 코드: 123456</p>
-          </div>
+          {import.meta.env.DEV && (
+            <div className="text-center text-sm text-gray-500 mt-4">
+              <p>[개발] 테스트 번호: 01056890800 → +821056890800</p>
+              <p>[개발] 테스트 코드: 123456</p>
+            </div>
+          )}
         </div>
       )}
 

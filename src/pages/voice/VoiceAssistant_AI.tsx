@@ -148,7 +148,7 @@ export default function VoiceAssistant_AI() {
                 {/* 헤더 */}
                 <YagoCard title="🎙️ 음성 리포트 어시스턴트" icon="🤖" gradient>
                     <div className="text-white/90 space-y-4">
-                        <p className="text-lg font-semibold">YAGO VIBE AI 음성 명령 시스템</p>
+                        <p className="text-lg font-semibold">YAGO SPORTS AI 음성 명령 시스템</p>
                         <p className="text-sm">자연스러운 음성 명령으로 주간 리포트를 요청하고 음성으로 들을 수 있습니다</p>
                     </div>
                 </YagoCard>

@@ -1,0 +1,177 @@
+---
+alwaysApply: false
+description: 홈 화면 구조 생성 가이드
+globs: **/home/**
+---
+
+# 🏠 홈 화면 구조 생성 가이드
+
+## 📊 핵심 원칙
+
+**게시판처럼 만들면 망한다. 반드시 "지금 경기 / 오늘 용병" 중심이어야 한다.**
+
+## 🎯 섹션 순서 (중요!)
+
+```
+1. 🔥 오늘 용병 (가장 위 - 사용률 1위)
+2. 🔥 오늘 경기 매칭
+3. 🔥 최신 팀원 모집
+4. 🔥 우리 지역 팀
+```
+
+## 📝 구현 패턴
+
+### 1. TodayGuestSection
+```typescript
+// src/components/home/TodayGuestSection.tsx
+import { useGuests } from "@/hooks/useGuests";
+
+export default function TodayGuestSection() {
+  const today = new Date();
+  const { guests, loading } = useGuests({
+    status: "open",
+    date: today,
+    limit: 5,
+  });
+
+  // UI: 시간, 지역, 포지션, 인원, 참가비, [지원하기] 버튼
+}
+```
+
+### 2. TodayMatchSection
+```typescript
+// src/components/home/TodayMatchSection.tsx
+import { useMatches } from "@/hooks/useMatches";
+
+export default function TodayMatchSection() {
+  const today = new Date();
+  const { matches, loading } = useMatches({
+    status: "open",
+    date: today,
+    limit: 5,
+  });
+
+  // UI: 팀명, 시간, 지역, 구장, 참가비, [신청하기] 버튼
+}
+```
+
+### 3. LatestRecruitSection
+```typescript
+// src/components/home/LatestRecruitSection.tsx
+import { useRecruits } from "@/hooks/useRecruits";
+
+export default function LatestRecruitSection() {
+  const { recruits, loading } = useRecruits({
+    status: "open",
+    limit: 5,
+  });
+
+  // 최근 3일 내 필터링
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const recentRecruits = recruits.filter(...);
+
+  // UI: 팀명, 포지션, 인원, 지역, 훈련 요일, [지원하기] 버튼
+}
+```
+
+### 4. LocalTeamsSection
+```typescript
+// src/components/home/LocalTeamsSection.tsx
+export default function LocalTeamsSection() {
+  const { user } = useAuth();
+  // user.region 기반 teams 조회
+
+  // UI: 팀명, 지역, 레벨, [가입하기] 버튼
+}
+```
+
+## 🔥 Firestore 쿼리 패턴
+
+### 오늘 용병
+```typescript
+guest_players
+where status == "open"
+where date == today
+orderBy time (asc)
+limit 5
+```
+
+### 오늘 경기
+```typescript
+matches
+where status == "open"
+where date == today
+orderBy time (asc)
+limit 5
+```
+
+### 최신 모집
+```typescript
+recruits
+where status == "open"
+where createdAt >= 3일 전
+orderBy createdAt (desc)
+limit 5
+```
+
+### 지역 팀
+```typescript
+teams
+where region == user.region
+orderBy createdAt (desc)
+limit 5
+```
+
+## 📍 HomePage 구조
+
+```typescript
+// src/pages/home/Home.tsx 또는 HomeHub.tsx
+import TodayGuestSection from "@/components/home/TodayGuestSection";
+import TodayMatchSection from "@/components/home/TodayMatchSection";
+import LatestRecruitSection from "@/components/home/LatestRecruitSection";
+import LocalTeamsSection from "@/components/home/LocalTeamsSection";
+
+export default function Home() {
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <TodayGuestSection />
+      <TodayMatchSection />
+      <LatestRecruitSection />
+      <LocalTeamsSection />
+    </div>
+  );
+}
+```
+
+## 🎨 UI 패턴
+
+### 카드 구조
+```typescript
+<div className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition cursor-pointer">
+  <div className="flex items-start justify-between gap-4">
+    <div className="flex-1">
+      {/* 아이콘 + 제목 */}
+      {/* 정보 (시간, 지역, 포지션 등) */}
+    </div>
+    <Button size="sm">지원하기</Button>
+  </div>
+</div>
+```
+
+### Empty State
+```typescript
+<div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
+  오늘 용병 모집이 없습니다.
+</div>
+```
+
+### 섹션 헤더
+```typescript
+<div className="flex items-center justify-between mb-4">
+  <h2 className="text-xl font-bold text-gray-900">🔥 오늘 용병</h2>
+  <Button variant="outline" size="sm" onClick={() => navigate("/guest")}>
+    전체 보기
+  </Button>
+</div>
+```

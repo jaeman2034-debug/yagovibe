@@ -81,7 +81,7 @@ export function PWAInstallPrompt() {
             <Smartphone className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-sm mb-1">YAGO VIBE를 설치하세요</h3>
+            <h3 className="font-semibold text-sm mb-1">YAGO SPORTS를 설치하세요</h3>
             <p className="text-xs text-indigo-100 mb-3">
               홈 화면에 추가하여 더 빠르고 편리하게 사용하세요.
             </p>

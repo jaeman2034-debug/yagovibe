@@ -96,7 +96,7 @@ export const generateTTSAndPDF = onDocumentUpdated(
 
                 // 헤더
                 pdf.setFontSize(18);
-                pdf.text("YAGO VIBE SPORTS — AI Weekly Report", 14, 18);
+                pdf.text("YAGO SPORTS — AI Weekly Report", 14, 18);
 
                 // 날짜/음성
                 pdf.setFontSize(11);

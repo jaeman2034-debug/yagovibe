@@ -2,9 +2,8 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { admin } from "./lib/firebaseAdmin";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
 import { getMessaging } from "firebase-admin/messaging";
-import jsPDF from "jspdf";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 import fetch from "node-fetch";
 // 🔥 Lazy import: chartjs-node-canvas는 함수 내부에서 동적 import
 // import { ChartJSNodeCanvas } from "chartjs-node-canvas";
@@ -16,7 +15,6 @@ import type { ChartConfiguration } from "chart.js";
 // }
 
 const db = getFirestore();
-const bucket = getStorage().bucket();
 const messaging = getMessaging();
 
 // 🔥 Chart.js 설정은 함수 내부에서 lazy initialization
@@ -313,7 +311,8 @@ export const generateInsightChartReport = onSchedule(
             const imageBuffer = await chartJSNodeCanvas.renderToBuffer(chartConfiguration);
             logger.info("✅ 차트 이미지 생성 완료");
 
-            // 5️⃣ 🧾 PDF 리포트 생성
+            // 5️⃣ 🧾 PDF 리포트 생성 (jspdf는 실행 시점에만 로드)
+            const { default: jsPDF } = await import("jspdf");
             const pdf = new jsPDF("p", "mm", "a4");
             const pdfWidth = 210;
             const margin = 20;
@@ -322,7 +321,7 @@ export const generateInsightChartReport = onSchedule(
             // 헤더
             pdf.setFont("helvetica", "bold");
             pdf.setFontSize(18);
-            pdf.text("📊 YAGO VIBE AI 인사이트 리포트", pdfWidth / 2, y, { align: "center" });
+            pdf.text("📊 YAGO SPORTS AI 인사이트 리포트", pdfWidth / 2, y, { align: "center" });
             y += 15;
 
             pdf.setFont("helvetica", "normal");
@@ -393,11 +392,11 @@ export const generateInsightChartReport = onSchedule(
                 y,
                 { align: "center" }
             );
-            pdf.text("© 2025 YAGO VIBE · Powered by AI", pdfWidth / 2, y + 5, { align: "center" });
+            pdf.text("© 2025 YAGO SPORTS · Powered by AI", pdfWidth / 2, y + 5, { align: "center" });
 
             // 6️⃣ PDF 파일 Storage 업로드
             const pdfPath = `chartReports/InsightReport_${latestMonth}.pdf`;
-            const pdfFile = bucket.file(pdfPath);
+            const pdfFile = getDefaultStorageBucket().file(pdfPath);
             const pdfBuffer = Buffer.from(pdf.output("arraybuffer"));
 
             await pdfFile.save(pdfBuffer, {
@@ -465,7 +464,7 @@ export const generateInsightChartReport = onSchedule(
                         const audioBuffer = Buffer.from(await ttsResp.arrayBuffer());
 
                         const audioPath = `chartReports/InsightVoice_${latestMonth}.mp3`;
-                        const audioFile = bucket.file(audioPath);
+                        const audioFile = getDefaultStorageBucket().file(audioPath);
                         await audioFile.save(audioBuffer, {
                             contentType: "audio/mpeg",
                             metadata: {
@@ -497,7 +496,7 @@ export const generateInsightChartReport = onSchedule(
             const webhookUrl = process.env.N8N_WEBHOOK_URL || "https://n8n.yagovibe.ai/webhook/ai-report";
 
             const payload: any = {
-                title: "📈 YAGO VIBE AI 차트 인사이트 리포트",
+                title: "📈 YAGO SPORTS AI 차트 인사이트 리포트",
                 month: latestMonth,
                 avgScore,
                 trend,

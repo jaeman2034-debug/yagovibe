@@ -305,9 +305,9 @@ export default function DebugPage() {
             </button>
             <button
               className="px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors text-sm"
-              onClick={() => testRoute("/app/settings")}
+              onClick={() => testRoute("/me/settings")}
             >
-              /app/settings
+              /me/settings
             </button>
           </div>
         </section>

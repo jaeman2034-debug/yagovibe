@@ -1,0 +1,176 @@
+---
+alwaysApply: false
+description: Recruit (팀원 모집) 시스템 생성 가이드
+globs: **/recruit/**
+---
+
+# ⚽ Recruit 시스템 생성 가이드
+
+## 📋 기능 요구사항
+
+### 페이지
+- `RecruitListPage` - 모집 목록
+- `RecruitCreatePage` - 모집글 작성
+- `RecruitDetailPage` - 모집 상세 + 지원
+
+### 컴포넌트
+- `RecruitCard` - 모집 카드
+- `RecruitForm` - 모집 작성 폼
+
+### 서비스
+- `recruitService.ts` - Firestore 작업
+
+### 훅
+- `useRecruits()` - 실시간 모집 조회
+
+## 🗄️ Firestore 구조
+
+### 컬렉션: `recruits`
+```typescript
+{
+  teamId: string
+  teamName: string
+  authorId: string
+  position: string[]  // ["공격수", "미드필더", "수비수", "골키퍼"]
+  slots: number
+  region: string
+  trainingDays?: string[]  // ["월", "화", "수", ...]
+  level: "취미" | "아마추어" | "준선수"
+  contact: "채팅" | "전화"
+  description?: string
+  status: "open" | "closed"
+  createdAt: Timestamp
+}
+```
+
+### 컬렉션: `recruit_applications`
+```typescript
+{
+  recruitId: string
+  userId: string
+  userName?: string
+  message?: string
+  status: "pending" | "accepted" | "rejected"
+  createdAt: Timestamp
+}
+```
+
+## 📝 구현 패턴
+
+### 1. 타입 정의 (`src/types/recruit.ts`)
+```typescript
+export interface Recruit {
+  id: string;
+  teamId: string;
+  teamName: string;
+  authorId: string;
+  position: string[];
+  slots: number;
+  region: string;
+  trainingDays?: string[];
+  level: "취미" | "아마추어" | "준선수";
+  contact: "채팅" | "전화";
+  description?: string;
+  status: "open" | "closed";
+  createdAt: Timestamp;
+}
+
+export interface RecruitApplication {
+  id: string;
+  recruitId: string;
+  userId: string;
+  userName?: string;
+  message?: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: Timestamp;
+}
+```
+
+### 2. 서비스 (`src/services/recruitService.ts`)
+```typescript
+export async function createRecruit(
+  input: CreateRecruitInput,
+  authorId: string
+): Promise<string>
+
+export async function getRecruits(
+  options?: { status?: "open" | "closed"; limit?: number }
+): Promise<Recruit[]>
+
+export async function getRecruit(
+  recruitId: string
+): Promise<Recruit | null>
+
+export async function applyToRecruit(
+  recruitId: string,
+  userId: string,
+  userName?: string,
+  message?: string
+): Promise<string>
+```
+
+### 3. 훅 (`src/hooks/useRecruits.ts`)
+```typescript
+export function useRecruits(options?: {
+  status?: "open" | "closed";
+  limit?: number;
+  teamId?: string;
+}): { recruits: Recruit[]; loading: boolean; error: Error | null }
+```
+
+### 4. 페이지 구조
+```typescript
+// RecruitCreatePage
+- 팀 선택 (팀 없으면 Empty State)
+- 포지션 선택 (다중 선택)
+- 모집 인원
+- 지역
+- 훈련 요일 (다중 선택)
+- 팀 수준
+- 연락 방법
+- 상세 설명
+- [모집글 등록] 버튼
+```
+
+### 5. 권한 체크
+```typescript
+// 팀 없을 때
+if (!hasTeams) {
+  return (
+    <EmptyState
+      message="팀에 가입해야 모집글을 작성할 수 있습니다"
+      actions={[
+        { label: "팀 만들기", onClick: () => navigate("/team/create") },
+        { label: "팀 찾기", onClick: () => navigate("/team/search") }
+      ]}
+    />
+  );
+}
+```
+
+## 🔥 Activity Feed 연동
+
+모집글 생성 시 `activities` 컬렉션에 자동 생성:
+```typescript
+{
+  type: "recruit_created",
+  refType: "recruit",
+  refId: recruitId,
+  authorId: user.uid,
+  teamId: teamId,
+  title: `${teamName} - ${position.join(", ")} 모집`,
+  summary: description || `모집 인원: ${slots}명`,
+  visibility: "public",
+  likeCount: 0,
+  commentCount: 0,
+  createdAt: serverTimestamp()
+}
+```
+
+## 📍 라우팅
+
+```typescript
+<Route path="/recruit" element={<RecruitListPage />} />
+<Route path="/recruit/create" element={<RecruitCreatePage />} />
+<Route path="/recruit/:id" element={<RecruitDetailPage />} />
+```

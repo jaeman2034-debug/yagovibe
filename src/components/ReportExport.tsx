@@ -76,7 +76,7 @@ export default function ReportExport() {
             }
 
             // 5) 알림 전송 (둘 중 환경변수 설정된 채널로 전송)
-            const msg = `📊 YAGO VIBE SPORTS 주간 리포트 업로드 완료\n\n📄 PDF: ${pdfURL}\n${ttsURL ? `🔊 오디오: ${ttsURL}` : ""}`.trim();
+            const msg = `📊 YAGO SPORTS 주간 리포트 업로드 완료\n\n📄 PDF: ${pdfURL}\n${ttsURL ? `🔊 오디오: ${ttsURL}` : ""}`.trim();
             await Promise.all([
                 sendSlackMessage(msg),
                 sendTelegramMessage(msg),
@@ -104,7 +104,7 @@ export default function ReportExport() {
             <div ref={reportRef} id="report-summary" className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
                 <h2 className="text-lg font-bold mb-2">🧠 이번 주 AI 리포트 요약</h2>
                 <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                    이번 주 YAGO VIBE SPORTS 활동량은 지난 주 대비 22% 증가했습니다. 주요 인기 종목은 축구와 배드민턴이며, 신규 사용자 참여율이 꾸준히 상승 중입니다.
+                    이번 주 YAGO SPORTS 활동량은 지난 주 대비 22% 증가했습니다. 주요 인기 종목은 축구와 배드민턴이며, 신규 사용자 참여율이 꾸준히 상승 중입니다.
                 </p>
             </div>
         </div>

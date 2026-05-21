@@ -1,0 +1,186 @@
+---
+alwaysApply: false
+description: 커스텀 훅 생성 패턴
+globs: **/hooks/**
+---
+
+# 🪝 커스텀 훅 생성 패턴
+
+## 📋 기본 구조
+
+### 파일 위치
+```
+src/hooks/
+├── useRecruits.ts
+├── useMatches.ts
+├── useGuests.ts
+└── useMyTeams.ts
+```
+
+## 📝 구현 템플릿
+
+### 1. 실시간 조회 훅 (onSnapshot)
+```typescript
+import { useState, useEffect } from "react";
+import { collection, query, where, orderBy, onSnapshot, limit as firestoreLimit } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { Xxx } from "@/types/xxx";
+
+interface UseXxxOptions {
+  status?: "open" | "closed";
+  limit?: number;
+  teamId?: string;
+}
+
+export function useXxx(options: UseXxxOptions = {}) {
+  const [items, setItems] = useState<Xxx[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const conditions: any[] = [];
+
+    if (options.status) {
+      conditions.push(where("status", "==", options.status));
+    }
+
+    if (options.teamId) {
+      conditions.push(where("teamId", "==", options.teamId));
+    }
+
+    conditions.push(orderBy("createdAt", "desc"));
+
+    if (options.limit) {
+      conditions.push(firestoreLimit(options.limit));
+    }
+
+    const q = query(collection(db, "xxx"), ...conditions);
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const itemsList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Xxx[];
+
+        setItems(itemsList);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error("❌ [useXxx] 조회 실패:", err);
+        setError(err as Error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [options.status, options.teamId, options.limit]);
+
+  return { items, loading, error };
+}
+```
+
+### 2. 날짜 필터링 훅 (오늘 용병/경기)
+```typescript
+import { useState, useEffect } from "react";
+import { collection, query, where, orderBy, onSnapshot, limit as firestoreLimit, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { Xxx } from "@/types/xxx";
+
+interface UseXxxOptions {
+  status?: "open" | "closed";
+  date?: Date; // 특정 날짜 필터
+  limit?: number;
+}
+
+export function useXxx(options: UseXxxOptions = {}) {
+  const [items, setItems] = useState<Xxx[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const conditions: any[] = [];
+
+    if (options.status) {
+      conditions.push(where("status", "==", options.status));
+    }
+
+    if (options.date) {
+      const startOfDay = Timestamp.fromDate(new Date(options.date.setHours(0, 0, 0, 0)));
+      const endOfDay = Timestamp.fromDate(new Date(options.date.setHours(23, 59, 59, 999)));
+      conditions.push(where("date", ">=", startOfDay));
+      conditions.push(where("date", "<=", endOfDay));
+    }
+
+    conditions.push(orderBy("date", "asc"));
+    conditions.push(orderBy("time", "asc"));
+
+    if (options.limit) {
+      conditions.push(firestoreLimit(options.limit));
+    }
+
+    const q = query(collection(db, "xxx"), ...conditions);
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const itemsList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Xxx[];
+
+        setItems(itemsList);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error("❌ [useXxx] 조회 실패:", err);
+        setError(err as Error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [options.status, options.date, options.limit]);
+
+  return { items, loading, error };
+}
+```
+
+## 📝 네이밍 규칙
+
+- 훅 이름: `useXxx()` (복수형)
+- 반환값: `{ items, loading, error }`
+- 옵션: `UseXxxOptions` 인터페이스
+
+## 🔥 사용 예시
+
+```typescript
+// 오늘 용병
+const { guests, loading } = useGuests({
+  status: "open",
+  date: new Date(),
+  limit: 5,
+});
+
+// 최신 모집
+const { recruits, loading } = useRecruits({
+  status: "open",
+  limit: 10,
+});
+
+// 특정 팀의 모집
+const { recruits, loading } = useRecruits({
+  status: "open",
+  teamId: teamId,
+});
+```
+
+## ⚠️ 주의사항
+
+1. **의존성 배열**: options 객체의 모든 필드를 의존성에 포함
+2. **구독 해제**: useEffect의 cleanup 함수에서 unsubscribe
+3. **에러 처리**: onSnapshot의 error 콜백에서 처리
+4. **로딩 상태**: 초기값 true, 데이터 로드 후 false

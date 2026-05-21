@@ -8,6 +8,7 @@ import {
   callReadyCheck,
 } from "@/lib/matchmaking/matchmakingClient";
 import { registerMatchmakingOnDisconnect } from "@/lib/matchmaking/matchmakingPresence";
+import { playersRequiredForModeClient } from "@/lib/matchmaking/playersRequired";
 import type { MatchFoundState, MatchmakingMode, QueueEntry } from "@/lib/matchmaking/types";
 
 type State = {
@@ -39,6 +40,7 @@ export function useMatchmaking(uid: string | undefined, initialMode: Matchmaking
 
   const queuedRef = useRef(false);
   const disconnectCancelRef = useRef<(() => void) | null>(null);
+  const lastFormationRetryAt = useRef(0);
 
   useEffect(() => {
     if (!uid?.trim()) {
@@ -117,6 +119,31 @@ export function useMatchmaking(uid: string | undefined, initialMode: Matchmaking
       /* best effort */
     }
   }, [uid]);
+
+  /** 큐 인원이 채워졌는데 매치가 안 잡힌 경우(상대만 늦게 입장 등) — joinQueue 재호출로 formation 재시도 */
+  useEffect(() => {
+    if (!uid?.trim() || !state.queued || state.match || state.loading) return;
+    const required = playersRequiredForModeClient(mode);
+    if (state.queueMetaCount < required) return;
+    const now = Date.now();
+    if (now - lastFormationRetryAt.current < 2500) return;
+    lastFormationRetryAt.current = now;
+    void (async () => {
+      try {
+        const res = await callJoinQueue(modeRef.current);
+        if (res.match) {
+          setState((s) => ({
+            ...s,
+            match: res.match ?? s.match,
+            queued: res.status === "queued",
+            error: null,
+          }));
+        }
+      } catch {
+        /* formation lock race — 다음 meta tick 에 재시도 */
+      }
+    })();
+  }, [uid, mode, state.queued, state.queueMetaCount, state.match, state.loading]);
 
   useEffect(() => {
     const onPageHide = () => {

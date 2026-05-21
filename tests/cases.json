@@ -1,0 +1,112 @@
+[
+  {
+    "id": "nav_basic",
+    "input": "강남역 카페 안내해줘",
+    "expect": { "kind": "OPEN_NAVIGATE" }
+  },
+  {
+    "id": "nav_basic2",
+    "input": "강남역 카페 가줘",
+    "expect": { "kind": "OPEN_NAVIGATE" }
+  },
+  {
+    "id": "nav_basic3",
+    "input": "강남역 카페로 길안내해줘",
+    "expect": { "kind": "OPEN_NAVIGATE" }
+  },
+  {
+    "id": "search_basic",
+    "input": "강남역 카페 찾아줘",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "search_basic2",
+    "input": "강남역 카페 어디야",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "search_basic3",
+    "input": "강남역 근처 카페",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "ref_repeat",
+    "memory": "0. 강남역 카페 -> A카페 서울시 강남구 테헤란로 123",
+    "input": "아까 그 데 다시",
+    "expect": { "kind": "OPEN_NAVIGATE" }
+  },
+  {
+    "id": "ref_repeat2",
+    "memory": "0. 강남역 카페 -> A카페 서울시 강남구 테헤란로 123",
+    "input": "방금 그거 다시 안내해줘",
+    "expect": { "kind": "OPEN_NAVIGATE" }
+  },
+  {
+    "id": "ref_repeat3",
+    "memory": "0. 강남역 카페 -> A카페 서울시 강남구 테헤란로 123",
+    "input": "그거 또 가줘",
+    "expect": { "kind": "OPEN_NAVIGATE" }
+  },
+  {
+    "id": "alt_other",
+    "memory": "0. 강남역 카페 -> A카페 서울시 강남구 테헤란로 123",
+    "input": "방금 말고 다른 데",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "alt_other2",
+    "memory": "0. 강남역 카페 -> A카페 서울시 강남구 테헤란로 123",
+    "input": "아까 그거 말고 다른 곳",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "filters_parking",
+    "input": "강남역 주차 가능한 카페 찾아줘",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "filters_opennow",
+    "input": "강남역 지금 영업중인 카페 안내해줘",
+    "expect": { "kind": "OPEN_NAVIGATE" }
+  },
+  {
+    "id": "filters_nearest",
+    "input": "강남역 가장 가까운 카페 가줘",
+    "expect": { "kind": "OPEN_NAVIGATE" }
+  },
+  {
+    "id": "filters_best_rated",
+    "input": "강남역 평점 높은 카페 찾아줘",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "filters_combined",
+    "input": "강남역 주차 가능하고 지금 영업중인 가장 가까운 카페 안내해줘",
+    "expect": { "kind": "OPEN_NAVIGATE" }
+  },
+  {
+    "id": "ambiguous_hungry",
+    "input": "배고픈데 조용한 데",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "ambiguous_quiet",
+    "input": "비 안 맞고 갈 수 있는 데",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "ambiguous_lazy",
+    "input": "지금 가기 귀찮은데 가까운 데",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "error_nonsense",
+    "input": "가나다라마바사",
+    "expect": { "kind": "OPEN_SEARCH" }
+  },
+  {
+    "id": "error_empty",
+    "input": "",
+    "expect": { "kind": "NOOP" }
+  }
+]

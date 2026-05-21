@@ -1,10 +1,10 @@
 // === CORE PROTECTED: DO NOT MODIFY BELOW ===
-// 🧠 YAGO VIBE Constants Configuration
+// 🧠 YAGO SPORTS Constants Configuration
 // 이 파일은 Cursor가 자동 수정하지 못하도록 보호됩니다.
 
 // ✅ 애플리케이션 상수 (보호됨)
 export const APP_CONFIG = {
-    name: "YAGO VIBE SPT",
+    name: "YAGO SPORTS SPT",
     version: "1.0.0",
     description: "AI Voice Assistant with Google Maps",
 };

@@ -6,6 +6,7 @@ import type { MarketProduct } from "@/types/market";
 import { formatDistance } from "@/utils/formatDistance";
 import { getSmartScore } from "@/utils/smartScore";
 import { getRecommendReasons } from "@/utils/recommendationReasons";
+import { resolveLastSportId, sportMarketDetailUrl } from "@/utils/sportHubHref";
 
 type Props = {
   product: MarketProduct;
@@ -66,7 +67,12 @@ const ProductCard = memo(function ProductCard({ product, distanceKm, sortMode }:
       return;
     }
     console.log("🔥 ProductCard 클릭 → 상세 페이지 이동:", id);
-    navigate(`/app/market/${id}`);
+    navigate(
+      sportMarketDetailUrl(
+        (product as MarketProduct & { sport?: string }).sport || resolveLastSportId(),
+        id
+      )
+    );
   };
 
   const isRecommended = sortMode === "smart" && recommendationReasons.length > 0;

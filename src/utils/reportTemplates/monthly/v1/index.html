@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>월간 리포트 - {{yyyyMM}}</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 헤더 -->
+  <header class="report-header">
+    <h1>📊 월간 운영 리포트</h1>
+    <div class="report-meta">
+      <p><strong>팀:</strong> {{teamName}}</p>
+      <p><strong>월:</strong> {{yyyyMM}}</p>
+      <p><strong>생성일:</strong> {{generatedAt}}</p>
+    </div>
+  </header>
+
+  <!-- 회원 통계 섹션 -->
+  <section class="section">
+    <h2>회원 통계</h2>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">{{memberStats.total}}</div>
+        <div class="stat-label">총 회원</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{memberStats.active}}</div>
+        <div class="stat-label">활성 회원</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{memberStats.paused}}</div>
+        <div class="stat-label">휴원</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{memberStats.deleted}}</div>
+        <div class="stat-label">삭제</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 회비 통계 섹션 -->
+  <section class="section">
+    <h2>회비 통계</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>항목</th>
+          <th>값</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>기본 금액</td>
+          <td>{{feeStats.baseAmount}}원</td>
+        </tr>
+        <tr>
+          <td>대상 인원</td>
+          <td>{{feeStats.targetCount}}명</td>
+        </tr>
+        <tr>
+          <td>납부 인원</td>
+          <td>{{feeStats.paidCount}}명</td>
+        </tr>
+        <tr>
+          <td>미납 인원</td>
+          <td>{{feeStats.unpaidCount}}명</td>
+        </tr>
+        <tr>
+          <td>예상 금액</td>
+          <td>{{feeStats.expectedAmount}}원</td>
+        </tr>
+        <tr>
+          <td>납부 금액</td>
+          <td>{{feeStats.paidAmount}}원</td>
+        </tr>
+        <tr>
+          <td>미납 금액</td>
+          <td>{{feeStats.unpaidAmount}}원</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 차트 섹션 -->
+  {{#if hasChart}}
+  <section class="section">
+    <h2>회비 납부 현황</h2>
+    <div class="chart-container">
+      {{chartSvg}}
+    </div>
+  </section>
+  {{/if}}
+
+  <!-- 알림 섹션 -->
+  {{#if alerts}}
+  <section class="section">
+    <h2>알림</h2>
+    <div class="alerts-list">
+      {{#each alerts}}
+      <div class="alert alert-{{type}}">
+        <strong>{{type}}:</strong> {{count}}명
+      </div>
+      {{/each}}
+    </div>
+  </section>
+  {{/if}}
+
+  <!-- 푸터 -->
+  <footer class="report-footer">
+    <p>이 리포트는 YAGO SPORTS에서 자동 생성되었습니다.</p>
+    <p>생성 시각: {{generatedAt}}</p>
+  </footer>
+</body>
+</html>
+

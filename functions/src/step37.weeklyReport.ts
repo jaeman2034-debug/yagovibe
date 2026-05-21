@@ -42,7 +42,7 @@ export const sendWeeklyQualityReport = onSchedule(
             });
 
             const r = rows[0] || {};
-            const text = `🧠 *주간 품질 리포트 (YAGO VIBE)*\n\n` +
+            const text = `🧠 *주간 품질 리포트 (YAGO SPORTS)*\n\n` +
                 `리포트 수: ${r.count || 0}\n` +
                 `평균 점수: ${((r.avg_score || 0) as number).toFixed(2)}\n` +
                 `평균 커버리지: ${(((r.avg_coverage || 0) as number) * 100).toFixed(1)}%\n` +
@@ -81,7 +81,7 @@ export const sendWeeklyQualityReport = onSchedule(
                     await transporter.sendMail({
                         from: MAIL_USER,
                         to: MAIL_TO,
-                        subject: `YAGO VIBE 주간 품질 리포트`,
+                        subject: `YAGO SPORTS 주간 품질 리포트`,
                         text: text.replace(/\*/g, ""), // Slack 마크다운 제거
                     });
                     console.log("✅ Email 발송 완료");

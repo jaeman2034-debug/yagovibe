@@ -44,7 +44,7 @@ export const notifyDeployment = onRequest(
       };
 
       const message = {
-        text: `🚀 *YAGO VIBE AI 리포트 시스템 배포 완료!*`,
+        text: `🚀 *YAGO SPORTS AI 리포트 시스템 배포 완료!*`,
         attachments: [
           {
             color: "#36a64f",
@@ -65,7 +65,7 @@ export const notifyDeployment = onRequest(
                 short: false,
               },
             ],
-            footer: "YAGO VIBE AI 시스템",
+            footer: "YAGO SPORTS AI 시스템",
             ts: Math.floor(Date.now() / 1000),
           },
         ],

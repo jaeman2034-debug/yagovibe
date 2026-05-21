@@ -5,7 +5,7 @@ import { writeFile, unlink } from "fs/promises";
 import PDFDocument from "pdfkit";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 import OpenAI from "openai";
 
 if (!getApps().length) {
@@ -13,7 +13,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const bucket = getStorage().bucket();
 
 export const generateReportAssets = onRequest({ cors: true, region: "asia-northeast3", timeoutSeconds: 120 }, async (req, res) => {
   try {
@@ -46,7 +45,7 @@ export const generateReportAssets = onRequest({ cors: true, region: "asia-northe
       doc.on("end", () => resolve(Buffer.concat(chunks)));
       doc.on("error", (err) => reject(err));
 
-      doc.fontSize(18).text("📘 YAGO VIBE AI 리포트", { align: "center" });
+      doc.fontSize(18).text("📘 YAGO SPORTS AI 리포트", { align: "center" });
       doc.moveDown();
       doc.fontSize(14).text(`상품명: ${reportData.name || "-"}`);
       doc.text(`카테고리: ${reportData.category || "-"}`);
@@ -77,12 +76,12 @@ export const generateReportAssets = onRequest({ cors: true, region: "asia-northe
     const pdfDestination = `reports/${reportId}.pdf`;
     const audioDestination = `reports/${reportId}.mp3`;
 
-    const [pdfFile] = await bucket.upload(pdfTempPath, {
+    const [pdfFile] = await getDefaultStorageBucket().upload(pdfTempPath, {
       destination: pdfDestination,
       contentType: "application/pdf",
     });
 
-    const [audioFile] = await bucket.upload(audioTempPath, {
+    const [audioFile] = await getDefaultStorageBucket().upload(audioTempPath, {
       destination: audioDestination,
       contentType: "audio/mpeg",
     });

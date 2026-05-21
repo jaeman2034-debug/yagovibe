@@ -1,4 +1,4 @@
-// 🎯 YAGO VIBE AI 테스트 컴포넌트
+// 🎯 YAGO SPORTS AI 테스트 컴포넌트
 import { useState } from "react";
 import { useAI } from "@/hooks/useAI";
 
@@ -19,7 +19,7 @@ export default function AITestComponent() {
     };
 
     return (
-        <div className="p-6 max-w-md mx-auto bg-white rounded-lg shadow-lg">
+        <div className="p-6 w-full max-w-none px-3 md:mx-auto md:max-w-3xl bg-white rounded-lg shadow-lg">
             <h2 className="text-2xl font-bold mb-4 text-center">🧠 AI 테스트</h2>
 
             <div className="space-y-4">

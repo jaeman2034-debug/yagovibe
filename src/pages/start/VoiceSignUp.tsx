@@ -40,7 +40,7 @@ export default function VoiceSignUp() {
 
     return (
         <div className="flex flex-col items-center justify-center h-screen text-center bg-gradient-to-br from-blue-50 to-indigo-100">
-            <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4">
+            <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-none md:max-w-3xl mx-4">
                 <h1 className="text-3xl font-bold mb-6 text-gray-800">🎙️ 음성으로 회원가입</h1>
 
                 <div className="mb-6">

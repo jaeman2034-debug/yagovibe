@@ -80,7 +80,7 @@ async function generateReleaseNotesLogic(): Promise<{
     });
 
     // OpenAI로 릴리즈 노트 생성
-    const prompt = `최근 1주간의 YAGO VIBE AI 리포트 시스템 운영 데이터를 바탕으로 릴리즈 노트를 작성해주세요.
+    const prompt = `최근 1주간의 YAGO SPORTS AI 리포트 시스템 운영 데이터를 바탕으로 릴리즈 노트를 작성해주세요.
 
 **운영 통계:**
 - 리포트 생성: ${reportCount}개
@@ -143,7 +143,7 @@ ${bugs.length > 0 ? `이슈:\n${bugs.slice(0, 3).map((f, i) => `${i + 1}. ${f}`)
             attachments: [
               {
                 color: "#36a64f",
-                footer: "YAGO VIBE AI 시스템",
+                footer: "YAGO SPORTS AI 시스템",
                 ts: Math.floor(Date.now() / 1000),
               },
             ],

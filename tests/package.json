@@ -1,0 +1,14 @@
+{
+  "name": "voice-agent-qa",
+  "version": "1.0.0",
+  "description": "QA 자동화 & 시뮬레이터",
+  "type": "module",
+  "scripts": {
+    "test": "tsx run-sim.ts",
+    "test:qa": "tsx run-sim.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0"
+  }
+}

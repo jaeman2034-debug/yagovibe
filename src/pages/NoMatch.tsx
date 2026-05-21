@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 export default function NoMatch() {
     return (
         <div className="flex flex-col items-center justify-center h-screen text-center bg-gradient-to-br from-red-50 to-pink-100">
-            <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4">
+            <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-none md:max-w-3xl mx-4">
                 <h1 className="text-4xl font-bold mb-4 text-red-600">🚧 페이지를 찾을 수 없습니다</h1>
                 <p className="mb-6 text-gray-600">
                     요청하신 경로가 존재하지 않거나 이동 중 오류가 발생했습니다.

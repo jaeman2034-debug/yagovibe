@@ -2,7 +2,7 @@ import { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.yagovibe.app",
-  appName: "YAGO VIBE",
+  appName: "YAGO SPORTS",
   webDir: "dist",
   bundledWebRuntime: false,
   server: {

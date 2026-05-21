@@ -1,7 +1,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp, getApps } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getFirestore, Timestamp, type DocumentData } from "firebase-admin/firestore";
 import { getOrgContext } from "./step65.billingGuard";
 
 if (!getApps().length) {
@@ -10,11 +10,70 @@ if (!getApps().length) {
 
 const db = getFirestore();
 
+/** HTTP JSON 응답용 — Admin Timestamp 등 비직렬화 값 제거 */
+function deepPlainForHttp(input: unknown): unknown {
+    if (input instanceof Timestamp) {
+        return input.toMillis();
+    }
+    if (input === null || input === undefined) {
+        return input;
+    }
+    if (Array.isArray(input)) {
+        return input.map((v) => deepPlainForHttp(v));
+    }
+    if (typeof input === "object") {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+            if (v === undefined) continue;
+            out[k] = deepPlainForHttp(v);
+        }
+        return out;
+    }
+    return input;
+}
+
+/** Firestore `plans/{planId}` 미시드 시에도 UI 수동 플랜 변경이 동작하도록 기본값 (Step65 문서와 동일) */
+const DEFAULT_ORG_PLANS: Record<
+    string,
+    { limits: Record<string, number>; features: Record<string, boolean> }
+> = {
+    free: {
+        limits: { rpm: 60, rpd: 1000, storageGb: 1, seats: 5, priority: 3 },
+        features: { graphCopilot: false, insights: true, governance: false },
+    },
+    pro: {
+        limits: { rpm: 120, rpd: 5000, storageGb: 10, seats: 20, priority: 2 },
+        features: { graphCopilot: true, insights: true, governance: false },
+    },
+    enterprise: {
+        limits: { rpm: 500, rpd: 50000, storageGb: 100, seats: 100, priority: 1 },
+        features: { graphCopilot: true, insights: true, governance: true },
+    },
+};
+
+function resolveOrgPlan(planId: string, firestorePlan: DocumentData | undefined): {
+    limits: Record<string, unknown>;
+    features: Record<string, unknown>;
+} | null {
+    if (firestorePlan && typeof firestorePlan === "object") {
+        const p = firestorePlan as { limits?: Record<string, unknown>; features?: Record<string, unknown> };
+        return {
+            limits: p.limits || {},
+            features: p.features || {},
+        };
+    }
+    const fallback = DEFAULT_ORG_PLANS[planId];
+    if (!fallback) {
+        return null;
+    }
+    return { limits: { ...fallback.limits }, features: { ...fallback.features } };
+}
+
 /**
- * Step 65: List Orgs - 조직 목록 조회
- * GET /listOrgs
+ * Step 65: List Orgs - 조직 목록 조회 (HTTP, 레거시·외부 연동용)
+ * GET /listOrgsHttp
  */
-export const listOrgs = onRequest(
+export const listOrgsHttp = onRequest(
     {
         region: "asia-northeast3",
         cors: true,
@@ -63,14 +122,12 @@ export const setOrgPlan = onRequest(
 
             logger.info("📋 조직 요금제 설정:", { orgId, planId });
 
-            // 요금제 정보 조회
             const planDoc = await db.doc(`plans/${planId}`).get();
-            if (!planDoc.exists) {
+            const plan = resolveOrgPlan(String(planId), planDoc.exists ? planDoc.data() : undefined);
+            if (!plan) {
                 res.status(404).json({ error: "plan_not_found" });
                 return;
             }
-
-            const plan = planDoc.data() as any;
 
             // 조직 업데이트
             await db.doc(`orgs/${orgId}`).set(
@@ -96,7 +153,7 @@ export const setOrgPlan = onRequest(
 
 /**
  * Step 65: Get Org Context - 조직 컨텍스트 조회 API
- * GET /getOrgContext?orgId=ORG_ID
+ * GET /getOrgContextAPI?orgId=ORG_ID
  */
 export const getOrgContextAPI = onRequest(
     {
@@ -104,8 +161,9 @@ export const getOrgContextAPI = onRequest(
         cors: true,
     },
     async (req, res) => {
+        res.setHeader("Access-Control-Allow-Origin", "*");
         try {
-            const orgId = req.query.orgId as string;
+            const orgId = String(req.query.orgId ?? "").trim();
 
             if (!orgId) {
                 res.status(400).json({ error: "orgId is required" });
@@ -115,17 +173,20 @@ export const getOrgContextAPI = onRequest(
             logger.info("📋 조직 컨텍스트 조회:", { orgId });
 
             const context = await getOrgContext(orgId);
-
-            // Timestamp 변환
-            if (context.org.updatedAt?.toDate) {
-                context.org.updatedAt = context.org.updatedAt.toDate();
+            const merged = {
+                ...context,
+                org: { id: orgId, ...(context.org as Record<string, unknown>) },
+            };
+            const payload = deepPlainForHttp(merged);
+            res.status(200).json(payload);
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
+            if (msg === "org_not_found") {
+                res.status(404).json({ error: "org_not_found" });
+                return;
             }
-
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.json(context);
-        } catch (error: any) {
             logger.error("❌ 조직 컨텍스트 조회 오류:", error);
-            res.status(500).json({ error: error.message });
+            res.status(500).json({ error: msg || "internal_error" });
         }
     }
 );

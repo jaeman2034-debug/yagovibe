@@ -1,0 +1,181 @@
+---
+alwaysApply: false
+description: Guest Player (용병) 시스템 생성 가이드
+globs: **/guest/**
+---
+
+# ⚽ Guest Player 시스템 생성 가이드
+
+## 📋 기능 요구사항
+
+### 페이지
+- `GuestPlayerListPage` - 용병 목록
+- `GuestPlayerCreatePage` - 용병 모집 작성
+- `GuestPlayerDetailPage` - 용병 상세 + 지원
+
+### 컴포넌트
+- `GuestPlayerCard` - 용병 카드
+- `GuestPlayerForm` - 용병 작성 폼
+
+### 서비스
+- `guestService.ts` - Firestore 작업
+
+### 훅
+- `useGuests()` - 실시간 용병 조회
+
+## 🗄️ Firestore 구조
+
+### 컬렉션: `guest_players`
+```typescript
+{
+  authorId: string  // ⚠️ 팀 없어도 작성 가능 (트래픽 핵심)
+  date: Timestamp
+  time: string  // "20:00"
+  region: string
+  stadium?: string
+  position: string[]  // 필요한 포지션
+  slots: number  // 필요한 인원
+  fee?: number
+  description?: string
+  status: "open" | "closed"
+  createdAt: Timestamp
+}
+```
+
+### 컬렉션: `guest_applications`
+```typescript
+{
+  guestId: string
+  userId: string
+  userName?: string
+  message?: string
+  status: "pending" | "accepted" | "rejected"
+  createdAt: Timestamp
+}
+```
+
+## 📝 구현 패턴
+
+### 1. 타입 정의 (`src/types/guest.ts`)
+```typescript
+export interface GuestPlayer {
+  id: string;
+  authorId: string;
+  date: Timestamp;
+  time: string;
+  region: string;
+  stadium?: string;
+  position: string[];
+  slots: number;
+  fee?: number;
+  description?: string;
+  status: "open" | "closed";
+  createdAt: Timestamp;
+}
+
+export interface GuestPlayerApplication {
+  id: string;
+  guestId: string;
+  userId: string;
+  userName?: string;
+  message?: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: Timestamp;
+}
+```
+
+### 2. 서비스 (`src/services/guestService.ts`)
+```typescript
+export async function createGuestPlayer(
+  input: CreateGuestPlayerInput,
+  authorId: string
+): Promise<string>
+
+export async function getGuestPlayers(
+  options?: {
+    status?: "open" | "closed";
+    date?: Date;
+    region?: string;
+    limit?: number;
+  }
+): Promise<GuestPlayer[]>
+
+export async function getGuestPlayer(
+  guestId: string
+): Promise<GuestPlayer | null>
+
+export async function applyToGuestPlayer(
+  guestId: string,
+  userId: string,
+  userName?: string,
+  message?: string
+): Promise<string>
+```
+
+### 3. 훅 (`src/hooks/useGuests.ts`)
+```typescript
+export function useGuests(options?: {
+  status?: "open" | "closed";
+  date?: Date;
+  region?: string;
+  limit?: number;
+}): { guests: GuestPlayer[]; loading: boolean; error: Error | null }
+```
+
+### 4. 페이지 구조
+```typescript
+// GuestPlayerCreatePage
+- ⚠️ 팀 없어도 작성 가능 (권한 체크 없음)
+- 경기 날짜 (date input, 오늘 날짜 기본값)
+- 경기 시간 (time input)
+- 지역
+- 구장 (선택)
+- 필요한 포지션 (다중 선택)
+- 필요한 인원
+- 참가비 (선택)
+- 상세 설명
+- [용병 모집] 버튼
+```
+
+### 5. 권한 정책
+```typescript
+// ⚠️ 팀 없어도 작성 가능 (트래픽 핵심 기능)
+// 권한 체크 없이 바로 폼 표시
+```
+
+## 🔥 Activity Feed 연동
+
+용병 모집글 생성 시 `activities` 컬렉션에 자동 생성:
+```typescript
+{
+  type: "guest_created",  // 또는 "guest_player_created"
+  refType: "guest",
+  refId: guestId,
+  authorId: user.uid,
+  title: `${time} ${region} 용병 모집`,
+  summary: description || `${position.join(", ")} ${slots}명`,
+  visibility: "public",
+  likeCount: 0,
+  commentCount: 0,
+  createdAt: serverTimestamp()
+}
+```
+
+## 📍 라우팅
+
+```typescript
+<Route path="/guest" element={<GuestPlayerListPage />} />
+<Route path="/guest/create" element={<GuestPlayerCreatePage />} />
+<Route path="/guest/:id" element={<GuestPlayerDetailPage />} />
+```
+
+## 🎯 홈 화면 우선순위
+
+**용병은 홈 화면 최상단에 표시** (사용률 1위 기능):
+```typescript
+// HomePage 구조
+<TodayGuestSection />  // 가장 위
+<TodayMatchSection />
+<LatestRecruitSection />
+<LocalTeamsSection />
+```

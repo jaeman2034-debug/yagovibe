@@ -138,7 +138,7 @@ export const notifyLatestReport = onRequest(
             elements: [
               {
                 type: "mrkdwn",
-                text: `_YAGO VIBE · 수동 알림 · 리포트 ID: ${reportId}_`,
+                text: `_YAGO SPORTS · 수동 알림 · 리포트 ID: ${reportId}_`,
               },
             ],
           },

@@ -12,7 +12,7 @@ export default function TeamBlogPage() {
         <h2 className="text-xl font-bold mb-3">최신 포스트</h2>
         <div className="space-y-3">
           <div className="p-3 bg-gray-50 rounded-lg">
-            <h3 className="font-semibold">YAGO VIBE SPT 프로젝트 시작</h3>
+            <h3 className="font-semibold">YAGO SPORTS SPT 프로젝트 시작</h3>
             <p className="text-sm text-gray-600">AI 음성 비서와 지도 통합 기능을 개발 중입니다.</p>
           </div>
           <div className="p-3 bg-gray-50 rounded-lg">

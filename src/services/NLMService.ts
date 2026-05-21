@@ -1,5 +1,5 @@
 // === CORE PROTECTED: DO NOT MODIFY BELOW ===
-// 🧠 YAGO VIBE NLM Service with JSON Auto-Correction
+// 🧠 YAGO SPORTS NLM Service with JSON Auto-Correction
 // GPT 기반 대화 추론 및 명령 생성
 
 let lastCall = 0;

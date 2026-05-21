@@ -1,0 +1,346 @@
+/**
+ * 🔥 Prisma Schema - SQLite → Postgres 마이그레이션 경로
+ * 
+ * Week1~2: SQLite
+ * Week3: Postgres로 1줄 변경
+ */
+
+datasource db {
+  provider = "sqlite"      // → 나중에 postgresql로 1줄 변경
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Story {
+  id        String   @id
+  region    String
+
+  source    String   // 운영, 협회, 사용자
+  category  String   // 대회, 모집, 협회, 마켓, 구장
+
+  title     String
+  subtitle  String
+
+  status    String   // DRAFT, REVIEW, PUBLISHED, EXPIRED, REJECTED
+
+  startAt   DateTime
+  endAt     DateTime
+
+  ctaType   String?
+
+  priority  Int      @default(50)
+  score     Int      @default(0)
+  isVerifiedAuthor Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([region, status])
+  @@index([startAt, endAt])
+}
+
+model League {
+  id       String   @id
+  region   String
+
+  name     String
+  startAt  DateTime
+  endAt    DateTime
+  season   String?  // 시즌 정보 (예: "2025-1")
+  status   String?  // READY | RUNNING | END
+
+  @@index([region])
+  @@index([status])
+}
+
+model EventLog {
+  id        String   @id @default(uuid())
+  eventName String
+  payload   String   // JSON
+  sessionId String?
+  userId    String?
+  region    String?
+  createdAt DateTime @default(now())
+
+  @@index([eventName, createdAt])
+  @@index([sessionId])
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  event     String   // PAGE_VIEW, SPORT_SELECTED, TEAM_JOIN 등
+  path      String?  // 현재 경로
+  userId    String?
+  sessionId String?
+  meta      String?  // JSON 메타데이터
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([event, createdAt])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([path])
+}
+
+model DailyKpi {
+  id            String   @id @default(uuid())
+  date          String   // YYYY-MM-DD
+  region        String
+
+  storyImp      Int       @default(0)
+  storyClick    Int       @default(0)
+  storyCtr      Float     @default(0)
+
+  bookingStart  Int       @default(0)
+  paymentSuccess Int      @default(0)
+  paymentFail   Int       @default(0)
+  bookingCr     Float     @default(0)
+
+  revenue       BigInt    @default(0)
+
+  seedRate      Float     @default(0)
+  offlineRate   Float     @default(0)
+  apiError      Int       @default(0)
+  storyFillRate Float     @default(0)
+
+  createdAt     DateTime  @default(now())
+
+  @@unique([date, region])
+  @@index([date])
+  @@index([region])
+}
+
+model Ground {
+  id        String   @id
+  region    String
+
+  name      String
+  address   String
+
+  lat       Float
+  lng       Float
+
+  createdAt DateTime @default(now())
+
+  @@index([region])
+}
+
+model Slot {
+  id        String   @id
+  groundId  String
+
+  startAt   DateTime
+  endAt     DateTime
+
+  price     Int
+  status    String   @default("OPEN") // OPEN | LOCKED | BOOKED
+
+  createdAt DateTime @default(now())
+
+  @@index([groundId])
+  @@index([startAt])
+}
+
+model Reservation {
+  id        String   @id
+  slotId    String
+  userId    String
+
+  amount    Int
+  status    String   // READY | PAID | CANCEL
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slotId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Payment {
+  id            String   @id
+  reservationId String
+
+  pg            String   // toss | kcp | mock
+  status        String   // REQUEST | APPROVED | FAILED | CANCELLED
+
+  amount        Int
+  pgTid         String?  // PG 거래ID
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([reservationId])
+  @@index([pgTid])
+  @@index([status])
+}
+
+model SettlementItem {
+  id            String   @id
+  reservationId String
+
+  ownerId       String
+  region        String
+
+  amount        Int
+  feeRate       Float
+  net           Int
+
+  status        String   // READY | SETTLED | HOLD
+
+  usedAt        DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([region])
+  @@index([status])
+  @@index([usedAt])
+}
+
+model Team {
+  id            String   @id
+  region        String
+
+  name          String
+  level         String   // beginner | normal | pro
+
+  homeGroundId String?
+
+  recruitStatus String   @default("OPEN") // OPEN | CLOSE
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([region])
+  @@index([recruitStatus])
+}
+
+model TeamMember {
+  id        String   @id
+  teamId    String
+  userId    String
+  role      String   // member | manager
+
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model Match {
+  id        String   @id
+  leagueId  String
+
+  homeTeam  String
+  awayTeam  String
+
+  groundId  String
+  time      DateTime
+
+  homeScore Int?
+  awayScore Int?
+
+  status    String   @default("SCHEDULED") // SCHEDULED | PLAYING | FINISHED | CANCELLED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leagueId])
+  @@index([groundId])
+  @@index([time])
+  @@index([status])
+}
+
+model UserProfile {
+  id        String   @id   // userId
+
+  region    String   @default("seoul")
+
+  // 관심 가중치
+  wLeague   Float    @default(1.0)
+  wRecruit  Float    @default(1.0)
+  wGround   Float    @default(1.0)
+  wMarket   Float    @default(1.0)
+
+  level     String?  // beginner | normal | pro
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([region])
+}
+
+model Experiment {
+  id        String   @id          // hub_story_cta
+  status    String   @default("RUNNING") // RUNNING | WIN
+
+  winner    String?  // A | B
+
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ExperimentStat {
+  id        String   @id
+
+  expId     String
+  variant   String   // A | B
+
+  imp       Int      @default(0)
+  click     Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([expId, variant])
+  @@index([expId])
+}
+
+model Campaign {
+  id        String   @id
+
+  region    String
+
+  trigger   String   // league_soon | recruit | discount | inactive
+
+  segment   String   // JSON string
+
+  msgA      String
+  msgB      String
+
+  status    String   @default("RUNNING") // RUNNING | PAUSED | ENDED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([region])
+  @@index([status])
+  @@index([trigger])
+}
+
+model MessageLog {
+  id         String   @id
+
+  userId     String
+  campaignId String
+
+  variant    String   // A | B
+  sentAt     DateTime @default(now())
+
+  clicked    Boolean  @default(false)
+  clickedAt  DateTime?
+
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([sentAt])
+}

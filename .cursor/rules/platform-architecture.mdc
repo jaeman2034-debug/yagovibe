@@ -1,0 +1,84 @@
+---
+alwaysApply: false
+description: YAGO SPORTS 플랫폼 전체 시스템 아키텍처 가이드 (레거시/플랫폼 집계 레이어 작업 시 참고)
+---
+
+# 🚀 YAGO SPORTS 플랫폼 아키텍처
+
+## 📊 시스템 레이어
+
+```
+Client (Web/Mobile)
+    ↓
+Frontend (React/Next.js)
+    ↓
+API Layer (Firebase Auth + Cloud Functions)
+    ↓
+Database (Firestore + Storage)
+    ↓
+Aggregation Engine (Cloud Functions)
+```
+
+## 🔥 핵심 원칙
+
+1. **Summary 우선**: Public 페이지는 summary/history만 사용
+2. **Cloud Functions 집계**: 모든 집계는 Cloud Functions에서 자동 처리
+3. **권한 이중 체크**: 프론트 + Firestore Rules
+4. **성능 최적화**: Summary, History, Cache 활용
+
+## 📁 주요 컬렉션
+
+### 원본 데이터
+- `events`, `event_matches`
+- `teams`, `players`
+- `player_games`
+
+### 집계 문서
+- `player_summary`, `team_summary`
+- `player_event_summaries`, `team_event_summaries`
+- `player_match_history`, `team_match_history`
+- `leaderboards`
+
+### 검색/관리
+- `search_index`
+- `organization_members`
+- `admin_logs`
+
+## ⚙️ Cloud Functions 트리거
+
+- `onPlayerGameWrite` → Player 집계
+- `onMatchResultWrite` → Team 집계
+- `onEventAwardCreate` → Award 처리
+- `onTeamWrite` / `onPlayerWrite` / `onEventWrite` → Search Index
+
+## 🔐 권한 구조
+
+- **Global Role**: `users/{uid}.role` ("ADMIN" | "USER")
+- **Organization Role**: `users/{uid}.organizationRoles[orgId]`
+  - `super_admin`, `org_admin`, `event_manager`, `stats_manager`, `viewer`
+
+## 📍 주요 페이지 구조
+
+### Public
+- `/events/:eventId` - Event 상세 (Overview, Teams, Bracket, Matches, Results, Stats)
+- `/teams/:teamId` - Team 상세 (Overview, Matches, Players, Records, Awards)
+- `/players/:playerId` - Player 상세 (Overview, Match Log, Events, Awards)
+- `/teams`, `/players`, `/search` - Directory/Search
+
+### Admin
+- `/admin` - Dashboard
+- `/admin/organizations/:orgId` - Organization 관리
+- `/admin/organizations/:orgId/events/:eventId` - Event 관리
+- `/admin/organizations/:orgId/events/:eventId/matches/:matchId/stats` - Player Stats 입력
+
+## 🎯 성능 전략
+
+1. **Public 페이지**: Summary/History 문서만 조회
+2. **Admin 페이지**: Batch write + Cloud Functions
+3. **검색**: Search Index 컬렉션 활용
+4. **리더보드**: 별도 캐시 문서
+
+## 📚 참고
+
+- 전체 아키텍처: [PLATFORM_ARCHITECTURE.md](mdc:PLATFORM_ARCHITECTURE.md)
+- Firestore 구조: [YAGO_FIRESTORE_DATA_STRUCTURE.md](mdc:YAGO_FIRESTORE_DATA_STRUCTURE.md)

@@ -1,0 +1,55 @@
+---
+description: YAGO 플랫폼 전역 모바일 가로폭 정책 — 레이아웃·페이지·카드 작업 시 필수
+globs: src/**/*.{tsx,ts,css}
+alwaysApply: false
+---
+
+# Global Mobile Layout Policy
+
+## Objective
+
+Mobile (<768px) usable width **93–96%** of viewport. One shell, no stacked narrow wrappers.
+
+## Mandatory shell
+
+Use `MobileFullWidthContainer` or `mobileFullWidthContainerClassName` from `@/components/layout/MobileFullWidthContainer`.
+
+```tsx
+// GOOD
+<MobileFullWidthContainer>...</MobileFullWidthContainer>
+<Card className="w-full" />
+
+// BAD on mobile page shells
+<div className="mx-auto max-w-md px-4">
+<Card className="max-w-sm mx-auto" />
+```
+
+Standard classes: `w-full max-w-none px-3 md:mx-auto md:max-w-3xl`
+
+## Do NOT use on mobile page shells
+
+- `max-w-sm`, `max-w-md` without `md:` prefix
+- `w-[80%]`, `w-[85%]`, `w-[90%]` for page content
+- narrow `mx-auto` + max-width stacks
+- duplicate `px-4` inside `AppContent` / `MobileFullWidthContainer`
+
+## Horizontal scroll
+
+`-mx-3 px-3` (`mobileFullWidthScrollBleedClassName`) — aligned to shell gutters only.
+
+## Exceptions
+
+- **Modals/drawers/dialogs**: may keep `max-w-md`
+- **Admin/analytics/data tables**: desktop layouts unchanged
+- **Chat bubbles**: `max-w-[85%]` etc. OK
+- **Inside AppContent** (`/hub`, `/team/:teamId`, …): page root = `w-full` only — no nested `px-3` / `max-w-md` / `mx-auto max-w-3xl`
+
+## Team pages (`src/pages/team/*`, `src/components/team/*`)
+
+- `TeamHome`, manage, members, lineup: outer `w-full`; cards `w-full`
+- `TeamPageLayout` uses `mobileFullWidthContainerClassName`
+- Do not stack `AppContent` padding + page `px-4` + card margins
+
+## md+ (tablet/desktop)
+
+Keep centered layouts: `md:max-w-3xl` default; wider pages use `mdMaxWidth` prop.

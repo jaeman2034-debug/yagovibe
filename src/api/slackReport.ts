@@ -70,7 +70,7 @@ export const POST = async (request: Request) => {
 
         // GPT 요약 생성
         const prompt = `
-다음은 YAGO VIBE의 ${reportDescription} 리포트입니다.
+다음은 YAGO SPORTS의 ${reportDescription} 리포트입니다.
 Slack 메시지용으로 간결하고 보기 좋게 정리해줘.
 
 요약 형식:
@@ -112,7 +112,7 @@ ${(target as any).recommendations?.map((r: string) => `• ${r}`).join('\n') || 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 response_type: "in_channel",
-                text: `📊 *YAGO VIBE ${reportDescription} 리포트*`,
+                text: `📊 *YAGO SPORTS ${reportDescription} 리포트*`,
                 attachments: [
                     {
                         color: "#4F46E5",

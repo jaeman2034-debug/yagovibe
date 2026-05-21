@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo, type ReactElement } from "react";
 
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -29,6 +29,9 @@ import {
   getDocs,
   orderBy,
   limit,
+  updateDoc,
+  increment,
+  deleteField,
 } from "firebase/firestore";
 
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -47,6 +50,19 @@ import type { MarketProduct } from "@/types/market";
 
 import { parseMarketProduct } from "@/types/market";
 import { FUNCTIONS_ORIGIN, ANALYZE_PRODUCT_ENDPOINT } from "@/config/env";
+import { sportHubHref } from "@/utils/sportHubHref";
+import {
+  openGoogleDirectionsTo,
+  openKakaoDirectionsTo,
+  openNaverDirectionsTo,
+} from "@/utils/mapDirections";
+import { fetchMarketPost } from "@/services/marketService";
+import type { MarketPost } from "@/features/market/types";
+import { MarketListingStatusBadge } from "@/components/market/MarketListingStatusBadge";
+import { normalizeMarketListingStatus } from "@/utils/marketListingStatus";
+import { canTransitionMarketPostStatus } from "@/utils/marketPostStatusTransition";
+import RecruitDetail from "@/features/market/components/details/RecruitDetail";
+import MatchDetail from "@/features/market/components/details/MatchDetail";
 
 
 
@@ -54,43 +70,118 @@ dayjs.extend(relativeTime);
 
 dayjs.locale("ko");
 
+const MAX_STATUS_HISTORY = 20;
+
+function isNetworkLikeFetchError(error: unknown): boolean {
+  if (!error) return false;
+  const msg =
+    typeof error === "object" && error && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : String(error);
+  return (
+    msg.includes("Failed to fetch") ||
+    msg.includes("NetworkError") ||
+    msg.includes("Load failed") ||
+    msg.includes("Network request failed")
+  );
+}
+
+function isFirestorePermissionError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = String((error as { code?: unknown }).code ?? "");
+  const message = String((error as { message?: unknown }).message ?? "");
+  return code.includes("permission-denied") || message.includes("Missing or insufficient permissions");
+}
 
 
 // 이미지 컴포넌트 (React.memo로 re-render 방지)
 
-const ProductImage = memo(({ src, alt }: { src: string; alt: string }) => (
-
-  <img
-
-    src={src}
-
-    alt={alt}
-
-    className="w-full h-full object-contain select-none"
-
-    style={{
-
-      maxHeight: "420px",
-
-    }}
-
-    loading="eager"
-
-    decoding="sync"
-
-    draggable={false}
-
-    width={600}
-
-    height={450}
-
-  />
-
-));
+const ProductImage = memo(
+  ({
+    src,
+    alt,
+    variant = "card",
+  }: {
+    src: string;
+    alt: string;
+    variant?: "card" | "hero";
+  }) => (
+    <img
+      src={src}
+      alt={alt}
+      className={
+        variant === "hero"
+          ? "h-full w-full object-cover select-none"
+          : "h-full w-full max-h-[420px] object-contain select-none"
+      }
+      loading="eager"
+      decoding="sync"
+      draggable={false}
+      width={600}
+      height={450}
+    />
+  )
+);
 
 
 
 ProductImage.displayName = "ProductImage";
+
+function toLocationLabel(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  }
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const rec = value as Record<string, unknown>;
+    const candidates = [
+      rec.address,
+      rec.roadAddress,
+      rec.placeName,
+      rec.name,
+      rec.dong,
+      rec.region,
+    ];
+    for (const c of candidates) {
+      if (typeof c === "string" && c.trim().length > 0) {
+        return c.trim();
+      }
+    }
+  }
+  return null;
+}
+
+function safeText(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "object") return "";
+  return String(value);
+}
+
+function normalizeProductDetail(id: string, data: ProductDetail): ProductDetail {
+  const safeName = typeof data.name === "string" ? data.name : "";
+  const safePrice = typeof data.price === "number" && Number.isFinite(data.price) ? data.price : undefined;
+  const safeStatus = typeof data.status === "string" ? data.status : "active";
+  const safeRegion =
+    typeof data.region === "string" || data.region === null ? data.region : null;
+  const safeLocation =
+    typeof data.location === "string" || data.location === null ? data.location : null;
+  const safeImageUrl = typeof data.imageUrl === "string" ? data.imageUrl : null;
+  const safeImageUrls = Array.isArray(data.imageUrls)
+    ? data.imageUrls.filter((url): url is string => typeof url === "string" && url.trim().length > 0)
+    : undefined;
+
+  return {
+    ...data,
+    id,
+    name: safeName,
+    price: safePrice,
+    status: safeStatus,
+    region: safeRegion,
+    location: safeLocation,
+    imageUrl: safeImageUrl,
+    imageUrls: safeImageUrls,
+  };
+}
 
 
 
@@ -128,7 +219,88 @@ type ProductDetail = {
 
   sellerId?: string | null;
 
+  /** Firestore `market` / `marketProducts` 공통 */
+  category?: string;
+
+  status?: string;
+
 };
+
+/**
+ * SSOT가 `market` 컬렉션일 때 ProductDetail UI 필드로 정규화
+ * (equipment 등: title, authorId, images)
+ */
+function normalizeMarketCollectionToProductDetail(
+  docId: string,
+  d: Record<string, unknown>
+): ProductDetail {
+  const images = Array.isArray(d.images)
+    ? (d.images as unknown[]).filter(
+        (x): x is string => typeof x === "string" && x.length > 0
+      )
+    : [];
+  const title = typeof d.title === "string" ? d.title : "";
+  const name =
+    typeof d.name === "string" && d.name.trim() ? d.name : title || "상품";
+  const author =
+    (typeof d.authorId === "string" && d.authorId) ||
+    (typeof d.userId === "string" && d.userId) ||
+    (typeof d.ownerId === "string" && d.ownerId) ||
+    (typeof d.sellerId === "string" && d.sellerId) ||
+    null;
+  const imageUrl =
+    (typeof d.imageUrl === "string" && d.imageUrl) ||
+    (typeof d.thumbnailUrl === "string" && d.thumbnailUrl) ||
+    images[0] ||
+    null;
+  let price: number | undefined;
+  if (typeof d.price === "number" && Number.isFinite(d.price)) {
+    price = d.price;
+  } else if (typeof d.price === "string") {
+    const n = Number(String(d.price).replace(/[^0-9.-]/g, ""));
+    if (Number.isFinite(n)) price = n;
+  }
+  const lat =
+    typeof d.latitude === "number"
+      ? d.latitude
+      : typeof d.lat === "number"
+        ? d.lat
+        : null;
+  const lng =
+    typeof d.longitude === "number"
+      ? d.longitude
+      : typeof d.lng === "number"
+        ? d.lng
+        : null;
+  return {
+    id: docId,
+    name,
+    price,
+    imageUrl,
+    imageUrls: images.length ? images : undefined,
+    description:
+      typeof d.description === "string"
+        ? d.description
+        : typeof d.desc === "string"
+          ? d.desc
+          : undefined,
+    region:
+      typeof d.region === "string"
+        ? d.region
+        : typeof d.location === "string"
+          ? d.location
+          : null,
+    location: typeof d.location === "string" ? d.location : null,
+    createdAt: (d.createdAt as ProductDetail["createdAt"]) ?? null,
+    latitude: lat,
+    longitude: lng,
+    userId: author,
+    ownerId: author,
+    sellerId: author,
+    category: typeof d.category === "string" ? d.category : undefined,
+    status: typeof d.status === "string" ? d.status : undefined,
+  };
+}
 
 
 
@@ -170,7 +342,33 @@ function getDistanceKm(
 
 }
 
+/** 상품 설명: 접힘 시 불릿·줄 단위로 스캔 가능하게 */
+type DescriptionPreview =
+  | { kind: "bullets"; items: string[]; needsToggle: boolean }
+  | { kind: "text"; preview: string; needsToggle: boolean };
 
+function buildDescriptionPreview(plain: string): DescriptionPreview {
+  const lines = plain.split(/\r?\n+/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length >= 2) {
+    const items = lines.slice(0, 3).map((l) => {
+      if (/^[•・]/.test(l)) return l;
+      if (/^[-*]\s/.test(l)) return `• ${l.replace(/^[-*]\s+/, "")}`;
+      if (/^\d+[.)]\s/.test(l)) return `• ${l.replace(/^\d+[.)]\s+/, "")}`;
+      return `• ${l}`;
+    });
+    return {
+      kind: "bullets",
+      items,
+      needsToggle: lines.length > 3 || plain.length > 400,
+    };
+  }
+  const needsToggle = plain.length > 200;
+  return {
+    kind: "text",
+    preview: needsToggle ? `${plain.slice(0, 200)}…` : plain,
+    needsToggle,
+  };
+}
 
 // 카메라 시네마틱 애니메이션
 
@@ -232,25 +430,116 @@ function cinematicCamera(
 
 }
 
+/** `market` 문서만 있고 `marketPosts` 동기화가 없을 때 상세 분기용 */
+function marketDocToMarketPost(docId: string, d: Record<string, unknown>): MarketPost {
+  const images = Array.isArray(d.images)
+    ? (d.images as unknown[]).filter((x): x is string => typeof x === "string" && x.length > 0)
+    : [];
+  const cat = typeof d.category === "string" ? d.category : "equipment";
+  return {
+    id: docId,
+    ...(d as Omit<MarketPost, "id">),
+    images: images.length ? images : [],
+    category: cat as MarketPost["category"],
+    sport: (typeof d.sport === "string" ? d.sport : "soccer") as MarketPost["sport"],
+    title: typeof d.title === "string" ? d.title : "",
+    status: (typeof d.status === "string" ? d.status : "active") as MarketPost["status"],
+    authorId: typeof d.authorId === "string" ? d.authorId : String(d.userId || d.ownerId || ""),
+    createdAt: d.createdAt ?? Date.now(),
+  } as MarketPost;
+}
 
+type MarketListingSource = "marketProducts" | "market" | "marketPosts" | "recruitPosts";
+
+type LoadMarketListingResult = {
+  resolvedProduct: ProductDetail;
+  mpResolved: MarketPost | null;
+  collectionRef: MarketListingSource;
+};
+
+/**
+ * `marketProducts` → `market` → `marketPosts` → `recruitPosts` 순으로 단일 id 조회
+ * (허브·알림에서 `activities` 문서 id로 잘못 열린 경우는 호출 측에서 `activities.refId` 재시도)
+ */
+async function loadMarketListingByPostId(trimmedId: string): Promise<LoadMarketListingResult | null> {
+  let snap = await getDoc(doc(db, "marketProducts", trimmedId));
+  let source: "marketProducts" | "market" = "marketProducts";
+
+  if (!snap.exists()) {
+    snap = await getDoc(doc(db, "market", trimmedId));
+    source = "market";
+  }
+
+  let resolvedProduct: ProductDetail | null = null;
+  let mpResolved: MarketPost | null = null;
+  let collectionRef: MarketListingSource = "marketProducts";
+
+  if (!snap.exists()) {
+    const mp = await fetchMarketPost(trimmedId);
+    if (mp) {
+      mpResolved = mp;
+      collectionRef = "marketPosts";
+      resolvedProduct = normalizeMarketCollectionToProductDetail(mp.id, { ...mp } as Record<string, unknown>);
+    } else {
+      const recruitSnap = await getDoc(doc(db, "recruitPosts", trimmedId));
+      if (recruitSnap.exists()) {
+        const rd = recruitSnap.data() as Record<string, unknown>;
+        resolvedProduct = normalizeMarketCollectionToProductDetail(recruitSnap.id, rd);
+        mpResolved = marketDocToMarketPost(recruitSnap.id, rd);
+        collectionRef = "recruitPosts";
+      }
+    }
+  } else {
+    const productData = snap.data() ?? {};
+    resolvedProduct =
+      source === "market"
+        ? normalizeMarketCollectionToProductDetail(snap.id, productData as Record<string, unknown>)
+        : {
+            id: snap.id,
+            ...(productData as Omit<ProductDetail, "id">),
+          };
+    collectionRef = source;
+
+    const mpSync = await fetchMarketPost(trimmedId);
+    if (mpSync) {
+      mpResolved = mpSync;
+    } else if (source === "market") {
+      const cat = (productData as { category?: string }).category;
+      if (cat === "recruit" || cat === "match" || cat === "equipment") {
+        mpResolved = marketDocToMarketPost(snap.id, productData as Record<string, unknown>);
+      }
+    }
+  }
+
+  if (!resolvedProduct) return null;
+  return { resolvedProduct, mpResolved, collectionRef };
+}
 
 export default function ProductDetailPage() {
 
-  const { id } = useParams<{ id: string }>();
+  const { id: paramId, postId: paramPostId, sport: hubSportParam } = useParams<{
+    id?: string;
+    postId?: string;
+    sport?: string;
+  }>();
+  const id = paramId ?? paramPostId;
 
   const navigate = useNavigate();
 
-  // 🔥 id 디버깅 로그 추가
-  useEffect(() => {
-    console.log("🔥 ProductDetail 페이지 로드:", { id, isIdValid: !!id });
-    if (!id) {
-      console.error("❌ ProductDetail: id가 undefined입니다! URL을 확인하세요.");
+  /** 마켓 리스트 단일 라우트: /sports/:sport/market */
+  const goBackToMarketList = () => {
+    const sid = hubSportParam?.trim();
+    if (sid) {
+      navigate(sportHubHref("market", sid));
+      return;
     }
-  }, [id]);
-
-
+    navigate(-1);
+  };
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
+
+  /** 통합 읽기 모델 — 있으면 카테고리별 전용 상세 UI */
+  const [marketPost, setMarketPost] = useState<MarketPost | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -259,10 +548,14 @@ export default function ProductDetailPage() {
   const [liked, setLiked] = useState(false);
 
   const [user, setUser] = useState<User | null>(auth.currentUser);
+  const [authReady, setAuthReady] = useState(false);
 
   const [activeIndex, setActiveIndex] = useState(0);
 
-
+  /** 상세 조회에 성공한 Firestore 컬렉션 (삭제·일부 쓰기 경로용) */
+  const productFirestoreCollectionRef = useRef<
+    "marketProducts" | "market" | "marketPosts" | "recruitPosts"
+  >("marketProducts");
 
   const [showMap, setShowMap] = useState(false);
 
@@ -275,6 +568,15 @@ export default function ProductDetailPage() {
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
 
   const [distanceLoading, setDistanceLoading] = useState(false);
+
+  /** 거리 계산·길찾기 시 출발지(현재 위치) 캐시 — Google Maps `origin`에 사용 */
+  const [directionsUserOrigin, setDirectionsUserOrigin] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  /** 길찾기: 앱/지도 선택 시트 (즉시 외부 이동 금지) */
+  const [showDirectionsSheet, setShowDirectionsSheet] = useState(false);
 
   // 🔮 AI 연관 상품 추천
   const [relatedProducts, setRelatedProducts] = useState<MarketProduct[]>([]);
@@ -291,6 +593,16 @@ export default function ProductDetailPage() {
     reason: string;
   } | null>(null);
   const [sellerTrustLoading, setSellerTrustLoading] = useState(false);
+
+  /** 판매자 노출용(닉네임·완료 거래 수) — 상단 신뢰 블록 */
+  const [sellerPublic, setSellerPublic] = useState<{
+    nickname: string;
+    successfulSales: number;
+  } | null>(null);
+
+  const [descExpanded, setDescExpanded] = useState(false);
+
+  const [listingStatusSaving, setListingStatusSaving] = useState(false);
 
   // ✨ AI 상품 요약
   const [summary, setSummary] = useState("");
@@ -345,6 +657,39 @@ export default function ProductDetailPage() {
   } | null>(null);
   const [totalScoreLoading, setTotalScoreLoading] = useState(false);
 
+  /** AI Functions 네트워크 장애 시 동일 세션에서 반복 호출을 중단해 콘솔 노이즈를 줄인다. */
+  const aiApiAvailableRef = useRef(true);
+  const postToAiEndpoint = useCallback(
+    async <T,>(path: string, payload: unknown, label: string): Promise<T | null> => {
+      if (!aiApiAvailableRef.current) return null;
+      try {
+        const response = await fetch(`${FUNCTIONS_ORIGIN}${path}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => "");
+          if (import.meta.env.DEV) {
+            console.warn(`[ProductDetail] ${label} API 오류:`, response.status, errorText);
+          }
+          return null;
+        }
+        return (await response.json()) as T;
+      } catch (error) {
+        if (isNetworkLikeFetchError(error)) {
+          aiApiAvailableRef.current = false;
+          return null;
+        }
+        if (import.meta.env.DEV) {
+          console.warn(`[ProductDetail] ${label} 호출 실패:`, error);
+        }
+        return null;
+      }
+    },
+    []
+  );
+
 
 
   // 상품 정보 로드
@@ -353,71 +698,98 @@ export default function ProductDetailPage() {
 
     let cancelled = false;
 
-
+    if (!authReady) {
+      setLoading(true);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const fetchProduct = async () => {
+      setMarketPost(null);
+      setError(null);
 
       if (!id) {
-
         setError("상품 ID가 올바르지 않습니다.");
-
         setLoading(false);
-
         return;
-
       }
+
+      const trimmedId = id.trim();
 
       try {
-
-        const ref = doc(db, "marketProducts", id);
-
-        const snap = await getDoc(ref);
-
-        if (!cancelled) {
-
-          if (snap.exists()) {
-
-            const productData = snap.data();
-
-            // 🔥 디버깅: 상품 데이터 로그 (userId 확인)
-            console.log("🔥 상품 데이터 로드:", {
-              id: snap.id,
-              productUserId: productData?.userId || productData?.ownerId || productData?.sellerId,
-              hasUserId: !!(productData?.userId || productData?.ownerId || productData?.sellerId),
-              productDataKeys: Object.keys(productData || {}),
-              productData: productData,
-            });
-
-            setProduct({
-
-              id: snap.id,
-
-              ...(productData as Omit<ProductDetail, "id">),
-
-            });
-
-          } else {
-
-            setProduct(null);
-
+        let loaded = await loadMarketListingByPostId(trimmedId);
+        if (!loaded) {
+          try {
+            const actSnap = await getDoc(doc(db, "activities", trimmedId));
+            if (actSnap.exists()) {
+              const ad = actSnap.data() as Record<string, unknown>;
+              const actRefId = typeof ad.refId === "string" ? ad.refId.trim() : "";
+              if (actRefId && actRefId !== trimmedId) {
+                loaded = await loadMarketListingByPostId(actRefId);
+                if (import.meta.env.DEV) {
+                  console.debug("[ProductDetail] activities refId hop", {
+                    fromUrlId: trimmedId,
+                    refId: actRefId,
+                    found: !!loaded,
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            if (import.meta.env.DEV) {
+              console.debug("[ProductDetail] activities lookup skip", e);
+            }
           }
-
         }
 
+        const { resolvedProduct, mpResolved, collectionRef } = loaded
+          ? loaded
+          : {
+              resolvedProduct: null as ProductDetail | null,
+              mpResolved: null as MarketPost | null,
+              collectionRef: "marketProducts" as const,
+            };
+
+        if (!cancelled) {
+          if (import.meta.env.DEV) {
+            console.debug("[ProductDetail] getDoc", {
+              id: trimmedId,
+              collection: collectionRef,
+              exists: !!resolvedProduct,
+              hasMarketPost: !!mpResolved,
+              sourceHint:
+                collectionRef === "recruitPosts"
+                  ? "recruitPosts_only_sync_fallback"
+                  : undefined,
+            });
+          }
+
+          if (resolvedProduct) {
+            productFirestoreCollectionRef.current = collectionRef;
+            setProduct(normalizeProductDetail(resolvedProduct.id, resolvedProduct));
+            setMarketPost(mpResolved);
+          } else {
+            productFirestoreCollectionRef.current = "marketProducts";
+            setProduct(null);
+            setMarketPost(null);
+          }
+        }
       } catch (err) {
-
         console.error("상품 정보를 불러오는 중 오류가 발생했습니다.", err);
+        const code = (err as { code?: string } | null)?.code ?? "";
+        const isPermissionDenied = code.includes("permission-denied");
 
-        if (!cancelled)
-
-          setError("상품 정보를 불러오는 중 문제가 발생했습니다.");
-
+        if (!cancelled) {
+          setError(
+            isPermissionDenied
+              ? "권한이 없어 상품을 불러오지 못했습니다. 로그인 상태를 확인해주세요."
+              : "상품 정보를 불러오는 중 문제가 발생했습니다."
+          );
+        }
       } finally {
-
         if (!cancelled) setLoading(false);
-
       }
-
     };
 
 
@@ -430,9 +802,58 @@ export default function ProductDetailPage() {
 
     };
 
-  }, [id]);
+  }, [authReady, id]);
 
+  /** `marketPosts` 상세 조회수 (세션당 1회, Strict Mode 중복 완화) */
+  useEffect(() => {
+    if (!id || !product || !marketPost) return;
+    const pid = id.trim();
+    if (!pid) return;
+    const key = `yago_mp_view_${pid}`;
+    try {
+      if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(key)) return;
+    } catch {
+      /* ignore */
+    }
+    const postRef = doc(db, "marketPosts", pid);
+    void updateDoc(postRef, { viewCount: increment(1) })
+      .then(() => {
+        try {
+          if (typeof sessionStorage !== "undefined") sessionStorage.setItem(key, "1");
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {
+        /* 권한/필드 없음 등은 무시 */
+      });
+  }, [id, product, marketPost]);
 
+  /** 모집/매칭 전용 상세일 때만 레거시 AI·추천 상태 제거 (중고 equipment는 통합 UI에서 AI 사용) */
+  useEffect(() => {
+    if (!marketPost || marketPost.category === "equipment") return;
+    setRelatedProducts([]);
+    setRelatedLoading(false);
+    setSimilarProducts([]);
+    setSimilarLoading(false);
+    setSellerTrust(null);
+    setSellerTrustLoading(false);
+    setSummary("");
+    setSummaryLoading(false);
+    setFraudRisk(null);
+    setFraudLoading(false);
+    setImageQuality(null);
+    setQualityLoading(false);
+    setConditionScore(null);
+    setConditionLoading(false);
+    setFuturePrice(null);
+    setFuturePriceLoading(false);
+    setComponents([]);
+    setComponentsSummary("");
+    setComponentsLoading(false);
+    setTotalScore(null);
+    setTotalScoreLoading(false);
+  }, [marketPost]);
 
   // 로그인 상태 감지
 
@@ -441,6 +862,7 @@ export default function ProductDetailPage() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
 
       setUser(currentUser);
+      setAuthReady(true);
 
     });
 
@@ -500,6 +922,7 @@ export default function ProductDetailPage() {
 
   // 🔮 AI 연관 상품 추천 로드
   useEffect(() => {
+    if (marketPost && marketPost.category !== "equipment") return;
     if (!product || !product.category) return;
 
     const fetchRelatedProducts = async () => {
@@ -511,7 +934,17 @@ export default function ProductDetailPage() {
           where("category", "==", product.category)
         );
 
-        const snap = await getDocs(q);
+        let snap;
+        try {
+          snap = await getDocs(q);
+        } catch (dbError) {
+          if (isFirestorePermissionError(dbError)) {
+            console.warn("[ProductDetail] 연관 상품 조회 권한이 없어 추천을 건너뜁니다.");
+            setRelatedProducts([]);
+            return;
+          }
+          throw dbError;
+        }
         const candidates = snap.docs
           .map((docSnap) => parseMarketProduct(docSnap))
           .filter((p) => p.id !== product.id && p.id) // 자기 자신 제외
@@ -524,37 +957,32 @@ export default function ProductDetailPage() {
         }
 
         // 2) AI 서버에 보내서 유사도 점수 계산
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/getRelatedProducts`,
+        const data = await postToAiEndpoint<{ related?: Array<{ id: string; score: number }> }>(
+          "/getRelatedProducts",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              current: {
-                id: product.id,
-                name: product.name,
-                category: product.category,
-                tags: (product as any).tags || (product as any).aiTags || [],
-                description: product.description || "",
-                brand: (product as any).brand || "",
-              },
-              candidates: candidates.map((c) => ({
-                id: c.id,
-                name: c.name,
-                category: c.category,
-                tags: c.tags || c.aiTags || [],
-                description: c.description || "",
-                brand: (c as any).brand || "",
-              })),
-            }),
-          }
+            current: {
+              id: product.id,
+              name: product.name,
+              category: product.category,
+              tags: (product as any).tags || (product as any).aiTags || [],
+              description: product.description || "",
+              brand: (product as any).brand || "",
+            },
+            candidates: candidates.map((c) => ({
+              id: c.id,
+              name: c.name,
+              category: c.category,
+              tags: c.tags || c.aiTags || [],
+              description: c.description || "",
+              brand: (c as any).brand || "",
+            })),
+          },
+          "getRelatedProducts"
         );
-
-        if (!response.ok) {
-          throw new Error("서버 응답 오류");
+        if (!data) {
+          setRelatedProducts([]);
+          return;
         }
-
-        const data = await response.json();
         const relatedIds = (data.related || [])
           .slice(0, 5) // 상위 5개만
           .map((r: { id: string; score: number }) => r.id);
@@ -563,7 +991,7 @@ export default function ProductDetailPage() {
         const filtered = candidates.filter((p) => relatedIds.includes(p.id));
         setRelatedProducts(filtered);
       } catch (error: any) {
-        console.error("🔮 연관 상품 추천 오류:", error);
+        console.warn("🔮 연관 상품 추천 오류:", error);
         setRelatedProducts([]);
       } finally {
         setRelatedLoading(false);
@@ -571,10 +999,11 @@ export default function ProductDetailPage() {
     };
 
     void fetchRelatedProducts();
-  }, [product?.id, product?.category]);
+  }, [marketPost, product?.id, product?.category, postToAiEndpoint]);
 
   // 🔍 AI 유사상품 추천 로드 (의미 기반)
   useEffect(() => {
+    if (marketPost && marketPost.category !== "equipment") return;
     if (!product || !product.id) return;
 
     const fetchSimilarProducts = async () => {
@@ -661,35 +1090,30 @@ export default function ProductDetailPage() {
         }
 
         // 3) AI 유사상품 추천 API 호출
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/recommendSimilar`,
+        const data = await postToAiEndpoint<{ ranked?: Array<{ id: string }> }>(
+          "/recommendSimilar",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              base: {
-                id: product.id,
-                name: product.name,
-                category: product.category,
-                description: product.description,
-                tags: product.tags || product.aiTags || [],
-                price: product.price || 0,
-                latitude: product.latitude || null,
-                longitude: product.longitude || null,
-                aiOneLine: product.aiOneLine || "",
-                imageUrl: product.imageUrl || null,
-              },
-              candidates: filtered,
-              userLocation: userLoc,
-            }),
-          }
+            base: {
+              id: product.id,
+              name: product.name,
+              category: product.category,
+              description: product.description,
+              tags: product.tags || product.aiTags || [],
+              price: product.price || 0,
+              latitude: product.latitude || null,
+              longitude: product.longitude || null,
+              aiOneLine: product.aiOneLine || "",
+              imageUrl: product.imageUrl || null,
+            },
+            candidates: filtered,
+            userLocation: userLoc,
+          },
+          "recommendSimilar"
         );
-
-        if (!response.ok) {
-          throw new Error("AI 유사상품 추천 서버 응답 오류");
+        if (!data) {
+          setSimilarProducts([]);
+          return;
         }
-
-        const data = await response.json();
         const rankedIds = (data.ranked || []).map((r: any) => r.id);
 
         // 4) AI가 정렬한 순서대로 상품 재배열 (상위 10개만)
@@ -699,10 +1123,12 @@ export default function ProductDetailPage() {
           .filter((p): p is MarketProduct => p !== undefined);
 
         // 5) 행정동 자동 변환은 나중에 필요 시 처리 (일단 그대로 사용)
-        console.log(`🔍 AI 유사상품 추천: ${sortedProducts.length}개 상품 추천됨`);
+        if (import.meta.env.DEV) {
+          console.log(`🔍 AI 유사상품 추천: ${sortedProducts.length}개 상품 추천됨`);
+        }
         setSimilarProducts(sortedProducts);
       } catch (err: any) {
-        console.error("🔍 AI 유사상품 추천 오류:", err);
+        if (import.meta.env.DEV) console.warn("🔍 AI 유사상품 추천 오류:", err);
         setSimilarProducts([]);
       } finally {
         setSimilarLoading(false);
@@ -710,22 +1136,34 @@ export default function ProductDetailPage() {
     };
 
     void fetchSimilarProducts();
-  }, [product?.id, product?.name, product?.category, product?.description, product?.tags, product?.price]);
+  }, [
+    marketPost,
+    product?.id,
+    product?.name,
+    product?.category,
+    product?.description,
+    product?.tags,
+    product?.price,
+    postToAiEndpoint,
+  ]);
 
   // ⭐ AI 판매자 신뢰도 평가 로드
   useEffect(() => {
-    if (!product || !product.sellerId) return;
+    if (marketPost && marketPost.category !== "equipment") return;
+    const sellerUid = product?.sellerId || product?.userId;
+    if (!product || !sellerUid) return;
 
     const fetchSellerTrust = async () => {
       setSellerTrustLoading(true);
+      setSellerPublic(null);
       try {
         // 1) 판매자 통계 정보 불러오기
-        const sellerDocRef = doc(db, "sellerProfiles", product.sellerId);
+        const sellerDocRef = doc(db, "sellerProfiles", sellerUid);
         const sellerDocSnap = await getDoc(sellerDocRef);
 
         if (!sellerDocSnap.exists()) {
           // 판매자 프로필이 없으면 기본값 사용
-          const userDocRef = doc(db, "users", product.sellerId);
+          const userDocRef = doc(db, "users", sellerUid);
           const userDocSnap = await getDoc(userDocRef);
 
           if (!userDocSnap.exists()) {
@@ -736,7 +1174,7 @@ export default function ProductDetailPage() {
 
           const userData = userDocSnap.data();
           const sellerInfo = {
-            uid: product.sellerId,
+            uid: sellerUid,
             nickname: userData?.nickname || userData?.displayName || "알 수 없음",
             createdAt: userData?.createdAt || null,
           };
@@ -755,21 +1193,21 @@ export default function ProductDetailPage() {
               : null,
           };
 
+          setSellerPublic({
+            nickname: String(sellerInfo.nickname || "판매자"),
+            successfulSales: stats.successfulSales,
+          });
+
           // 2) AI 판매자 신뢰도 평가 API 호출
-          const response = await fetch(
-            `${FUNCTIONS_ORIGIN}/getSellerTrustScore`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ seller: sellerInfo, stats }),
-            }
+          const data = await postToAiEndpoint<{
+            score: number;
+            label: "매우 신뢰" | "신뢰" | "보통" | "주의" | "위험";
+            reason: string;
+          }>(
+            "/getSellerTrustScore",
+            { seller: sellerInfo, stats },
+            "getSellerTrustScore"
           );
-
-          if (!response.ok) {
-            throw new Error("AI 판매자 신뢰도 평가 서버 응답 오류");
-          }
-
-          const data = await response.json();
           setSellerTrust(data);
           setSellerTrustLoading(false);
           return;
@@ -778,12 +1216,12 @@ export default function ProductDetailPage() {
         const sellerData = sellerDocSnap.data();
 
         // 2) 판매자 정보 정리
-        const userDocRef = doc(db, "users", product.sellerId);
+        const userDocRef = doc(db, "users", sellerUid);
         const userDocSnap = await getDoc(userDocRef);
         const userData = userDocSnap.exists() ? userDocSnap.data() : {};
 
         const sellerInfo = {
-          uid: product.sellerId,
+          uid: sellerUid,
           nickname: sellerData.nickname || userData?.nickname || userData?.displayName || "알 수 없음",
           createdAt: sellerData.createdAt || userData?.createdAt || null,
         };
@@ -804,25 +1242,31 @@ export default function ProductDetailPage() {
               : null),
         };
 
+        setSellerPublic({
+          nickname: String(sellerInfo.nickname || "판매자"),
+          successfulSales: stats.successfulSales,
+        });
+
         // 4) AI 판매자 신뢰도 평가 API 호출
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/getSellerTrustScore`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ seller: sellerInfo, stats }),
-          }
+        const data = await postToAiEndpoint<{
+          score: number;
+          label: "매우 신뢰" | "신뢰" | "보통" | "주의" | "위험";
+          reason: string;
+        }>(
+          "/getSellerTrustScore",
+          { seller: sellerInfo, stats },
+          "getSellerTrustScore"
         );
-
-        if (!response.ok) {
-          throw new Error("AI 판매자 신뢰도 평가 서버 응답 오류");
+        if (!data) {
+          setSellerTrust(null);
+          return;
         }
-
-        const data = await response.json();
-        console.log(`⭐ AI 판매자 신뢰도 평가: ${data.score} / 5.0 (${data.label})`);
+        if (import.meta.env.DEV) {
+          console.log(`⭐ AI 판매자 신뢰도 평가: ${data.score} / 5.0 (${data.label})`);
+        }
         setSellerTrust(data);
       } catch (err: any) {
-        console.error("⭐ AI 판매자 신뢰도 평가 오류:", err);
+        if (import.meta.env.DEV) void err;
         setSellerTrust(null);
       } finally {
         setSellerTrustLoading(false);
@@ -830,45 +1274,45 @@ export default function ProductDetailPage() {
     };
 
     void fetchSellerTrust();
-  }, [product?.id, product?.sellerId]);
+  }, [marketPost, product?.id, product?.sellerId, product?.userId, postToAiEndpoint]);
+
+  useEffect(() => {
+    setDescExpanded(false);
+  }, [id]);
+
+  useEffect(() => {
+    setDirectionsUserOrigin(null);
+    setDistanceKm(null);
+  }, [id]);
 
   // ✨ AI 상품 요약 로드
   useEffect(() => {
+    if (marketPost && marketPost.category !== "equipment") return;
     if (!product || !product.name) return;
 
     const fetchSummary = async () => {
       setSummaryLoading(true);
       try {
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/getProductSummary`,
+        const data = await postToAiEndpoint<{ summary?: string }>(
+          "/getProductSummary",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: product.name,
-              category: product.category || "",
-              description: product.description || "",
-              tags: (product as any).tags || (product as any).aiTags || [],
-              imageUrl: product.imageUrl || null,
-            }),
-          }
+            name: product.name,
+            category: product.category || "",
+            description: product.description || "",
+            tags: (product as any).tags || (product as any).aiTags || [],
+            imageUrl: product.imageUrl || null,
+          },
+          "getProductSummary"
         );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("❌ getProductSummary API 오류:", response.status, errorText);
-          throw new Error(`서버 응답 오류: ${response.status} ${errorText}`);
+        if (!data) {
+          setSummary("");
+          return;
         }
-
-        const data = await response.json();
         setSummary(data.summary || "");
       } catch (error: any) {
-        console.error("✨ AI 상품 요약 오류:", error);
-        console.error("✨ 오류 상세:", {
-          message: error?.message,
-          code: error?.code,
-          stack: error?.stack,
-        });
+        if (import.meta.env.DEV) {
+          console.warn("✨ AI 상품 요약 오류:", error);
+        }
         setSummary("");
       } finally {
         setSummaryLoading(false);
@@ -876,10 +1320,11 @@ export default function ProductDetailPage() {
     };
 
     void fetchSummary();
-  }, [product?.id, product?.name]);
+  }, [marketPost, product?.id, product?.name, postToAiEndpoint]);
 
   // ⚠️ AI 사기 감지 로드
   useEffect(() => {
+    if (marketPost && marketPost.category !== "equipment") return;
     if (!product || !product.name) return;
 
     const fetchFraudRisk = async () => {
@@ -909,43 +1354,37 @@ export default function ProductDetailPage() {
           console.warn("평균가 계산 실패:", avgError);
         }
 
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/detectFraudRisk`,
+        const data = await postToAiEndpoint<{
+          risk: number;
+          label: "low" | "medium" | "high";
+          reason: string;
+        }>(
+          "/detectFraudRisk",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: product.name,
-              price: product.price || null,
-              avgPrice: avgPrice,
-              description: product.description || "",
-              category: product.category || "",
-              tags: (product as any).tags || (product as any).aiTags || [],
-              imageUrl: product.imageUrl || null,
-              userProfile: {
-                uid: (product as any).userId || null,
-                createdAt: null, // TODO: 사용자 정보 추가 시 구현
-                totalSales: 0, // TODO: 판매 이력 추가 시 구현
-              },
-            }),
-          }
+            name: product.name,
+            price: product.price || null,
+            avgPrice: avgPrice,
+            description: product.description || "",
+            category: product.category || "",
+            tags: (product as any).tags || (product as any).aiTags || [],
+            imageUrl: product.imageUrl || null,
+            userProfile: {
+              uid: (product as any).userId || null,
+              createdAt: null, // TODO: 사용자 정보 추가 시 구현
+              totalSales: 0, // TODO: 판매 이력 추가 시 구현
+            },
+          },
+          "detectFraudRisk"
         );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("❌ detectFraudRisk API 오류:", response.status, errorText);
-          throw new Error(`서버 응답 오류: ${response.status} ${errorText}`);
+        if (!data) {
+          setFraudRisk(null);
+          return;
         }
-
-        const data = await response.json();
         setFraudRisk(data);
       } catch (error: any) {
-        console.error("⚠️ AI 사기 감지 오류:", error);
-        console.error("⚠️ 오류 상세:", {
-          message: error?.message,
-          code: error?.code,
-          stack: error?.stack,
-        });
+        if (import.meta.env.DEV) {
+          console.warn("⚠️ AI 사기 감지 오류:", error);
+        }
         setFraudRisk(null);
       } finally {
         setFraudLoading(false);
@@ -953,34 +1392,34 @@ export default function ProductDetailPage() {
     };
 
     void fetchFraudRisk();
-  }, [product?.id, product?.name, product?.category, product?.price]);
+  }, [marketPost, product?.id, product?.name, product?.category, product?.price, postToAiEndpoint]);
 
   // 📸 AI 이미지 품질 점수 로드
   useEffect(() => {
+    if (marketPost && marketPost.category !== "equipment") return;
     if (!product?.imageUrl) return;
 
     const fetchImageQuality = async () => {
       setQualityLoading(true);
       try {
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/getImageQualityScore`,
+        const data = await postToAiEndpoint<{
+          score: number;
+          label: "low" | "medium" | "high";
+          reason: string;
+        }>(
+          "/getImageQualityScore",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              imageUrl: product.imageUrl,
-            }),
-          }
+            imageUrl: product.imageUrl,
+          },
+          "getImageQualityScore"
         );
-
-        if (!response.ok) {
-          throw new Error("서버 응답 오류");
+        if (!data) {
+          setImageQuality(null);
+          return;
         }
-
-        const data = await response.json();
         setImageQuality(data);
       } catch (error: any) {
-        console.error("📸 AI 이미지 품질 분석 오류:", error);
+        console.warn("📸 AI 이미지 품질 분석 오류:", error);
         setImageQuality(null);
       } finally {
         setQualityLoading(false);
@@ -988,44 +1427,39 @@ export default function ProductDetailPage() {
     };
 
     void fetchImageQuality();
-  }, [product?.id, product?.imageUrl]);
+  }, [marketPost, product?.id, product?.imageUrl, postToAiEndpoint]);
 
   // 🧩 AI 상품 상태 점수 로드
   useEffect(() => {
+    if (marketPost && marketPost.category !== "equipment") return;
     if (!product) return;
 
     const fetchConditionScore = async () => {
       setConditionLoading(true);
       try {
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/getConditionScore`,
+        const data = await postToAiEndpoint<{
+          score: number;
+          level: "상" | "중" | "하";
+          reason: string;
+        }>(
+          "/getConditionScore",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              description: product.description || "",
-              imageUrl: product.imageUrl || null,
-              category: product.category || "",
-              tags: (product as any).tags || (product as any).aiTags || [],
-            }),
-          }
+            description: product.description || "",
+            imageUrl: product.imageUrl || null,
+            category: product.category || "",
+            tags: (product as any).tags || (product as any).aiTags || [],
+          },
+          "getConditionScore"
         );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("❌ getConditionScore API 오류:", response.status, errorText);
-          throw new Error(`서버 응답 오류: ${response.status} ${errorText}`);
+        if (!data) {
+          setConditionScore(null);
+          return;
         }
-
-        const data = await response.json();
         setConditionScore(data);
       } catch (error: any) {
-        console.error("🧩 AI 상품 상태 점수 오류:", error);
-        console.error("🧩 오류 상세:", {
-          message: error?.message,
-          code: error?.code,
-          stack: error?.stack,
-        });
+        if (import.meta.env.DEV) {
+          console.warn("🧩 AI 상품 상태 점수 오류:", error);
+        }
         setConditionScore(null);
       } finally {
         setConditionLoading(false);
@@ -1033,10 +1467,11 @@ export default function ProductDetailPage() {
     };
 
     void fetchConditionScore();
-  }, [product?.id, product?.imageUrl, product?.description, product?.category]);
+  }, [marketPost, product?.id, product?.imageUrl, product?.description, product?.category, postToAiEndpoint]);
 
   // 📈 AI 가격 미래 예측 로드 (1주/2주 후 범위)
   useEffect(() => {
+    if (marketPost && marketPost.category !== "equipment") return;
     if (!product || !product.price || !product.category) return;
 
     const fetchFuturePrice = async () => {
@@ -1083,31 +1518,31 @@ export default function ProductDetailPage() {
           .slice(0, 30); // 최근 30개
 
         // 2) 가격 예측 API 호출
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/predictFuturePrice`,
+        const data = await postToAiEndpoint<{
+          oneWeek: { min: number; max: number } | null;
+          twoWeeks: { min: number; max: number } | null;
+          trend: "상승" | "보합" | "하락";
+          reason: string;
+        }>(
+          "/predictFuturePrice",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: product.name,
-              category: product.category || "",
-              description: product.description || "",
-              price: product.price || null,
-              conditionScore: conditionScore?.score || 0.5,
-              imageQualityScore: imageQuality?.score || 0.5,
-              historicalPrices: historicalPrices,
-            }),
-          }
+            name: product.name,
+            category: product.category || "",
+            description: product.description || "",
+            price: product.price || null,
+            conditionScore: conditionScore?.score || 0.5,
+            imageQualityScore: imageQuality?.score || 0.5,
+            historicalPrices: historicalPrices,
+          },
+          "predictFuturePrice"
         );
-
-        if (!response.ok) {
-          throw new Error("서버 응답 오류");
+        if (!data) {
+          setFuturePrice(null);
+          return;
         }
-
-        const data = await response.json();
         setFuturePrice(data);
       } catch (error: any) {
-        console.error("📈 AI 가격 미래 예측 오류:", error);
+        if (import.meta.env.DEV) console.warn("📈 AI 가격 미래 예측 오류:", error);
         setFuturePrice(null);
       } finally {
         setFuturePriceLoading(false);
@@ -1118,37 +1553,47 @@ export default function ProductDetailPage() {
     if (conditionScore !== null || imageQuality !== null || conditionScore === null && imageQuality === null) {
       void fetchFuturePrice();
     }
-  }, [product?.id, product?.price, product?.name, product?.category, product?.description, conditionScore?.score, imageQuality?.score]);
+  }, [
+    marketPost,
+    product?.id,
+    product?.price,
+    product?.name,
+    product?.category,
+    product?.description,
+    conditionScore?.score,
+    imageQuality?.score,
+    postToAiEndpoint,
+  ]);
 
   // 🧰 AI 구성품 분석 로드
   useEffect(() => {
+    if (marketPost && marketPost.category !== "equipment") return;
     if (!product || !product.imageUrl) return;
 
     const fetchComponents = async () => {
       setComponentsLoading(true);
       try {
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/detectComponents`,
+        const data = await postToAiEndpoint<{
+          components?: Array<{ name: string; status: "있음" | "없음" | "판단불가" }>;
+          summary?: string;
+        }>(
+          "/detectComponents",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              category: product.category || "",
-              description: product.description || "",
-              imageUrl: product.imageUrl || null,
-            }),
-          }
+            category: product.category || "",
+            description: product.description || "",
+            imageUrl: product.imageUrl || null,
+          },
+          "detectComponents"
         );
-
-        if (!response.ok) {
-          throw new Error("서버 응답 오류");
+        if (!data) {
+          setComponents([]);
+          setComponentsSummary("");
+          return;
         }
-
-        const data = await response.json();
         setComponents(data.components || []);
         setComponentsSummary(data.summary || "");
       } catch (error: any) {
-        console.error("🧰 AI 구성품 분석 오류:", error);
+        if (import.meta.env.DEV) console.warn("🧰 AI 구성품 분석 오류:", error);
         setComponents([]);
         setComponentsSummary("");
       } finally {
@@ -1157,10 +1602,11 @@ export default function ProductDetailPage() {
     };
 
     void fetchComponents();
-  }, [product?.id, product?.imageUrl, product?.category, product?.description]);
+  }, [marketPost, product?.id, product?.imageUrl, product?.category, product?.description, postToAiEndpoint]);
 
   // ⭐ AI 종합 등급 로드
   useEffect(() => {
+    if (marketPost && marketPost.category !== "equipment") return;
     if (!product) return;
 
     // 모든 필요한 데이터가 준비될 때까지 대기
@@ -1194,31 +1640,30 @@ export default function ProductDetailPage() {
           }
         }
 
-        const response = await fetch(
-          `${FUNCTIONS_ORIGIN}/generateTotalScore`,
+        const data = await postToAiEndpoint<{
+          score: number;
+          label: "매우 좋음" | "좋음" | "보통" | "나쁨" | "매우 나쁨";
+          reason: string;
+        }>(
+          "/generateTotalScore",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              conditionScore: conditionScore?.score || 0.5,
-              imageQualityScore: imageQuality?.score || 0.5,
-              fraud: fraudRisk,
-              components: components,
-              price: product.price || null,
-              historicalPrices: historicalPrices,
-              oneLineSummary: product.aiOneLine || "",
-            }),
-          }
+            conditionScore: conditionScore?.score || 0.5,
+            imageQualityScore: imageQuality?.score || 0.5,
+            fraud: fraudRisk,
+            components: components,
+            price: product.price || null,
+            historicalPrices: historicalPrices,
+            oneLineSummary: product.aiOneLine || "",
+          },
+          "generateTotalScore"
         );
-
-        if (!response.ok) {
-          throw new Error("서버 응답 오류");
+        if (!data) {
+          setTotalScore(null);
+          return;
         }
-
-        const data = await response.json();
         setTotalScore(data);
       } catch (error: any) {
-        console.error("⭐ AI 종합 등급 오류:", error);
+        if (import.meta.env.DEV) console.warn("⭐ AI 종합 등급 오류:", error);
         setTotalScore(null);
       } finally {
         setTotalScoreLoading(false);
@@ -1226,7 +1671,18 @@ export default function ProductDetailPage() {
     };
 
     void fetchTotalScore();
-  }, [product?.id, product?.price, product?.category, product?.aiOneLine, conditionScore?.score, imageQuality?.score, fraudRisk, components]);
+  }, [
+    marketPost,
+    product?.id,
+    product?.price,
+    product?.category,
+    product?.aiOneLine,
+    conditionScore?.score,
+    imageQuality?.score,
+    fraudRisk,
+    components,
+    postToAiEndpoint,
+  ]);
 
   const timeAgo = useMemo(() => {
 
@@ -1258,7 +1714,131 @@ export default function ProductDetailPage() {
 
   }, [product?.imageUrls, product?.imageUrl]);
 
+  const locationLabel = useMemo(() => {
+    const fromLocation = toLocationLabel(product?.location);
+    if (fromLocation) return fromLocation;
+    return toLocationLabel(product?.region);
+  }, [product?.location, product?.region]);
 
+  const listingStatus = useMemo(
+    () => normalizeMarketListingStatus(product?.status),
+    [product?.status]
+  );
+  const isListingSold = listingStatus === "sold";
+
+  /** 판매자 본인: 상품 페이지에서는 새 거래 채팅을 열 수 없음 → 목록/알림으로만 진입 (handleChat과 동일 기준) */
+  const viewerIsListingOwner = useMemo(() => {
+    if (!user?.uid || !product) return false;
+    const uid = user.uid;
+    if (
+      marketPost?.authorId &&
+      typeof marketPost.authorId === "string" &&
+      marketPost.authorId.trim() === uid
+    ) {
+      return true;
+    }
+    const p = product as { userId?: unknown; ownerId?: unknown; sellerId?: unknown };
+    return p.userId === uid || p.ownerId === uid || p.sellerId === uid;
+  }, [user?.uid, product, marketPost?.authorId]);
+
+  const persistListingStatus = useCallback(
+    async (nextRawStatus: string, opts?: { clearReservation?: boolean }) => {
+      if (!id?.trim() || !product) return;
+      const rawFrom = product.status ?? "active";
+      if (!canTransitionMarketPostStatus(rawFrom, nextRawStatus)) {
+        alert("이 상태로 변경할 수 없습니다.");
+        return;
+      }
+      const pid = id.trim();
+      const col = productFirestoreCollectionRef.current;
+      const historyEntry = {
+        from: rawFrom,
+        to: nextRawStatus,
+        changedAt: new Date().toISOString(),
+      };
+      const currentHistory = Array.isArray((product as any)?.statusHistory)
+        ? ((product as any).statusHistory as unknown[])
+        : [];
+      const nextHistory = [...currentHistory, historyEntry].slice(-MAX_STATUS_HISTORY);
+      const payload: Record<string, unknown> = {
+        status: nextRawStatus,
+        updatedAt: serverTimestamp(),
+        lastStatusChangeAt: serverTimestamp(),
+        statusHistory: nextHistory,
+      };
+      if (opts?.clearReservation) {
+        payload.reservedBy = null;
+        payload.reservedAt = null;
+      }
+      if (nextRawStatus === "done") {
+        payload.soldAt = serverTimestamp();
+      }
+      if (nextRawStatus === "open" || nextRawStatus === "active") {
+        payload.soldAt = deleteField();
+      }
+
+      const snapProduct: ProductDetail = { ...product };
+      const snapMp: MarketPost | null = marketPost ? ({ ...marketPost } as MarketPost) : null;
+
+      setProduct((p) => (p ? { ...p, status: nextRawStatus } : null));
+      setMarketPost((mp) =>
+        mp
+          ? ({
+              ...mp,
+              status: nextRawStatus as MarketPost["status"],
+              ...(opts?.clearReservation ? { reservedBy: null, reservedAt: null } : {}),
+            } as MarketPost)
+          : null
+      );
+
+      setListingStatusSaving(true);
+      try {
+        await updateDoc(doc(db, col, pid), payload);
+        if (col !== "marketPosts") {
+          try {
+            await updateDoc(doc(db, "marketPosts", pid), payload);
+          } catch {
+            /* 동기 문서 없음 */
+          }
+        }
+        if (col === "recruitPosts") {
+          try {
+            await updateDoc(doc(db, "market", pid), payload);
+          } catch {
+            /* market 없음 */
+          }
+        }
+        if (col === "marketProducts") {
+          try {
+            await updateDoc(doc(db, "market", pid), payload);
+          } catch {
+            /* market 없음 */
+          }
+        }
+        if (col === "market") {
+          try {
+            await updateDoc(doc(db, "marketProducts", pid), payload);
+          } catch {
+            /* marketProducts 없음 */
+          }
+          try {
+            await updateDoc(doc(db, "recruitPosts", pid), payload);
+          } catch {
+            /* recruitPosts 없음 */
+          }
+        }
+      } catch (e: unknown) {
+        setProduct(snapProduct);
+        setMarketPost(snapMp);
+        console.error("[ProductDetail] listing status update", e);
+        const msg = e instanceof Error ? e.message : "알 수 없는 오류";
+        alert("상태 변경에 실패했습니다. 이전 상태로 되돌렸습니다.\n" + msg);
+      } finally {
+        setListingStatusSaving(false);
+      }
+    },
+    [id, product, marketPost]
+  );
 
   // 상품이 바뀌면 첫 이미지부터
 
@@ -1270,7 +1850,7 @@ export default function ProductDetailPage() {
 
 
 
-  // 좌표 검증 및 변환 함수 (Firestore GeoPoint 지원)
+  // 좌표 검증 및 변환 함수 (Firestore GeoPoint · 문자열 · location 객체 — marketProducts 원본 spread 호환)
   const getValidCoordinates = (product: ProductDetail): { lat: number; lng: number } | null => {
     // 1. 직접 숫자로 저장된 경우
     if (
@@ -1286,14 +1866,28 @@ export default function ProductDetailPage() {
       return { lat: product.latitude, lng: product.longitude };
     }
 
-    // 2. Firestore GeoPoint 타입인 경우 (any 타입으로 접근)
     const productData = product as any;
-    if (productData.latitude?.toNumber) {
-      // Firestore GeoPoint의 latitude/longitude 메서드
-      return {
-        lat: productData.latitude.toNumber(),
-        lng: productData.longitude.toNumber(),
-      };
+
+    // 2. Firestore GeoPoint (모듈 SDK: 동일 객체에 latitude / longitude 숫자)
+    const latField = productData.latitude;
+    if (
+      latField &&
+      typeof latField === "object" &&
+      typeof latField.latitude === "number" &&
+      typeof latField.longitude === "number"
+    ) {
+      const la = latField.latitude as number;
+      const lo = latField.longitude as number;
+      if (
+        !isNaN(la) &&
+        !isNaN(lo) &&
+        la >= -90 &&
+        la <= 90 &&
+        lo >= -180 &&
+        lo <= 180
+      ) {
+        return { lat: la, lng: lo };
+      }
     }
 
     // 3. 문자열로 저장된 경우 (숫자로 변환 시도)
@@ -1313,7 +1907,23 @@ export default function ProductDetailPage() {
       return { lat: latNum, lng: lngNum };
     }
 
-    // 4. 좌표가 없거나 유효하지 않음
+    // 4. location: { lat, lng } | { latitude, longitude } (원본 문서만 있고 평탄화 안 된 경우)
+    const loc = productData.location;
+    if (loc && typeof loc === "object" && !Array.isArray(loc)) {
+      const la = Number(loc.lat ?? loc.latitude ?? loc.Latitude);
+      const lo = Number(loc.lng ?? loc.longitude ?? loc.Longitude);
+      if (
+        Number.isFinite(la) &&
+        Number.isFinite(lo) &&
+        la >= -90 &&
+        la <= 90 &&
+        lo >= -180 &&
+        lo <= 180
+      ) {
+        return { lat: la, lng: lo };
+      }
+    }
+
     return null;
   };
 
@@ -1332,41 +1942,18 @@ export default function ProductDetailPage() {
     container.innerHTML = "";
     setMapError(null);
 
-    // 1) 원본 좌표 값 가져오기
-    const rawLat = (product as any).latitude;
-    const rawLng = (product as any).longitude;
+    const resolved = getValidCoordinates(product);
+    console.debug("상품 좌표 정규화(getValidCoordinates):", resolved);
 
-    // 2) 숫자로 변환 (null, undefined, 빈 문자열 명시적 처리)
-    const lat =
-      rawLat !== null && rawLat !== undefined && rawLat !== ""
-        ? Number(rawLat)
-        : null;
-
-    const lng =
-      rawLng !== null && rawLng !== undefined && rawLng !== ""
-        ? Number(rawLng)
-        : null;
-
-    console.debug("상품 좌표 원본:", { rawLat, rawLng });
-    console.debug("상품 좌표 정규화:", { lat, lng });
-
-    // 3) 좌표 없으면 지도를 띄우지 않고 에러만 보여줌
-    if (
-      lat === null ||
-      lng === null ||
-      Number.isNaN(lat) ||
-      Number.isNaN(lng)
-    ) {
-      console.error("상품에 유효한 좌표가 없습니다.", {
-        rawLat,
-        rawLng,
-        product,
-      });
+    if (!resolved) {
+      console.error("상품에 유효한 좌표가 없습니다.", { product });
       setMapError(
         "이 상품에는 위치 정보가 없습니다. 상품 등록 시 위치를 다시 저장해 주세요."
       );
       return;
     }
+
+    const { lat, lng } = resolved;
 
     let cancelled = false;
     let map: google.maps.Map | null = null;
@@ -1421,24 +2008,12 @@ export default function ProductDetailPage() {
       return;
     }
 
-    // 좌표 정규화 (안전한 변환)
-    const rawLat = (product as any).latitude;
-    const rawLng = (product as any).longitude;
-
-    const lat =
-      rawLat !== null && rawLat !== undefined && rawLat !== ""
-        ? Number(rawLat)
-        : null;
-
-    const lng =
-      rawLng !== null && rawLng !== undefined && rawLng !== ""
-        ? Number(rawLng)
-        : null;
-
-    if (lat === null || lng === null || Number.isNaN(lat) || Number.isNaN(lng)) {
+    const resolved = getValidCoordinates(product);
+    if (!resolved) {
       setMapError("이 상품에는 위치 정보가 없습니다. 상품 등록 시 위치를 다시 저장해 주세요.");
       return;
     }
+    const { lat, lng } = resolved;
 
     if (!navigator.geolocation) {
 
@@ -1458,12 +2033,10 @@ export default function ProductDetailPage() {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const d = getDistanceKm(
-          pos.coords.latitude,
-          pos.coords.longitude,
-          lat,
-          lng
-        );
+        const uLat = pos.coords.latitude;
+        const uLng = pos.coords.longitude;
+        setDirectionsUserOrigin({ lat: uLat, lng: uLng });
+        const d = getDistanceKm(uLat, uLng, lat, lng);
 
         setDistanceKm(d);
         setDistanceLoading(false);
@@ -1485,34 +2058,43 @@ export default function ProductDetailPage() {
 
 
 
-  // Google 지도 길찾기 열기
-  const handleOpenGoogleDirections = () => {
-    if (!product) {
-      setMapError("상품 정보가 없습니다.");
-      return;
-    }
+  /** 길찾기·시트·구글 연동 — getValidCoordinates와 단일 소스 */
+  const getDirectionsDestination = (): { lat: number; lng: number } | null => {
+    if (!product) return null;
+    return getValidCoordinates(product);
+  };
 
-    // 좌표 정규화 (안전한 변환)
-    const rawLat = (product as any).latitude;
-    const rawLng = (product as any).longitude;
-
-    const lat =
-      rawLat !== null && rawLat !== undefined && rawLat !== ""
-        ? Number(rawLat)
-        : null;
-
-    const lng =
-      rawLng !== null && rawLng !== undefined && rawLng !== ""
-        ? Number(rawLng)
-        : null;
-
-    if (lat === null || lng === null || Number.isNaN(lat) || Number.isNaN(lng)) {
+  // Google 지도 길찾기 — 시트에서 "구글 지도" 선택 시에만 실행 (api=1 + destination + 캐시/일회 origin)
+  const launchGoogleDirections = () => {
+    const dest = getDirectionsDestination();
+    if (!dest) {
       setMapError("이 상품에는 위치 정보가 없습니다. 상품 등록 시 위치를 다시 저장해 주세요.");
       return;
     }
 
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    window.open(url, "_blank");
+    const openWith = (origin: { lat: number; lng: number } | null) => {
+      openGoogleDirectionsTo(dest, origin);
+    };
+
+    if (directionsUserOrigin) {
+      openWith(directionsUserOrigin);
+      return;
+    }
+
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const o = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setDirectionsUserOrigin(o);
+          openWith(o);
+        },
+        () => openWith(null),
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 120_000 }
+      );
+      return;
+    }
+
+    openWith(null);
   };
 
 
@@ -1571,54 +2153,127 @@ export default function ProductDetailPage() {
 
   // 💬 채팅하기 핸들러
   const handleChat = async () => {
+    if (listingStatus === "sold") {
+      alert("판매가 완료된 상품입니다.");
+      return;
+    }
     if (!user) {
       alert("로그인이 필요합니다.");
       return;
     }
 
-    if (!product?.sellerId && !product?.userId) {
-      alert("판매자 정보가 없습니다.");
-      return;
-    }
-
-    const sellerId = product.sellerId || product.userId;
-
-    if (!sellerId) {
-      alert("판매자 정보가 없습니다.");
-      return;
-    }
-
-    // 본인이 본인에게 채팅 방지
-    if (user.uid === sellerId) {
-      alert("본인 상품에서는 채팅을 시작할 수 없습니다.");
+    if (!product?.id) {
+      alert("상품 정보가 없습니다.");
       return;
     }
 
     try {
-      // 채팅 방 ID 생성 규칙 (두 uid 조합)
-      const chatId = [user.uid, sellerId].sort().join("_");
+      const {
+        getOrCreateChat,
+        resolveListingOwnerUid,
+        getStableChatId,
+        resolveTradeChatPostIdForMarketHub,
+        normalizeTradeChatDocumentIdForRoute,
+      } = await import("@/features/chat/services/chatService");
 
-      const chatRef = doc(db, "chats", chatId);
-      const chatSnap = await getDoc(chatRef);
+      const rawPostKey = String(marketPost?.id ?? product.id ?? "").trim();
+      /** `getOrCreateChat`과 동일한 postId SSOT — listing·게시글 id 불일치 시 marketPosts 존재 쪽으로 통일 */
+      const chatPostId = await resolveTradeChatPostIdForMarketHub(rawPostKey, product.id);
+      const listingOwner = await resolveListingOwnerUid(chatPostId);
+      const authorFromPost =
+        typeof marketPost?.authorId === "string" ? marketPost.authorId.trim() : "";
 
-      if (!chatSnap.exists()) {
-        await setDoc(chatRef, {
-          users: [user.uid, sellerId],
-          lastMessage: "",
-          updatedAt: serverTimestamp(),
-          product: {
-            id: product.id,
-            name: product.name,
-            imageUrl: product.imageUrl ?? null,
-          },
+      /** 판매자: 허브 `marketPosts.authorId` 최우선 → Firestore 단일 조회 → 레거시 상품 필드 */
+      const sellerId =
+        authorFromPost ||
+        listingOwner ||
+        (typeof product.sellerId === "string" ? product.sellerId.trim() : "") ||
+        (typeof product.userId === "string" ? product.userId.trim() : "") ||
+        (typeof product.ownerId === "string" ? product.ownerId.trim() : "") ||
+        "";
+
+      /** 본인 글 차단: 게시글 작성자·조회된 소유자 어느 한쪽이라도 본인이면 채팅 시작 불가 (product.ownerId 단독 신뢰 금지) */
+      if (authorFromPost && user.uid === authorFromPost) {
+        alert("본인 상품에서는 채팅을 시작할 수 없습니다.");
+        return;
+      }
+      if (listingOwner && user.uid === listingOwner) {
+        alert("본인 상품에서는 채팅을 시작할 수 없습니다.");
+        return;
+      }
+
+      if (!sellerId) {
+        alert("판매자 정보가 없습니다.");
+        return;
+      }
+
+      if (user.uid === sellerId) {
+        alert("본인 상품에서는 채팅을 시작할 수 없습니다.");
+        return;
+      }
+
+      if (import.meta.env.DEV) {
+        console.log("[CHAT DEBUG]", {
+          rawPostKey,
+          chatPostId,
+          productDocId: product.id,
+          marketPostId: marketPost?.id ?? null,
+          authorFromPost: authorFromPost || null,
+          listingOwner: listingOwner || null,
+          sellerId,
+          buyerId: user.uid,
+          stableChatId: getStableChatId(chatPostId, sellerId, user.uid),
         });
       }
 
-      // 채팅 페이지로 이동
-      navigate(`/app/chat/${chatId}`);
+      const { chatId } = await getOrCreateChat({
+        postId: chatPostId,
+        postTitle: product.name,
+        postImage: product.imageUrl ?? undefined,
+        listingId: product.id,
+        sport: typeof product.category === "string" ? product.category : "all",
+        sellerId,
+        buyerId: user.uid,
+        productPrice: product.price,
+        productCategory: typeof product.category === "string" ? product.category : undefined,
+      });
+
+      if (import.meta.env.DEV) {
+        console.log("[CHAT DEBUG] resolved", {
+          chatId,
+          stableChatId: getStableChatId(chatPostId, sellerId, user.uid),
+        });
+      }
+
+      navigate(`/app/chat/${normalizeTradeChatDocumentIdForRoute(chatId)}`);
     } catch (error: any) {
       console.error("채팅방 생성 오류:", error);
       alert("채팅방 생성 중 오류가 발생했습니다.\n" + (error.message || "알 수 없는 오류"));
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!id || !product) return;
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+    const favRef = doc(db, "users", user.uid, "favorites", id);
+    try {
+      if (liked) {
+        await deleteDoc(favRef);
+        setLiked(false);
+      } else {
+        await setDoc(favRef, {
+          name: product.name,
+          imageUrl: product.imageUrl ?? null,
+          price: product.price ?? null,
+          createdAt: serverTimestamp(),
+        });
+        setLiked(true);
+      }
+    } catch (err) {
+      console.error("즐겨찾기 처리 중 오류가 발생했습니다.", err);
     }
   };
 
@@ -1632,7 +2287,7 @@ export default function ProductDetailPage() {
 
         <p className="text-lg font-semibold text-red-500">{error}</p>
 
-        <Button variant="outline" onClick={() => navigate(-1)}>
+        <Button variant="outline" onClick={goBackToMarketList}>
 
           뒤로가기
 
@@ -1666,7 +2321,7 @@ export default function ProductDetailPage() {
 
         </p>
 
-        <Button variant="outline" onClick={() => navigate(-1)}>
+        <Button variant="outline" onClick={goBackToMarketList}>
 
           뒤로가기
 
@@ -1678,7 +2333,26 @@ export default function ProductDetailPage() {
 
   }
 
-
+  // marketPosts 통합 상세 — 모집·매칭만 전용 UI. 중고(equipment)는 아래 통합 ProductDetail(히어로·CTA·길찾기) 사용
+  if (
+    marketPost &&
+    (marketPost.category === "recruit" || marketPost.category === "match")
+  ) {
+    const sportNav = (hubSportParam?.trim() || marketPost.sport || "soccer") as string;
+    const shell = (inner: ReactElement) => (
+      <div className="min-h-dvh bg-gray-50 pb-24">
+        <div className="mx-auto w-full max-w-4xl px-4 pt-4">{inner}</div>
+      </div>
+    );
+    if (marketPost.category === "recruit") {
+      return shell(
+        <RecruitDetail post={marketPost} onBack={goBackToMarketList} sport={sportNav} />
+      );
+    }
+    return shell(
+      <MatchDetail post={marketPost} onBack={goBackToMarketList} sport={sportNav} />
+    );
+  }
 
   // 🔎 간단 AI 분석 더미 (이전 구조 유지)
 
@@ -1764,13 +2438,16 @@ export default function ProductDetailPage() {
 
   })();
 
-
+  const descriptionPlain = product.description?.trim() ?? "";
+  const descPreview = buildDescriptionPreview(descriptionPlain);
+  const showDescToggle =
+    !!descriptionPlain && (descExpanded || descPreview.needsToggle);
 
   return (
 
-    <div className="min-h-screen w-full bg-gradient-to-b from-[#f5f5f7] to-white">
+    <div className="flex min-h-dvh w-full flex-col bg-gradient-to-b from-[#f5f5f7] to-white">
 
-      <div className="detail-view w-full px-4 pt-4 pb-10">
+      <main className="detail-view w-full flex-1 px-4 pt-4 pb-6 sm:mx-auto sm:max-w-[720px] sm:px-6">
 
         {/* 상단 뒤로가기 */}
 
@@ -1778,7 +2455,7 @@ export default function ProductDetailPage() {
 
           type="button"
 
-          onClick={() => navigate(-1)}
+          onClick={goBackToMarketList}
 
           className="mb-3 inline-flex items-center text-xs font-medium text-gray-500 hover:text-gray-700 transition"
 
@@ -1802,46 +2479,45 @@ export default function ProductDetailPage() {
 
         >
 
-          {/* 이미지 섹션 */}
-
-          <div className="relative px-4 pt-6 pb-2 bg-transparent">
-
+          {/* 이미지 섹션 — 모바일 풀블리드 + 몰입 높이 */}
+          <div className="relative bg-transparent pb-2 pt-4">
             <div
-
               className="
-
-                mx-auto w-full max-w-[600px]
-
-                rounded-[28px]
-
-                overflow-hidden
-
-                bg-gradient-to-b from-[#f5f5f7] to-white
-
+                relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2
+                overflow-hidden rounded-none bg-gradient-to-b from-[#f5f5f7] to-white
                 shadow-[0_18px_45px_rgba(0,0,0,0.1)]
-
+                sm:left-auto sm:w-full sm:max-w-[720px] sm:translate-x-0 sm:mx-auto sm:rounded-[28px]
+                min-h-[42dvh] max-h-[min(60dvh,560px)] sm:min-h-0 sm:max-h-none
                 flex items-center justify-center
-
+                sm:aspect-[4/3]
               "
-
-              style={{ aspectRatio: "4 / 3" }}
-
             >
-
               {images.length > 0 ? (
-
-                <ProductImage src={images[activeIndex]} alt={product.name} />
-
-              ) : (
-
-                <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
-
-                  이미지가 없습니다.
-
+                <div className="relative h-full min-h-[42dvh] w-full sm:min-h-0">
+                  <div
+                    className={`relative h-full w-full overflow-hidden sm:rounded-[28px] ${
+                      isListingSold ? "brightness-[0.55]" : ""
+                    }`}
+                  >
+                    <ProductImage
+                      src={images[activeIndex]}
+                      alt={product.name}
+                      variant="hero"
+                    />
+                  </div>
+                  {isListingSold ? (
+                    <div className="pointer-events-none absolute inset-0 z-[6] flex items-center justify-center bg-black/35 sm:rounded-[28px]">
+                      <span className="rounded-xl bg-black/60 px-5 py-2.5 text-lg font-bold tracking-tight text-white shadow-lg">
+                        판매완료
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
-
+              ) : (
+                <div className="flex min-h-[42dvh] w-full items-center justify-center text-sm text-gray-400 sm:min-h-0">
+                  이미지가 없습니다.
+                </div>
               )}
-
             </div>
 
 
@@ -1858,7 +2534,7 @@ export default function ProductDetailPage() {
 
                   className="
 
-                    absolute left-6 top-1/2 -translate-y-1/2
+                    absolute left-3 top-1/2 -translate-y-1/2 sm:left-6
 
                     inline-flex h-10 w-10 items-center justify-center
 
@@ -1890,7 +2566,7 @@ export default function ProductDetailPage() {
 
                   className="
 
-                    absolute right-6 top-1/2 -translate-y-1/2
+                    absolute right-3 top-1/2 -translate-y-1/2 sm:right-6
 
                     inline-flex h-10 w-10 items-center justify-center
 
@@ -1972,207 +2648,352 @@ export default function ProductDetailPage() {
 
           <div className="space-y-6 p-6 sm:p-8">
 
-            {/* 상단 메타 / 타이틀 / 가격 */}
-
-            <div className="space-y-3">
-
+            {/* 핵심 정보 블록: 제목 · 가격+상태 · 위치+길찾기 */}
+            <div className="space-y-3 border-b border-[#e8e8ed] pb-5">
               <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-gray-500">
-
                 <span className="inline-flex items-center rounded-full bg-[#e8f0ff] px-2.5 py-0.5 text-[#0a84ff]">
-
                   스포츠 마켓
-
                 </span>
-
-                {/* 🔥 위치 보기 버튼: location/region 또는 latitude/longitude가 있으면 표시 */}
-                {(product.location || product.region || 
-                  (typeof product.latitude === "number" && !isNaN(product.latitude) && 
-                   typeof product.longitude === "number" && !isNaN(product.longitude))) && (
-
-                  <>
-
-                    <span className="h-3 w-px bg-gray-300" />
-
-                    {product.location || product.region ? (
-                      <span className="truncate max-w-[140px]">
-                        {product.location ?? product.region}
-                      </span>
-                    ) : (
-                      <span className="truncate max-w-[140px] text-gray-500">
-                        위치 정보
-                      </span>
-                    )}
-
-                    <button
-
-                      onClick={() => {
-                        // 🔥 id가 없으면 경고
-                        if (!id) {
-                          console.error("❌ 수정하기 버튼: id가 undefined입니다!", { id, productId: product?.id });
-                          alert("상품 ID를 찾을 수 없습니다. 페이지를 새로고침해주세요.");
-                          return;
-                        }
-                        console.log("🔥 위치 보기 버튼 클릭:", { id, productId: product?.id });
-                        setShowMap(true);
-                      }}
-
-                      className="ml-2 text-[#0a84ff] underline text-[11px]"
-
-                    >
-
-                      위치 보기
-
-                    </button>
-
-                  </>
-
-                )}
-
                 {timeAgo && (
-
                   <>
-
                     <span className="h-3 w-px bg-gray-300" />
-
-                    <span>{timeAgo}</span>
-
+                    <span>{safeText(timeAgo)}</span>
                   </>
-
                 )}
-
               </div>
 
-
-
-              <h1 className="text-[22px] sm:text-[26px] font-semibold tracking-tight text-[#111111]">
-
+              <h1 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-[22px]">
                 {product.name}
-
               </h1>
 
-
-
-              <div className="flex items-baseline gap-2">
-
-                <p className="text-[24px] sm:text-[28px] font-extrabold tracking-tight text-[#111111]">
-
-                  {product.price
-
+              {/* 가격 + 상태 (+ VAT) 한 줄 스캔 */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span className="text-xl font-bold tabular-nums text-[#0a84ff] sm:text-2xl">
+                  {product.price != null
                     ? `${product.price.toLocaleString()}원`
-
                     : "가격 미정"}
-
-                </p>
-
-                {product.price && (
-
-                  <span className="text-xs text-gray-500">
-
-                    VAT 포함 · 단일가
-
+                </span>
+                <MarketListingStatusBadge status={listingStatus} />
+                {conditionLoading ? (
+                  <span className="text-xs text-gray-400">상품 상태 분석 중…</span>
+                ) : conditionScore ? (
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      conditionScore.level === "상"
+                        ? "bg-emerald-50 text-emerald-800"
+                        : conditionScore.level === "중"
+                          ? "bg-amber-50 text-amber-900"
+                          : "bg-orange-50 text-orange-900"
+                    }`}
+                    title="사진·설명 기반 상태 추정"
+                  >
+                    <span
+                      className={
+                        conditionScore.level === "상"
+                          ? "text-emerald-500"
+                          : conditionScore.level === "중"
+                            ? "text-amber-500"
+                            : "text-orange-500"
+                      }
+                    >
+                      ●
+                    </span>
+                    {conditionScore.level === "상"
+                      ? "상태 좋음"
+                      : conditionScore.level === "중"
+                        ? "보통"
+                        : "상태 주의"}
                   </span>
-
-                )}
-
+                ) : null}
+                {product.price != null ? (
+                  <span className="text-[10px] leading-none text-gray-400 sm:text-[11px] sm:ml-0.5">
+                    VAT 포함 · 단일가
+                  </span>
+                ) : null}
               </div>
 
+              {(locationLabel ||
+                product.region ||
+                (typeof product.latitude === "number" &&
+                  !Number.isNaN(product.latitude) &&
+                  typeof product.longitude === "number" &&
+                  !Number.isNaN(product.longitude))) ? (
+                <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3 text-sm text-gray-700">
+                  <span className="min-w-0 flex-1 leading-snug">
+                    <span className="text-gray-500">📍</span>{" "}
+                    <span className="font-medium text-gray-800">
+                      {safeText(locationLabel) || "위치 등록됨"}
+                      {distanceKm != null ? ` · ${distanceKm.toFixed(1)}km` : ""}
+                    </span>
+                  </span>
+                  {getDirectionsDestination() ? (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label="위치 지도 보기"
+                        className="inline-flex shrink-0 items-center rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 active:scale-[0.98] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                        onClick={() => setShowMap(true)}
+                      >
+                        지도
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="길찾기 — 지도 앱 선택"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#0a84ff] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/25 ring-2 ring-[#0a84ff]/20 transition hover:bg-[#0062d6] active:scale-[0.98]"
+                        onClick={() => setShowDirectionsSheet(true)}
+                      >
+                        <span aria-hidden>🧭</span>
+                        <span>길찾기</span>
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             {/* ✏️ 수정/삭제 버튼 (판매자만 표시) */}
-            {(() => {
-              // 🔥 디버깅: 권한 체크 로그
-              const currentUserId = user?.uid;
-              const productUserId = (product as any)?.userId || (product as any)?.ownerId || (product as any)?.sellerId;
-              const hasUserId = !!(product as any)?.userId || !!(product as any)?.ownerId || !!(product as any)?.sellerId;
-              const isOwner = currentUserId && productUserId && (currentUserId === productUserId);
-              
-              console.log("🔥 수정/삭제 버튼 권한 체크:", {
-                currentUserId,
-                productUserId,
-                hasUserId,
-                isOwner,
-                user: user ? { uid: user.uid, isAnonymous: user.isAnonymous } : null,
-                product: {
-                  userId: (product as any)?.userId,
-                  ownerId: (product as any)?.ownerId,
-                  sellerId: (product as any)?.sellerId,
-                  id: product?.id,
-                },
-              });
-              
-              // ⚠️ 개발 모드에서 권한 불일치 시 안내 메시지
-              if (process.env.NODE_ENV === 'development' && currentUserId && productUserId && !isOwner) {
-                console.warn("⚠️ 권한 불일치 발견!");
-                console.warn("📌 현재 로그인한 UID:", currentUserId);
-                console.warn("📌 상품의 userId:", productUserId);
-                console.warn("💡 해결 방법: Firestore Console에서 해당 문서의 userId를 현재 UID로 수정하세요.");
-                console.warn("   Firebase Console → Firestore → marketProducts → 해당 문서 → userId 필드 수정");
-              }
-              
-              return null; // 로그만 출력
-            })()}
-            {/* 🔥 개발 모드: 현재 UID 표시 (디버깅용) */}
-            {process.env.NODE_ENV === 'development' && user?.uid && (
-              <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-xs">
-                <p className="font-semibold text-yellow-700 dark:text-yellow-300 mb-1">
-                  🔍 디버깅 정보 (개발 모드)
-                </p>
-                <p className="text-yellow-600 dark:text-yellow-400">
-                  현재 로그인 UID: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">{user.uid}</code>
-                </p>
-                <p className="text-yellow-600 dark:text-yellow-400 mt-1">
-                  상품 userId: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">
-                    {(product as any)?.userId || (product as any)?.ownerId || (product as any)?.sellerId || "없음"}
-                  </code>
-                </p>
-                {user.uid !== ((product as any)?.userId || (product as any)?.ownerId || (product as any)?.sellerId) && (
-                  <p className="text-red-600 dark:text-red-400 mt-1 font-semibold">
-                    ⚠️ UID 불일치 → 수정/삭제 버튼이 숨겨집니다.
-                  </p>
-                )}
-              </div>
-            )}
             {user?.uid && ((product as any)?.userId || (product as any)?.ownerId || (product as any)?.sellerId) && 
              (user.uid === (product as any)?.userId || user.uid === (product as any)?.ownerId || user.uid === (product as any)?.sellerId) ? (
-              <div className="mt-4 flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 h-10 rounded-xl text-[13px] font-semibold border-[#0a84ff] text-[#0a84ff] hover:bg-[#0a84ff] hover:text-white transition"
-                  onClick={() => {
-                    // 🔥 id가 없으면 경고 표시
-                    if (!id) {
-                      console.error("❌ 수정하기 버튼: id가 undefined입니다!", { id, productId: product?.id });
-                      alert("상품 ID를 찾을 수 없습니다. 페이지를 새로고침해주세요.");
-                      return;
-                    }
-                    console.log("🔥 수정하기 버튼 클릭:", { id, productId: product?.id });
-                    navigate(`/app/market/edit/${id}`);
-                  }}
-                >
-                  ✏️ 수정하기
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-10 rounded-xl text-[13px] font-semibold border-[#ff3b30] text-[#ff3b30] hover:bg-[#ff3b30] hover:text-white transition"
-                  onClick={async () => {
-                    if (!id || !user) return;
-                    
-                    const confirmed = confirm("정말로 이 상품을 삭제하시겠습니까?\n삭제된 상품은 복구할 수 없습니다.");
-                    if (!confirmed) return;
+              <div className="mt-4 space-y-3">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-10 rounded-xl text-[13px] font-semibold border-[#0a84ff] text-[#0a84ff] hover:bg-[#0a84ff] hover:text-white transition"
+                    onClick={() => {
+                      if (!id) {
+                        if (import.meta.env.DEV) {
+                          console.warn("[ProductDetail] 수정하기: id 없음", { productId: product?.id });
+                        }
+                        alert("상품 ID를 찾을 수 없습니다. 페이지를 새로고침해주세요.");
+                        return;
+                      }
+                      navigate(`/app/market/edit/${id}`);
+                    }}
+                  >
+                    ✏️ 수정하기
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-10 rounded-xl text-[13px] font-semibold border-[#ff3b30] text-[#ff3b30] hover:bg-[#ff3b30] hover:text-white transition"
+                    onClick={async () => {
+                      if (!id || !user) return;
 
-                    try {
-                      const productRef = doc(db, "marketProducts", id);
-                      await deleteDoc(productRef);
-                      alert("상품이 삭제되었습니다.");
-                      navigate("/app/market");
-                    } catch (error: any) {
-                      console.error("상품 삭제 오류:", error);
-                      alert("상품 삭제 중 오류가 발생했습니다.\n" + (error.message || "알 수 없는 오류"));
-                    }
-                  }}
+                      const confirmed = confirm("정말로 이 상품을 삭제하시겠습니까?\n삭제된 상품은 복구할 수 없습니다.");
+                      if (!confirmed) return;
+
+                      try {
+                        const col = productFirestoreCollectionRef.current;
+                        const productRef = doc(db, col, id);
+                        await deleteDoc(productRef);
+                        const mirrorCols: string[] =
+                          col === "recruitPosts"
+                            ? ["market", "marketPosts", "marketProducts"]
+                            : col === "market"
+                              ? ["recruitPosts", "marketPosts", "marketProducts"]
+                              : col === "marketPosts"
+                                ? ["market", "recruitPosts", "marketProducts"]
+                                : col === "marketProducts"
+                                  ? ["market", "marketPosts", "recruitPosts"]
+                                  : [];
+                        for (const mc of mirrorCols) {
+                          try {
+                            await deleteDoc(doc(db, mc, id));
+                          } catch {
+                            /* 미러 없음 또는 이미 삭제 */
+                          }
+                        }
+                        alert("상품이 삭제되었습니다.");
+                        if (col === "marketPosts" || col === "recruitPosts") {
+                          goBackToMarketList();
+                        } else {
+                          navigate("/app/market");
+                        }
+                      } catch (error: any) {
+                        console.error("상품 삭제 오류:", error);
+                        alert("상품 삭제 중 오류가 발생했습니다.\n" + (error.message || "알 수 없는 오류"));
+                      }
+                    }}
+                  >
+                    🗑️ 삭제하기
+                  </Button>
+                </div>
+                {!isListingSold && (
+                  <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-3 dark:border-amber-900/40 dark:bg-amber-950/25">
+                    <p className="mb-2 text-xs font-semibold text-amber-900 dark:text-amber-100">
+                      판매 상태 변경
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {listingStatus === "active" ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={listingStatusSaving}
+                          className="rounded-lg border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+                          onClick={() => {
+                            if (
+                              !window.confirm(
+                                "예약중으로 변경할까요?\n다른 구매자에게는 구매가 어렵다고 안내하는 것이 좋아요."
+                              )
+                            ) {
+                              return;
+                            }
+                            void persistListingStatus("reserved");
+                          }}
+                        >
+                          {listingStatusSaving ? "처리 중…" : "예약중으로"}
+                        </Button>
+                      ) : null}
+                      {listingStatus === "reserved" ? (
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={listingStatusSaving}
+                            className="rounded-lg border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
+                            onClick={() => {
+                              if (
+                                !window.confirm(
+                                  "판매완료로 처리할까요?\n완료 후에는 목록에서 거래 종료로 보이고, 구매자 채팅이 제한됩니다."
+                                )
+                              ) {
+                                return;
+                              }
+                              void persistListingStatus("done", { clearReservation: true });
+                            }}
+                          >
+                            {listingStatusSaving ? "처리 중…" : "판매완료 처리"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={listingStatusSaving}
+                            className="rounded-lg border-sky-500 bg-white text-sky-800 hover:bg-sky-50"
+                            onClick={() => {
+                              if (!window.confirm("다시 판매중으로 바꿀까요?")) {
+                                return;
+                              }
+                              void persistListingStatus("open", { clearReservation: true });
+                            }}
+                          >
+                            {listingStatusSaving ? "처리 중…" : "다시 판매중"}
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* 판매자 · 설명 · 신뢰도 (핵심 흐름 상단 고정) */}
+            {(product.sellerId || product.userId) && (
+              <div className="rounded-2xl border border-[#e5e5ea] bg-white px-4 py-4 shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                  판매자
+                </p>
+                <div className="mt-1 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-semibold text-gray-900">
+                      {sellerPublic?.nickname ||
+                        (product as { sellerNickname?: string }).sellerNickname ||
+                        "판매자"}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {sellerTrustLoading ? (
+                        <span className="text-gray-400">정보 불러오는 중…</span>
+                      ) : sellerTrust ? (
+                        <>
+                          ⭐ {sellerTrust.score.toFixed(1)} · 거래{" "}
+                          {sellerPublic?.successfulSales ?? 0}회
+                        </>
+                      ) : (
+                        <>거래 {sellerPublic?.successfulSales ?? 0}회</>
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 shrink-0 rounded-xl px-3 text-[12px] font-semibold"
+                    onClick={() => {
+                      const sid = product.sellerId || product.userId;
+                      if (sid) navigate(`/profile/${sid}`);
+                    }}
+                  >
+                    프로필 보기 →
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-[#e5e5ea] bg-[#f9fafb] px-4 py-3.5">
+              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                상품 설명
+              </h3>
+              {!descriptionPlain ? (
+                <p className="text-[13px] text-gray-500 sm:text-sm">상품 설명이 없습니다.</p>
+              ) : descExpanded ? (
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-gray-800 sm:text-sm">
+                  {descriptionPlain}
+                </p>
+              ) : descPreview.kind === "bullets" ? (
+                <ul className="space-y-1.5 text-[13px] leading-relaxed text-gray-800 sm:text-sm">
+                  {descPreview.items.map((line, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="shrink-0 text-gray-400">•</span>
+                      <span className="min-w-0">{line.replace(/^•\s*/, "")}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-gray-800 sm:text-sm">
+                  {descPreview.preview}
+                </p>
+              )}
+              {showDescToggle ? (
+                <button
+                  type="button"
+                  className="mt-3 text-sm font-bold text-[#0a84ff] hover:text-[#0062d6]"
+                  onClick={() => setDescExpanded((v) => !v)}
                 >
-                  🗑️ 삭제하기
-                </Button>
+                  {descExpanded ? "접기" : "더 보기"}
+                </button>
+              ) : null}
+            </div>
+
+            {sellerTrust ? (
+              <div
+                className={`
+                  mt-2 p-4 rounded-xl text-sm border
+                  ${
+                    sellerTrust.label === "매우 신뢰"
+                      ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200"
+                      : sellerTrust.label === "신뢰"
+                        ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200"
+                        : sellerTrust.label === "보통"
+                          ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-200"
+                          : sellerTrust.label === "주의"
+                            ? "bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-200"
+                            : "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200"
+                  }
+                `}
+              >
+                <div className="mb-2">
+                  <div className="text-xs uppercase tracking-wide opacity-70">
+                    AI 판매자 분석
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-lg font-semibold">
+                    <span>⭐</span>
+                    {sellerTrust.score.toFixed(1)} / 5.0
+                    <span className="text-xs font-medium opacity-90">
+                      ({sellerTrust.label})
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs opacity-90 leading-relaxed">{sellerTrust.reason}</p>
               </div>
             ) : null}
 
@@ -2359,7 +3180,7 @@ export default function ProductDetailPage() {
                   )}
 
                   <p className="mt-2 text-xs opacity-80">
-                    추세: <span className="font-semibold">{futurePrice.trend}</span>
+                    추세: <span className="font-semibold">{safeText(futurePrice.trend)}</span>
                   </p>
 
                   <p className="mt-1 text-xs leading-relaxed opacity-90">
@@ -2385,7 +3206,7 @@ export default function ProductDetailPage() {
 
                 <ul className="space-y-2 text-sm">
                   {components.map((c, index) => (
-                    <li key={`${c.name}-${index}`} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <li key={`${safeText(c.name)}-${index}`} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                       {c.status === "있음" && (
                         <span className="text-green-600 dark:text-green-400 font-bold">✔</span>
                       )}
@@ -2395,13 +3216,13 @@ export default function ProductDetailPage() {
                       {c.status === "판단불가" && (
                         <span className="text-gray-500 dark:text-gray-400 font-bold">?</span>
                       )}
-                      <span className="flex-1">{c.name}</span>
+                      <span className="flex-1">{safeText(c.name)}</span>
                       <span className={`text-xs ${
                         c.status === "있음" ? "text-green-600 dark:text-green-400" :
                         c.status === "없음" ? "text-red-600 dark:text-red-400" :
                         "text-gray-500 dark:text-gray-400"
                       }`}>
-                        {c.status}
+                        {safeText(c.status)}
                       </span>
                     </li>
                   ))}
@@ -2485,73 +3306,6 @@ export default function ProductDetailPage() {
               </div>
             ) : null}
 
-            {/* 설명 */}
-
-            <div className="rounded-2xl border border-[#e5e5ea] bg-[#f5f5f7] px-4 py-3.5 text-[13px] sm:text-sm leading-relaxed text-gray-800">
-
-              {product.description?.trim()
-
-                ? product.description
-
-                : "상품 설명이 없습니다."}
-
-            </div>
-
-
-
-            {/* ⭐ AI 판매자 신뢰도 평가 */}
-            {sellerTrustLoading ? (
-              <div className="mt-4 animate-pulse p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2"></div>
-                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-              </div>
-            ) : sellerTrust ? (
-              <div
-                className={`
-                  mt-4 p-4 rounded-xl text-sm border
-                  ${
-                    sellerTrust.label === "매우 신뢰"
-                      ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200"
-                      : sellerTrust.label === "신뢰"
-                      ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200"
-                      : sellerTrust.label === "보통"
-                      ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-200"
-                      : sellerTrust.label === "주의"
-                      ? "bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-200"
-                      : "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200"
-                  }
-                `}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <div className="text-xs uppercase tracking-wide opacity-70 mb-1">
-                      판매자 신뢰도
-                    </div>
-                    <div className="text-lg font-semibold flex items-center gap-2">
-                      <span>⭐</span>
-                      {sellerTrust.score.toFixed(1)} / 5.0
-                    </div>
-                    <div className="text-xs mt-1 font-medium">{sellerTrust.label}</div>
-                  </div>
-
-                  {/* 판매자 프로필 간단 배지 */}
-                  <div className="text-right text-xs opacity-80">
-                    <div className="font-medium">
-                      {(product as any).sellerNickname || "판매자"}
-                    </div>
-                    {product.sellerId && (
-                      <div className="text-[10px] opacity-60 mt-1">
-                        거래 이력 확인
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <p className="mt-2 text-xs opacity-90 leading-relaxed">{sellerTrust.reason}</p>
-              </div>
-            ) : null}
-
             {/* AI 분석 패널 */}
 
             {aiBlock}
@@ -2609,120 +3363,158 @@ export default function ProductDetailPage() {
               </div>
             ) : null}
 
-
-
-            {/* 액션 버튼 */}
-
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-
-              <Button 
-                className="flex-1 h-11 rounded-xl bg-[#0a84ff] text-white text-[14px] font-semibold shadow-[0_10px_30px_rgba(10,132,255,0.45)] hover:bg-[#0062d6]"
-                onClick={handleChat}
-              >
-
-                💬 판매자와 채팅하기
-
-              </Button>
-
-
-
-              <Button
-
-                variant={liked ? "default" : "outline"}
-
-                className={`flex-1 h-11 rounded-xl text-[14px] font-semibold transition
-
-                  ${
-
-                    liked
-
-                      ? "bg-[#ff3b30] text-white hover:bg-[#e02b22] border-none shadow-[0_10px_26px_rgba(255,59,48,0.4)]"
-
-                      : "border-[#d1d1d6] text-[#0a84ff] hover:bg-[#f5f5f7]"
-
-                  }`}
-
-                onClick={async () => {
-
-                  if (!id) return;
-
-                  if (!user) {
-
-                    alert("로그인이 필요합니다.");
-
-                    return;
-
-                  }
-
-                  const favRef = doc(
-
-                    db,
-
-                    "users",
-
-                    user.uid,
-
-                    "favorites",
-
-                    id
-
-                  );
-
-                  try {
-
-                    if (liked) {
-
-                      await deleteDoc(favRef);
-
-                      setLiked(false);
-
-                    } else {
-
-                      await setDoc(favRef, {
-
-                        name: product.name,
-
-                        imageUrl: product.imageUrl ?? null,
-
-                        price: product.price ?? null,
-
-                        createdAt: serverTimestamp(),
-
-                      });
-
-                      setLiked(true);
-
-                    }
-
-                  } catch (err) {
-
-                    console.error(
-
-                      "즐겨찾기 처리 중 오류가 발생했습니다.",
-
-                      err
-
-                    );
-
-                  }
-
-                }}
-
-              >
-
-                {liked ? "❤️ 찜 해제" : "🤍 찜하기"}
-
-              </Button>
-
-            </div>
-
           </div>
 
         </section>
 
+      </main>
+
+      {/* 하단 고정 CTA — BottomNav(z-50) 위에 올려 항상 보이게 */}
+      <div
+        className="sticky inset-x-0 bottom-16 z-[100] mt-auto shrink-0 border-t border-gray-200/90 bg-white/98 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md supports-[backdrop-filter]:bg-white/90"
+        style={{
+          paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))",
+          paddingTop: "0.65rem",
+        }}
+      >
+        <div className="mx-auto flex w-full max-w-[720px] items-center gap-2.5 px-4 sm:gap-3">
+          <button
+            type="button"
+            onClick={handleToggleFavorite}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-lg transition ${
+              liked
+                ? "border-red-200 bg-red-50 text-red-500"
+                : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+            }`}
+            aria-label={liked ? "찜 해제" : "찜하기"}
+          >
+            {liked ? "❤️" : "🤍"}
+          </button>
+          <Button
+            type="button"
+            disabled={isListingSold}
+            className={`h-12 min-w-0 flex-1 rounded-2xl text-[15px] font-semibold shadow-none transition active:scale-[0.98] ${
+              isListingSold
+                ? "cursor-not-allowed bg-gray-300 text-gray-600 hover:bg-gray-300"
+                : "bg-[#0a84ff] text-white hover:bg-[#0062d6]"
+            }`}
+            onClick={
+              viewerIsListingOwner && !isListingSold
+                ? () => navigate("/app/chats")
+                : handleChat
+            }
+          >
+            {isListingSold
+              ? "판매 완료"
+              : viewerIsListingOwner
+                ? "💬 구매자 채팅 보기"
+                : "💬 채팅하기"}
+          </Button>
+          <div className="hidden min-w-[4.5rem] shrink-0 text-right sm:block sm:min-w-[5.5rem]">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+              가격
+            </p>
+            <p className="text-base font-extrabold leading-tight text-gray-900 sm:text-lg">
+              {product.price != null
+                ? `${product.price.toLocaleString()}원`
+                : "미정"}
+            </p>
+          </div>
+        </div>
+        <div className="mx-auto mt-1 w-full max-w-[720px] px-4 text-center sm:hidden">
+          <p className="text-xs font-semibold text-gray-900">
+            {product.price != null
+              ? `${product.price.toLocaleString()}원`
+              : "가격 미정"}
+          </p>
+        </div>
+        {viewerIsListingOwner && !isListingSold ? (
+          <p className="mx-auto mt-1 w-full max-w-[720px] px-4 text-center text-[11px] text-gray-500">
+            내가 올린 글이에요. 구매자 메시지는 위 버튼(채팅 목록) 또는 상단 알림에서 열 수 있어요.
+          </p>
+        ) : null}
+        {listingStatus === "reserved" && !isListingSold ? (
+          <p className="mx-auto mt-1 w-full max-w-[720px] px-4 text-center text-[11px] text-amber-800/90">
+            예약 중인 상품이에요. 채팅으로 일정을 맞춰 보세요.
+          </p>
+        ) : null}
       </div>
 
-
+      {/* 길찾기: 지도 앱 선택 (즉시 이동 없음) */}
+      {showDirectionsSheet && (
+        <div
+          className="fixed inset-0 z-[200] flex flex-col justify-end bg-black/40"
+          onClick={() => setShowDirectionsSheet(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowDirectionsSheet(false);
+          }}
+          role="presentation"
+        >
+          <div
+            className="w-full rounded-t-2xl border-t border-gray-200 bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-3 dark:border-gray-700 dark:bg-gray-900"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="길찾기 지도 선택"
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" />
+            <p className="mb-3 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
+              열 지도를 선택하세요
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                className="w-full rounded-xl bg-[#0a84ff] py-3 text-sm font-semibold text-white transition hover:bg-[#0062d6] active:scale-[0.98]"
+                onClick={() => {
+                  setShowDirectionsSheet(false);
+                  launchGoogleDirections();
+                }}
+              >
+                구글 지도
+              </button>
+              <button
+                type="button"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 active:scale-[0.98] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700/80"
+                onClick={() => {
+                  const d = getDirectionsDestination();
+                  if (!d || !product) {
+                    setMapError("이 상품에는 위치 정보가 없습니다.");
+                    setShowDirectionsSheet(false);
+                    return;
+                  }
+                  setShowDirectionsSheet(false);
+                  openKakaoDirectionsTo(d, product.name);
+                }}
+              >
+                카카오맵
+              </button>
+              <button
+                type="button"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 active:scale-[0.98] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700/80"
+                onClick={() => {
+                  const d = getDirectionsDestination();
+                  if (!d || !product) {
+                    setMapError("이 상품에는 위치 정보가 없습니다.");
+                    setShowDirectionsSheet(false);
+                    return;
+                  }
+                  setShowDirectionsSheet(false);
+                  openNaverDirectionsTo(d, product.name);
+                }}
+              >
+                네이버 지도
+              </button>
+              <button
+                type="button"
+                className="mt-1 w-full rounded-xl py-3 text-sm font-medium text-gray-600 transition hover:bg-gray-100 active:scale-[0.98] dark:text-gray-400 dark:hover:bg-gray-800"
+                onClick={() => setShowDirectionsSheet(false)}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 지도 모달 (Google Maps) */}
 
@@ -2730,7 +3522,7 @@ export default function ProductDetailPage() {
 
         <div
 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 backdrop-blur-sm"
 
           onClick={() => setShowMap(false)}
 
@@ -2746,97 +3538,62 @@ export default function ProductDetailPage() {
 
             <h2 className="text-lg font-semibold mb-2">📍 상품 위치</h2>
 
+            {getDirectionsDestination() ? (
+              <>
+                <div className="w-full h-60 rounded-xl overflow-hidden bg-gray-100">
+                  <div ref={mapRef} className="w-full h-full" />
+                </div>
 
+                {mapError && <p className="mt-2 text-xs text-red-500">{mapError}</p>}
 
-            <div className="w-full h-60 rounded-xl overflow-hidden bg-gray-100">
+                {distanceKm !== null && (
+                  <p className="mt-2 text-sm text-gray-700">
+                    현재 위치에서 약{" "}
+                    <span className="font-semibold">{distanceKm.toFixed(1)}km</span> 떨어져 있어요.
+                  </p>
+                )}
 
-              <div ref={mapRef} className="w-full h-full" />
+                <div className="mt-3 flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 text-[13px]"
+                    onClick={handleCalculateDistance}
+                    disabled={distanceLoading}
+                  >
+                    {distanceLoading ? "📏 거리 계산 중..." : "📏 현재 위치와 거리 계산"}
+                  </Button>
 
-            </div>
+                  <Button
+                    className="w-full h-9 text-[13px] bg-[#0a84ff] text-white hover:bg-[#0062d6]"
+                    onClick={() => {
+                      setShowMap(false);
+                      setShowDirectionsSheet(true);
+                    }}
+                  >
+                    🧭 길찾기 (지도 선택)
+                  </Button>
 
-
-
-            {mapError && (
-
-              <p className="mt-2 text-xs text-red-500">{mapError}</p>
-
+                  <Button variant="outline" className="w-full h-9 text-[13px]" onClick={() => setShowMap(false)}>
+                    닫기
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="py-6 text-center">
+                <div className="mb-3 text-4xl" aria-hidden>
+                  📍
+                </div>
+                <p className="text-sm font-medium text-gray-800">
+                  이 상품은 지도용 좌표(위·경도)가 등록되어 있지 않습니다.
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                  주소만 표시된 경우 길찾기를 제공할 수 없어요. 판매자에게 직거래 장소를 문의해 보세요.
+                </p>
+                <Button className="mt-6 w-full h-10 text-sm" variant="outline" onClick={() => setShowMap(false)}>
+                  닫기
+                </Button>
+              </div>
             )}
-
-
-
-            {distanceKm !== null && (
-
-              <p className="mt-2 text-sm text-gray-700">
-
-                현재 위치에서 약{" "}
-
-                <span className="font-semibold">
-
-                  {distanceKm.toFixed(1)}km
-
-                </span>{" "}
-
-                떨어져 있어요.
-
-              </p>
-
-            )}
-
-
-
-            <div className="mt-3 flex flex-col gap-2">
-
-              <Button
-
-                variant="outline"
-
-                className="w-full h-9 text-[13px]"
-
-                onClick={handleCalculateDistance}
-
-                disabled={distanceLoading}
-
-              >
-
-                {distanceLoading
-
-                  ? "📏 거리 계산 중..."
-
-                  : "📏 현재 위치와 거리 계산"}
-
-              </Button>
-
-
-
-              <Button
-
-                className="w-full h-9 text-[13px] bg-[#0a84ff] text-white hover:bg-[#0062d6]"
-
-                onClick={handleOpenGoogleDirections}
-
-              >
-
-                🚗 Google 지도 길찾기 열기
-
-              </Button>
-
-
-
-              <Button
-
-                variant="outline"
-
-                className="w-full h-9 text-[13px]"
-
-                onClick={() => setShowMap(false)}
-
-              >
-
-                닫기
-
-              </Button>
-
-            </div>
 
           </div>
 
