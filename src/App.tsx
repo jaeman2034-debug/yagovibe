@@ -9,7 +9,8 @@ import {
 } from "react-router-dom";
 import { normalizeSportId } from "@/constants/sports";
 import { resolveLastSportId, sportMarketDetailUrl } from "@/utils/sportHubHref";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, useEffect } from "react";
+import { lazyWithRecovery as lazy } from "@/lib/lazyWithRecovery";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthProvider";
 import { WebFcmDeepLinkBridge } from "./components/WebFcmDeepLinkBridge";
@@ -41,6 +42,8 @@ import {
 import TeamCreateCanonicalRedirect from "./pages/team/TeamCreateCanonicalRedirect";
 import { TeamGuard } from "@/components/guard/TeamGuard";
 import { CaptainOnlyRoute } from "@/components/guard/CaptainOnlyRoute";
+import { TeamRouteParamGuard } from "@/components/team/TeamRouteParamGuard";
+import { isPlaceholderRouteParam } from "@/lib/team/teamRouteIds";
 // 🔥 익명 로그인 보장 (업로드 문제 해결) - main.tsx에서 처리하므로 여기서는 제거
 
 // Lazy loading으로 성능 최적화 (LoginPage만 eager: lazy 청크 실패·OAuth 복귀 시 터짐 여부 확인용)
@@ -52,7 +55,7 @@ const HomeEntry = lazy(() => import("./pages/home/HomeEntry"));
 const HomeByRolePage = lazy(() => import("./pages/home/HomeByRolePage"));
 const HomeNewTest = lazy(() => import("./pages/home/HomeNew"));
 const HomeDashboard = lazy(() => import("./pages/home/HomeDashboard"));
-const SportsHubPage = lazy(() => import("./pages/SportsHubPage"));
+const LegacySportsHubRedirect = lazy(() => import("./routes/LegacySportsHubRedirect"));
 const VoiceMapSearch = lazy(() => import("./pages/VoiceMapSearch"));
 const VoiceMap = lazy(() => import("./pages/voice/VoiceMap"));
 const VoiceMapDashboard = lazy(() => import("./pages/voice/VoiceMapDashboard"));
@@ -154,6 +157,16 @@ const TeamCreate = lazy(() => import("@/pages/team/TeamCreate"));
 const TeamCreateStep2 = lazy(() => import("@/pages/team/TeamCreateStep2"));
 const TeamCreateStep3 = lazy(() => import("@/pages/team/TeamCreateStep3"));
 const TeamHome = lazy(() => import("@/pages/team/TeamHome"));
+const TeamAiAnalysisLiteRoute = lazy(() =>
+  import("@/pages/team/TeamAiAnalysisLiteRoute").then((m) => ({
+    default: m.TeamAiAnalysisLiteRoute,
+  }))
+);
+const TeamsAiAnalysisLiteRedirect = lazy(() =>
+  import("@/pages/team/TeamAiAnalysisLiteRoute").then((m) => ({
+    default: m.TeamsAiAnalysisLiteRedirect,
+  }))
+);
 const TeamSearchPage = lazy(() => import("@/pages/team/TeamSearchPage"));
 const TeamLineupPage = lazy(() => import("@/pages/team/TeamLineupPage"));
 const TeamLineupListPage = lazy(() => import("@/pages/team/TeamLineupListPage"));
@@ -163,6 +176,7 @@ const TeamPlayPage = lazy(() => import("@/pages/team/TeamPlayPage"));
 const PlayPage = lazy(() => import("@/pages/play/PlayPage"));
 const MatchmakingQueuePage = lazy(() => import("@/pages/play/MatchmakingQueuePage"));
 const QuickPlayPage = lazy(() => import("@/pages/play/QuickPlayPage"));
+const Game1v1Page = lazy(() => import("@/pages/play/Game1v1Page"));
 const GameSessionPage = lazy(() => import("@/pages/play/GameSessionPage"));
 const PlaygroundPage = lazy(() => import("@/pages/playground/PlaygroundPage"));
 const PlaygroundHubPage = lazy(() => import("@/pages/playground/PlaygroundHubPage"));
@@ -183,6 +197,8 @@ const BillingSuccessPage = lazy(() => import("./pages/billing/BillingSuccessPage
 const MyTeamsPage = lazy(() => import("@/pages/team/MyTeamsPage"));
 const SelectTeamPage = lazy(() => import("./pages/select-team/SelectTeamPage"));
 const TeamPublicProfilePage = lazy(() => import("@/pages/teams/TeamPage"));
+const LeaderboardsPage = lazy(() => import("./pages/leaderboards/LeaderboardsPage"));
+const FriendsPage = lazy(() => import("./pages/friends/FriendsPage"));
 const MePage = lazy(() => import("./pages/me/MePage"));
 const CoachDashboardPage = lazy(() => import("./pages/coach/CoachDashboardPage"));
 const JoinPage = lazy(() => import("./pages/join/JoinPage"));
@@ -198,6 +214,29 @@ const SportActivityListPage = lazy(() => import("./pages/sports/SportActivityLis
 const SportsActivityPage = lazy(() => import("./pages/sports/SportsActivityPage"));
 const SportsMatchPage = lazy(() => import("./pages/sports/SportsMatchPage"));
 const SportsMapPage = lazy(() => import("./pages/sports/SportsMapPage"));
+const AcademyCreate = lazy(() => import("./pages/academy/AcademyCreate"));
+const AcademyHub = lazy(() => import("./pages/academy/AcademyHub"));
+const AcademyDashboard = lazy(() => import("./pages/academy/AcademyDashboard"));
+const AcademyProgramsPlaceholder = lazy(() =>
+  import("./pages/academy/AcademyP0Redirects").then((m) => ({
+    default: m.AcademyProgramsPlaceholder,
+  }))
+);
+const AcademyCoachesPlaceholder = lazy(() =>
+  import("./pages/academy/AcademyP0Redirects").then((m) => ({
+    default: m.AcademyCoachesPlaceholder,
+  }))
+);
+const AcademyTeamsPlaceholder = lazy(() =>
+  import("./pages/academy/AcademyP0Redirects").then((m) => ({
+    default: m.AcademyTeamsPlaceholder,
+  }))
+);
+const AcademySearchRedirect = lazy(() =>
+  import("./pages/academy/AcademyP0Redirects").then((m) => ({
+    default: m.AcademySearchRedirect,
+  }))
+);
 const InviteLinkPage = lazy(() => import("./pages/invite/InviteLinkPage"));
 const InviteFriendLandingPage = lazy(() => import("./pages/invite/InviteFriendLandingPage"));
 const InvitePage = lazy(() => import("./pages/invite/InvitePage"));
@@ -296,11 +335,32 @@ function AssociationApplyLegacyRedirect() {
   return <Navigate to={`/associations/${associationId}/apply${search}`} replace />;
 }
 
+/** 레거시 `/teams/:teamId/lineup*` → canonical `/team/:teamId/lineup*` (params 치환) */
+function LegacyTeamsLineupRedirect({ target }: { target: "list" | "new" | "detail" }) {
+  const { teamId = "", lineupId } = useParams<{ teamId: string; lineupId?: string }>();
+  if (isPlaceholderRouteParam(teamId)) {
+    return <Navigate to="/my-teams" replace />;
+  }
+  const enc = encodeURIComponent(teamId);
+  if (target === "list") {
+    return <Navigate to={`/team/${enc}/lineup/list`} replace />;
+  }
+  if (target === "new") {
+    return <Navigate to={`/team/${enc}/lineup`} replace />;
+  }
+  if (isPlaceholderRouteParam(lineupId)) {
+    return <Navigate to={`/team/${enc}/lineup/list`} replace />;
+  }
+  return (
+    <Navigate to={`/team/${enc}/lineup/${encodeURIComponent(lineupId!)}`} replace />
+  );
+}
+
 /** 레거시 `/teams/:teamId` → 플레이 우선; `tab`/`hint` 쿼리는 공개 프로필로 전달 */
 function TeamsLegacyRedirect() {
   const { teamId = "" } = useParams<{ teamId: string }>();
   const [searchParams] = useSearchParams();
-  if (!teamId || teamId.startsWith(":")) {
+  if (isPlaceholderRouteParam(teamId)) {
     return <Navigate to="/my-teams" replace />;
   }
   const enc = encodeURIComponent(teamId);
@@ -314,6 +374,16 @@ function TeamsLegacyRedirect() {
     return <Navigate to={`/team/${enc}/public${q ? `?${q}` : ""}`} replace />;
   }
   return <Navigate to={`/teams/${enc}/play`} replace />;
+}
+
+/** 잘못된 상대경로 링크 `/home/:homeRole/team/:teamId` → canonical `/team/:teamId` */
+function HomeRoleTeamPathRedirect() {
+  const { teamId = "" } = useParams<{ teamId: string }>();
+  const { search, hash } = useLocation();
+  if (isPlaceholderRouteParam(teamId)) {
+    return <Navigate to="/home" replace />;
+  }
+  return <Navigate to={{ pathname: `/team/${encodeURIComponent(teamId)}`, search, hash }} replace />;
 }
 
 export default function App() {
@@ -556,18 +626,92 @@ export default function App() {
               <Route
                 path="/app/chats"
                 element={
-                  <ProtectedWithAvatar>
+                  <ProtectedRoute>
                     <ChatListPage />
-                  </ProtectedWithAvatar>
+                  </ProtectedRoute>
                 }
               />
-              <Route 
-                path="/sports-hub" 
+              {/* L2-C legacy: /sports-hub → /hub (see LegacySportsHubRedirect) */}
+              <Route
+                path="/sports-hub"
                 element={
                   <ProtectedRoute>
-                    <SportsHubPage />
+                    <Suspense fallback={null}>
+                      <LegacySportsHubRedirect />
+                    </Suspense>
                   </ProtectedRoute>
-                } 
+                }
+              />
+              {/* P0-2: legacy /academy/* — no 404; no academies/* writes (P0-1) */}
+              <Route
+                path="/academy/create"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={null}>
+                      <AcademyCreate />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/academy/dashboard/:academyId"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={null}>
+                      <AcademyDashboard />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/academy/programs"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={null}>
+                      <AcademyProgramsPlaceholder />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/academy/coaches"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={null}>
+                      <AcademyCoachesPlaceholder />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/academy/teams"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={null}>
+                      <AcademyTeamsPlaceholder />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/academy/search"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={null}>
+                      <AcademySearchRedirect />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/academy"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={null}>
+                      <AcademyHub />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
               />
               {/* 문서·레이아웃 기준 URL `/sports` — 종목 없는 루트 (이전 미등록으로 404) */}
               <Route
@@ -611,6 +755,16 @@ export default function App() {
                 }
               />
               <Route
+                path="/game/1v1"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="p-8 text-center text-slate-500">1v1 불러오는 중…</div>}>
+                      <Game1v1Page />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/game"
                 element={
                   <ProtectedRoute>
@@ -640,8 +794,35 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/leaderboards" element={<Navigate to="/play" replace />} />
+              <Route
+                path="/leaderboards"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="p-8 text-center text-slate-500">리더보드 불러오는 중…</div>}>
+                      <LeaderboardsPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/friends"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="p-8 text-center text-slate-500">친구 목록 불러오는 중…</div>}>
+                      <FriendsPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/rewards" element={<Navigate to="/me" replace />} />
+              <Route
+                path="/home/:homeRole/team/:teamId"
+                element={
+                  <ProtectedRoute>
+                    <HomeRoleTeamPathRedirect />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/home/:homeRole"
                 element={
@@ -682,9 +863,9 @@ export default function App() {
               <Route
                 path="/sports/:sport/recruit/create"
                 element={
-                  <ProtectedWithAvatar>
+                  <ProtectedRoute>
                     <RecruitCreatePage />
-                  </ProtectedWithAvatar>
+                  </ProtectedRoute>
                 }
               />
               <Route
@@ -694,33 +875,33 @@ export default function App() {
               <Route
                 path="/sports/:sport/match/create"
                 element={
-                  <ProtectedWithAvatar>
+                  <ProtectedRoute>
                     <MatchCreatePage />
-                  </ProtectedWithAvatar>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/sports/:sport/team/create"
                 element={
-                  <ProtectedWithAvatar>
+                  <ProtectedRoute>
                     <TeamCreate />
-                  </ProtectedWithAvatar>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/sports/:sport/team/create/next"
                 element={
-                  <ProtectedWithAvatar>
+                  <ProtectedRoute>
                     <TeamCreateStep2 />
-                  </ProtectedWithAvatar>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/sports/:sport/team/create/complete"
                 element={
-                  <ProtectedWithAvatar>
+                  <ProtectedRoute>
                     <TeamCreateStep3 />
-                  </ProtectedWithAvatar>
+                  </ProtectedRoute>
                 }
               />
               <Route
@@ -759,6 +940,7 @@ export default function App() {
               <Route
                 path="/team/:teamId/public"
                 element={
+                  <TeamRouteParamGuard>
                   <Suspense
                     fallback={
                       <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-500">
@@ -768,6 +950,7 @@ export default function App() {
                   >
                     <TeamPublicProfilePage />
                   </Suspense>
+                  </TeamRouteParamGuard>
                 }
               />
               <Route
@@ -819,16 +1002,34 @@ export default function App() {
                 }
               />
               <Route
+                path="/team/:teamId/ai-analysis"
+                element={
+                  <ProtectedRoute>
+                    <RequireAvatarOnboarding>
+                    <TeamRouteParamGuard>
+                      <TeamAiAnalysisLiteRoute />
+                    </TeamRouteParamGuard>
+                    </RequireAvatarOnboarding>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/team/:teamId"
                 element={
                   <ProtectedRoute>
                     <RequireAvatarOnboarding>
+                    <TeamRouteParamGuard>
                     <TeamGuard>
                       <TeamHome />
                     </TeamGuard>
+                    </TeamRouteParamGuard>
                     </RequireAvatarOnboarding>
                   </ProtectedRoute>
                 }
+              />
+              <Route
+                path="/teams/:teamId/ai-analysis"
+                element={<TeamsAiAnalysisLiteRedirect />}
               />
               <Route
                 path="/team/:teamId/lineup"
@@ -867,12 +1068,12 @@ export default function App() {
                 }
               />
               {/* 레거시 라인업 경로 호환: /teams/... -> /team/... */}
-              <Route path="/teams/:teamId/lineups" element={<Navigate to="/team/:teamId/lineup/list" replace />} />
-              <Route path="/teams/:teamId/lineup" element={<Navigate to="/team/:teamId/lineup" replace />} />
-              <Route path="/teams/:teamId/lineup/list" element={<Navigate to="/team/:teamId/lineup/list" replace />} />
+              <Route path="/teams/:teamId/lineups" element={<LegacyTeamsLineupRedirect target="list" />} />
+              <Route path="/teams/:teamId/lineup/list" element={<LegacyTeamsLineupRedirect target="list" />} />
+              <Route path="/teams/:teamId/lineup" element={<LegacyTeamsLineupRedirect target="new" />} />
               <Route
                 path="/teams/:teamId/lineups/:lineupId"
-                element={<Navigate to="/team/:teamId/lineup/:lineupId" replace />}
+                element={<LegacyTeamsLineupRedirect target="detail" />}
               />
               <Route
                 path="/my-teams"

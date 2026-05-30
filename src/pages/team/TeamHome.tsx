@@ -1,6 +1,6 @@
 /**
  * 팀 홈 — `/team/:teamId`
- * 탭: 홈 · 멤버 · 채팅 · 일정 · 관리(owner)
+ * 탭: 홈 · 멤버 · 채팅 · 일정 · AI 분석 Lite(생활체육) · 관리(owner)
  * 채팅은 기존 `chatRooms` + ensureTeamChatRoom + sendMessageCommon 사용
  */
 
@@ -31,6 +31,8 @@ import TeamMemberSummaryCard from "@/components/team/TeamMemberSummaryCard";
 import TeamOwnerSummarySection from "@/components/team/TeamOwnerSummarySection";
 import { TeamMemberInviteBar } from "@/components/team/TeamMemberInviteBar";
 import { TeamChatPanel } from "@/components/team/TeamChatPanel";
+import TeamAiAnalysisLitePage from "@/pages/team/TeamAiAnalysisLitePage";
+import { TEAM_AI_ANALYSIS_LITE_TAB, teamAiAnalysisLitePath } from "@/lib/team/teamAiAnalysisLite";
 import {
   ArrowLeft,
   Users,
@@ -66,6 +68,20 @@ import {
 import type { TeamMember } from "@/features/fees/types";
 import type { TeamFee, TeamFeePayment } from "@/types/fee";
 import { toast } from "sonner";
+import { isAcademyOrganization } from "@/lib/p0/terminology";
+import { AcademyAttendanceShell } from "@/features/academy/attendance/AcademyAttendanceShell";
+import { AcademyTrainingBlocksShell } from "@/features/academy/training-blocks/AcademyTrainingBlocksShell";
+import { canManageTrainingBlocks } from "@/lib/academy/academyReadSelectors";
+import { normalizeMemberRole } from "@/lib/team/academyMemberRole";
+import GuardianTeamTab from "@/features/guardian/GuardianTeamTab";
+import GuardianTeamHomeFeeCard from "@/features/guardian/GuardianTeamHomeFeeCard";
+import { isGuardianMemberRole } from "@/lib/guardian/guardianReadSelectors";
+import {
+  getTeamDetailCapabilities,
+  teamDetailActionBlocked,
+} from "@/lib/team/teamDetailRoleCapabilities";
+import { AcademyRosterShell } from "@/features/academy/roster/AcademyRosterShell";
+import { AcademyUnsupportedView } from "@/features/academy/roster/AcademyUnsupportedView";
 import {
   confirmTeamFeePayment,
   startTeamFeePayment,
@@ -74,7 +90,17 @@ import {
 const ONBOARDING_MIN_MEMBERS = 2;
 const ONBOARDING_MIN_TEAM_ACTIVITIES = 1;
 
-export type TeamHomeTab = "home" | "members" | "chat" | "schedule" | "manage";
+export type TeamHomeTab =
+  | "home"
+  | "members"
+  | "chat"
+  | "schedule"
+  | "ai-analysis"
+  | "manage"
+  | "roster"
+  | "attendance"
+  | "training-blocks"
+  | "guardian";
 
 function resolveSportSlug(team: Record<string, unknown> | null | undefined): string {
   if (!team) return "soccer";
@@ -84,7 +110,18 @@ function resolveSportSlug(team: Record<string, unknown> | null | undefined): str
   return s || "soccer";
 }
 
-function isValidTab(id: string, hasManage: boolean): id is TeamHomeTab {
+function isValidTab(
+  id: string,
+  hasManage: boolean,
+  isAcademy: boolean,
+  showGuardian: boolean,
+  showTrainingBlocks: boolean,
+  showAiAnalysisLite: boolean
+): id is TeamHomeTab {
+  if (id === "roster" || id === "attendance") return isAcademy;
+  if (id === "training-blocks") return isAcademy && showTrainingBlocks;
+  if (id === "guardian") return isAcademy && showGuardian;
+  if (id === "ai-analysis") return showAiAnalysisLite;
   if (id === "manage") return hasManage;
   return id === "home" || id === "members" || id === "chat" || id === "schedule";
 }
@@ -151,6 +188,7 @@ export default function TeamHome() {
     exists: boolean;
     isHubCaptain: boolean;
   }>({ loaded: false, exists: false, isHubCaptain: false });
+  const [myMemberRole, setMyMemberRole] = useState<string | undefined>(undefined);
   /** 팀장 회비 요약 — `teams/.../members` 중복 onSnapshot 방지용(부모 스냅샷에서만 채움) */
   const [feeDashMembers, setFeeDashMembers] = useState<TeamMember[]>([]);
   const [feeDashMembersLoading, setFeeDashMembersLoading] = useState(true);
@@ -207,6 +245,22 @@ export default function TeamHome() {
   const chatTabLabel =
     teamChatUnread > 0 ? `채팅 (${teamChatUnread})` : "채팅";
 
+  const isAcademyTeam = isAcademyOrganization(team);
+  /** 생활체육 전용 — Academy는 Validation Console 경로 유지 */
+  const showAiAnalysisLiteTab = !isAcademyTeam;
+  const showGuardianTab = isAcademyTeam && isGuardianMemberRole(myMemberRole);
+  const isGuardianViewer = isGuardianMemberRole(myMemberRole);
+
+  const teamCaps = useMemo(
+    () => getTeamDetailCapabilities(myMemberRole, { isTeamOwner: isOwner }),
+    [myMemberRole, isOwner]
+  );
+
+  const showTrainingBlocksTab = useMemo(
+    () => isAcademyTeam && canManageTrainingBlocks(normalizeMemberRole(myMemberRole)),
+    [isAcademyTeam, myMemberRole]
+  );
+
   const segmentItems = useMemo(() => {
     const base = [
       { id: "home", label: "홈" },
@@ -214,20 +268,47 @@ export default function TeamHome() {
       { id: "chat", label: chatTabLabel },
       { id: "schedule", label: "일정" },
     ];
+    if (isAcademyTeam) {
+      base.splice(2, 0, { id: "roster", label: "아카데미 명단" });
+      if (showGuardianTab) {
+        base.splice(3, 0, { id: "guardian", label: "보호자" });
+      }
+      base.splice(showGuardianTab ? 4 : 3, 0, { id: "attendance", label: "출석" });
+      if (showTrainingBlocksTab) {
+        base.splice(showGuardianTab ? 5 : 4, 0, { id: "training-blocks", label: "훈련 블록" });
+      }
+    }
+    if (showAiAnalysisLiteTab) {
+      base.push({ id: TEAM_AI_ANALYSIS_LITE_TAB, label: "AI 분석 (BETA)" });
+    }
     if (isOwner) base.push({ id: "manage", label: "관리" });
     return base;
-  }, [isOwner, chatTabLabel]);
+  }, [isOwner, chatTabLabel, isAcademyTeam, showGuardianTab, showTrainingBlocksTab, showAiAnalysisLiteTab]);
 
   const activityIdFromLink = searchParams.get("activityId") || "";
   const focusFromLink = searchParams.get("focus") || "";
 
   const tabFromUrl = searchParams.get("tab") || "home";
   const activeTab: TeamHomeTab = useMemo(() => {
-    if (isValidTab(tabFromUrl, isOwner)) return tabFromUrl;
+    if (
+      isValidTab(
+        tabFromUrl,
+        isOwner,
+        isAcademyTeam,
+        showGuardianTab,
+        showTrainingBlocksTab,
+        showAiAnalysisLiteTab
+      )
+    )
+      return tabFromUrl;
     return "home";
-  }, [tabFromUrl, isOwner]);
+  }, [tabFromUrl, isOwner, isAcademyTeam, showGuardianTab, showTrainingBlocksTab, showAiAnalysisLiteTab]);
 
   const setTab = (id: string) => {
+    if (id === TEAM_AI_ANALYSIS_LITE_TAB && teamId) {
+      navigate(teamAiAnalysisLitePath(teamId));
+      return;
+    }
     const next = new URLSearchParams(searchParams);
     if (id === "home") next.delete("tab");
     else next.set("tab", id);
@@ -271,6 +352,50 @@ export default function TeamHome() {
       setSearchParams(next, { replace: true });
     }
   }, [tabFromUrl, isOwner, searchParams, setSearchParams]);
+
+  /** Academy hard gate — non-academy must not render academy tabs (redirect to default tab). */
+  useEffect(() => {
+    if (loading || !team) return;
+    if (
+      tabFromUrl !== "roster" &&
+      tabFromUrl !== "attendance" &&
+      tabFromUrl !== "guardian" &&
+      tabFromUrl !== "training-blocks"
+    )
+      return;
+    if (isAcademyTeam) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("tab");
+    next.delete("session");
+    setSearchParams(next, { replace: true });
+  }, [tabFromUrl, loading, team, isAcademyTeam, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (loading || !team) return;
+    if (tabFromUrl !== "guardian") return;
+    if (isAcademyTeam && showGuardianTab) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("tab");
+    setSearchParams(next, { replace: true });
+  }, [tabFromUrl, loading, team, isAcademyTeam, showGuardianTab, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (loading || !team) return;
+    if (tabFromUrl !== "training-blocks") return;
+    if (isAcademyTeam && showTrainingBlocksTab) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("tab");
+    setSearchParams(next, { replace: true });
+  }, [tabFromUrl, loading, team, isAcademyTeam, showTrainingBlocksTab, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (loading || !team) return;
+    if (tabFromUrl !== TEAM_AI_ANALYSIS_LITE_TAB) return;
+    if (showAiAnalysisLiteTab) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("tab");
+    setSearchParams(next, { replace: true });
+  }, [tabFromUrl, loading, team, showAiAnalysisLiteTab, searchParams, setSearchParams]);
 
   /** `/team/:id?tab=fees` → 회비 대시보드는 `/teams/:id/manage`에만 마운트됨 */
   useEffect(() => {
@@ -333,6 +458,7 @@ export default function TeamHome() {
 
         if (!uid) {
           setMyHubMemberSoT({ loaded: false, exists: false, isHubCaptain: false });
+          setMyMemberRole(undefined);
           setFeePaymentIdentityIds([]);
         } else {
           const payIds = new Set<string>([uid]);
@@ -351,12 +477,14 @@ export default function TeamHome() {
           const mine = snap.docs.find((d) => d.id === uid);
           if (!mine) {
             setMyHubMemberSoT({ loaded: true, exists: false, isHubCaptain: false });
+            setMyMemberRole(undefined);
           } else {
             const d = mine.data();
             const role = typeof d.role === "string" ? d.role : undefined;
             const accessLevel = typeof d.accessLevel === "string" ? d.accessLevel : undefined;
             const hubCaptain = isCaptain(role) || accessLevel === "OWNER";
             setMyHubMemberSoT({ loaded: true, exists: true, isHubCaptain: hubCaptain });
+            setMyMemberRole(role);
           }
         }
       },
@@ -366,6 +494,7 @@ export default function TeamHome() {
         setFeeDashMembers([]);
         setFeeDashMembersLoading(false);
         setMyHubMemberSoT({ loaded: true, exists: false, isHubCaptain: false });
+        setMyMemberRole(undefined);
       }
     );
 
@@ -591,6 +720,10 @@ export default function TeamHome() {
   const sportSlug = resolveSportSlug(team);
 
   const goRecruit = () => {
+    if (teamDetailActionBlocked(teamCaps, "recruit")) {
+      toast.message("이 역할에서는 모집 관리를 할 수 없습니다.");
+      return;
+    }
     navigate(`/sports/${encodeURIComponent(sportSlug)}/recruit/create`);
   };
 
@@ -604,16 +737,28 @@ export default function TeamHome() {
   };
 
   const goCreateSchedule = () => {
+    if (teamDetailActionBlocked(teamCaps, "scheduleCreate")) {
+      toast.message("이 역할에서는 일정을 만들 수 없습니다.");
+      return;
+    }
     if (!teamId) return;
     navigate(`/activity/schedule/create?teamId=${encodeURIComponent(teamId)}`);
   };
 
   const goLineupPage = () => {
+    if (teamDetailActionBlocked(teamCaps, "lineup")) {
+      toast.message("이 역할에서는 라인업을 편집할 수 없습니다.");
+      return;
+    }
     if (!teamId) return;
     navigate(`/team/${encodeURIComponent(teamId)}/lineup/list`);
   };
 
   const goTeamNoticeComposer = () => {
+    if (teamDetailActionBlocked(teamCaps, "announcement")) {
+      toast.message("이 역할에서는 팀 공지를 작성할 수 없습니다.");
+      return;
+    }
     setTab("home");
     window.setTimeout(() => {
       document.getElementById("team-home-activity-feed")?.scrollIntoView({
@@ -680,51 +825,70 @@ export default function TeamHome() {
     void run();
   }, [teamId, user, isMember, searchParams, setSearchParams, confirmingFeePayment]);
 
-  /** 팀장은 `TeamOwnerSummarySection` 접힘 영역에 넣고, 팀원만 상단에 단독 표시 */
+  /** 팀장은 `TeamOwnerSummarySection` 접힘 영역에 넣고, 팀원·보호자는 상단에 단독 표시 */
   const teamHomeQuickGrid = (
     <div className="grid grid-cols-2 gap-2">
-      <Button
-        variant="secondary"
-        className="h-11 gap-1 text-sm"
-        disabled={!isOwner}
-        onClick={() => {
-          goRecruit();
-        }}
-      >
-        <UserPlus className="h-4 w-4 shrink-0" />
-        모집
-      </Button>
-      <Button
-        variant="secondary"
-        className="h-11 gap-1 text-sm"
-        onClick={() => setTab("chat")}
-        disabled={!isMember}
-      >
-        <MessageCircle className="h-4 w-4 shrink-0" />
-        {chatTabLabel}
-      </Button>
-      <Button variant="secondary" className="h-11 gap-1 text-sm" onClick={() => setTab("members")}>
-        <Users className="h-4 w-4 shrink-0" />
-        멤버
-      </Button>
-      <Button
-        variant="secondary"
-        className="h-11 gap-1 text-sm"
-        onClick={() => setTab("schedule")}
-        disabled={!isMember}
-      >
-        <Calendar className="h-4 w-4 shrink-0" />
-        일정
-      </Button>
-      <Button
-        variant="secondary"
-        className="h-11 gap-1 text-sm"
-        onClick={goLineupPage}
-        disabled={!isMember}
-      >
-        <ClipboardList className="h-4 w-4 shrink-0" />
-        라인업
-      </Button>
+      {teamCaps.showFeeQuickAction && (
+        <Button
+          variant="secondary"
+          className="h-11 gap-1 text-sm"
+          onClick={() => setTab("guardian")}
+          disabled={!isMember}
+        >
+          <Wallet className="h-4 w-4 shrink-0" />
+          {teamCaps.feeQuickActionLabel}
+        </Button>
+      )}
+      {teamCaps.showRecruitQuickAction && (
+        <Button
+          variant="secondary"
+          className="h-11 gap-1 text-sm"
+          disabled={!isOwner}
+          onClick={() => goRecruit()}
+        >
+          <UserPlus className="h-4 w-4 shrink-0" />
+          모집
+        </Button>
+      )}
+      {teamCaps.showChatQuickAction && (
+        <Button
+          variant="secondary"
+          className="h-11 gap-1 text-sm"
+          onClick={() => setTab("chat")}
+          disabled={!isMember}
+        >
+          <MessageCircle className="h-4 w-4 shrink-0" />
+          {chatTabLabel}
+        </Button>
+      )}
+      {teamCaps.showMembersQuickAction && (
+        <Button variant="secondary" className="h-11 gap-1 text-sm" onClick={() => setTab("members")}>
+          <Users className="h-4 w-4 shrink-0" />
+          멤버
+        </Button>
+      )}
+      {teamCaps.showScheduleQuickAction && (
+        <Button
+          variant="secondary"
+          className="h-11 gap-1 text-sm"
+          onClick={() => setTab("schedule")}
+          disabled={!isMember}
+        >
+          <Calendar className="h-4 w-4 shrink-0" />
+          일정
+        </Button>
+      )}
+      {teamCaps.showLineupQuickAction && (
+        <Button
+          variant="secondary"
+          className="h-11 gap-1 text-sm"
+          onClick={goLineupPage}
+          disabled={!isMember}
+        >
+          <ClipboardList className="h-4 w-4 shrink-0" />
+          라인업
+        </Button>
+      )}
     </div>
   );
 
@@ -768,6 +932,7 @@ export default function TeamHome() {
   };
 
   const showOnboardingBanner =
+    teamCaps.showOnboardingBanner &&
     searchParams.get("onboarding") === "1" &&
     isMember &&
     team.onboardingCompleted !== true;
@@ -834,7 +999,7 @@ export default function TeamHome() {
 
         {isMember &&
           teamId &&
-          (isOwner ? (
+          (teamCaps.showOwnerSummary && isOwner ? (
             <TeamOwnerSummarySection
               teamId={teamId}
               fees={fees}
@@ -845,7 +1010,12 @@ export default function TeamHome() {
               membersManageHref={`/teams/${encodeURIComponent(teamId)}/manage?tab=members`}
               quickActions={teamHomeQuickGrid}
             />
-          ) : (
+          ) : isGuardianViewer ? (
+            <GuardianTeamHomeFeeCard
+              label={teamCaps.feeSummaryLabel}
+              onOpenGuardianTab={() => setTab("guardian")}
+            />
+          ) : teamCaps.showFeeSummaryCard ? (
             <TeamMemberSummaryCard
               fees={fees}
               myPayments={myPayments}
@@ -857,7 +1027,7 @@ export default function TeamHome() {
               onScrollToTeamFeed={scrollToTeamFeed}
               onOpenMembersTab={openMembersTab}
             />
-          ))}
+          ) : null)}
 
         {isMember && team.billingRestricted === true && (
           <div className="mt-3 rounded-xl border border-amber-400 bg-amber-50 px-3 py-3 text-sm text-amber-950 shadow-sm dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-50">
@@ -942,7 +1112,7 @@ export default function TeamHome() {
           />
         )}
 
-        {!isOwner && teamHomeQuickGrid}
+        {isMember && teamCaps.showQuickActionGrid && !teamCaps.showOwnerSummary && teamHomeQuickGrid}
 
         <SegmentTabs tabs={segmentItems} activeId={activeTab} onChange={setTab} className="mt-3 rounded-t-xl" />
       </div>
@@ -950,7 +1120,7 @@ export default function TeamHome() {
       <div className="w-full pt-4">
         {activeTab === "home" && (
           <div className="w-full space-y-4 rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
-            {isOwner && teamId && (
+            {teamCaps.showMemberInviteOnHome && isOwner && teamId && (
               <div className="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-3 shadow-sm">
                 <h3 className="text-sm font-semibold text-gray-900">팀원 초대</h3>
                 <p className="mt-0.5 text-xs text-gray-600">
@@ -960,6 +1130,12 @@ export default function TeamHome() {
                   <TeamMemberInviteBar teamId={teamId} />
                 </div>
               </div>
+            )}
+            {isGuardianViewer && (
+              <p className="rounded-lg border border-violet-100 bg-violet-50/80 px-3 py-2 text-xs text-violet-950">
+                보호자는 팀 소식·일정·출석·자녀 회비를 조회할 수 있습니다. 팀 공지 작성·멤버 관리는 운영진만
+                가능합니다.
+              </p>
             )}
             {activityIdFromLink && (
               <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-900">
@@ -974,12 +1150,17 @@ export default function TeamHome() {
                 </button>
               </p>
             )}
-            {isMember && (
+            {isMember && teamCaps.showActivityFeed && (
               <div id="team-home-activity-feed" className="scroll-mt-24">
-                <TeamActivityFeed teamId={teamId} sport={sportSlug} focusActivityId={activityIdFromLink} />
+                <TeamActivityFeed
+                  teamId={teamId}
+                  sport={sportSlug}
+                  focusActivityId={activityIdFromLink}
+                  allowPost={teamCaps.canPostTeamWall}
+                />
               </div>
             )}
-            {isMember && (
+            {isMember && teamCaps.showTeamFeePaymentList && (
               <div id="team-home-my-fees" className="scroll-mt-28 rounded-xl border border-gray-200 bg-gray-50 p-3">
                 <h3 className="text-sm font-semibold text-gray-900">회비 전체 목록</h3>
                 <p className="mt-0.5 text-xs text-gray-500">
@@ -1065,21 +1246,85 @@ export default function TeamHome() {
           </div>
         )}
 
+        {tabFromUrl === "roster" && !loading && team && !isAcademyTeam && (
+          <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
+            <AcademyUnsupportedView />
+          </div>
+        )}
+
+        {tabFromUrl === "guardian" && !loading && team && !isAcademyTeam && (
+          <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
+            <AcademyUnsupportedView
+              title="보호자 보기"
+              message="이 보기는 유소년 아카데미 팀에서만 사용할 수 있습니다."
+            />
+          </div>
+        )}
+
+        {tabFromUrl === "attendance" && !loading && team && !isAcademyTeam && (
+          <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
+            <AcademyUnsupportedView
+              title="아카데미 전용 출석"
+              message="이 보기는 유소년 아카데미 팀에서만 사용할 수 있습니다."
+            />
+          </div>
+        )}
+
+        {activeTab === "roster" && isAcademyTeam && teamId && (
+          <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
+            <AcademyRosterShell
+              teamId={teamId}
+              teamName={typeof team.name === "string" ? team.name : undefined}
+              viewerUid={user?.uid}
+              viewerRole={myMemberRole}
+            />
+          </div>
+        )}
+
+        {activeTab === "guardian" && isAcademyTeam && teamId && showGuardianTab && (
+          <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
+            <GuardianTeamTab teamId={teamId} viewerRole={myMemberRole} />
+          </div>
+        )}
+
+        {activeTab === "attendance" && isAcademyTeam && teamId && (
+          <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
+            <AcademyAttendanceShell
+              teamId={teamId}
+              teamName={typeof team.name === "string" ? team.name : undefined}
+              viewerUid={user?.uid}
+              viewerRole={myMemberRole}
+            />
+          </div>
+        )}
+
+        {activeTab === "training-blocks" && isAcademyTeam && teamId && (
+          <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
+            <AcademyTrainingBlocksShell
+              teamId={teamId}
+              teamName={typeof team.name === "string" ? team.name : undefined}
+              viewerRole={myMemberRole}
+            />
+          </div>
+        )}
+
         {activeTab === "members" && (
           <div className="space-y-4 rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">멤버</h2>
               <p className="mt-1 text-xs text-gray-500">팀에 참여 중인 멤버입니다.</p>
             </div>
-            {isOwner && teamId && <TeamMemberInviteBar teamId={teamId} />}
-            {!isOwner && (
+            {teamCaps.canManageMembers && isOwner && teamId && <TeamMemberInviteBar teamId={teamId} />}
+            {!teamCaps.canManageMembers && (
               <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                새 멤버는 팀장이 초대 링크로 받거나, 팀 페이지에서 가입 요청을 보낼 수 있어요.
+                {isGuardianViewer
+                  ? "팀원 목록은 조회만 가능합니다. 초대·역할 변경·제거는 운영진만 할 수 있어요."
+                  : "새 멤버는 팀장이 초대 링크로 받거나, 팀 페이지에서 가입 요청을 보낼 수 있어요."}
               </p>
             )}
             <TeamMembersPanel
               teamId={teamId}
-              isOwner={isOwner}
+              isOwner={isOwner && teamCaps.canManageMembers}
               teamDocMemberCount={typeof team.memberCount === "number" ? team.memberCount : null}
               liveMembersDocCount={memberCount}
             />
@@ -1107,9 +1352,21 @@ export default function TeamHome() {
             <Button className="w-full" onClick={goSchedulePage} disabled={!isMember}>
               내 일정 / 이번 주 일정
             </Button>
-            <Button variant="outline" className="w-full" onClick={goCreateSchedule} disabled={!isMember}>
-              일정 만들기
-            </Button>
+            {teamCaps.canCreateSchedule && (
+              <Button variant="outline" className="w-full" onClick={goCreateSchedule} disabled={!isMember}>
+                일정 만들기
+              </Button>
+            )}
+          </div>
+        )}
+
+        {activeTab === TEAM_AI_ANALYSIS_LITE_TAB && showAiAnalysisLiteTab && teamId && (
+          <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white p-4 shadow-sm">
+            <TeamAiAnalysisLitePage
+              teamId={teamId}
+              teamName={displayName}
+              embedded
+            />
           </div>
         )}
 
@@ -1119,9 +1376,20 @@ export default function TeamHome() {
               <Settings className="h-5 w-5" />
               <span className="font-semibold">팀 관리</span>
             </div>
-            <p className="text-xs text-gray-500">팀장 전용 설정과 모집·팀 페이지로 이동합니다.</p>
+            <p className="text-xs text-gray-500">팀 설정·회비·모집·팀 페이지로 이동합니다.</p>
             <Button
               className="w-full gap-2"
+              onClick={() =>
+                teamId &&
+                navigate(`/teams/${encodeURIComponent(teamId)}/manage?tab=settings`)
+              }
+            >
+              <Settings className="h-4 w-4" />
+              팀 설정
+            </Button>
+            <Button
+              className="w-full gap-2"
+              variant="outline"
               onClick={() =>
                 teamId &&
                 navigate(`/teams/${encodeURIComponent(teamId)}/manage?tab=fees`)
