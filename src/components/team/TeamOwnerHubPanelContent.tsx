@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { Loader2, Pencil, Sparkles, UserPlus, Image as ImageIcon, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +10,10 @@ import { TeamPublicStaffManageSection } from "@/components/team/TeamPublicStaffM
 import { PublicProfileTextareaWithAi } from "@/components/team/PublicProfileTextareaWithAi";
 import { TeamProfileScoreCard } from "@/components/team/TeamProfileScoreCard";
 import type { TeamProfileScoreResult } from "@/lib/team/profileScore";
+import { canViewAIGrowthValidationConsole } from "@/lib/academy/aiGrowthValidationSelectors";
+import { normalizeMemberRole } from "@/lib/team/academyMemberRole";
+import { teamAiAnalysisLitePath } from "@/lib/team/teamAiAnalysisLite";
+import AIGrowthValidationConsole from "@/pages/team/AIGrowthValidationConsole";
 
 export type TeamOwnerHubPanelContentProps = {
   dark?: boolean;
@@ -52,6 +57,9 @@ export type TeamOwnerHubPanelContentProps = {
   onNavigateMemberManage: () => void;
   canManageCaptainPhoto: boolean;
   ownerDiffBlock?: ReactNode;
+  /** Academy + coach/admin — AI Growth validation console in AI tab */
+  isAcademyTeam?: boolean;
+  viewerMemberRole?: string;
 };
 
 export function buildOwnerHubPanelTabs(props: TeamOwnerHubPanelContentProps) {
@@ -97,7 +105,15 @@ export function buildOwnerHubPanelTabs(props: TeamOwnerHubPanelContentProps) {
     onNavigateMemberManage,
     canManageCaptainPhoto,
     ownerDiffBlock,
+    isAcademyTeam = false,
+    viewerMemberRole,
   } = props;
+
+  const showGrowthValidation =
+    isAcademyTeam &&
+    canViewAIGrowthValidationConsole(normalizeMemberRole(viewerMemberRole));
+
+  const showAiAnalysisLite = !isAcademyTeam;
 
   const btnOutline = cn("gap-1.5 text-xs w-full sm:w-auto", dark ? "border-slate-600" : "");
 
@@ -247,11 +263,12 @@ export function buildOwnerHubPanelTabs(props: TeamOwnerHubPanelContentProps) {
   );
 
   const aiTab = (
-    <div className="space-y-3">
-      {!canUseOwnerAiCopy ? (
-        <p className="text-xs text-slate-500">팀 소유자 계정만 AI 카피 재생성을 사용할 수 있어요.</p>
-      ) : (
-        <>
+    <div className="space-y-4">
+      {canUseOwnerAiCopy ? (
+        <div className="space-y-3">
+          <p className={cn("text-[11px] font-medium", dark ? "text-slate-300" : "text-gray-700")}>
+            공개 프로필 AI 카피
+          </p>
           <p className={cn("text-[11px] leading-relaxed", dark ? "text-slate-400" : "text-gray-500")}>
             방문자에게는 공개된 문구만 보입니다.
           </p>
@@ -274,8 +291,43 @@ export function buildOwnerHubPanelTabs(props: TeamOwnerHubPanelContentProps) {
               모집 문구
             </Button>
           </div>
-        </>
-      )}
+        </div>
+      ) : null}
+
+      {showGrowthValidation ? (
+        <div className={cn(canUseOwnerAiCopy && "border-t pt-4", dark ? "border-slate-600/60" : "border-slate-200")}>
+          <AIGrowthValidationConsole teamId={teamId} teamName={teamName} embedded />
+        </div>
+      ) : null}
+
+      {showAiAnalysisLite ? (
+        <div
+          className={cn(
+            (canUseOwnerAiCopy || showGrowthValidation) && "border-t pt-4",
+            dark ? "border-slate-600/60" : "border-slate-200",
+          )}
+        >
+          <p className={cn("text-[11px] font-medium", dark ? "text-slate-300" : "text-gray-700")}>
+            ⚽ AI 분석 Lite (BETA)
+          </p>
+          <p className={cn("mt-1 text-[11px] leading-relaxed", dark ? "text-slate-400" : "text-gray-500")}>
+            경기 영상을 분석하여 선수 성장 리포트를 생성합니다. (YouTube URL · 더미 리포트 MVP)
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="mt-3 gap-1.5 text-xs"
+            asChild
+            data-testid="team-owner-hub-ai-analysis-lite-open"
+          >
+            <Link to={teamAiAnalysisLitePath(teamId)}>AI 분석 시작</Link>
+          </Button>
+        </div>
+      ) : null}
+
+      {!canUseOwnerAiCopy && !showGrowthValidation && !showAiAnalysisLite ? (
+        <p className="text-xs text-slate-500">이 탭에 사용할 수 있는 AI 도구가 없습니다.</p>
+      ) : null}
     </div>
   );
 

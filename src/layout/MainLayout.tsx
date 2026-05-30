@@ -19,7 +19,11 @@ export default function MainLayout() {
     const isChatViewportLocked = isAppChatRoom || isChatRoomsPage;
     /** 1v1 라이브 매치 — 앱 헤더/하단탭 없이 전체 화면 */
     const isLiveGameSession = /^\/game\/session\/[^/]+$/.test(pathname);
-    const isImmersiveViewport = isChatViewportLocked || isLiveGameSession;
+    /** TRACK 9A — offline 1v1 demo/practice: fullscreen canvas (live session parity) */
+    const isOfflineGame1v1 = /^\/game\/1v1\/?$/.test(pathname);
+    /** AI Analysis Lite — Play·데모 시연용 넓은 컬럼 (MainLayout 기본 max-w-4xl 해제) */
+    const isTeamAiAnalysisLite = /^\/team\/[^/]+\/ai-analysis\/?$/.test(pathname);
+    const isImmersiveViewport = isChatViewportLocked || isLiveGameSession || isOfflineGame1v1;
 
     return (
         <ChatRoomsUnreadProvider>
@@ -30,13 +34,13 @@ export default function MainLayout() {
             )}
         >
             {/* 🟦 헤더: 전체 폭 (max-width 없음) */}
-            {!isLiveGameSession && <Header />}
+            {!isLiveGameSession && !isOfflineGame1v1 && <Header />}
 
             {/* 🟨 본문만 max-w + mx-auto 가로 중앙 (헤더와 폭 분리) */}
             <main
                 className={cn(
                     "min-h-0 w-full flex-1 flex flex-col",
-                    isLiveGameSession
+                    isLiveGameSession || isOfflineGame1v1
                         ? "min-h-0 flex-1 overflow-hidden p-0"
                         : isAppChatRoom
                         ? "min-h-0 overflow-hidden pb-0 pt-0"
@@ -51,17 +55,25 @@ export default function MainLayout() {
             >
                 <div
                     className={cn(
-                        mobileFullWidthContainerClassName,
-                        "flex min-w-0 flex-col lg:max-w-4xl lg:px-8",
-                        isLiveGameSession || isAppChatRoom || isChatRoomsPage
+                        isTeamAiAnalysisLite
+                            ? "w-full max-w-none px-3 md:mx-auto md:max-w-6xl"
+                            : mobileFullWidthContainerClassName,
+                        "flex min-w-0 flex-col lg:px-8",
+                        isLiveGameSession ||
+                        isOfflineGame1v1 ||
+                        isAppChatRoom ||
+                        isChatRoomsPage
                             ? "h-full max-w-none min-h-0 flex-1 overflow-hidden px-0 sm:px-0 lg:px-0"
-                            : "min-h-0 flex-1"
+                            : isTeamAiAnalysisLite
+                              ? "min-h-0 flex-1 lg:max-w-6xl"
+                              : "min-h-0 flex-1 lg:max-w-4xl"
                     )}
                 >
                     <div
                         className={cn(
                             "flex w-full min-w-0 flex-1 flex-col",
-                            (isLiveGameSession || isAppChatRoom || isChatRoomsPage) && "min-h-0 overflow-hidden"
+                            (isLiveGameSession || isOfflineGame1v1 || isAppChatRoom || isChatRoomsPage) &&
+                                "min-h-0 overflow-hidden"
                         )}
                     >
                         <Outlet />
@@ -69,9 +81,11 @@ export default function MainLayout() {
                 </div>
             </main>
 
-            {!isAppChatRoom && !isLiveGameSession && <BottomNav />}
+            {!isAppChatRoom && !isLiveGameSession && !isOfflineGame1v1 && <BottomNav />}
 
-            {!isAppChatRoom && !isLiveGameSession && <GlobalFAB onClick={() => setIsWriteOpen(true)} />}
+            {!isAppChatRoom && !isLiveGameSession && !isOfflineGame1v1 && (
+                <GlobalFAB onClick={() => setIsWriteOpen(true)} />
+            )}
             <CreateModal open={isWriteOpen} onOpenChange={setIsWriteOpen} />
         </div>
         </ChatRoomsUnreadProvider>
