@@ -5,6 +5,7 @@ import { getRedirectResult } from "firebase/auth";
 import { auth, db } from "./lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { TeamRouteParamGuard } from "@/components/team/TeamRouteParamGuard";
 import MainLayout from "./layout/MainLayout";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import CenterLayout from "./layouts/CenterLayout";
@@ -98,6 +99,16 @@ const NoMatch = lazy(() => import("./pages/NoMatch"));
 const InAppPage = lazy(() => import("./pages/InAppPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const DebugPage = lazy(() => import("./pages/DebugPage"));
+const TeamAiAnalysisLiteRoute = lazy(() =>
+  import("@/pages/team/TeamAiAnalysisLiteRoute").then((m) => ({
+    default: m.TeamAiAnalysisLiteRoute,
+  }))
+);
+const TeamsAiAnalysisLiteRedirect = lazy(() =>
+  import("@/pages/team/TeamAiAnalysisLiteRoute").then((m) => ({
+    default: m.TeamsAiAnalysisLiteRedirect,
+  }))
+);
 
 // 🔥 인앱 브라우저/WebView 감지 및 Chrome 리다이렉트 컴포넌트
 // 🎯 당근마켓 방식: WebView에서는 Firebase Auth가 제대로 작동하지 않으므로 Chrome으로 유도
@@ -431,7 +442,27 @@ export default function App() {
               <Route path="/voice-map-simple" element={<VoiceMapPageSimple />} />
               <Route path="/voice" element={<VoiceMap />} />
               <Route path="/voice-map-dashboard" element={<VoiceMapDashboard />} />
+              {/* Sprint 8A — AI Analysis Lite (canonical team route) */}
+              <Route
+                path="/team/:teamId/ai-analysis"
+                element={
+                  <ProtectedRoute>
+                    <TeamRouteParamGuard>
+                      <TeamAiAnalysisLiteRoute />
+                    </TeamRouteParamGuard>
+                  </ProtectedRoute>
+                }
+              />
             </Route>
+
+            <Route
+              path="/teams/:teamId/ai-analysis"
+              element={
+                <Suspense fallback={<div className="p-6 text-center text-gray-500">로딩 중...</div>}>
+                  <TeamsAiAnalysisLiteRedirect />
+                </Suspense>
+              }
+            />
 
             {/* 📌 완전히 독립된 MarketLayout - 모든 /app/market 라우트 통합 */}
             <Route element={<PageWrapper />}>
