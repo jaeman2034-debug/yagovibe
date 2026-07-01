@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **REVIEW IN PROGRESS** — Phase 3 Backup Drill complete  
-**Date:** 2026-06-29 (Phase 3 Backup Drill: 2026-06-29)  
-**Branch:** `vision-v2-i13` @ `877831b`  
+**Status:** 📋 **PM FINAL REVIEW READY** — Review Sprint Phase 1~3 PASS  
+**Date:** 2026-06-29  
+**Branch:** `vision-v2-i13` @ `bfd9e05`  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -19,11 +19,13 @@
 | Vision v2 I13-5 개발 | 🔒 COMPLETE |
 | Cross-Clip Primary Gate | ✅ PASS (3/3) |
 | GT Dataset Improvement | ✅ FINAL PASS |
-| Firestore/GCS Review | ▶ Phase 1~3 ✅ · Phase 4~5 ⏳ |
-| Pre-Pilot Dry Run #2 | ✅ **PASS** (§6) |
-| Engineering Design Review | ✅ **PASS** (§7) |
-| Backup Drill | ✅ **PASS** (§9) |
-| Vision v2 Beta 운영 | ⏳ Review 완료 후 |
+| Firestore/GCS Review Sprint | ✅ Phase 1~3 **PASS** · ▶ PM Final Review (§11) |
+| Pre-Pilot Dry Run #2 | ✅ PASS (§6) |
+| Engineering Design Review | ✅ PASS (§7) |
+| Backup Drill | ✅ PASS (§9) |
+| OR-14 Rules Gate | ⏳ Pre-Beta |
+| Vision v2 Beta Ops Plan | ⏳ after PM Final Review |
+| Operation Readiness Final PASS | ⏳ PM sign-off |
 
 **Review 목적:** 기존 RC5 인프라 + I13-5 로컬 Persist 설계를 기준으로, **운영 반영 전** Firestore/GCS 구조·정책·권한·복구를 점검하고 PM 승인 기준을 확정한다.
 
@@ -261,8 +263,8 @@ Phase 5  Vision v2 Beta (multi-user)     ← Beta Review gate
 | 2 | Complete §2.1 GCS checks | Ops | ✅ 2026-06-29 |
 | 3 | Eng review §1.3 / §2.2 design mapping | Eng | ✅ 2026-06-29 (§7.5) |
 | 4 | Backup drill §1.5 / §2.3 | Ops | ✅ 2026-06-29 (§9) |
-| 5 | Risk register sign-off | PM | |
-| 6 | PM Sign-off §4 | PM | |
+| 5 | Risk register sign-off | PM | ▶ §11 |
+| 6 | PM Sign-off §4 | PM | ▶ §11 |
 | 7 | Vision v2 Beta Ops Plan draft | Ops PM | After step 6 |
 
 **SoT documents (no code):**
@@ -533,11 +535,175 @@ Prod export/import · PITR enable · lifecycle deploy · data delete · code cha
 **Phase 1 (§1.2 + §2.1):** 16/16 · **9 PASS · 7 REVIEW · 0 FAIL** ✅  
 **Phase 2 (P0 design):** OR-11 ✅ · OR-12 ✅ · R-D2-3 ⚠ Pre-Beta gate (OR-14)  
 **Phase 3 (Backup):** §1.5 + §2.3 · **6 PASS · 6 REVIEW · 0 FAIL** ✅  
-**Overall Review:** ⏳ **IN PROGRESS** (Phase 4 PM Sign-off next)
+**Review Sprint (Phase 1~3):** **Critical FAIL 0** · ✅ **COMPLETE**  
+**Overall:** ▶ **PM Final Review** (§11) → OR-14 → Beta Ops Plan → Final PASS
 
 ---
 
-## 11. References
+## 11. PM Final Review — Gate Summary
+
+**Date:** 2026-06-29  
+**Branch:** `vision-v2-i13` @ `bfd9e05`  
+**Commits (local, no push):** `fed54ac` → `bfd9e05` (4 docs commits)  
+**Audience:** PM · Ops · Eng  
+**Constraint:** Review Sprint only — **no prod deploy · no code change**
+
+### 11.1 Sprint Verdict
+
+| Phase | Name | Verdict | Critical FAIL |
+|-------|------|:-------:|:-------------:|
+| 1 | Pre-Pilot Dry Run #2 (§1.2 · §2.1) | ✅ PASS | 0 |
+| 2 | Engineering Design Review (§7) | ✅ PASS | 0 |
+| 3 | Backup Drill (§9) | ✅ PASS | 0 |
+| **Review Sprint** | **Phase 1~3** | **✅ PASS** | **0** |
+
+**PM Final Review recommendation:** Review Sprint **PASS** — proceed to **OR-14 Rules Gate** and **Vision v2 Beta Ops Plan**. Operation Readiness **Final PASS** is contingent on OR-14 disposition + Beta Ops Plan PM sign-off.
+
+---
+
+### 11.2 Phase Summaries
+
+#### Phase 1 — Pre-Pilot Dry Run #2
+
+| Metric | Value |
+|--------|-------|
+| Items checked | 16 (§1.2 × 8 + §2.1 × 8) |
+| PASS / REVIEW / FAIL | **9 / 7 / 0** |
+| Method | prod read-only (gcloud + Admin SDK) |
+| Key finding | Operational SoT = `aiIngest/` (not legacy `media/` · `vision/{runId}/`) |
+
+#### Phase 2 — Engineering Design Review
+
+| P0 Item | Verdict | Notes |
+|---------|:-------:|-------|
+| OR-11 SoT path drift | ✅ PASS | CF `aiIngest` = SoT · doc/client stale · Pre-Beta backlog |
+| OR-12 Index status | ✅ PASS | Overwrite-on-upload by design · ops reconcile |
+| R-D2-3 / OR-14 Rules gap | ⚠ Pre-Beta Gate | Repo rules incomplete · **only Beta blocker** |
+
+#### Phase 3 — Backup Drill
+
+| Layer | Backup | Restore | Rollback |
+|-------|--------|---------|----------|
+| Firestore prod | ⚠ | ⚠ | ✅ |
+| GCS prod | ⚠ | ⚠ | ✅ |
+| Local I13 Persist | ✅ | ✅ | ✅ |
+
+| Metric | Value |
+|--------|-------|
+| §1.5 + §2.3 items | 10 |
+| PASS / REVIEW / FAIL | **6 / 6 / 0** |
+| Local verify | `pass_network_persist.py --verify` clip_002 **PASS** |
+
+---
+
+### 11.3 Open Gaps (non-blockers unless noted)
+
+| ID | Gap | Severity | Sprint phase | Disposition |
+|----|-----|----------|--------------|-------------|
+| OR-14 | Firestore rules: vision/aiIngest missing in repo | 🔴 | P2 | **Pre-Beta Gate** — rules verify + deploy (separate approval) |
+| OR-11 | Doc/client `media/` vs CF `aiIngest/` | 🟡 | P1/P2 | Pre-Beta backlog (doc + `useVisionJobMonitor`) |
+| OR-12 | Index overwrite on new upload | 🟡 | P1/P2 | Ops reconcile procedure |
+| OR-13 | Firestore `asia-northeast3` vs GCS `US-CENTRAL1` | 🟢 | P1 | Accept Beta · Post-Beta review |
+| F1-3 | Parent Report E2E not re-run | 🟡 | P1 | Dry Run Attempt #2 |
+| F1-4 | `visionAnalysis` no top-level `status` field | 🟡 | P1 | I13 trigger spec uses run-level status |
+| F4-1 | No scheduled Firestore export | 🟡 | P3 | Beta Ops improvement |
+| F4-2 | PITR disabled | 🟡 | P3 | Beta Ops improvement |
+| G1-2/G3-5 | No GCS lifecycle | 🟡 | P1/P3 | Beta Ops Plan |
+| G1-3 | 45MB+ MP4 Whisper timeout | 🟡 | P1 | Beta clips ≤3min |
+| F4-4 | No formal 90d retention policy | 🟡 | P3 | Beta Ops Plan |
+
+**Aggregate checklist (all sections checked):**
+
+| | Checked | PASS | REVIEW | FAIL |
+|---|---------|------|--------|------|
+| Total | 44 | 22 | 22 | **0** |
+
+§4.2 A2/A3 (≥90% PASS): **50% PASS rate on checked items** — mitigated because **0 FAIL** and all REVIEW items have documented dispositions; **A2/A3 formal PASS** deferred to **Operation Readiness Final PASS** after OR-14 + Ops Plan close REVIEW items or PM accepts risk.
+
+---
+
+### 11.4 Beta Blocker Matrix
+
+| Blocker | Status | Required before Beta |
+|---------|:------:|---------------------|
+| OR-14 Firestore Rules | ⏳ **OPEN** | **Yes** — verify deployed rules + deploy if repo=prod |
+| Cross-Clip Primary Gate | ✅ CLOSED | Already PASS |
+| GT Dataset | ✅ CLOSED | Already PASS |
+| I13-5 dev complete | ✅ CLOSED | Already PASS |
+| Scheduled Firestore export | ⏳ Open | **No** — Ops improvement |
+| PITR | ⏳ Open | **No** — Ops improvement |
+| GCS versioning/lifecycle | ⏳ Open | **No** — Ops improvement |
+| OR-11 client path fix | ⏳ Open | **No** — Pre-Beta backlog |
+
+**Beta Blocker count: 1** (OR-14 only)
+
+---
+
+### 11.5 Beta 권장 작업 (Ops Improvement — not hard blockers)
+
+| Priority | Task | Owner | When |
+|----------|------|-------|------|
+| P0 | OR-14: Rules audit (repo vs deployed) + vision/aiIngest rules deploy | Eng + Ops | Pre-Beta Gate |
+| P1 | Dry Run Attempt #2 (≤3min MP4 · Parent UI · Job Monitor 10/10) | Ops | Pre-Live Pilot |
+| P1 | Beta Ops Plan: retention · backup schedule · clip policy · reconcile SOP | Ops PM | Before Beta |
+| P2 | Update RC5-1/Kickoff/I13 path tables → `aiIngest` SoT | Eng | Pre-Beta backlog |
+| P2 | Fix `useVisionJobMonitor.ts` path → `aiIngest` | Eng | Pre-Beta backlog |
+| P3 | Firestore weekly export + PITR evaluation | Ops | Beta hardening |
+| P3 | GCS lifecycle on `aiIngest/raw/` + optional versioning | Ops | Beta hardening |
+
+---
+
+### 11.6 Phased Rollout Readiness (§4.2)
+
+| Phase | Description | Ready? |
+|-------|-------------|:------:|
+| Phase 0 | Review PASS | ▶ **PM Final Review** (this §11) |
+| Phase 1 | Read-only summary from local | ✅ Ready (local persist verified) |
+| Phase 2 | Firestore summary doc (pilot team) | ⏳ After Final PASS + OR-14 |
+| Phase 3 | GCS edges + events upload | ⏳ After Phase 2 stable |
+| Phase 4 | Callable trigger automation | ⏳ After Phase 3 stable |
+| Phase 5 | Vision v2 Beta multi-user | ⏳ Ops Plan + OR-14 |
+
+**HOLD triggers (§4.3):** No F1/G1 critical FAIL observed. OR-14 open → **HOLD Phase 2+ Firestore writes** until Rules Gate PASS.
+
+---
+
+### 11.7 Final PM Recommendation
+
+```text
+Review Sprint Phase 1~3     ✅ PASS (Critical FAIL 0)
+Operation Readiness Sprint  ▶ PM Final Review — RECOMMEND ACCEPT
+
+Conditional for Beta:
+  1. OR-14 Rules Gate PASS (Pre-Beta, separate deploy approval)
+  2. Vision v2 Beta Ops Plan PM sign-off
+  3. Operation Readiness Final PASS (§4.1 criteria + PM signature)
+
+Do NOT:
+  - Push Review docs until Ops Plan draft ready (single PR preferred)
+  - Deploy Firestore/GCS I13 paths before Final PASS
+  - Treat REVIEW items as Beta blockers except OR-14
+
+Next sequence:
+  OR-14 Rules Gate → Vision v2 Beta Ops Plan → Operation Readiness Final PASS
+```
+
+**PM Sign-off (§4):** □ Pending — signature line for Run Day packet
+
+| Criterion | Met? | Evidence |
+|-----------|:----:|----------|
+| A1 Cross-Clip PASS | ✅ | Pilot2 eval 3/3 |
+| A2 Firestore §1.2 ≥90% PASS | ⚠ | 5/8 PASS · 0 FAIL · REVIEW documented |
+| A3 GCS §1.2 ≥90% PASS | ⚠ | 4/8 PASS · 0 FAIL · REVIEW documented |
+| A4 I13 design reviewed | ✅ | §1.3 · §7.5 |
+| A5 OR-1, OR-10 mitigated | ✅ | Review gate + Phase 3 drill |
+| A6 Rollback agreed | ✅ | §9 · RC5 retry/cancel · I13 §6 |
+| A7 Beta scope pilot team only | ✅ | `D7TUZaOtfxdBc4P0lQLx` |
+| A8 Change Freeze acknowledged | ✅ | Charter §①-b |
+
+---
+
+## 12. References
 
 - `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`
 - `docs/YAGO_VISION_PILOT2_FINAL_REVIEW.md` §9–10
