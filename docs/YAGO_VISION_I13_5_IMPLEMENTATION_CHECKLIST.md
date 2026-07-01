@@ -91,12 +91,13 @@ Firestore/GCS 연동 — **P1 Gate 후** (P0는 로컬 JSON only).
 
 | # | 항목 | 상태 | 완료 기준 |
 |---|------|:----:|-----------|
-| R-1 | Local `summary.json` schema validation | ⬜ | design §2.3 |
-| R-2 | GCS artifact paths (`edges`, `events`) | ⬜ | design §1.3 |
+| R-1 | Local `summary.json` schema validation | ✅ | `pass_network_persist.validate()` |
+| R-2 | GCS artifact paths (`edges`, `events`) | ⬜ | design §1.3 — Gate 후 |
 | R-3 | Firestore `tacticalV2/passNetwork/v1/summary` write (CF) | ⬜ | design §2.2 — **Gate 후** |
 | R-4 | Job status doc (`tacticalV2/jobs`) | ⬜ | RC5-3 pattern |
 | R-5 | Security rules review (read coach/staff) | ⬜ | design §2.3 |
-| R-6 | Idempotent overwrite same `sourceAnalysisId` | ⬜ | design §9.3 |
+| R-6 | Idempotent overwrite same `sourceAnalysisId` | ✅ | local `graphHash` + IDEMPOTENT_SKIP |
+| R-7 | `verify.json` + atomic promote (`persist()`) | ✅ | `pass_network_persist.py` smoke |
 
 **P0 범위:** R-1, R-2 only (로컬/`D:\YAGO_AI\runs\tacticalV2\`)
 
