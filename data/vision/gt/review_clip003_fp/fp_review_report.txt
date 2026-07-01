@@ -1,0 +1,25 @@
+
+=== worker_fp_1 @ 3.6 P0024->P0064 ===
+  worker_fp_1_t3.400_f102.jpg ball=N nearest=None(1000000000px) from=None to=None
+  worker_fp_1_t3.600_f108.jpg ball=Y nearest=P0064(83px) from=None to=83.0
+  worker_fp_1_t3.800_f114.jpg ball=Y nearest=P0064(78px) from=None to=78.1
+
+=== worker_fp_2 @ 19.867 P0158->P0167 ===
+  worker_fp_2_t19.667_f590.jpg ball=N nearest=None(1000000000px) from=None to=None
+  worker_fp_2_t19.867_f596.jpg ball=Y nearest=P0167(67px) from=None to=66.6
+  worker_fp_2_t20.067_f602.jpg ball=Y nearest=P0167(65px) from=None to=65.3
+
+=== worker_fp_3 @ 22.067 P0167->P0171 ===
+  worker_fp_3_t21.867_f656.jpg ball=Y nearest=P0167(108px) from=107.5 to=None
+  worker_fp_3_t22.067_f662.jpg ball=Y nearest=P0171(72px) from=None to=71.6
+  worker_fp_3_t22.267_f668.jpg ball=Y nearest=P0171(151px) from=None to=150.6
+
+=== worker_fp_4 @ 30.3 P0228->P0234 ===
+  worker_fp_4_t30.100_f903.jpg ball=N nearest=None(1000000000px) from=None to=None
+  worker_fp_4_t30.300_f909.jpg ball=Y nearest=P0234(72px) from=None to=71.9
+  worker_fp_4_t30.500_f915.jpg ball=Y nearest=P0234(140px) from=None to=139.8
+
+=== worker_fp_5_gt_has_receive_turnover @ 36.4 P0264->P0273 ===
+  worker_fp_5_gt_has_receive_turnover_t36.200_f1086.jpg ball=N nearest=None(1000000000px) from=None to=None
+  worker_fp_5_gt_has_receive_turnover_t36.400_f1092.jpg ball=Y nearest=P0273(71px) from=None to=70.8
+  worker_fp_5_gt_has_receive_turnover_t36.600_f1098.jpg ball=Y nearest=P0273(77px) from=None to=76.5
