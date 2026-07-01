@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **PM FINAL REVIEW READY** — Review Sprint Phase 1~3 PASS  
+**Status:** 📋 **PRE-BETA GATES** — PM Final Review PASS · OR-14 OPEN  
 **Date:** 2026-06-29  
-**Branch:** `vision-v2-i13` @ `bfd9e05`  
+**Branch:** `vision-v2-i13` @ `d3ed686`  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -23,9 +23,9 @@
 | Pre-Pilot Dry Run #2 | ✅ PASS (§6) |
 | Engineering Design Review | ✅ PASS (§7) |
 | Backup Drill | ✅ PASS (§9) |
-| OR-14 Rules Gate | ⏳ Pre-Beta |
-| Vision v2 Beta Ops Plan | ⏳ after PM Final Review |
-| Operation Readiness Final PASS | ⏳ PM sign-off |
+| PM Final Review | ✅ **PASS** (§11) |
+| OR-14 Rules Gate | ⚠ **OPEN** — Beta blocker (§13) |
+| Vision v2 Beta Ops Plan | ✅ Draft (`YAGO_VISION_V2_BETA_OPS_PLAN.md`) |
 
 **Review 목적:** 기존 RC5 인프라 + I13-5 로컬 Persist 설계를 기준으로, **운영 반영 전** Firestore/GCS 구조·정책·권한·복구를 점검하고 PM 승인 기준을 확정한다.
 
@@ -108,13 +108,13 @@ Source: `YAGO_VISION_I13_5_PERSIST_SPEC.md` §7. **구현·배포 금지** until
 
 ### 1.4 Firestore Security & Permissions
 
-| # | Check | Expected | Pass? |
-|---|-------|----------|:-----:|
-| F3-1 | Client cannot write `tacticalV2/*` directly | CF / Admin SDK only | □ |
-| F3-2 | Cross-team read blocked | rules `teamId` match | □ |
-| F3-3 | Service account least privilege | CF SA roles documented | □ |
-| F3-4 | Callable auth matches Firestore rules | smoke `getCvGrowthLinksContext` | □ |
-| F3-5 | Audit trail for promotion/apply | `avatarPromotionAudits` LOCK | □ |
+| # | Check | Expected | Verdict | Notes |
+|---|-------|----------|:-------:|-------|
+| F3-1 | Client cannot write `tacticalV2/*` directly | CF / Admin SDK only | ✅ PASS | Path not deployed · implicit deny |
+| F3-2 | Cross-team read blocked | rules `teamId` match | ⚠ REVIEW | Vision paths **unlisted** → deny (§13) |
+| F3-3 | Service account least privilege | CF SA roles documented | ✅ PASS | CF-only writes via Admin SDK |
+| F3-4 | Callable auth matches Firestore rules | smoke `getVisionPipelineStatus` | ✅ PASS | Callable auth in CF · client direct read gap remains |
+| F3-5 | Audit trail for promotion/apply | `avatarPromotionAudits` LOCK | ⏳ | Out of Vision scope |
 
 ---
 
@@ -210,7 +210,7 @@ Source: `YAGO_VISION_I13_5_PERSIST_SPEC.md` §7.1
 | OR-11 | Firestore path doc/code drift (`media/` vs `aiIngest/`) | 🟡 Med | Med | **Phase 2:** CF `aiIngest` = SoT · doc/client stale · doc fix + client hook **Pre-Beta backlog** (no change this sprint) | Eng |
 | OR-12 | `visionMatchIndex` stale vs completed runs | 🟡 Med | Med | **Phase 2:** overwrite-on-new-upload by design · orphaned upload (0 runs) · ops reconcile · Coach reads `visionAnalysis` OK | Ops |
 | OR-13 | Firestore/GCS region mismatch | 🟢 Low | Med | **Phase 2:** historical Firebase default · acceptable Beta · region alignment **Post-Beta** | Ops |
-| OR-14 | Vision Firestore rules missing in repo | 🔴 High | Med | **Phase 2:** repo `firestore.rules` has no vision/aiIngest rules · **Pre-Beta deploy gate** (rules only, separate approval) | Eng |
+| OR-14 | Vision Firestore rules missing in repo | 🔴 High | Med | **§13 OPEN** — rules draft spec ready · deploy = separate PM approval | Eng |
 
 ---
 
@@ -526,7 +526,7 @@ Prod export/import · PITR enable · lifecycle deploy · data delete · code cha
 |---------|-------|---------|------|--------|------|---------|
 | §1.2 RC5 Firestore | 8 | 8 | 5 | 3 | 0 | — |
 | §1.3 I13 Design | 7 | 7 | 5 | 2 | 0 | — |
-| §1.4 Security | 5 | 1 | 0 | 1 | 0 | OR-14 Pre-Beta |
+| §1.4 Security | 5 | 5 | 3 | 2 | 0 | OR-14 |
 | §1.5 Backup | 5 | 5 | 2 | 3 | 0 | Beta Ops Plan |
 | §2.1 RC5 GCS | 8 | 8 | 4 | 4 | 0 | — |
 | §2.2 I13 GCS Design | 6 | 6 | 6 | 0 | 0 | — |
@@ -703,14 +703,107 @@ Next sequence:
 
 ---
 
-## 12. References
+---
+
+## 13. OR-14 Rules Gate Report
+
+**Date:** 2026-06-29  
+**Gate:** Pre-Beta · **only Beta blocker**  
+**Deploy:** ❌ **NOT performed** (separate PM approval required)  
+**Method:** Repo static audit · client path inventory · Firebase Rules API (403)
+
+### 13.1 Gate Verdict
+
+| Item | Result |
+|------|--------|
+| Repo rules include Vision paths | ❌ **NO** |
+| Deployed rules fetched | ⏳ **Unable** (API 403 · CLI `rules:get` unsupported) |
+| Repo vs Deployed diff | ⏳ **Assumed identical** — `firebase.json` → `firestore.rules` · git history: **never** contained `visionMatchIndex` |
+| Beta Blocker | ⚠ **YES — OPEN** until rules verified + deployed |
+| Rules deploy in this sprint | ❌ **Forbidden** |
+
+**OR-14 판정:** ⚠ **OPEN** — Beta requires explicit rules + deploy gate PASS.
+
+### 13.2 Client Read Paths (must be allowed for Beta)
+
+| Path | Client consumer | Required role |
+|------|-----------------|---------------|
+| `teams/{teamId}/visionMatchIndex/{matchId}` | `useMatchVisionPipelineStatus` | active member (coach/staff) |
+| `teams/{teamId}/visionUploadQueue/{mediaId}` | `useVisionUploadQueueStatus` | uploader / staff |
+| `teams/{teamId}/aiIngest/{mediaId}/visionRuns/{runId}` | `useVisionJobMonitor` *(path fix pending)* | active member |
+| `teams/{teamId}/matches/{matchId}/visionAnalysis/{id}` | `useCoachVisionAnalysis` · Parent Report | member / parent link |
+| `teams/{teamId}/aiIngest/{mediaId}` | upload confirm read | uploader / staff |
+
+**Write policy:** All Vision writes = **CF / Admin SDK only** (client create/update/delete = deny).
+
+### 13.3 Repo Rules Analysis (`firestore.rules`)
+
+| Finding | Detail |
+|---------|--------|
+| Vision keyword matches | **0** |
+| `teams/{teamId}` subcollections listed | members, fees, scheduled_matches, … — **no** `aiIngest`, `visionMatchIndex`, `matches/visionAnalysis` |
+| Default for unlisted subcollections | **DENY** |
+| `firebase.json` deploy target | `firestore.rules` (canonical) |
+| Git history | No commit ever added `visionMatchIndex` to rules |
+
+**Inference:** If production rules = repo (standard Firebase deploy path), **client onSnapshot to Vision paths returns permission-denied**. RC5-1 PASS likely used CF path + fixture fallback and/or emulator; Dry Run #1 did not complete Job Monitor 10/10.
+
+### 13.4 Deployed Rules Verification (Ops action)
+
+API fetch blocked. **Manual verification required before deploy:**
+
+1. Firebase Console → Firestore → Rules → compare with repo `firestore.rules`
+2. Rules Playground: simulate coach uid `jMLLIxy…` read `teams/D7TUZa…/visionMatchIndex/{matchId}`
+3. Record result in Daily Log
+
+### 13.5 Draft Rules Spec (design only — NOT applied)
+
+```text
+teams/{teamId}/visionMatchIndex/{matchId}
+  read:  isSignedIn() && isActiveMember(teamId)
+  write: false
+
+teams/{teamId}/visionUploadQueue/{mediaId}
+  read:  isSignedIn() && isActiveMember(teamId)
+  write: false
+
+teams/{teamId}/aiIngest/{mediaId}
+  read:  isSignedIn() && isActiveMember(teamId)
+  write: false
+
+teams/{teamId}/aiIngest/{mediaId}/visionRuns/{runId}
+  read:  isSignedIn() && isActiveMember(teamId)
+  write: false
+
+teams/{teamId}/matches/{matchId}/visionAnalysis/{analysisId}
+  read:  isSignedIn() && (isActiveMember(teamId) || parentLinkReadAllowed(teamId, matchId))
+  write: false
+```
+
+Parent read helper must align with existing `parentLinks` pattern (CF-only writes unchanged).
+
+### 13.6 OR-14 Close Criteria (Pre-Beta)
+
+| # | Criterion | Owner |
+|---|-----------|-------|
+| 1 | Console Rules Playground: coach read PASS on 4 paths | Ops |
+| 2 | Rules draft reviewed by Eng | Eng |
+| 3 | **PM approves deploy** | PM |
+| 4 | `firebase deploy --only firestore:rules` | Eng |
+| 5 | Dry Run Attempt #2: Job Monitor + Coach UI without fixture | Ops |
+
+**Until OR-14 CLOSE:** HOLD Phase 2+ Firestore I13 writes (§4.2).
+
+---
+
+## 14. References
 
 - `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`
 - `docs/YAGO_VISION_PILOT2_FINAL_REVIEW.md` §9–10
 - `docs/YAGO_VISION_CROSS_CLIP_VALIDATION_PLAN.md` §9
 - `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 - `docs/YAGO_VISION_RC5_4_OPERATION_INFO.md`
-- `docs/YAGO_VISION_GT_GEV_ANNOTATION_GUIDE_v1.0.md`
+- `docs/YAGO_VISION_V2_BETA_OPS_PLAN.md`
 
 ---
 
