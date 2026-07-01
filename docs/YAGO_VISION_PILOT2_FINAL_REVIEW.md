@@ -364,20 +364,32 @@ Pipeline 품질이 아닌 GT annotation completeness 영향
 | Quality Evaluation automated | ✅ |
 | Pilot #2 Final Review PM sign-off | ⏳ **this doc** |
 | Persist Firestore/GCS spec (R-2~R-5) | ⏳ design only |
-| Multi-clip validation | ⏳ recommended |
+| Multi-clip validation | ✅ Pipeline 3/3 · Primary Gate ⏳ GT Hold |
 
 ### 10.2 PM 판정
 
 ## Firestore / GCS: **Not Ready — Conditional Hold**
 
-**사유:** 구현 결함이 아니라 **운영 품질 기준(Gate Policy) 문서 확정** 및 **PM Final sign-off** 절차 잔존.
+**사유 (2026-07-01 갱신):**
+
+```text
+Ground Truth Dataset not sufficient for Endpoint Evaluation
+```
+
+- ~~Pipeline 미완성~~ ❌ — Offline Pipeline **3/3 PASS (Coverage 100%)**
+- clip_003/004: GT PASS에 `fromTrackId`/`toTrackId` 없음 → Alignment **N/A** (품질 FAIL 아님)
+- clip_004 Diagnostic: Precision/Recall **95%** — GEV→Parser→Pipeline 안정
 
 **승인 경로:**
 
 ```text
-Pilot #2 Final Review PM sign-off
+GT Dataset Improvement (clip_003/004 endpoint backfill)
         ↓
-(권장) 2nd clip smoke
+Alignment + Evaluation 재실행 (기존 스크립트)
+        ↓
+Cross-Clip Primary Gate PASS
+        ↓
+Cross-Clip Final Review PM sign-off
         ↓
 Persist R-2~R-5 implementation Sprint (별도 승인)
         ↓

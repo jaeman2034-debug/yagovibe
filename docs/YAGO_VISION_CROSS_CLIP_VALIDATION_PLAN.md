@@ -94,7 +94,22 @@ Firestore/GCS 승인
 | strict | Regression baseline (same-run 비교용) — **PASS/FAIL 미사용** |
 | time-only | GEV 시간축 diagnostic |
 
-### 2.4 Cross-Clip Aggregate Gate (PM 제안)
+### 2.4 Alignment Coverage = 0 → **N/A** (PM Policy)
+
+`gtEndpointIdCount = 0` (GT PASS에 `fromTrackId`/`toTrackId` 없음)인 Clip에서는:
+
+```text
+alignmentCoverage = 0  →  품질 FAIL 아님  →  N/A
+```
+
+| 상황 | 표기 | Gate |
+|------|------|------|
+| endpoint GT 有 | alignmentCoverage 수치 | Cohort A Primary |
+| endpoint GT 無 | **N/A** | Cohort B Diagnostic only |
+
+---
+
+### 2.5 Cross-Clip Aggregate Gate (PM 제안)
 
 개별 Clip Cohort A PASS **AND** 아래 aggregate 조건:
 
@@ -242,40 +257,58 @@ aligned_metrics.json
 | Clip | Coverage | Confirmed | Rejected | verifyPass |
 |------|----------|-----------|----------|------------|
 | pass01_clip_002 | **1.00** | 13 | 0 | ✅ |
-| pass01_clip_003 | — | — | — | ⏳ |
-| pass01_clip_004 | — | — | — | ⏳ |
+| pass01_clip_003 | **1.00** | 15 | 0 | ✅ |
+| pass01_clip_004 | **1.00** | 20 | 0 | ✅ |
+| **평균** | **1.00** | — | — | **3/3 PASS** |
 
 ### 5.2 Alignment Layer
 
-| Clip | alignmentCoverage | alignmentPairs | pairPrecision | split/merge |
-|------|-------------------|----------------|---------------|-------------|
-| pass01_clip_002 | **1.00** | 9 | **1.00** | 0/0 |
-| pass01_clip_003 | — | — | — | ⏳ |
-| pass01_clip_004 | — | — | — | ⏳ |
+| Clip | alignmentCoverage | Pairs | GT endpoint IDs | 판정 |
+|------|-------------------|-------|-----------------|------|
+| pass01_clip_002 | **1.00** | 9 | 9 | ✅ |
+| pass01_clip_003 | **N/A** | 0 | **0** | N/A — endpoint GT 없음 |
+| pass01_clip_004 | **N/A** | 0 | **0** | N/A — endpoint GT 없음 |
+
+> clip_003/004: Alignment **실패 ≠ Pipeline 실패**. GT에 track endpoint가 없어 Bridge 입력 불가.
 
 ### 5.3 Quality Layer — Cohort A (Primary)
 
 | Clip | Precision | recallStrictEndpoints | edgePrecision | Cohort A PASS |
 |------|-----------|----------------------|---------------|---------------|
-| pass01_clip_002 | **0.923** | **0.80** | **1.00** | ✅ |
-| pass01_clip_003 | — | — | — | ⏳ |
-| pass01_clip_004 | — | — | — | ⏳ |
+| pass01_clip_002 | **0.923** | **0.80** | **1.00** | ✅ Conditional PASS |
+| pass01_clip_003 | — | **N/A** | **N/A** | ⏳ GT backfill 필요 |
+| pass01_clip_004 | — | **N/A** | **N/A** | ⏳ GT backfill 필요 |
 
 ### 5.4 Quality Layer — Cohort B (Diagnostic)
 
-| Clip | recall (all) | F1 (all) | GT sparse % |
-|------|--------------|----------|-------------|
-| pass01_clip_002 | 0.632 | 0.750 | 74% (14/19) |
-| pass01_clip_003 | — | — | TBD |
-| pass01_clip_004 | — | — | TBD |
+| Clip | Precision | Recall | F1 | GT sparse % |
+|------|-----------|--------|-----|-------------|
+| pass01_clip_002 | 0.923 | 0.632 | 0.750 | 74% (14/19) |
+| pass01_clip_003 | 0.667 | **0.909** | 0.769 | **100%** (11/11) |
+| pass01_clip_004 | **0.950** | **0.950** | **0.950** | **100%** (20/20) |
+| **평균** | **0.847** | **0.830** | **0.823** | — |
 
 ### 5.5 Strict (Regression reference)
 
 | Clip | strict P/R/F1 | 비고 |
 |------|---------------|------|
 | pass01_clip_002 | 0 / 0 / 0 | cross-run expected |
-| pass01_clip_003 | — | ⏳ |
-| pass01_clip_004 | — | ⏳ |
+| pass01_clip_003 | 0 / 0 / 0 | endpoint GT 없음 |
+| pass01_clip_004 | 0 / 0 / 0 | endpoint GT 없음 |
+
+### 5.6 Aggregate Summary (2026-07-01 Ops 실행)
+
+| 항목 | clip_002 | clip_003 | clip_004 | 평균 | Gate |
+|------|----------|----------|----------|------|------|
+| Pipeline Coverage | 1.00 | 1.00 | 1.00 | **1.00** | ✅ PASS |
+| Alignment Coverage | 1.00 | N/A | N/A | — | ⏳ GT Hold |
+| Precision (aligned) | 0.923 | 0.667 | 0.950 | 0.847 | Diagnostic |
+| Recall (aligned) | 0.632 | 0.909 | 0.950 | 0.830 | Diagnostic |
+| F1 (aligned) | 0.750 | 0.769 | 0.950 | 0.823 | Diagnostic |
+| Edge Precision | 1.00 | N/A | N/A | — | ⏳ GT Hold |
+| **Overall Gate (Primary)** | **PASS** | **HOLD** | **HOLD** | **HOLD** | ⏳ |
+
+**PM 판정:** Offline Pipeline **🔒 PASS (3/3)** · Cross-Clip Primary Gate **⏳ GT Dataset Hold**
 
 ---
 
@@ -283,12 +316,12 @@ aligned_metrics.json
 
 | Phase | Task | Owner | Status |
 |-------|------|-------|--------|
-| P0 | rc4_m1 Worker run clip_003/004 생성 | Ops | ⏳ **Blocker** |
-| P1 | clip_003 Steps 1–3 | Eng/Ops | ⏳ |
-| P2 | clip_004 Steps 1–3 | Eng/Ops | ⏳ |
-| P3 | Cross-Clip comparison table 작성 | Eng | ⏳ |
-| P4 | Cross-Clip Final Review doc | PM/Eng | ⏳ |
-| P5 | Firestore/GCS 승인 검토 | PM | ⏳ |
+| P0 | rc4_m1 Worker run clip_003/004 생성 | Ops | ✅ **Done** |
+| P1 | clip_003 Steps 1–3 | Eng/Ops | ✅ Pipeline+Eval Done · Alignment N/A |
+| P2 | clip_004 Steps 1–3 | Eng/Ops | ✅ Pipeline+Eval Done · Alignment N/A |
+| P3 | Cross-Clip comparison table 작성 | Eng | ✅ §5.6 |
+| P4 | Cross-Clip Final Review doc | PM/Eng | ⏳ GT Sprint 후 |
+| P5 | Firestore/GCS 승인 검토 | PM | ⏳ GT Dataset Hold |
 
 **예상 소요 (Ops 가동 후):** clip당 ~30min (Pipeline + Alignment + Eval).
 
@@ -303,6 +336,7 @@ aligned_metrics.json
 | R3 | clip_004 longer / more PASS | Alignment stress | v2 spatial bridge already proven |
 | R4 | Oracle pairPrecision clip별 미정의 | Report gap | Step 2 후 alignment evidence로 oracle 확정 |
 | R5 | Single-clip PASS but aggregate FAIL | Release delay | Min recall floor 0.70 |
+| R6 | **GT endpoint missing (003/004)** | Alignment N/A | **GT Improvement Sprint** (§11) |
 
 ---
 
@@ -311,25 +345,33 @@ aligned_metrics.json
 | Deliverable | Format | Status |
 |-------------|--------|--------|
 | 본 Plan | `docs/YAGO_VISION_CROSS_CLIP_VALIDATION_PLAN.md` | ✅ |
-| clip_003 per-clip artifacts | `D:\YAGO_AI\...\pass01_clip_003\` | ⏳ |
-| clip_004 per-clip artifacts | `D:\YAGO_AI\...\pass01_clip_004\` | ⏳ |
-| Cross-Clip comparison table | §5 filled | ⏳ |
-| `YAGO_VISION_CROSS_CLIP_FINAL_REVIEW.md` | PM sign-off doc | ⏳ Post-validation |
+| clip_003 per-clip artifacts | `D:\YAGO_AI\...\pass01_clip_003\` | ✅ |
+| clip_004 per-clip artifacts | `D:\YAGO_AI\...\pass01_clip_004\` | ✅ |
+| Cross-Clip comparison table | §5.6 | ✅ |
+| `YAGO_VISION_CROSS_CLIP_FINAL_REVIEW.md` | PM sign-off doc | ⏳ GT Sprint 후 |
 
 ---
 
-## 9. Firestore / GCS Readiness (unchanged)
+## 9. Firestore / GCS Readiness
 
-Cross-Clip Validation **PASS** 전까지:
+Cross-Clip Primary Gate **미충족** — Hold 유지.
+
+**Hold 사유 (정확한 표현):**
 
 ```text
-Firestore/GCS  →  Not Ready (Conditional Hold)
+Ground Truth Dataset not sufficient for Endpoint Evaluation
 ```
+
+> ~~Pipeline 미완성~~ ❌ — Pipeline은 **3/3 PASS (Coverage 100%)**
 
 **승인 경로:**
 
 ```text
-Cross-Clip 003 + 004 Cohort A PASS
+GT Dataset Improvement (clip_003/004 endpoint backfill)
+        ↓
+Alignment + Evaluation 재실행 (기존 스크립트, 코드 변경 없음)
+        ↓
+Cross-Clip Primary Gate PASS
         ↓
 Cross-Clip Final Review PM sign-off
         ↓
@@ -344,20 +386,62 @@ Beta Release
 
 ## 10. Current Progress Report
 
-**As of 2026-07-01:**
+**As of 2026-07-01 (Ops 실행 완료):**
 
 | Milestone | Status |
 |-----------|--------|
-| I13-5 Implementation | 🔒 LOCK |
+| I13-5 Offline Pipeline | 🔒 **PASS (3/3 clips, Coverage 100%)** |
+| Alignment Engine | 🔒 PASS (clip_002 proven) |
+| Quality Evaluation | 🔒 PASS |
 | Pilot #2 Final Review | 🔒 `c3cee3c` |
-| Cross-Clip Plan | ✅ **this doc** |
-| rc4_m1 runs 003/004 | ⏳ **Not started — P0 blocker** |
-| clip_003 validation | ⏳ Pending P0 |
-| clip_004 validation | ⏳ Pending P0 |
-| Cross-Clip aggregate | ⏳ Pending |
-| Firestore/GCS | ⏳ Hold |
+| Cross-Clip Plan | 🔒 `c4d8a4f` |
+| rc4_m1 runs 003/004 | ✅ Done (~213s / ~205s CPU) |
+| clip_003 validation | ✅ Pipeline PASS · Alignment **N/A** |
+| clip_004 validation | ✅ Pipeline PASS · Alignment **N/A** · Diagnostic P/R **95%** |
+| Cross-Clip aggregate | ✅ §5.6 · Primary Gate **HOLD** |
+| Firestore/GCS | ⏳ **GT Dataset Hold** |
 
-**다음 즉시 조치:** Ops — `pass01_clip_003` / `pass01_clip_004`에 대해 **rc4_m1 Worker pipeline 재실행** (clip_002와 동일 config lock).
+**Blocker:** GT Annotation — clip_003/004 PASS에 `fromTrackId`/`toTrackId` 없음.
+
+---
+
+## 11. GT Dataset Improvement Sprint (Next)
+
+**Status:** 📐 **OPS ONLY** — 코드·Worker·Tracking·GEV 변경 금지
+
+### 11.1 목표
+
+clip_002와 **동일 Annotation Level** 확보:
+
+```text
+data/vision/gt/pilot_pass01_clip_003_gev_gt.json
+data/vision/gt/pilot_pass01_clip_004_gev_gt.json
+```
+
+각 PASS 이벤트에 `fromTrackId` / `toTrackId` backfill (영상 + tracks.jsonl 리뷰).
+
+### 11.2 Backfill 후 재실행 (기존 스크립트만)
+
+```text
+build_alignment_map.py   (CLI clip별)
+        ↓
+evaluate_pass_quality.py (CLI clip별)
+        ↓
+§5.6 Aggregate Report 갱신
+```
+
+### 11.3 금지
+
+Worker · Tracking · GEV · Firestore · Callable · UI · Parent · **신규 기능 개발**
+
+### 11.4 완료 조건
+
+| Check | Target |
+|-------|--------|
+| clip_003/004 gtEndpointIdCount | > 0 |
+| clip별 alignmentCoverage | ≥ 0.80 |
+| clip별 Cohort A Primary | PASS |
+| Cross-Clip aggregate Primary | PASS |
 
 ---
 
