@@ -402,6 +402,10 @@ def run_build(
             incomplete.unlink()
         logger.close()
 
+    from pass_network_persist import verify as persist_verify
+
+    persist_verify(output_dir, min_confidence=cfg.min_confirm_confidence)
+
     return BuildResult(
         exit_code=exit_code,
         exit_status=exit_status,
