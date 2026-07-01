@@ -45,3 +45,12 @@ ios/
 *.sw?
 
 .vercel
+
+# Vision 대용량 자산 (D: 저장 + junction; Git 제외)
+data/vision/pass_01_full/
+data/vision/pass_01_pilot/
+data/vision/tracking/
+data/vision/pipeline/runs/
+*.mp4
+*.pt
+*.zip
