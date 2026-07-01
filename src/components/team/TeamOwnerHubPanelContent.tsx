@@ -14,6 +14,7 @@ import { canViewAIGrowthValidationConsole } from "@/lib/academy/aiGrowthValidati
 import { normalizeMemberRole } from "@/lib/team/academyMemberRole";
 import { teamAiAnalysisLitePath } from "@/lib/team/teamAiAnalysisLite";
 import AIGrowthValidationConsole from "@/pages/team/AIGrowthValidationConsole";
+import { TeamGrowthCoachShell } from "@/components/ai-growth/TeamGrowthCoachShell";
 
 export type TeamOwnerHubPanelContentProps = {
   dark?: boolean;
@@ -295,7 +296,14 @@ export function buildOwnerHubPanelTabs(props: TeamOwnerHubPanelContentProps) {
       ) : null}
 
       {showGrowthValidation ? (
-        <div className={cn(canUseOwnerAiCopy && "border-t pt-4", dark ? "border-slate-600/60" : "border-slate-200")}>
+        <div
+          className={cn(
+            "-mx-1 min-w-0 sm:mx-0",
+            canUseOwnerAiCopy && "border-t pt-4",
+            dark ? "border-slate-600/60" : "border-slate-200"
+          )}
+        >
+          <TeamGrowthCoachShell teamId={teamId} teamName={teamName} className="mb-4" />
           <AIGrowthValidationConsole teamId={teamId} teamName={teamName} embedded />
         </div>
       ) : null}

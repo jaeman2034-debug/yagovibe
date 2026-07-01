@@ -24,6 +24,9 @@ export { teamFeeAutoCloseScheduler } from "../scheduler/teamFeeAutoCloseSchedule
 export { weeklySeasonSettleScheduler } from "../scheduler/weeklySeasonSettleScheduler";
 export { submitPlayMatchFeedback } from "../team/playMatchFeedbackCallable";
 export { sendPushOnNotificationCreate } from "../notifications/sendPushOnNotificationCreate";
+export { onPlayerGrowthHistoryDeliveryNotify } from "../growth/onPlayerGrowthHistoryDeliveryNotify";
+export { onPlayerGrowthHistoryAvatarSync } from "../growth/onPlayerGrowthHistoryAvatarSync";
+export { generateParentGrowthWeeklyDigests } from "../growth/weeklyDigest";
 export { onTeamGameCompletedPlayFeedbackPush } from "../team/onTeamGameCompletedPlayFeedbackPush";
 export { applyGameProgressionEvent } from "../game/applyGameProgressionEvent";
 export { applyReferralCallable } from "../user/applyReferralCallable";
@@ -50,8 +53,82 @@ export {
 export { completeMarketTransaction } from "../market/completeMarketTransaction";
 export { ensureCanonicalTradeChat } from "../lib/ensureCanonicalTradeChat";
 export { createTeam } from "../lib/teamLifecycleCallables";
+export {
+  inviteParent,
+  acceptParentInvite,
+  revokeParentLink,
+  listParentLinks,
+  inviteParentAndLinkPlayer,
+} from "../lib/parentLinkCallables";
+export { updateAcademyMemberRole } from "../lib/updateAcademyMemberRole";
+export {
+  createAcademyPlayer,
+  inviteParentToAcademyPlayer,
+  inviteAcademyCoachByEmail,
+} from "../lib/academyPlayerCallables";
+export {
+  createAcademySession,
+  updateAcademySession,
+  cancelAcademySession,
+  listAcademySessions,
+} from "../lib/academySessionCallables";
+export {
+  startYoutubeIngestion,
+  getYoutubeIngestionStatus,
+  getTranscriptById,
+} from "../lib/aiGrowthIngestionCallables";
+export {
+  createAcademyMediaUpload,
+  confirmAcademyMediaUpload,
+  startAcademyMediaIngestion,
+  getAcademyMediaIngestionStatus,
+} from "../lib/academyMediaIngestCallables";
+export { startAcademyCvAnalysis } from "../lib/academyCvAnalysisCallables";
+export { reviewAcademyCvRun } from "../lib/academyCvReviewCallables";
+export { getAcademyCvRunsContext } from "../lib/academyCvReadCallables";
+export { extractApprovedCvSignals } from "../lib/academyCvGrowthLinkCallables";
+export { getCvGrowthLinksContext } from "../lib/academyCvGrowthLinksReadCallables";
+export { reviewCvGrowthLink } from "../lib/academyCvGrowthLinkReviewCallables";
+export { getCvInterpretationPreviewContext } from "../lib/academyCvInterpretationReadCallables";
+export { generateInterpretationCandidates } from "../lib/academyCvInterpretationClassificationCallables";
+export { reviewInterpretationCandidate } from "../lib/academyCvInterpretationReviewCallables";
+export { getCvGrowthSignalsPreviewContext } from "../lib/academyCvGrowthSignalsReadCallables";
+export { reviewGrowthSignalDraft } from "../lib/academyCvGrowthSignalsReviewCallables";
+export { getCvGrowthSignalsCompareContext } from "../lib/academyCvGrowthSignalsCompareCallables";
+export { getCvFiiDraftPreviewContext } from "../lib/academyCvFiiDraftReadCallables";
+export { getCvFiiDraftCompareContext } from "../lib/academyCvFiiDraftCompareCallables";
+export { getCvOvrDraftPreviewContext } from "../lib/academyCvOvrDraftReadCallables";
+export { getCvOvrDraftCompareContext } from "../lib/academyCvOvrDraftCompareCallables";
+export { reviewOvrDraft } from "../lib/academyCvOvrDraftReviewCallables";
+export { getCvPromotionPreviewContext } from "../lib/academyCvPromotionPreviewReadCallables";
+export { getCvPromotionPreviewCompareContext } from "../lib/academyCvPromotionPreviewCompareCallables";
+export { reviewPromotionPreview } from "../lib/academyCvPromotionPreviewReviewCallables";
+export { promoteCvGrowthToPlayerOvr } from "../lib/academyCvPromotionWriteCallables";
+export { restoreCvPromotionFromAudit } from "../lib/academyCvPromotionRollbackCallables";
+export { getCvAvatarDraftPreviewContext } from "../lib/academyCvAvatarDraftReadCallables";
+export { getCvAvatarDraftCompareContext } from "../lib/academyCvAvatarDraftCompareCallables";
+export { reviewAvatarDraft } from "../lib/academyCvAvatarDraftReviewCallables";
+export { getCvAvatarPromotionPreviewContext } from "../lib/academyCvAvatarPromotionPreviewReadCallables";
+export { getCvAvatarPromotionPreviewCompareContext } from "../lib/academyCvAvatarPromotionPreviewCompareCallables";
+export { reviewAvatarPromotionPreview } from "../lib/academyCvAvatarPromotionPreviewReviewCallables";
+export { promoteCvGrowthToPlayerAvatar } from "../lib/academyCvAvatarPromotionWriteCallables";
+export { restoreCvAvatarPromotionFromAudit } from "../lib/academyCvAvatarPromotionRollbackCallables";
+export { startYoutubeUrlAcademyImport } from "../lib/youtubeUrlImportCallables";
+export {
+  markAcademyAttendance,
+  bulkMarkAcademyAttendance,
+  getAcademySessionAttendance,
+} from "../lib/academyAttendanceCallables";
+export {
+  createTrainingBlock,
+  updateTrainingBlock,
+  archiveTrainingBlock,
+  listTrainingBlocks,
+} from "../lib/trainingBlockCallables";
 export { backfillMyTeamMemberships } from "../team/backfillMyTeamMemberships";
 export { ensureTeamMediaUploadAccess } from "../team/ensureTeamMediaUploadAccess";
+export { uploadGrowthReportPdf } from "../lib/growthReportDeliveryCallable";
+export { sendParentDeliveryAlimtalk } from "../parent-delivery/sendParentDeliveryAlimtalkCallable";
 export { uploadTeamGalleryMedia } from "../lib/uploadTeamGalleryMediaCallable";
 export { finalizeTeamBranding } from "../lib/finalizeTeamBrandingCallable";
 export { updateTeamPublicCopy } from "../lib/updateTeamPublicCopyCallable";

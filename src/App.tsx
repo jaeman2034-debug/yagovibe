@@ -49,10 +49,13 @@ import { isPlaceholderRouteParam } from "@/lib/team/teamRouteIds";
 // Lazy loading으로 성능 최적화 (LoginPage만 eager: lazy 청크 실패·OAuth 복귀 시 터짐 여부 확인용)
 const StartScreen = lazy(() => import("./pages/start/StartScreen"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
+const SignupLazyPage = lazy(() => import("./pages/SignupLazyPage"));
+const LegalDocumentPage = lazy(() => import("./pages/legal/LegalDocumentPage"));
 const PhoneLoginPage = lazy(() => import("./pages/PhoneLoginPage"));
 const HomePage = lazy(() => import("./pages/HomePage"));
 const HomeEntry = lazy(() => import("./pages/home/HomeEntry"));
 const HomeByRolePage = lazy(() => import("./pages/home/HomeByRolePage"));
+const PlayerGrowthProfilePage = lazy(() => import("./pages/profile/PlayerGrowthProfilePage"));
 const HomeNewTest = lazy(() => import("./pages/home/HomeNew"));
 const HomeDashboard = lazy(() => import("./pages/home/HomeDashboard"));
 const LegacySportsHubRedirect = lazy(() => import("./routes/LegacySportsHubRedirect"));
@@ -134,6 +137,8 @@ const ChatRoom = lazy(() => import("./pages/chat/ChatRoom"));
 const ChatPage = lazy(() => import("./pages/chat/ChatPage"));
 const ChatListPage = lazy(() => import("./pages/chat/ChatListPage"));
 const HubHome = lazy(() => import("./pages/hub/HubHome"));
+const VocInterviewListPage = lazy(() => import("./pages/voc/VocInterviewListPage"));
+const VocInterviewNewPage = lazy(() => import("./pages/voc/VocInterviewNewPage"));
 const OnboardingSportPage = lazy(() => import("./features/onboarding/OnboardingPage"));
 const AvatarOnboardingPage = lazy(() => import("./pages/onboarding/AvatarOnboardingPage"));
 const OfflinePage = lazy(() => import("./pages/OfflinePage"));
@@ -141,6 +146,11 @@ const NoMatch = lazy(() => import("./pages/NoMatch"));
 const InAppPage = lazy(() => import("./pages/InAppPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const DebugPage = lazy(() => import("./pages/DebugPage"));
+const GrowthPublicDemoPage = lazy(() => import("@/pages/growth/GrowthPublicDemoPage"));
+const GrowthValidationDemoPage = lazy(() => import("@/pages/growth/GrowthValidationDemoPage"));
+const GrowthReportParentViewPage = lazy(
+  () => import("@/pages/team/GrowthReportParentViewPage")
+);
 const MatchListPage = lazy(() => import("./pages/match/MatchListPage"));
 const MatchCreatePage = lazy(() => import("./pages/match/MatchCreatePage"));
 const MatchDetailPage = lazy(() => import("./pages/match/MatchDetailPage"));
@@ -173,6 +183,10 @@ const TeamLineupListPage = lazy(() => import("@/pages/team/TeamLineupListPage"))
 const TeamLineupDetailPage = lazy(() => import("@/pages/team/TeamLineupDetailPage"));
 const TeamManagePage = lazy(() => import("@/pages/team/TeamManagePage"));
 const TeamPlayPage = lazy(() => import("@/pages/team/TeamPlayPage"));
+const VisionMatchDetailPage = lazy(() => import("@/pages/vision/VisionMatchDetailPage"));
+const ParentVisionReportPage = lazy(() => import("@/pages/vision/ParentVisionReportPage"));
+const VisionE2EDemoPage = lazy(() => import("@/pages/vision/VisionE2EDemoPage"));
+const VisionPilotBetaPage = lazy(() => import("@/pages/vision/VisionPilotBetaPage"));
 const PlayPage = lazy(() => import("@/pages/play/PlayPage"));
 const MatchmakingQueuePage = lazy(() => import("@/pages/play/MatchmakingQueuePage"));
 const QuickPlayPage = lazy(() => import("@/pages/play/QuickPlayPage"));
@@ -189,6 +203,7 @@ const TeamGameCreatePage = lazy(() => import("@/pages/team/TeamGameCreatePage"))
 const TeamGameEditPage = lazy(() => import("@/pages/team/TeamGameEditPage"));
 const GamePlayerStatsPage = lazy(() => import("@/pages/team/GamePlayerStatsPage"));
 const TeamGameParticipationPage = lazy(() => import("@/pages/team/TeamGameParticipationPage"));
+const TeamGrowthValidationPage = lazy(() => import("@/pages/team/TeamGrowthValidationPage"));
 const TeamInvitePage = lazy(() => import("@/pages/team/TeamInvitePage"));
 const TeamJoinPage = lazy(() => import("@/pages/team/TeamJoinPage"));
 const TeamBillingSuccessPage = lazy(() => import("@/pages/team/billing/TeamBillingSuccessPage"));
@@ -277,6 +292,15 @@ function FederationActivityPrefixRedirect() {
   return <Navigate to={`/federations/${federationSlug}${suffix}${location.search}`} replace />;
 }
 
+/** 레거시 단수 `/federation/:slug/...` → `/federations/:slug/...` */
+function FederationLegacySingularRedirect() {
+  const { federationSlug } = useParams<{ federationSlug: string }>();
+  const location = useLocation();
+  const base = `/federation/${federationSlug}`;
+  const suffix = location.pathname.startsWith(base) ? location.pathname.slice(base.length) : "";
+  return <Navigate to={`/federations/${federationSlug}${suffix}${location.search}`} replace />;
+}
+
 /** `/tournaments/:id` 등 레거시·알림 링크 → `ActivityRouter` 리그 리졸버 */
 function TournamentsLeagueCanonicalRedirect() {
   const { tournamentId } = useParams<{ tournamentId: string }>();
@@ -303,6 +327,15 @@ function FederationLeaguesListRedirect() {
     return <Navigate to="/" replace />;
   }
   return <Navigate to={`/federations/${federationSlug}?tab=tournaments`} replace />;
+}
+
+/** 레거시 경로(`/matches`, `/teams` 등) → `?tab=` 쿼리 탭으로 통일 */
+function FederationLegacyTabRedirect({ tab }: { tab: string }) {
+  const { federationSlug } = useParams<{ federationSlug: string }>();
+  if (!federationSlug || federationSlug.startsWith(":")) {
+    return <Navigate to="/" replace />;
+  }
+  return <Navigate to={`/federations/${federationSlug}?tab=${encodeURIComponent(tab)}`} replace />;
 }
 
 /**
@@ -486,6 +519,10 @@ export default function App() {
               <Route path="/start" element={<Navigate to="/hub" replace />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route path="/signup-lazy" element={<SignupLazyPage />} />
+              <Route path="/privacy" element={<LegalDocumentPage />} />
+              <Route path="/terms" element={<LegalDocumentPage />} />
+              <Route path="/video-analysis-policy" element={<LegalDocumentPage />} />
               <Route path="/login/phone" element={<PhoneLoginPage />} />
               <Route path="/login/qr-phone" element={<QRLoginDesktopPage />} />
               <Route path="/qr-login" element={<QRPhoneLoginPage />} />
@@ -518,6 +555,38 @@ export default function App() {
             {/* 🔥 디버그 패널 (테스트 모드 전용) */}
             <Route path="/debug" element={<DebugPage />} />
 
+            {/* 공개 AI Sports Intelligence 데모 — 사업계획서·심사·투자용 */}
+            <Route
+              path="/growth/demo"
+              element={
+                <ProtectedRoute>
+                  <Suspense
+                    fallback={
+                      <div className="flex min-h-screen items-center justify-center bg-violet-50 text-violet-900">
+                        불러오는 중…
+                      </div>
+                    }
+                  >
+                    <GrowthValidationDemoPage />
+                  </Suspense>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/growth"
+              element={
+                <Suspense
+                  fallback={
+                    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">
+                      불러오는 중…
+                    </div>
+                  }
+                >
+                  <GrowthPublicDemoPage />
+                </Suspense>
+              }
+            />
+
             {/* Stripe Checkout 구독 성공 — Functions `createCheckoutSession` success_url 과 동일 경로 */}
             <Route
               path="/billing/success"
@@ -540,10 +609,15 @@ export default function App() {
               path="/activity/federations/:federationSlug/*"
               element={<FederationActivityPrefixRedirect />}
             />
+            <Route path="/federation/:federationSlug/*" element={<FederationLegacySingularRedirect />} />
             <Route path="/federations/:federationSlug" element={<FederationShell />}>
               <Route index element={<FederationHomePage />} />
               <Route path="leagues" element={<FederationLeaguesListRedirect />} />
               <Route path="leagues/:leagueId" element={<FederationLeagueDetailRedirect />} />
+              <Route path="matches" element={<FederationLegacyTabRedirect tab="matches" />} />
+              <Route path="teams" element={<FederationLegacyTabRedirect tab="teams" />} />
+              <Route path="standings" element={<FederationLegacyTabRedirect tab="results" />} />
+              <Route path="announcements" element={<FederationLegacyTabRedirect tab="notices" />} />
               <Route path="tournaments/:tournamentId" element={<FederationTournamentPublicPage />} />
               <Route
                 path="tournaments/:tournamentId/divisions/:divisionId"
@@ -614,13 +688,35 @@ export default function App() {
               <Route
                 path="/hub"
                 element={
-                  <ProtectedRoute>
-                    <HubSportGate>
-                      <HubProvider>
-                        <HubHome />
-                      </HubProvider>
-                    </HubSportGate>
-                  </ProtectedRoute>
+                  <HubSportGate>
+                    <HubProvider>
+                      <HubHome />
+                    </HubProvider>
+                  </HubSportGate>
+                }
+              />
+              <Route
+                path="/hub/interviews"
+                element={
+                  <HubSportGate>
+                    <HubProvider>
+                      <Suspense fallback={null}>
+                        <VocInterviewListPage />
+                      </Suspense>
+                    </HubProvider>
+                  </HubSportGate>
+                }
+              />
+              <Route
+                path="/hub/interviews/new"
+                element={
+                  <HubSportGate>
+                    <HubProvider>
+                      <Suspense fallback={null}>
+                        <VocInterviewNewPage />
+                      </Suspense>
+                    </HubProvider>
+                  </HubSportGate>
                 }
               />
               <Route
@@ -824,6 +920,48 @@ export default function App() {
                 }
               />
               <Route
+                path="/home/parent/child/:teamId/:playerId"
+                element={
+                  <ProtectedRoute>
+                    <Suspense
+                      fallback={
+                        <div className="p-8 text-center text-slate-500">성장 프로필 불러오는 중…</div>
+                      }
+                    >
+                      <PlayerGrowthProfilePage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/home/parent/vision/report"
+                element={
+                  <ProtectedRoute>
+                    <Suspense
+                      fallback={
+                        <div className="p-8 text-center text-slate-500">Parent Report 불러오는 중…</div>
+                      }
+                    >
+                      <ParentVisionReportPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile/growth/:teamId/:playerId"
+                element={
+                  <ProtectedRoute>
+                    <Suspense
+                      fallback={
+                        <div className="p-8 text-center text-slate-500">성장 프로필 불러오는 중…</div>
+                      }
+                    >
+                      <PlayerGrowthProfilePage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/home/:homeRole"
                 element={
                   <ProtectedRoute>
@@ -1008,6 +1146,18 @@ export default function App() {
                     <RequireAvatarOnboarding>
                     <TeamRouteParamGuard>
                       <TeamAiAnalysisLiteRoute />
+                    </TeamRouteParamGuard>
+                    </RequireAvatarOnboarding>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/team/:teamId/growth-report/:sessionId"
+                element={
+                  <ProtectedRoute>
+                    <RequireAvatarOnboarding>
+                    <TeamRouteParamGuard>
+                      <GrowthReportParentViewPage />
                     </TeamRouteParamGuard>
                     </RequireAvatarOnboarding>
                   </ProtectedRoute>
@@ -1229,6 +1379,66 @@ export default function App() {
                       fallback={<div className="mx-auto max-w-lg p-8 text-center text-slate-500">로딩 중…</div>}
                     >
                       <TeamGameParticipationPage />
+                    </Suspense>
+                  </ProtectedWithAvatar>
+                }
+              />
+              <Route
+                path="/teams/:teamId/validation-console"
+                element={
+                  <ProtectedWithAvatar>
+                    <Suspense
+                      fallback={<div className="mx-auto max-w-lg p-8 text-center text-slate-500">로딩 중…</div>}
+                    >
+                      <TeamGrowthValidationPage />
+                    </Suspense>
+                  </ProtectedWithAvatar>
+                }
+              />
+              <Route
+                path="/teams/:teamId/vision/pilot-beta"
+                element={
+                  <ProtectedWithAvatar>
+                    <Suspense
+                      fallback={
+                        <div className="mx-auto max-w-lg p-8 text-center text-slate-500">
+                          Pilot Beta 불러오는 중…
+                        </div>
+                      }
+                    >
+                      <VisionPilotBetaPage />
+                    </Suspense>
+                  </ProtectedWithAvatar>
+                }
+              />
+              <Route
+                path="/teams/:teamId/vision/demo"
+                element={
+                  <ProtectedWithAvatar>
+                    <Suspense
+                      fallback={
+                        <div className="mx-auto max-w-lg p-8 text-center text-slate-500">
+                          Vision E2E Demo 불러오는 중…
+                        </div>
+                      }
+                    >
+                      <VisionE2EDemoPage />
+                    </Suspense>
+                  </ProtectedWithAvatar>
+                }
+              />
+              <Route
+                path="/teams/:teamId/vision/match/:matchId"
+                element={
+                  <ProtectedWithAvatar>
+                    <Suspense
+                      fallback={
+                        <div className="mx-auto max-w-lg p-8 text-center text-slate-500">
+                          Vision Match Detail 불러오는 중…
+                        </div>
+                      }
+                    >
+                      <VisionMatchDetailPage />
                     </Suspense>
                   </ProtectedWithAvatar>
                 }
