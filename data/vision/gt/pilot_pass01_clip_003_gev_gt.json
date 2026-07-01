@@ -7,13 +7,19 @@
   "duration_s": 60,
   "annotator": "manual_opencv_v2_1",
   "date": "2026-06-29",
-  "notes": "RC2-2.2 pilot GT template. Select alternate Pass_01 session (different camera angle). Target ~15 evaluable events. [GT Sprint v1.0: endpoint backfill on all PASS events — verify on video]",
+  "notes": "RC2-2.2 pilot GT template. Select alternate Pass_01 session (different camera angle). Target ~15 evaluable events. [GT Sprint v1.0: endpoint backfill] [Step1 video review 2026-06-29: 42.167 PASS endpoints removed — TURNOVER not pass; 13.467/27.467/55.6 endpoints confirmed] [Step2 FP video review 2026-06-29: 5 worker FP confirmed as real PASS on video — GT PASS added; endpoints only where GT-era tracks align]",
   "matching": {
     "timestampToleranceS": 0.75,
     "requireTrackIds": false,
     "matchTrackEndpoints": true
   },
   "events": [
+    {
+      "eventType": "PASS",
+      "timestamp": 3.6,
+      "frame": 108,
+      "label": "manual_gt"
+    },
     {
       "eventType": "PASS",
       "timestamp": 5.467,
@@ -69,9 +75,21 @@
       "label": "manual_gt"
     },
     {
+      "eventType": "PASS",
+      "timestamp": 19.867,
+      "frame": 596,
+      "label": "manual_gt"
+    },
+    {
       "eventType": "TURNOVER",
       "timestamp": 21.967,
       "frame": 659,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 22.067,
+      "frame": 662,
       "label": "manual_gt"
     },
     {
@@ -89,6 +107,14 @@
       "label": "manual_gt"
     },
     {
+      "eventType": "PASS",
+      "timestamp": 30.3,
+      "frame": 909,
+      "label": "manual_gt",
+      "fromTrackId": "P0228",
+      "toTrackId": "P0234"
+    },
+    {
       "eventType": "TURNOVER",
       "timestamp": 32.333,
       "frame": 970,
@@ -104,6 +130,12 @@
     },
     {
       "eventType": "RECEIVE",
+      "timestamp": 36.4,
+      "frame": 1092,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
       "timestamp": 36.4,
       "frame": 1092,
       "label": "manual_gt"
@@ -138,9 +170,7 @@
       "eventType": "PASS",
       "timestamp": 42.167,
       "frame": 1265,
-      "label": "manual_gt",
-      "fromTrackId": "P0293",
-      "toTrackId": "P0321"
+      "label": "manual_gt"
     },
     {
       "eventType": "RECEIVE",
@@ -152,7 +182,9 @@
       "eventType": "TURNOVER",
       "timestamp": 42.167,
       "frame": 1265,
-      "label": "manual_gt"
+      "label": "manual_gt",
+      "fromTrackId": "P0293",
+      "toTrackId": "P0321"
     },
     {
       "eventType": "PASS",

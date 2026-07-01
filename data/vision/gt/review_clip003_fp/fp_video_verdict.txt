@@ -1,0 +1,13 @@
+clip_003 Worker FP Video Verification (2026-06-29)
+Video: D:\YAGO_AI\VIDEOS\pilot\pass01_clip_003.mp4
+Principle: GT follows video, not worker.
+
+| Timestamp | Worker Endpoint | Video Verdict | GT Action |
+|-----------|-----------------|---------------|-----------|
+| 3.600 | P0024→P0064 | PASS — P0024 ball @2.3s, P0064 receive @3.6s | PASS added (sparse — P0024 unmapped) |
+| 19.867 | P0158→P0167 | PASS — P0158 kick @19.367s, P0167 receive @19.867s | PASS added (sparse) |
+| 22.067 | P0167→P0171 | PASS — P0167 ball @21.867s, P0171 receive @22.067s | PASS added (sparse) |
+| 30.300 | P0228→P0234 | PASS — P0228 kick @30.067s, P0234 receive @30.3s | PASS added P0228→P0234 |
+| 36.400 | P0264→P0273 | PASS — P0264 ball @36.0s, P0273 receive @36.4s | PASS added (sparse; RC2 co-label) |
+
+Rejected: none (all 5 confirmed as intentional pass on video)
