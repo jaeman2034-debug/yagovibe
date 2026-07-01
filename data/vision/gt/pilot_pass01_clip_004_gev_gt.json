@@ -1,0 +1,418 @@
+{
+  "schemaVersion": "yago-vision-gt-gev-v1",
+  "clipId": "pass01_clip_004",
+  "status": "complete",
+  "source_video": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_004.mp4",
+  "fps": 30.0,
+  "duration_s": 60,
+  "annotator": "manual_opencv_v2_1",
+  "date": "2026-06-29",
+  "notes": "RC2-2.2 pilot GT template. Prefer turnover/transition-rich segment for TRANSITION eval coverage. [GT Sprint v1.0: endpoint backfill on all PASS events — verify on video]",
+  "matching": {
+    "timestampToleranceS": 0.75,
+    "requireTrackIds": false,
+    "matchTrackEndpoints": true
+  },
+  "events": [
+    {
+      "eventType": "PASS",
+      "timestamp": 3.7,
+      "frame": 111,
+      "label": "manual_gt",
+      "fromTrackId": "P0010",
+      "toTrackId": "P0014"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 3.7,
+      "frame": 111,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 3.7,
+      "frame": 111,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 6.067,
+      "frame": 182,
+      "label": "manual_gt",
+      "fromTrackId": "P0014",
+      "toTrackId": "P0017"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 6.067,
+      "frame": 182,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 6.067,
+      "frame": 182,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 11.267,
+      "frame": 338,
+      "label": "manual_gt",
+      "fromTrackId": "P0064",
+      "toTrackId": "P0070"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 11.267,
+      "frame": 338,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 11.267,
+      "frame": 338,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 13.567,
+      "frame": 407,
+      "label": "manual_gt",
+      "fromTrackId": "P0070",
+      "toTrackId": "P0081"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 13.567,
+      "frame": 407,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 13.567,
+      "frame": 407,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 14.833,
+      "frame": 445,
+      "label": "manual_gt",
+      "fromTrackId": "P0081",
+      "toTrackId": "P0096"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 14.833,
+      "frame": 445,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 14.833,
+      "frame": 445,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 18.733,
+      "frame": 562,
+      "label": "manual_gt",
+      "fromTrackId": "P0112",
+      "toTrackId": "P0119"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 18.733,
+      "frame": 562,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 18.733,
+      "frame": 562,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 20.7,
+      "frame": 621,
+      "label": "manual_gt",
+      "fromTrackId": "P0119",
+      "toTrackId": "P0141"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 20.7,
+      "frame": 621,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 20.7,
+      "frame": 621,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 21.7,
+      "frame": 651,
+      "label": "manual_gt",
+      "fromTrackId": "P0141",
+      "toTrackId": "P0159"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 21.7,
+      "frame": 651,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 21.7,
+      "frame": 651,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 26.167,
+      "frame": 785,
+      "label": "manual_gt",
+      "fromTrackId": "P0187",
+      "toTrackId": "P0197"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 26.167,
+      "frame": 785,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 26.167,
+      "frame": 785,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 28.3,
+      "frame": 849,
+      "label": "manual_gt",
+      "fromTrackId": "P0197",
+      "toTrackId": "P0213"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 28.3,
+      "frame": 849,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 28.3,
+      "frame": 849,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 33.267,
+      "frame": 998,
+      "label": "manual_gt",
+      "fromTrackId": "P0248",
+      "toTrackId": "P0278"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 33.267,
+      "frame": 998,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 33.267,
+      "frame": 998,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 34.867,
+      "frame": 1046,
+      "label": "manual_gt",
+      "fromTrackId": "P0278",
+      "toTrackId": "P0289"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 34.867,
+      "frame": 1046,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 34.867,
+      "frame": 1046,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 35.367,
+      "frame": 1061,
+      "label": "manual_gt",
+      "fromTrackId": "P0289",
+      "toTrackId": "P0290"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 35.367,
+      "frame": 1061,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 35.367,
+      "frame": 1061,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 37.2,
+      "frame": 1116,
+      "label": "manual_gt",
+      "fromTrackId": "P0290",
+      "toTrackId": "P0292"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 37.2,
+      "frame": 1116,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 37.2,
+      "frame": 1116,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 42.133,
+      "frame": 1264,
+      "label": "manual_gt",
+      "fromTrackId": "P0335",
+      "toTrackId": "P0352"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 42.133,
+      "frame": 1264,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 42.133,
+      "frame": 1264,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 44.333,
+      "frame": 1330,
+      "label": "manual_gt",
+      "fromTrackId": "P0352",
+      "toTrackId": "P0354"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 44.333,
+      "frame": 1330,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 44.333,
+      "frame": 1330,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 45.467,
+      "frame": 1364,
+      "label": "manual_gt",
+      "fromTrackId": "P0354",
+      "toTrackId": "P0379"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 45.467,
+      "frame": 1364,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 45.467,
+      "frame": 1364,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 50.367,
+      "frame": 1511,
+      "label": "manual_gt",
+      "fromTrackId": "P0395",
+      "toTrackId": "P0402"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 50.367,
+      "frame": 1511,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 50.367,
+      "frame": 1511,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 52.467,
+      "frame": 1574,
+      "label": "manual_gt",
+      "fromTrackId": "P0402",
+      "toTrackId": "P0427"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 52.467,
+      "frame": 1574,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 52.467,
+      "frame": 1574,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "PASS",
+      "timestamp": 57.833,
+      "frame": 1735,
+      "label": "manual_gt",
+      "fromTrackId": "P0452",
+      "toTrackId": "P0477"
+    },
+    {
+      "eventType": "RECEIVE",
+      "timestamp": 57.833,
+      "frame": 1735,
+      "label": "manual_gt"
+    },
+    {
+      "eventType": "TURNOVER",
+      "timestamp": 57.833,
+      "frame": 1735,
+      "label": "manual_gt"
+    }
+  ]
+}
