@@ -1373,7 +1373,7 @@ Step 11 Vision v2 Beta Start Review
 | 1 | Pilot team scope | ✅ `D7TUZaOtfxdBc4P0lQLx` |
 | 2 | Rollback procedure | ✅ ruleset `d3429b67…` |
 | 3 | OR-11 not Beta blocker | ✅ P2 · separate PR |
-| 4 | Backup manual export (§8 #3) | ⏳ **Run Day 0** — complete before first Beta upload |
+| 4 | Backup manual export (§8 #3) | ✅ **2026-07-03** · `gs://gcf-sources-126699415285-asia-northeast3/ops/backups/firestore/20260703/` |
 
 ```text
 Step 11 Vision v2 Beta Start
@@ -1393,7 +1393,7 @@ Reason:
 - Dry Run #2 PASS
 - Pilot 운영 준비 완료
 - OR-11은 P2 개선 과제로 관리 (not Beta blocker)
-- Backup manual export: Run Day 0 ops task before first upload
+- Backup manual export: ✅ completed 2026-07-03 (Beta Ops Plan §8.1)
 
 Authorized Next:
 Vision v2 Beta Operation Start

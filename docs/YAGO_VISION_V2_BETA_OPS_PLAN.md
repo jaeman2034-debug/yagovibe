@@ -216,9 +216,20 @@ Detect → Log (Daily Log + Issue Report) → Mitigate → PM notify if P0/P1
 |---|------|:------:|
 | 1 | OR-14 Rules Gate CLOSE | ✅ §13.15.3 |
 | 2 | Dry Run #2 (rules 5-path post-deploy) | ✅ §13.14 |
-| 3 | Backup manual export once | ⏳ **Run Day 0** (before first Beta upload) |
+| 3 | Backup manual export once | ✅ **2026-07-03** (Run Day 0 — see §8.1) |
 | 4 | Ops Plan PM sign-off (§9) | ✅ 2026-07-02 |
 | 5 | Operation Readiness Final PASS (§15.2) | ✅ 2026-07-02 |
+
+### 8.1 Run Day 0 — Backup Manual Export Record
+
+| Field | Value |
+|-------|-------|
+| **Executed** | 2026-07-03 |
+| **Operator** | Ops (gcloud · project `yago-vibe-spt`) |
+| **Target** | Firestore `(default)` full export |
+| **Destination** | `gs://gcf-sources-126699415285-asia-northeast3/ops/backups/firestore/20260703/` |
+| **Evidence** | `20260703.overall_export_metadata` + `all_namespaces/` prefix present |
+| **Note** | `yago-vibe-spt.firebasestorage.app` rejected (bucket `us-central1` vs DB `asia-northeast3`); export used `asia-northeast3` bucket per Firestore region constraint |
 
 ---
 
