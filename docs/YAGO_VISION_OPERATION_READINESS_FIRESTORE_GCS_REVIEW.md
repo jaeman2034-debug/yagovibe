@@ -879,6 +879,59 @@ Coach uid: `jMLLIxyOVkN1HERAd2gz88uKj9e2` · Parent uid: `wSlh4oDIqIP4GnV3Di1IeA
 
 **OR-14 remains OPEN** until SoT locked · deploy approved · Dry Run #2 PASS.
 
+### 13.9 §13.5 Draft — Pre-Approval Review Pack (2026-07-02)
+
+> **Status:** 📋 **REVIEW MATERIAL ONLY** — not §13.5 final policy approval · not Repository change · not Deploy.  
+> **Purpose:** PM decision input — adopt §13.5 as Vision v2 Beta Firestore Rules SoT?  
+> **Option B:** 우선 검토안 (PM · not approved).
+
+#### 13.9.1 Path-level comparison (Production · Repository · §13.5 · Client)
+
+| 항목 | Production (deployed) | Repository | §13.5 Draft | Client 요구 | Prod 실측 (2026-07-02) | 차이 요약 | PM 판단 |
+|------|----------------------|------------|-------------|-------------|:----------------------:|-----------|---------|
+| **visionMatchIndex** read | `isTeamVisionStaffReader(teamId)` | ❌ 규칙 없음 → implicit **DENY** | `isSignedIn() && isActiveMember(teamId)` | `useMatchVisionPipelineStatus` — coach/staff pipeline UI · onSnapshot | Coach **ALLOW** | Prod ⊂ Draft (Draft 더 넓음: 전 active member) · Repo = 없음 | ⏳ |
+| **visionUploadQueue** read | ❌ 규칙 없음 → **DENY** | ❌ 규칙 없음 | `isSignedIn() && isActiveMember(teamId)` | `useVisionUploadQueueStatus` — RC5-2 upload queue UI · onSnapshot | Coach **DENY** | Prod/Repo 모두 없음 · **Beta Client 필수** | ⏳ |
+| **aiIngest/…/visionRuns** read | `isTeamVisionStaffReader(teamId)` | ❌ 규칙 없음 | `isSignedIn() && isActiveMember(teamId)` | `useVisionJobMonitor` — run progress · **⚠ client path still `media/` (OR-11 stale)** | Coach **ALLOW** | Prod ⊂ Draft · Client path drift 별도(OR-11) | ⏳ |
+| **aiIngest/{mediaId}** read | `isTeamStaffElevated(teamId)` | ❌ 규칙 없음 | `isSignedIn() && isActiveMember(teamId)` | Upload confirm / ingest meta read (staff) | *(미 probe)* | Draft = member 허용 · Prod = staff만 | ⏳ |
+| **visionAnalysis** read (coach) | `isTeamVisionStaffReader(teamId)` | ❌ 규칙 없음 | `isSignedIn() && isActiveMember(teamId)` | `useCoachVisionAnalysis` — collection **list** query · coach dashboard | Coach **ALLOW** | Prod ⊂ Draft · list query = subcollection read rule 적용 | ⏳ |
+| **visionAnalysis** read (parent) | `isTeamVisionStaffReader(teamId)` only → parent **DENY** | ❌ 규칙 없음 | `isActiveMember(teamId) \|\| parentLinkReadAllowed(teamId, matchId)` | `useParentIntelligence` → `getLatestVisionAnalysis` · Parent Report | Parent **DENY** | **Beta Parent UX gap** · Draft는 parentLink 패턴 명시 | ⏳ |
+| **All Vision writes** | `false` (CF only) | implicit DENY | `false` (CF only) | CF/Admin SDK only | — | ✅ 정합 | ⏳ |
+
+**Production helper reference (deployed):** `isTeamVisionStaffReader` = owner/captain/team staff role (active status 불필요).  
+**§13.5 gap:** `parentLinkReadAllowed()` helper **미구현** — must align with `teams/{teamId}/parentLinks` read pattern (§ deployed L1216–1228).
+
+#### 13.9.2 PM review questions (Eng pre-read)
+
+| # | Question | Eng pre-read | PM decision |
+|---|----------|--------------|:-----------:|
+| 1 | §13.5 Draft 권한이 Beta 의도와 일치하는가? | Draft = **active member** read on pipeline paths; Production = **staff-only** on index/runs/analysis. Draft is **broader** than current prod — aligns with “팀 멤버가 파이프라인 상태 조회” if Beta scope = registered members, not staff-only. | ⏳ |
+| 2 | `visionUploadQueue` read가 Beta 운영에 필요한가? | **Yes** — RC5-2 hook exists · prod **DENY** observed · queue status UI blocked without rule. §13.5 includes path; Production/Repository do not. | ⏳ |
+| 3 | Parent `visionAnalysis` read가 개인정보·운영 정책에 부합하는가? | Parent Report reads **match-scoped analysis doc** (not raw video). Pilot parent uid + `parentLinks` verified Phase 1 (`RC5_4_OPERATION_INFO`). Draft proposes **parentLink-gated** read — narrower than `isActiveMember` alone. **Requires** `parentLinkReadAllowed` spec + rules implementation before deploy. Prod currently **DENY** — fixture fallback may mask in pilot. | ⏳ |
+| 4 | 변경 범위·영향이 문서화되었는가? | See §13.9.3. Client path fix (`useVisionJobMonitor` → `aiIngest`) = **OR-11** separate from rules deploy gate but affects Dry Run #2. | ⏳ |
+
+#### 13.9.3 Change scope & impact (if §13.5 adopted as SoT — Option B)
+
+| Change class | Scope | Risk | Mitigation |
+|--------------|-------|------|------------|
+| **Repository sync** | Merge production Vision blocks + §13.5 deltas into `firestore.rules` | Repo-only deploy would **regress** prod today | Never deploy from current repo; full merge review first |
+| **New prod rule** | `visionUploadQueue` read block | Low — read-only · CF writes unchanged | Playground + Dry Run #2 probe |
+| **Policy change** | Parent `visionAnalysis` read via `parentLinkReadAllowed` | Med — privacy / consent boundary | Align with `parentLinks` SoT · pilot parent E2E in Dry Run #2 |
+| **Policy widen** | `isActiveMember` vs `isTeamVisionStaffReader` on index/runs/analysis | Med — any active member reads pipeline/analysis | Confirm Beta persona scope with PM |
+| **Helper implementation** | `parentLinkReadAllowed(teamId, matchId)` in rules | Med — must match CF parentLink schema | Eng rules PR + emulator tests |
+| **Non-rules dependency** | `useVisionJobMonitor.ts:84` stale `media/` path | High for Job Monitor 10/10 | OR-11 path fix before/along Dry Run #2 |
+| **Deploy** | `firebase deploy --only firestore:rules` | Med | PM approval · post-deploy 5-path probe · Dry Run #2 |
+
+#### 13.9.4 Decision record (PM — pending)
+
+| Decision | Status |
+|----------|:------:|
+| Adopt §13.5 as Vision v2 Beta Firestore Rules SoT | ⏳ **PENDING** |
+| Option A vs Option B | ⏳ Option B = **우선 검토안** (not approved) |
+| §13.5 final policy sign-off | ⏳ **PENDING** |
+| Rules Deploy approval | ⏳ **PENDING** (after SoT + §13.5 sign-off) |
+
+**If §13.5 approved → locked sequence:** Repository update → PM Deploy approval → Rules Deploy → Dry Run #2 → OR-14 CLOSE review.
+
 ---
 
 ## 15. Operation Readiness Final PASS — Preparation (HOLD)
