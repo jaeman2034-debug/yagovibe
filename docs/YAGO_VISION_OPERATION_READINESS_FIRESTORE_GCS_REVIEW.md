@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — Step 5 ✅ COMPLETE · Step 6 ▶️ PM Deploy Approval · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD  
+**Status:** 📋 **EXECUTION PREP** — Step 6 ✅ APPROVED · Step 7 ▶️ Merge + Rules Deploy · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD  
 **Date:** 2026-07-02  
-**Branch:** `or14/step5-rules-merge` → `main` (PR opened · **Merge HOLD** until Step 6 APPROVED)  
+**Branch:** `or14/step5-rules-merge` → `main` (Step 6 APPROVED · Step 7 authorized)  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -1135,12 +1135,12 @@ Verify: decision is explicit · Actions align with decision.
 
 ### 13.12 PM Deploy Approval — Step 6 (GOVERNANCE GATE)
 
-> **Status:** ▶️ **IN REVIEW** — Step 5 PR opened · Eng pre-read complete · **PM decision pending**  
-> **Nature:** 운영 승인 Gate — **not** feature development · **not** code change · **not** deploy
+> **Status:** ✅ **APPROVED** — PM Decision Record §13.12.4 complete (2026-07-02)  
+> **Nature:** 운영 승인 Gate — **not** feature development
 
-**PR scope (focused):** `or14/step5-rules-merge` → `main` · 2 files only (`firestore.rules`, operation readiness doc) · `304afda`
+**PR scope (focused):** `or14/step5-rules-merge` → `main` · 2 files only (`firestore.rules`, operation readiness doc)
 
-**Hold until Step 6 APPROVED:** PR Merge · `firebase deploy --only firestore:rules` · Dry Run #2 · OR-14 CLOSE
+**Authorized (Step 7):** PR Merge · `firebase deploy --only firestore:rules` · then Step 8 Dry Run #2
 
 #### 13.12.1 Step 6 checklist (PM)
 
@@ -1184,30 +1184,22 @@ Verify: decision is explicit · Actions align with decision.
 
 #### 13.12.4 Step 6 — PM Decision Record
 
-> **Status:** ⏳ **PENDING** — PM fills this section to complete Step 6.  
-> **Methods:** (1) This doc — **required** · (2) GitHub PR Approve — **recommended supplement**
-
-**How to complete Step 6 (PM):**
-
-1. Fill the record below (`APPROVED` / `HOLD` / `REJECTED`)
-2. `git add docs/YAGO_VISION_OPERATION_READINESS_FIRESTORE_GCS_REVIEW.md`
-3. `git commit -m "docs: record step 6 pm deploy approval"`
-4. (Optional) GitHub PR → Review changes → **Approve** with comment: `Step 6 PM Deploy Approval. Proceed to Step 7 after merge.`
-5. **Only if APPROVED:** Step 7 — PR Merge → `firebase deploy --only firestore:rules`
-
----
+> **Status:** ✅ **COMPLETE** — Step 6 PM Deploy Approval recorded 2026-07-02
 
 ```text
-Step 6 PM Deploy Approval: [ APPROVED | HOLD | REJECTED ]
+Step 6 PM Deploy Approval
 
-Reviewer: _______________ (PM)
-Date: _______________
+Decision:
+APPROVED
+
+Reviewer:
+이재만 (PM)
+
+Date:
+2026-07-02
 
 PR:
 or14/step5-rules-merge → main
-
-Decision:
-[ APPROVED | HOLD | REJECTED ]
 
 Reason:
 - §13.5 정책과 일치
@@ -1216,15 +1208,13 @@ Reason:
 - Dry-run compile PASS
 - OR-11은 Dry Run #2에서 별도 검증
 
-Authorized Next (APPROVED only):
+Authorized Next:
 1. PR Merge
 2. firebase deploy --only firestore:rules
 3. Dry Run #2
 ```
 
-**PM signature:** _______________ · **Date:** _______________
-
-**Until APPROVED recorded above:** PR Merge · Rules Deploy · Dry Run #2 · OR-14 CLOSE remain **FORBIDDEN**.
+**PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** APPROVED
 
 ---
 
