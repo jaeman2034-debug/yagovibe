@@ -55,6 +55,10 @@ import { sportsCategories } from "@/data/sportsCategories";
 import { rankHubActivities } from "@/utils/hubActivityFeedScore";
 import { HubActivityFeedCard } from "@/components/hub/HubActivityFeedCard";
 import { HubAvatarIdentityCard } from "@/components/hub/HubAvatarIdentityCard";
+import { HubGrowthSummaryCard } from "@/components/hub/HubGrowthSummaryCard";
+import { HubMultiAcademyDashboardCard } from "@/components/hub/HubMultiAcademyDashboardCard";
+import { HubFederationIntelligenceCard } from "@/components/hub/HubFederationIntelligenceCard";
+import { HubVocInterviewCard } from "@/components/hub/HubVocInterviewCard";
 import { trackFeedSessionStart } from "@/lib/feedAnalytics";
 import TopGameCard from "@/components/home/TopGameCard";
 import { InstantPlayCta } from "@/components/play/InstantPlayCta";
@@ -825,44 +829,11 @@ function ActivityFeed() {
 }
 
 /**
- * 🔥 Personal Layer 컴포넌트
- *
- * 표시 정보:
- * - 개인화 추천 (종목, 활동 등)
- * - 선호 종목 기반 추천
- * - 종목별 액션 연결 (거래/팀/모임)
+ * 🔥 Personal Layer — 스포츠 카테고리 (Production /hub: 4×4 중앙 정렬)
  */
 function PersonalLayer() {
-  const { preferredSports, activeSport, setActiveSport } = useHubContext();
+  const { setActiveSport } = useHubContext();
   const navigate = useNavigate();
-  const [selectedSport, setSelectedSport] = useState<SportType | null>(null);
-
-  const allSports = getAllSports();
-
-  const userSportIds = new Set(
-    preferredSports.map((sport) => normalizeSportId(sport)).filter(Boolean) as SportId[]
-  );
-
-  const handleSportClick = (sport: SportType) => {
-    if (selectedSport === sport) {
-      setSelectedSport(null);
-    } else {
-      setSelectedSport(sport);
-      setActiveSport(sport);
-    }
-  };
-
-  const handleSportAction = (sport: SportType, focus: ActivityFocus) => {
-    setSelectedSport(null);
-    localStorage.setItem("lastSport", sport);
-    const sid = normalizeSportId(sport as SportId);
-    if (focus === "trading") {
-      navigate(sportMarketListUrl(sid, { source: "category" }));
-      return;
-    }
-    const tab = normalizeSportHubTab(activityFocusToSportHubTab(focus));
-    navigate(`/sports/${encodeURIComponent(sid)}?tab=${encodeURIComponent(tab)}`);
-  };
 
   const handleCategoryClick = (sportId: SportId) => {
     setActiveSport(sportId as SportType);
@@ -871,98 +842,26 @@ function PersonalLayer() {
   };
 
   return (
-    <div className="w-full pb-3">
-      <h3 className="mb-2 text-base font-semibold text-gray-900">스포츠 카테고리</h3>
+    <div className="w-full px-4 pb-3">
+      <div className="mx-auto flex w-full max-w-[600px] flex-col items-center">
+        <h3 className="mb-4 w-full text-base font-semibold text-gray-900">스포츠 카테고리</h3>
 
-      <div
-        className={cn("mt-2 overflow-x-auto pb-2", mobileFullWidthScrollBleedClassName)}
-        style={{
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-          WebkitOverflowScrolling: "touch",
-          touchAction: "pan-x",
-        }}
-      >
-        <style>{`
-          .sports-horizontal-scroll::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
-
-        <div
-          className="sports-horizontal-scroll inline-grid gap-3"
-          style={{
-            display: "grid",
-            gridAutoFlow: "column",
-            gridAutoColumns: "120px",
-            gridTemplateRows: "repeat(2, auto)",
-            width: "max-content",
-          }}
-        >
-          {allSports.map((sportConfig) => {
-            const sportId = sportConfig.id as SportType;
-            const isUserSport = userSportIds.has(sportConfig.id);
-            const isSelected = selectedSport === sportId;
-            const isActive = activeSport === sportId;
-
-            return (
-              <div key={sportConfig.id} className="relative w-[120px] min-w-[120px]">
-                <button
-                  type="button"
-                  onClick={() => handleCategoryClick(sportConfig.id)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    handleSportClick(sportId);
-                  }}
-                  className={`relative w-full cursor-pointer rounded-lg border p-4 transition-all ${
-                    isActive || isSelected
-                      ? sportChipActiveClass
-                      : isUserSport
-                        ? `${sportChipInactiveClass} border-emerald-400/90 dark:border-emerald-500/70`
-                        : sportChipInactiveClass
-                  }`}
-                >
-                  {isUserSport && (
-                    <div className="absolute right-1 top-1 h-2 w-2 rounded-full bg-green-500" />
-                  )}
-                  <div className="mb-1 text-2xl">{sportConfig.icon}</div>
-                  <div
-                    className={`whitespace-nowrap text-xs font-medium ${
-                      isActive || isSelected ? "text-white" : "text-gray-900 dark:text-gray-100"
-                    }`}
-                  >
-                    {sportConfig.label}
-                  </div>
-                </button>
-
-                {isSelected && (
-                  <div className="absolute left-0 right-0 top-full z-10 mt-2 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
-                    <button
-                      type="button"
-                      onClick={() => handleSportAction(sportId, "trading")}
-                      className="w-full rounded px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"
-                    >
-                      🛒 거래 보기
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSportAction(sportId, "team")}
-                      className="w-full rounded px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"
-                    >
-                      👥 팀 찾기
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSportAction(sportId, "events")}
-                      className="w-full rounded px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"
-                    >
-                      📅 모임 보기
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="grid w-full grid-cols-4 gap-3 sm:gap-4 justify-items-center">
+          {sportsCategories.map((row) => (
+            <button
+              key={`${row.sportId}-${row.name}`}
+              type="button"
+              onClick={() => handleCategoryClick(row.sportId as SportId)}
+              className="flex h-[72px] w-[72px] flex-col items-center justify-center rounded-2xl border border-gray-200/90 bg-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md sm:h-[80px] sm:w-[80px]"
+            >
+              <span className="mb-0.5 text-2xl" aria-hidden>
+                {row.icon}
+              </span>
+              <span className="max-w-[64px] truncate text-center text-[10px] font-medium leading-tight text-gray-800 sm:text-xs">
+                {row.name}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -1019,7 +918,8 @@ function QuickActions() {
   ];
 
   return (
-    <div className="w-full py-3">
+    <div className="w-full px-4 py-3">
+      <div className="mx-auto w-full max-w-[600px]">
       <h3 className="mb-3 text-sm font-semibold text-gray-700">빠른 시작</h3>
       <div className="grid grid-cols-3 gap-3">
         {actions.map((action) => (
@@ -1042,6 +942,7 @@ function QuickActions() {
             <span className="mt-2 text-sm font-medium text-gray-800">{action.label}</span>
           </button>
         ))}
+      </div>
       </div>
     </div>
   );
@@ -1307,8 +1208,6 @@ export default function HubHome() {
     clearCompletedSession,
   } = useActivitySession();
 
-  const weeklyData = useWeeklyChart(user?.uid);
-
   // endActivity 래퍼 (sessionId 전달로 안정적 호출)
   const handleEndSession = async (sessionId: string) => {
     await endActivity(sessionId);
@@ -1324,7 +1223,14 @@ export default function HubHome() {
         {/* Context Header */}
         <ContextHeader />
 
-        <HubAvatarIdentityCard />
+        {/* Intelligence Pilot — 프로덕션 /hub canonical 순서 */}
+        <section className="relative z-0 mb-4 mt-3 w-full min-w-0 px-4">
+          <HubAvatarIdentityCard />
+          <HubGrowthSummaryCard className="mt-3" />
+          <HubMultiAcademyDashboardCard className="mt-3" />
+          <HubFederationIntelligenceCard className="mt-3" />
+          <HubVocInterviewCard className="mt-3" />
+        </section>
 
         {/* 메인 콘텐츠 */}
         <div className="space-y-6 py-4">
@@ -1343,21 +1249,9 @@ export default function HubHome() {
             <HubActiveSection session={currentSession} onEndSession={handleEndSession} />
           )}
 
-          {/* 🔥 Hub Question — 운동 세션용, 빠른 시작보다 약한 보조 CTA */}
-          {!sessionLoading && !currentSession && (
-            <HubQuestion hasActiveSession={!!currentSession} />
-          )}
+          <PersonalLayer />
 
           <QuickActions />
-
-          {/* 세션 없을 때: 오늘 요약·통계 (추천·피드 위) */}
-          {!sessionLoading && !currentSession && (
-            <div className="w-full space-y-4">
-              <WeeklyBarChartCard data={weeklyData} />
-            </div>
-          )}
-
-          <PersonalLayer />
 
           {/* Activity Feed — canQuery는 ActivityFeed 내부 useAuthForFirestore로 고정 (미선언 ReferenceError 방지) */}
           <ActivityFeed />
