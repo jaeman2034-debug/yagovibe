@@ -1,6 +1,6 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — Step 9 ✅ OR-14 CLOSED · Step 10 ▶️ Final PASS (PM decision pending)  
+**Status:** 📋 **EXECUTION PREP** — Step 10 ✅ Final PASS · Step 11 ▶️ Beta Start (PM decision pending)  
 **Date:** 2026-07-02  
 **Branch:** `main` · deployed ruleset `c810909f…` · OR-14 **CLOSED**  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
@@ -27,8 +27,8 @@
 | **PM Policy Review** | ✅ **COMPLETE** | §13.10 · Step 1~4 PASS |
 | **§13.5 Beta Rules Policy** | ✅ **APPROVED** | §13.5 · §13.10 |
 | **OR-14 Rules Gate** | ✅ **CLOSED** | §13.15.3 · 2026-07-02 |
-| **Vision v2 Beta Ops Plan** | 📋 **DRAFT** | §9 PM Sign-off pending · **Step 10 blocker** |
-| **Operation Readiness Final PASS** | ▶️ **Step 10 검토** | OR-14 CLOSED · Beta Ops Plan sign-off pending |
+| **Vision v2 Beta Ops Plan** | ✅ **PM SIGNED** | §9 · 2026-07-02 |
+| **Operation Readiness Final PASS** | ✅ **PASS** | §15.2 · 2026-07-02 |
 
 **Review 목적:** 기존 RC5 인프라 + I13-5 로컬 Persist 설계를 기준으로, **운영 반영 전** Firestore/GCS 구조·정책·권한·복구를 점검하고 PM 승인 기준을 확정한다.
 
@@ -1310,16 +1310,15 @@ Step 10 Operation Readiness Final PASS Review
 
 ## 15. Operation Readiness Final PASS — Step 10 Review
 
-> **Status:** ▶️ **IN REVIEW** — OR-14 CLOSED · **PM Final PASS decision pending**  
-> **Prerequisite:** OR-14 ✅ · Beta Ops Plan PM Sign-off ⏳
+> **Status:** ✅ **COMPLETE** — Operation Readiness Final PASS 2026-07-02
 
 ### 15.1 Declaration conditions
 
 | # | Condition | Status |
 |---|-----------|:------:|
 | 1 | OR-14 Rules Gate **CLOSE** | ✅ §13.15.3 |
-| 2 | `YAGO_VISION_V2_BETA_OPS_PLAN.md` **PM Sign-off** | ⏳ |
-| 3 | §4.1 criteria reviewed | ▶️ Eng pre-read below |
+| 2 | `YAGO_VISION_V2_BETA_OPS_PLAN.md` **PM Sign-off** | ✅ §9 · 2026-07-02 |
+| 3 | §4.1 criteria reviewed | ✅ §15.1.1 |
 
 ### 15.1.1 Step 10 — Eng pre-read (2026-07-02)
 
@@ -1334,33 +1333,52 @@ Step 10 Operation Readiness Final PASS Review
 | A7 Beta scope pilot team | ✅ | `D7TUZaOtfxdBc4P0lQLx` |
 | A8 Change Freeze | ✅ | Charter |
 | OR-14 CLOSE | ✅ | §13.15.3 |
-| Beta Ops Plan signed | ⏳ | Ops Plan §10 |
+| Beta Ops Plan signed | ✅ | Ops Plan §9 |
 
-**Eng recommendation:** Eligible for **Final PASS** review pending Beta Ops Plan PM sign-off.
+**Eng recommendation:** ~~Eligible~~ **Final PASS recorded** — proceed Step 11 Beta Start review.
 
-### 15.2 Step 10 — PM Decision Record (pending)
-
-> **Blocker until complete:** Beta Ops Plan §9 PM Sign-off (`YAGO_VISION_V2_BETA_OPS_PLAN.md`)
-
-**PM sequence:**
-
-1. Sign Beta Ops Plan §9 (if SOP items accepted)
-2. Record Final PASS below
-3. `git commit -m "docs: record step 10 operation readiness final pass"`
+### 15.2 Step 10 — PM Decision Record
 
 ```text
-Step 10 Operation Readiness Final PASS: [ PASS | HOLD | REJECTED ]
+Step 10 Operation Readiness Final PASS
+
+Decision:
+PASS
+
+Reviewer:
+이재만 (PM)
+
+Date:
+2026-07-02
+
+Reason:
+- OR-14 CLOSED (§13.15.3)
+- Dry Run #2 PASS (§13.14 · 5-path post-deploy)
+- Beta Ops Plan PM Sign-off 완료 (§9)
+- Operation Readiness Gate 충족
+
+Authorized Next:
+Step 11 Vision v2 Beta Start Review
+```
+
+**PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** PASS
+
+### 15.3 Step 11 — Vision v2 Beta Start (PM decision pending)
+
+> **Status:** ▶️ **IN REVIEW** — Final PASS complete · **Beta Start approval pending**
+
+| # | Check | Eng pre-read |
+|---|-------|--------------|
+| 1 | Pilot team scope | ✅ `D7TUZaOtfxdBc4P0lQLx` |
+| 2 | Rollback procedure | ✅ ruleset `d3429b67…` documented |
+| 3 | Monitoring | ✅ RC5 ops logs · pilot ops hooks |
+| 4 | OR-11 follow-up | ⚠ separate PR · P2 degraded UX · not Beta blocker |
+
+```text
+Step 11 Vision v2 Beta Start: [ APPROVED | HOLD | REJECTED ]
 
 Reviewer: _______________ (PM)
 Date: _______________
-
-Prerequisites checked:
-- OR-14 CLOSED (§13.15.3)
-- Rules Deploy + Dry Run #2 PASS (§13.13–§13.14)
-- Beta Ops Plan PM Sign-off (§9)
-
-If PASS:
-Authorized Next: Step 11 Vision v2 Beta Start Approval
 ```
 
 **PM signature:** _______________ · **Date:** _______________
