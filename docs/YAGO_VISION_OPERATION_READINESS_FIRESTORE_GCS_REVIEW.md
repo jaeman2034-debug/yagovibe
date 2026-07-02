@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **PRE-BETA GATES** — PM Final Review PASS · OR-14 OPEN  
-**Date:** 2026-06-29  
-**Branch:** `vision-v2-i13` @ `d3ed686`  
+**Status:** 📋 **PRE-BETA GATES** — Review Sprint COMPLETE · OR-14 OPEN (Rules Drift) · Final PASS HOLD  
+**Date:** 2026-07-02  
+**Branch:** `vision-v2-i13` @ `b382ac2`  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -14,18 +14,19 @@
 
 ## 0. Executive Summary
 
-| Gate | Status |
-|------|--------|
-| Vision v2 I13-5 개발 | 🔒 COMPLETE |
-| Cross-Clip Primary Gate | ✅ PASS (3/3) |
-| GT Dataset Improvement | ✅ FINAL PASS |
-| Firestore/GCS Review Sprint | ✅ Phase 1~3 **PASS** · ▶ PM Final Review (§11) |
-| Pre-Pilot Dry Run #2 | ✅ PASS (§6) |
-| Engineering Design Review | ✅ PASS (§7) |
-| Backup Drill | ✅ PASS (§9) |
-| PM Final Review | ✅ **PASS** (§11) |
-| OR-14 Rules Gate | ⚠ **OPEN** — Beta blocker (§13) |
-| Vision v2 Beta Ops Plan | ✅ Draft (`YAGO_VISION_V2_BETA_OPS_PLAN.md`) |
+| Gate | Status | 구분 |
+|------|--------|------|
+| Vision v2 I13-5 개발 | 🔒 COMPLETE | PASS |
+| Cross-Clip Primary Gate | ✅ PASS (3/3) | PASS |
+| GT Dataset Improvement | ✅ FINAL PASS | PASS |
+| **Review Sprint** (Phase 1~3) | ✅ **COMPLETE** | PASS |
+| PM Final Review | ✅ **COMPLETE** | PASS |
+| Pre-Pilot Dry Run #2 | ✅ PASS (§6) | PASS |
+| Engineering Design Review | ✅ PASS (§7) | PASS |
+| Backup Drill | ✅ PASS (§9) | PASS |
+| **OR-14 Rules Gate** | ⚠ **OPEN** | Pre-Beta Blocker · **Rules Drift confirmed** (§13.7.1) |
+| **Vision v2 Beta Ops Plan** | 📋 **DRAFT** | Sign-off pending |
+| **Operation Readiness Final PASS** | ⏳ **HOLD** | OR-14 + Ops Plan 후 |
 
 **Review 목적:** 기존 RC5 인프라 + I13-5 로컬 Persist 설계를 기준으로, **운영 반영 전** Firestore/GCS 구조·정책·권한·복구를 점검하고 PM 승인 기준을 확정한다.
 
@@ -707,22 +708,25 @@ Next sequence:
 
 ## 13. OR-14 Rules Gate Report
 
-**Date:** 2026-06-29  
+**Date:** 2026-07-02 (Evidence update) · 2026-06-29 (initial report)  
 **Gate:** Pre-Beta · **only Beta blocker**  
 **Deploy:** ❌ **NOT performed** (separate PM approval required)  
-**Method:** Repo static audit · client path inventory · Firebase Rules API (403)
+**Method:** Repo static audit · Production Rules API + Client SDK reads (§13.7.1)
 
 ### 13.1 Gate Verdict
 
 | Item | Result |
 |------|--------|
 | Repo rules include Vision paths | ❌ **NO** |
-| Deployed rules fetched | ⏳ **Unable** (API 403 · CLI `rules:get` unsupported) |
-| Repo vs Deployed diff | ⏳ **Assumed identical** — `firebase.json` → `firestore.rules` · git history: **never** contained `visionMatchIndex` |
-| Beta Blocker | ⚠ **YES — OPEN** until rules verified + deployed |
-| Rules deploy in this sprint | ❌ **Forbidden** |
+| Deployed rules fetched | ✅ **YES** — Rules API · ruleset `d3429b67-52dc-47d6-bb88-73945fe56b0c` |
+| Repo vs Deployed diff | ⚠ **DIFF** — deployed includes Vision paths · repo does not (§13.7.1) |
+| Production read probe (5 paths) | ✅ **Observed** — §13.7.1 |
+| Beta Blocker | ⚠ **YES — OPEN** — drift unresolved · SoT decision pending · partial path gaps |
+| Rules deploy in this sprint | ❌ **Forbidden** (PM not approved) |
 
-**OR-14 판정:** ⚠ **OPEN** — Beta requires explicit rules + deploy gate PASS.
+**OR-14 판정:** ⚠ **OPEN** — primary issue is **Rules Drift** (Repository ≠ Deployed ≠ Draft), not a single DENY hypothesis.
+
+**PM decision pending:** Which rules set is canonical SoT before any deploy — **Option A** sync repo to current production · **Option B** align repo + production to §13.5 draft.
 
 ### 13.2 Client Read Paths (must be allowed for Beta)
 
@@ -746,15 +750,16 @@ Next sequence:
 | `firebase.json` deploy target | `firestore.rules` (canonical) |
 | Git history | No commit ever added `visionMatchIndex` to rules |
 
-**Inference:** If production rules = repo (standard Firebase deploy path), **client onSnapshot to Vision paths returns permission-denied**. RC5-1 PASS likely used CF path + fixture fallback and/or emulator; Dry Run #1 did not complete Job Monitor 10/10.
+**Inference (repo-only):** Unlisted Vision subcollections in **repository** rules → client reads would DENY **if** production matched repo. **Invalidated for production** — deployed rules differ (§13.7.1).
 
-### 13.4 Deployed Rules Verification (Ops action)
+### 13.4 Deployed Rules Verification
 
-API fetch blocked. **Manual verification required before deploy:**
+| Channel | Status | Notes |
+|---------|:------:|-------|
+| Observed Production Result | ✅ **Recorded** | §13.7.1 · Rules API + prod Client SDK |
+| Console Cross-check | ⏳ **PENDING** | Human Console record optional audit layer |
 
-1. Firebase Console → Firestore → Rules → compare with repo `firestore.rules`
-2. Rules Playground: simulate coach uid `jMLLIxy…` read `teams/D7TUZa…/visionMatchIndex/{matchId}`
-3. Record result in Daily Log
+Prior API 403 (user OAuth) resolved via service-account Rules API for **read-only** ruleset fetch. No deploy performed.
 
 ### 13.5 Draft Rules Spec (design only — NOT applied)
 
@@ -793,6 +798,123 @@ Parent read helper must align with existing `parentLinks` pattern (CF-only write
 | 5 | Dry Run Attempt #2: Job Monitor + Coach UI without fixture | Ops |
 
 **Until OR-14 CLOSE:** HOLD Phase 2+ Firestore I13 writes (§4.2).
+
+### 13.7 OR-14 Close Checklist (Living)
+
+| # | Step | Status | Owner | Evidence |
+|---|------|:------:|-------|----------|
+| 1 | Repository rules analysis | ✅ DONE | Eng | §13.3 |
+| 2 | Gate Report document | ✅ DONE | Eng | §13 · `f4d7dd3` |
+| 3 | Draft rules spec | ✅ DONE | Eng | §13.5 |
+| 4 | Engineering Review (repo static) | ✅ DONE | Eng | §13.3 |
+| 5 | Production Rules read probe (5 paths) | ✅ DONE | Eng | §13.7.1 |
+| 5b | Console Cross-check | ⏳ PENDING | Ops | §13.7.1 |
+| 6 | Deployed vs repo diff | ✅ DONE (**DIFF**) | Eng | §13.7.1 |
+| 7 | PM Rules SoT decision (A or B) | ⏳ PENDING | PM | §13.8 |
+| 8 | PM Deploy Approval | ⏳ PENDING | PM | After step 7 |
+| 9 | `firebase deploy --only firestore:rules` | ⏳ PENDING | Eng | After step 8 only |
+| 10 | Dry Run Attempt #2 (10/10) | ⏳ PENDING | Ops | ≤3min MP4 |
+
+**OR-14 = OPEN** until SoT decision · deploy gate · Dry Run #2 complete. Steps 1~6 = observation recorded · **not** gate close.
+
+### 13.7.1 Observed Production Evidence (2026-07-02)
+
+> **Audit note:** Production Rules Engine observation. Console Cross-check **PENDING** (optional human confirmation).
+
+**Operator / method:** Eng · Firebase Rules API (service account, read-only) + prod Firestore Client SDK reads with coach/parent custom tokens · pilot team `D7TUZaOtfxdBc4P0lQLx`
+
+#### A. Deployed vs Repository
+
+| Field | Value |
+|-------|-------|
+| Verdict | ⚠ **DIFF** |
+| Deployed ruleset | `projects/yago-vibe-spt/rulesets/d3429b67-52dc-47d6-bb88-73945fe56b0c` |
+| Deployed size (norm) | ~104 KB |
+| Repository size (norm) | ~85 KB |
+| `visionMatchIndex` in rules | Deployed ✅ · Repository ❌ |
+| `aiIngest` / `visionRuns` in rules | Deployed ✅ · Repository ❌ |
+| `matches/…/visionAnalysis` in rules | Deployed ✅ · Repository ❌ |
+| `visionUploadQueue` in rules | Deployed ❌ · Repository ❌ |
+
+**Drift summary:** Production already contains Vision v6-7 rules blocks (`isTeamVisionStaffReader`) under `teams/{teamId}`; repository `firestore.rules` does **not** include them. Repository is **behind** production.
+
+#### B. Production Rules read probe (get · authenticated)
+
+Coach uid: `jMLLIxyOVkN1HERAd2gz88uKj9e2` · Parent uid: `wSlh4oDIqIP4GnV3Di1IeAQnFy13`
+
+| # | Path (pilot IDs) | Production result |
+|---|------------------|:-----------------:|
+| 1 | `…/visionMatchIndex/cgOEK8Q75csiFFdVEE70` | **ALLOW** |
+| 2 | `…/visionUploadQueue/e519af9a2245422d83c5de61` | **DENY** |
+| 3 | `…/aiIngest/57c66937ec334ad081c39b92/visionRuns/1f15c9b58cb84d0988529e14` | **ALLOW** |
+| 4 | `…/matches/cgOEK8Q75csiFFdVEE70/visionAnalysis/0fpknTxqBvlQ76LNPGJT` (coach) | **ALLOW** |
+| 5 | Same as #4 (parent) | **DENY** |
+
+#### C. Console Cross-check
+
+| Item | Status |
+|------|:------:|
+| Console Deployed vs Repository visual compare | ⏳ PENDING |
+| Console Playground 5-path confirmation | ⏳ PENDING |
+
+### 13.8 OR-14 Root Cause (2026-07-02)
+
+**Primary cause:** **Rules Drift** — three states do not align:
+
+| State | Vision rules posture |
+|-------|---------------------|
+| **Production (deployed)** | Partial — staff reader on index · runs · analysis; **no** `visionUploadQueue`; parent analysis **DENY** |
+| **Repository (`firestore.rules`)** | None — Vision paths absent |
+| **Draft (§13.5)** | Target Beta spec — includes `visionUploadQueue` + parent read helper |
+
+**Secondary gaps (production, post-drift):**
+
+| Gap | Impact |
+|-----|--------|
+| `visionUploadQueue` absent in production | RC5-2 queue UI read → **DENY** |
+| Parent `visionAnalysis` read | Parent Report path → **DENY** (staff-only in production) |
+| Repository behind production | Next `firebase deploy --only firestore:rules` from repo would **regress** production Vision rules |
+
+**Next PM decision (before deploy):** Adopt canonical SoT — **Option A** pull production rules into repo · **Option B** implement §13.5 draft in repo then deploy to production.
+
+**OR-14 remains OPEN** until SoT locked · deploy approved · Dry Run #2 PASS.
+
+---
+
+## 15. Operation Readiness Final PASS — Preparation (HOLD)
+
+> **⏳ NOT DECLARED** — submit only after OR-14 CLOSE + Beta Ops Plan PM Sign-off.
+
+### 15.1 Declaration conditions
+
+| # | Condition | Status |
+|---|-----------|:------:|
+| 1 | OR-14 Rules Gate **CLOSE** | ⏳ |
+| 2 | `YAGO_VISION_V2_BETA_OPS_PLAN.md` **PM Sign-off** | ⏳ |
+| 3 | §4.1 criteria reviewed | ⏳ |
+
+### 15.2 Sequence (locked)
+
+```text
+OR-14 CLOSE  →  Beta Ops Plan Sign-off  →  Final PASS  →  Beta Start Approval
+```
+
+### 15.3 PM Sign-off packet (draft — do not sign until HOLD lifted)
+
+| Criterion | Met? | Evidence |
+|-----------|:----:|----------|
+| A1 Cross-Clip PASS | ✅ | Pilot2 eval 3/3 |
+| A2 Firestore §1.2 ≥90% PASS | ⚠ | 5/8 · 0 FAIL |
+| A3 GCS §2.1 ≥90% PASS | ⚠ | 4/8 · 0 FAIL |
+| A4 I13 design reviewed | ✅ | §1.3 · §7.5 |
+| A5 OR-1, OR-10 mitigated | ✅ | Review gate + §9 |
+| A6 Rollback agreed | ✅ | §9 · RC5 · I13 §6 |
+| A7 Beta scope pilot team | ✅ | `D7TUZaOtfxdBc4P0lQLx` |
+| A8 Change Freeze | ✅ | Charter |
+| OR-14 CLOSE | ⏳ | §13.7 |
+| Beta Ops Plan signed | ⏳ | Ops Plan §10 |
+
+**PM Signature:** _______________ · **Date:** _______________ · **Status:** ⏳ HOLD
 
 ---
 
