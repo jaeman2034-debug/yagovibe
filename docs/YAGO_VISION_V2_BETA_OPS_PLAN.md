@@ -1,12 +1,11 @@
 # YAGO Vision v2 — Beta Operations Plan (Draft v1)
 
-**Status:** 📋 **DRAFT** — PM sign-off pending  
-**Date:** 2026-06-29  
-**Branch:** `vision-v2-i13` @ `d3ed686`  
-**Pilot teamId:** `D7TUZaOtfxdBc4P0lQLx`  
-**Parent docs:** `YAGO_VISION_OPERATION_READINESS_FIRESTORE_GCS_REVIEW.md` · `YAGO_VISION_OPERATIONS_CHARTER_v1.md`
+**Status:** ✅ **BETA ACTIVE** — Step 11 APPROVED 2026-07-02  
+**Date:** 2026-07-02  
+**Branch:** `main` · pilot team `D7TUZaOtfxdBc4P0lQLx`  
+**Parent docs:** `YAGO_VISION_OPERATION_READINESS_FIRESTORE_GCS_REVIEW.md` §15 · `YAGO_VISION_OPERATIONS_CHARTER_v1.md`
 
-> **Beta scope:** Pilot team only · RC5 pipeline + local I13 persist verified · **OR-14 Rules Gate OPEN**  
+> **Beta scope:** Pilot team only · RC5 pipeline + local I13 persist verified · **OR-14 CLOSED** (2026-07-02)  
 > **No code / deploy in this document** — operational procedures only.
 
 ---
@@ -17,8 +16,9 @@
 |------|--------|
 | Review Sprint Phase 1~3 | ✅ PASS |
 | PM Final Review | ✅ PASS |
-| OR-14 Rules Gate | ⚠ **OPEN** (Beta blocker) |
-| Operation Readiness Final PASS | ⏳ Pending |
+| OR-14 Rules Gate | ✅ **CLOSED** (§13.15.3) |
+| Operation Readiness Final PASS | ✅ PASS (§15.2) |
+| Vision v2 Beta Start | ✅ APPROVED (§15.3 · 2026-07-02) |
 
 **Conditional Beta:** OR-14 CLOSE + this Ops Plan PM sign-off + Final PASS.
 
@@ -214,15 +214,45 @@ Detect → Log (Daily Log + Issue Report) → Mitigate → PM notify if P0/P1
 
 | # | Item | Status |
 |---|------|:------:|
-| 1 | OR-14 Rules Gate CLOSE | ⏳ |
-| 2 | Dry Run Attempt #2 (≤3min MP4 · 10/10) | ⏳ |
-| 3 | Backup manual export once | ⏳ |
-| 4 | Ops Plan PM sign-off | ⏳ |
-| 5 | Operation Readiness Final PASS | ⏳ |
+| 1 | OR-14 Rules Gate CLOSE | ✅ §13.15.3 |
+| 2 | Dry Run #2 (rules 5-path post-deploy) | ✅ §13.14 |
+| 3 | Backup manual export once | ✅ **2026-07-03** (Run Day 0 — see §8.1) |
+| 4 | Ops Plan PM sign-off (§9) | ✅ 2026-07-02 |
+| 5 | Operation Readiness Final PASS (§15.2) | ✅ 2026-07-02 |
+
+### 8.1 Run Day 0 — Backup Manual Export Record
+
+| Field | Value |
+|-------|-------|
+| **Executed** | 2026-07-03 |
+| **Operator** | Ops (gcloud · project `yago-vibe-spt`) |
+| **Target** | Firestore `(default)` full export |
+| **Destination** | `gs://gcf-sources-126699415285-asia-northeast3/ops/backups/firestore/20260703/` |
+| **Evidence** | `20260703.overall_export_metadata` + `all_namespaces/` prefix present |
+| **Note** | `yago-vibe-spt.firebasestorage.app` rejected (bucket `us-central1` vs DB `asia-northeast3`); export used `asia-northeast3` bucket per Firestore region constraint |
 
 ---
 
-## 9. References
+## 9. PM Sign-off
+
+> **Status:** ✅ **COMPLETE** — 2026-07-02
+
+| Item | Confirmed |
+|------|:---------:|
+| Clip Policy (§1) | ✅ |
+| Backup SOP (§2) | ✅ |
+| Restore SOP (§3) | ✅ |
+| Rollback SOP (§4) | ✅ |
+| Reconcile SOP (§5) | ✅ |
+| Retention draft (§6) | ✅ |
+| Incident SOP (§7) | ✅ |
+| Pre-Beta checklist (§8) | ✅ |
+
+**PM Sign-off:** 이재만 · **Date:** 2026-07-02
+
+---
+
+## 10. References
 
 - `docs/YAGO_VISION_OPERATION_READINESS_FIRESTORE_GCS_REVIEW.md` §6~§13
 - `docs/YAGO_VISION_RC5_4_PRE_PILOT_DRY_RUN.md`

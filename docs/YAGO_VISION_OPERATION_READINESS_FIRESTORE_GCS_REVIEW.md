@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — Step 5 PR draft READY · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD (Dry Run #2 후)  
+**Status:** ✅ **Vision v2 Beta STARTED** — Step 11 APPROVED 2026-07-02  
 **Date:** 2026-07-02  
-**Branch:** `vision-v2-i13` @ Step 5 PR draft  
+**Branch:** `main` · deployed ruleset `c810909f…` · OR-14 **CLOSED** · Pilot `D7TUZaOtfxdBc4P0lQLx`  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -26,9 +26,10 @@
 | Backup Drill | ✅ PASS (§9) | PASS |
 | **PM Policy Review** | ✅ **COMPLETE** | §13.10 · Step 1~4 PASS |
 | **§13.5 Beta Rules Policy** | ✅ **APPROVED** | §13.5 · §13.10 |
-| **OR-14 Rules Gate** | ⚠ **OPEN** | Deploy + Dry Run #2 후 CLOSE 검토 |
-| **Vision v2 Beta Ops Plan** | 📋 **DRAFT** | Sign-off pending |
-| **Operation Readiness Final PASS** | ⏳ **HOLD** | Dry Run #2 이후 검토 |
+| **OR-14 Rules Gate** | ✅ **CLOSED** | §13.15.3 · 2026-07-02 |
+| **Vision v2 Beta Ops Plan** | ✅ **PM SIGNED** | §9 · 2026-07-02 |
+| **Operation Readiness Final PASS** | ✅ **PASS** | §15.2 · 2026-07-02 |
+| **Vision v2 Beta** | ✅ **STARTED** | §15.3 · 2026-07-02 · pilot `D7TUZaOtfxdBc4P0lQLx` |
 
 **Review 목적:** 기존 RC5 인프라 + I13-5 로컬 Persist 설계를 기준으로, **운영 반영 전** Firestore/GCS 구조·정책·권한·복구를 점검하고 PM 승인 기준을 확정한다.
 
@@ -814,13 +815,15 @@ Parent read helper must align with existing `parentLinks` pattern (CF-only write
 | 4 | Engineering Review (repo static) | ✅ DONE | Eng | §13.3 |
 | 5 | Production Rules read probe (5 paths) | ✅ DONE | Eng | §13.7.1 |
 | 5b | Console Cross-check | ⏳ PENDING | Ops | §13.7.1 |
-| 6 | Deployed vs repo diff | ✅ DONE (**DIFF**) | Eng | §13.7.1 |
-| 7 | PM Rules SoT decision (A or B) | ⏳ PENDING | PM | §13.8 |
-| 8 | PM Deploy Approval | ⏳ PENDING | PM | After step 7 |
-| 9 | `firebase deploy --only firestore:rules` | ⏳ PENDING | Eng | After step 8 only |
-| 10 | Dry Run Attempt #2 (10/10) | ⏳ PENDING | Ops | ≤3min MP4 |
+| 6 | Deployed vs repo diff | ✅ **RESOLVED** | Eng | Post-Step-7 merge + deploy · ruleset `c810909f…` |
+| 7 | PM Rules SoT decision (Option B) | ✅ DONE | PM | §13.10 · §13.5 APPROVED |
+| 8 | PM Deploy Approval | ✅ DONE | PM | §13.12.4 · 2026-07-02 |
+| 9 | `firebase deploy --only firestore:rules` | ✅ DONE | Eng | §13.13 · 2026-07-02 |
+| 10 | Dry Run #2 (rules 5-path) | ✅ DONE | Eng | §13.14 · 5/5 ALLOW |
+| 10b | Dry Run #2 (Job Monitor UI) | ⚠ **DEFERRED** | Eng | OR-11 client path · Beta Ops P2 · not Rules gate |
+| 5b | Console Cross-check | ⏳ **OPTIONAL** | Ops | Programmatic probe §13.14 equivalent |
 
-**OR-14 = OPEN** until SoT decision · deploy gate · Dry Run #2 complete. Steps 1~6 = observation recorded · **not** gate close.
+**OR-14 = CLOSED** (§13.15.3 · 2026-07-02). Steps 1~10 rules path complete.
 
 ### 13.7.1 Observed Production Evidence (2026-07-02)
 
@@ -1111,10 +1114,13 @@ Verify: decision is explicit · Actions align with decision.
 |------|:------:|
 | Repository diff documented | ✅ |
 | Merge strategy defined | ✅ |
-| `firestore.rules` PR draft | ✅ **READY** (production baseline + §13.5 overlay) |
+| Focused PR (`or14/step5-rules-merge` → `main`) | ✅ **OPENED** — no base conflict · CI PASS · **do not Merge** until Step 6 |
+| `firestore.rules` PR content | ✅ (production baseline + §13.5 overlay · `304afda`) |
 | Rules compile (`firebase deploy --dry-run`) | ✅ PASS |
-| PM Deploy Approval (Step 6) | ⏳ **Awaiting PM review** |
-| Rules Deploy (Step 7) | ❌ **Forbidden** until Step 6 |
+| **Step 5 verdict** | ✅ **COMPLETE** |
+| PM Deploy Approval (Step 6) | ▶️ **In review** |
+| PR Merge | ❌ **HOLD** until Step 6 APPROVED |
+| Rules Deploy (Step 7) | ❌ **Forbidden** until Step 6 + Merge |
 
 #### 13.11.6 Step 5 PR — change summary
 
@@ -1132,8 +1138,12 @@ Verify: decision is explicit · Actions align with decision.
 
 ### 13.12 PM Deploy Approval — Step 6 (GOVERNANCE GATE)
 
-> **Status:** ⏳ **NOT APPROVED** — review Step 5 PR before any Deploy.  
-> **Nature:** 운영 승인 Gate — **not** feature development.
+> **Status:** ✅ **APPROVED** — PM Decision Record §13.12.4 complete (2026-07-02)  
+> **Nature:** 운영 승인 Gate — **not** feature development
+
+**PR scope (focused):** `or14/step5-rules-merge` → `main` · 2 files only (`firestore.rules`, operation readiness doc)
+
+**Authorized (Step 7):** PR Merge · `firebase deploy --only firestore:rules` · then Step 8 Dry Run #2
 
 #### 13.12.1 Step 6 checklist (PM)
 
@@ -1156,44 +1166,242 @@ Verify: decision is explicit · Actions align with decision.
 | ⏳ **HOLD** | Eng revision · re-review Step 5 PR |
 | ❌ **REJECTED** | Roll back PR · PM policy re-review |
 
-**Forbidden until Step 6 APPROVED:** Rules Deploy · Dry Run #2 · OR-14 CLOSE · Final PASS · Beta Start
+**Forbidden until Step 6 APPROVED:** PR Merge · Rules Deploy · Dry Run #2 · OR-14 CLOSE · Final PASS · Beta Start
+
+**Step 6 APPROVED 후 순서 (locked):** PR Merge → Step 7 Rules Deploy → Step 8 Dry Run #2 → Step 9 OR-14 CLOSE
+
+#### 13.12.3 Step 6 — Eng pre-read verification (2026-07-02)
+
+> Eng verification only — **does not substitute PM Deploy Approval.**
+
+| # | Checklist item | Eng result | Evidence |
+|---|----------------|:----------:|----------|
+| ① | §13.5 Vision read policy only (intent) | ✅ PASS | Vision paths: `visionMatchIndex` · `visionUploadQueue` · `aiIngest` · `visionRuns` · `visionAnalysis` + `parentLinkReadAllowed` helper |
+| ① | No unintended non-Vision policy change (intent) | ✅ PASS | Full Production baseline merge — repo was behind prod; merge restores prod blocks + §13.5 overlay |
+| ② | Production baseline preserved | ✅ PASS | Deployed ruleset `d3429b67…` used as baseline (§13.11.3) |
+| ② | Regression risk (non-Vision) | ✅ LOW | Baseline = current prod; deploy widens Vision **reads** only per §13.5 |
+| ③ | Rollback available | ✅ PASS | `projects/yago-vibe-spt/rulesets/d3429b67-52dc-47d6-bb88-73945fe56b0c` (§13.7.1) |
+| ④ | OR-11 separated from Step 6 | ✅ PASS | `useVisionJobMonitor` `media/` path — Dry Run #2 scope; not in this PR |
+
+**Eng recommendation:** Checklist satisfied — **eligible for PM Deploy Approval review.**
+
+#### 13.12.4 Step 6 — PM Decision Record
+
+> **Status:** ✅ **COMPLETE** — Step 6 PM Deploy Approval recorded 2026-07-02
+
+```text
+Step 6 PM Deploy Approval
+
+Decision:
+APPROVED
+
+Reviewer:
+이재만 (PM)
+
+Date:
+2026-07-02
+
+PR:
+or14/step5-rules-merge → main
+
+Reason:
+- §13.5 정책과 일치
+- Production baseline 유지
+- Rollback 가능 (ruleset d3429b67…)
+- Dry-run compile PASS
+- OR-11은 Dry Run #2에서 별도 검증
+
+Authorized Next:
+1. PR Merge
+2. firebase deploy --only firestore:rules
+3. Dry Run #2
+```
+
+**PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** APPROVED
+
+### 13.13 Step 7 — PR Merge + Firestore Rules Deploy (2026-07-02)
+
+> **Status:** ✅ **COMPLETE**
+
+| # | Action | Result | Evidence |
+|---|--------|:------:|----------|
+| 1 | PR Merge (`or14/step5-rules-merge` → `main`) | ✅ | `main` @ `9c365b2` fast-forward |
+| 2 | `firebase deploy --only firestore:rules` | ✅ | Deploy complete · `yago-vibe-spt` |
+| 3 | Post-deploy 5-path prod probe | ✅ | Step 8 §13.14 — 5/5 ALLOW |
+
+**Rollback (pre-Step-7):** ruleset `d3429b67-52dc-47d6-bb88-73945fe56b0c`  
+**Current deployed:** ruleset `c810909f-d399-49a7-8872-b5c009333724` (post-Step-7)
+
+**Next:** ~~Step 8~~ → Step 9 OR-14 CLOSE
+
+### 13.14 Step 8 — Dry Run #2 (Post-Deploy Production Probe · 2026-07-02)
+
+> **Status:** ✅ **PASS** (rules 5-path probe) · ⚠ **OR-11 OPEN** (Job Monitor client path)
+
+**Method:** `or14-prod-console-proxy.mjs` · prod Firestore client SDK + custom token · pilot team `D7TUZaOtfxdBc4P0lQLx`
+
+| # | Path | Actor | Pre-deploy | Post-deploy | Verdict |
+|---|------|-------|:----------:|:-----------:|:-------:|
+| 1 | `visionMatchIndex/{matchId}` | Coach | ALLOW | **ALLOW** | ✅ |
+| 2 | `visionUploadQueue/{mediaId}` | Coach | **DENY** | **ALLOW** | ✅ §13.5 |
+| 3 | `aiIngest/{mediaId}/visionRuns/{runId}` | Coach | ALLOW | **ALLOW** | ✅ |
+| 4 | `matches/{matchId}/visionAnalysis/{id}` | Coach | ALLOW | **ALLOW** | ✅ |
+| 5 | `matches/{matchId}/visionAnalysis/{id}` | Parent | **DENY** | **ALLOW** | ✅ `parentLinkReadAllowed` |
+
+**permission-denied:** none on probed paths.
+
+**OR-11 (client — not rules):** `useVisionJobMonitor.ts:84` still subscribes `teams/{teamId}/media/{mediaId}/visionRuns` — SoT is `aiIngest`. Rules probe PASS does not fix Job Monitor run-doc subscription; **separate fix recommended** before Coach UI 10/10 sign-off.
+
+**Step 8 verdict:** ✅ **PASS** — post-deploy rules behave per §13.5 on all 5 probed paths.
+
+**Authorized next:** Step 9 OR-14 CLOSE 검토
+
+### 13.15 Step 9 — OR-14 CLOSE Review (2026-07-02)
+
+> **Status:** ✅ **COMPLETE** — OR-14 Rules Gate CLOSED 2026-07-02
+
+#### 13.15.1 OR-14 Close Criteria (§13.6) — assessment
+
+| # | Criterion | Status | Evidence |
+|---|-----------|:------:|----------|
+| 1 | Rules read probe (5 paths) | ✅ PASS | §13.14 · post-deploy 5/5 ALLOW |
+| 2 | Rules draft reviewed | ✅ | §13.5 · Eng review |
+| 3 | PM Deploy Approval | ✅ | §13.12.4 |
+| 4 | Rules Deploy | ✅ | §13.13 · `c810909f…` |
+| 5 | Dry Run #2 (rules) | ✅ PASS | §13.14 |
+| 5b | Console Playground cross-check | ⏳ Optional | Ops manual · programmatic probe equivalent |
+| — | Job Monitor UI (OR-11) | ⚠ Deferred | Client `media/` path · **not** Firestore Rules failure |
+
+#### 13.15.2 OR-11 vs OR-14 boundary
+
+| Gate | Scope | OR-11 impact |
+|------|-------|--------------|
+| **OR-14** | Firestore Rules = §13.5 policy in production | **None** — 5-path probe PASS |
+| **OR-11** | `useVisionJobMonitor` client subscription path | Job Monitor run-doc may not load · Beta Ops Plan **P2** degraded UX |
+
+**Eng recommendation:** OR-14 **eligible for CLOSE** — Rules gate objectives met. OR-11 → separate PR after Beta Start or as RC patch (PM confirms Job Monitor is not Beta blocker).
+
+#### 13.15.3 PM Decision Record
+
+```text
+Step 9 OR-14 CLOSE Decision: CLOSED
+
+Reviewer:
+이재만 (PM)
+
+Date:
+2026-07-02
+
+Reason:
+- Step 5~8 완료
+- Firestore Rules 정상 배포 (ruleset c810909f…)
+- §13.14 post-deploy 5-path Probe PASS
+- Rules Gate 종료 조건 충족
+- OR-11은 별도 Client 개선 과제로 관리 (Beta Ops P2 · not Rules blocker)
+
+Authorized Next:
+Step 10 Operation Readiness Final PASS Review
+```
+
+**PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** CLOSED
+
+**OR-11 follow-up:** `useVisionJobMonitor` `media/` → `aiIngest/` — separate PR · non-blocking for OR-14 CLOSE
 
 ---
 
-## 15. Operation Readiness Final PASS — Preparation (HOLD)
+## 15. Operation Readiness Final PASS — Step 10 Review
 
-> **⏳ NOT DECLARED** — submit only after OR-14 CLOSE + Beta Ops Plan PM Sign-off.
+> **Status:** ✅ **COMPLETE** — Operation Readiness Final PASS 2026-07-02
 
 ### 15.1 Declaration conditions
 
 | # | Condition | Status |
 |---|-----------|:------:|
-| 1 | OR-14 Rules Gate **CLOSE** | ⏳ |
-| 2 | `YAGO_VISION_V2_BETA_OPS_PLAN.md` **PM Sign-off** | ⏳ |
-| 3 | §4.1 criteria reviewed | ⏳ |
+| 1 | OR-14 Rules Gate **CLOSE** | ✅ §13.15.3 |
+| 2 | `YAGO_VISION_V2_BETA_OPS_PLAN.md` **PM Sign-off** | ✅ §9 · 2026-07-02 |
+| 3 | §4.1 criteria reviewed | ✅ §15.1.1 |
 
-### 15.2 Sequence (locked)
+### 15.1.1 Step 10 — Eng pre-read (2026-07-02)
 
-```text
-OR-14 CLOSE  →  Beta Ops Plan Sign-off  →  Final PASS  →  Beta Start Approval
-```
-
-### 15.3 PM Sign-off packet (draft — do not sign until HOLD lifted)
-
-| Criterion | Met? | Evidence |
-|-----------|:----:|----------|
+| Criterion | Met? | Notes |
+|-----------|:----:|-------|
 | A1 Cross-Clip PASS | ✅ | Pilot2 eval 3/3 |
-| A2 Firestore §1.2 ≥90% PASS | ⚠ | 5/8 · 0 FAIL |
-| A3 GCS §2.1 ≥90% PASS | ⚠ | 4/8 · 0 FAIL |
+| A2 Firestore §1.2 ≥90% PASS | ⚠ | 5/8 · 0 FAIL — mitigated per §4.2 |
+| A3 GCS §2.1 ≥90% PASS | ⚠ | 4/8 · 0 FAIL — mitigated per §4.2 |
 | A4 I13 design reviewed | ✅ | §1.3 · §7.5 |
 | A5 OR-1, OR-10 mitigated | ✅ | Review gate + §9 |
-| A6 Rollback agreed | ✅ | §9 · RC5 · I13 §6 |
+| A6 Rollback agreed | ✅ | §9 · ruleset rollback documented |
 | A7 Beta scope pilot team | ✅ | `D7TUZaOtfxdBc4P0lQLx` |
 | A8 Change Freeze | ✅ | Charter |
-| OR-14 CLOSE | ⏳ | §13.7 |
-| Beta Ops Plan signed | ⏳ | Ops Plan §10 |
+| OR-14 CLOSE | ✅ | §13.15.3 |
+| Beta Ops Plan signed | ✅ | Ops Plan §9 |
 
-**PM Signature:** _______________ · **Date:** _______________ · **Status:** ⏳ HOLD
+**Eng recommendation:** ~~Eligible~~ **Final PASS recorded** — proceed Step 11 Beta Start review.
+
+### 15.2 Step 10 — PM Decision Record
+
+```text
+Step 10 Operation Readiness Final PASS
+
+Decision:
+PASS
+
+Reviewer:
+이재만 (PM)
+
+Date:
+2026-07-02
+
+Reason:
+- OR-14 CLOSED (§13.15.3)
+- Dry Run #2 PASS (§13.14 · 5-path post-deploy)
+- Beta Ops Plan PM Sign-off 완료 (§9)
+- Operation Readiness Gate 충족
+
+Authorized Next:
+Step 11 Vision v2 Beta Start Review
+```
+
+**PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** PASS
+
+### 15.3 Step 11 — Vision v2 Beta Start
+
+> **Status:** ✅ **APPROVED** — Vision v2 Beta operation started 2026-07-02
+
+| # | Check | Result |
+|---|-------|:------:|
+| 1 | Pilot team scope | ✅ `D7TUZaOtfxdBc4P0lQLx` |
+| 2 | Rollback procedure | ✅ ruleset `d3429b67…` |
+| 3 | OR-11 not Beta blocker | ✅ P2 · separate PR |
+| 4 | Backup manual export (§8 #3) | ✅ **2026-07-03** · `gs://gcf-sources-126699415285-asia-northeast3/ops/backups/firestore/20260703/` |
+
+```text
+Step 11 Vision v2 Beta Start
+
+Decision:
+APPROVED
+
+Reviewer:
+이재만 (PM)
+
+Date:
+2026-07-02
+
+Reason:
+- Operation Readiness Final PASS 완료
+- OR-14 CLOSED
+- Dry Run #2 PASS
+- Pilot 운영 준비 완료
+- OR-11은 P2 개선 과제로 관리 (not Beta blocker)
+- Backup manual export: ✅ completed 2026-07-03 (Beta Ops Plan §8.1)
+
+Authorized Next:
+Vision v2 Beta Operation Start
+```
+
+**PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** APPROVED
+
+**Post-start ops:** OR-11 fix PR · Backup export §8 #3 · Console Playground cross-check (optional)
 
 ---
 
