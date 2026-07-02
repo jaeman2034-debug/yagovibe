@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — Step 8 ✅ PASS · Step 9 ▶️ OR-14 CLOSE (PM decision pending) · OR-14 **OPEN**  
+**Status:** 📋 **EXECUTION PREP** — Step 9 ✅ OR-14 CLOSED · Step 10 ▶️ Final PASS (PM decision pending)  
 **Date:** 2026-07-02  
-**Branch:** `main` @ `be77c9d` · deployed ruleset `c810909f…`  
+**Branch:** `main` · deployed ruleset `c810909f…` · OR-14 **CLOSED**  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -26,9 +26,9 @@
 | Backup Drill | ✅ PASS (§9) | PASS |
 | **PM Policy Review** | ✅ **COMPLETE** | §13.10 · Step 1~4 PASS |
 | **§13.5 Beta Rules Policy** | ✅ **APPROVED** | §13.5 · §13.10 |
-| **OR-14 Rules Gate** | ⚠ **OPEN** | Deploy + Dry Run #2 후 CLOSE 검토 |
+| **OR-14 Rules Gate** | ✅ **CLOSED** | §13.15.3 · 2026-07-02 |
 | **Vision v2 Beta Ops Plan** | 📋 **DRAFT** | Sign-off pending |
-| **Operation Readiness Final PASS** | ⏳ **HOLD** | Dry Run #2 이후 검토 |
+| **Operation Readiness Final PASS** | ▶️ **Step 10 검토** | OR-14 CLOSED · Beta Ops Plan sign-off pending |
 
 **Review 목적:** 기존 RC5 인프라 + I13-5 로컬 Persist 설계를 기준으로, **운영 반영 전** Firestore/GCS 구조·정책·권한·복구를 점검하고 PM 승인 기준을 확정한다.
 
@@ -822,7 +822,7 @@ Parent read helper must align with existing `parentLinks` pattern (CF-only write
 | 10b | Dry Run #2 (Job Monitor UI) | ⚠ **DEFERRED** | Eng | OR-11 client path · Beta Ops P2 · not Rules gate |
 | 5b | Console Cross-check | ⏳ **OPTIONAL** | Ops | Programmatic probe §13.14 equivalent |
 
-**OR-14 = OPEN** until PM Step 9 CLOSE decision (§13.15). Steps 1~10 rules path **complete**.
+**OR-14 = CLOSED** (§13.15.3 · 2026-07-02). Steps 1~10 rules path complete.
 
 ### 13.7.1 Observed Production Evidence (2026-07-02)
 
@@ -1257,8 +1257,7 @@ Authorized Next:
 
 ### 13.15 Step 9 — OR-14 CLOSE Review (2026-07-02)
 
-> **Status:** ▶️ **IN REVIEW** — Eng eligibility assessed · **PM CLOSE decision pending**  
-> **Nature:** Rules Gate close — distinct from OR-11 client fix
+> **Status:** ✅ **COMPLETE** — OR-14 Rules Gate CLOSED 2026-07-02
 
 #### 13.15.1 OR-14 Close Criteria (§13.6) — assessment
 
@@ -1281,64 +1280,77 @@ Authorized Next:
 
 **Eng recommendation:** OR-14 **eligible for CLOSE** — Rules gate objectives met. OR-11 → separate PR after Beta Start or as RC patch (PM confirms Job Monitor is not Beta blocker).
 
-#### 13.15.3 PM Decision Record (pending)
+#### 13.15.3 PM Decision Record
 
 ```text
-Step 9 OR-14 CLOSE Decision: [ CLOSED | HOLD | REJECTED ]
+Step 9 OR-14 CLOSE Decision: CLOSED
 
-Reviewer: _______________ (PM)
-Date: _______________
+Reviewer:
+이재만 (PM)
 
-Basis:
-- Step 5~8 complete
-- §13.14 post-deploy 5-path PASS
-- §13.5 policy live in production
-- OR-11 documented as client follow-up (not Rules gate)
+Date:
+2026-07-02
 
-If CLOSED:
-- OR-14 status → CLOSED
-- Proceed Step 10 Final PASS review
-- OR-11 fix PR authorized (non-blocking unless PM declares Beta blocker)
+Reason:
+- Step 5~8 완료
+- Firestore Rules 정상 배포 (ruleset c810909f…)
+- §13.14 post-deploy 5-path Probe PASS
+- Rules Gate 종료 조건 충족
+- OR-11은 별도 Client 개선 과제로 관리 (Beta Ops P2 · not Rules blocker)
+
+Authorized Next:
+Step 10 Operation Readiness Final PASS Review
 ```
 
-**PM signature:** _______________ · **Date:** _______________
+**PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** CLOSED
+
+**OR-11 follow-up:** `useVisionJobMonitor` `media/` → `aiIngest/` — separate PR · non-blocking for OR-14 CLOSE
 
 ---
 
-## 15. Operation Readiness Final PASS — Preparation (HOLD)
+## 15. Operation Readiness Final PASS — Step 10 Review
 
-> **⏳ NOT DECLARED** — submit only after OR-14 CLOSE + Beta Ops Plan PM Sign-off.
+> **Status:** ▶️ **IN REVIEW** — OR-14 CLOSED · **PM Final PASS decision pending**  
+> **Prerequisite:** OR-14 ✅ · Beta Ops Plan PM Sign-off ⏳
 
 ### 15.1 Declaration conditions
 
 | # | Condition | Status |
 |---|-----------|:------:|
-| 1 | OR-14 Rules Gate **CLOSE** | ⏳ |
+| 1 | OR-14 Rules Gate **CLOSE** | ✅ §13.15.3 |
 | 2 | `YAGO_VISION_V2_BETA_OPS_PLAN.md` **PM Sign-off** | ⏳ |
-| 3 | §4.1 criteria reviewed | ⏳ |
+| 3 | §4.1 criteria reviewed | ▶️ Eng pre-read below |
 
-### 15.2 Sequence (locked)
+### 15.1.1 Step 10 — Eng pre-read (2026-07-02)
 
-```text
-OR-14 CLOSE  →  Beta Ops Plan Sign-off  →  Final PASS  →  Beta Start Approval
-```
-
-### 15.3 PM Sign-off packet (draft — do not sign until HOLD lifted)
-
-| Criterion | Met? | Evidence |
-|-----------|:----:|----------|
+| Criterion | Met? | Notes |
+|-----------|:----:|-------|
 | A1 Cross-Clip PASS | ✅ | Pilot2 eval 3/3 |
-| A2 Firestore §1.2 ≥90% PASS | ⚠ | 5/8 · 0 FAIL |
-| A3 GCS §2.1 ≥90% PASS | ⚠ | 4/8 · 0 FAIL |
+| A2 Firestore §1.2 ≥90% PASS | ⚠ | 5/8 · 0 FAIL — mitigated per §4.2 |
+| A3 GCS §2.1 ≥90% PASS | ⚠ | 4/8 · 0 FAIL — mitigated per §4.2 |
 | A4 I13 design reviewed | ✅ | §1.3 · §7.5 |
 | A5 OR-1, OR-10 mitigated | ✅ | Review gate + §9 |
-| A6 Rollback agreed | ✅ | §9 · RC5 · I13 §6 |
+| A6 Rollback agreed | ✅ | §9 · ruleset rollback documented |
 | A7 Beta scope pilot team | ✅ | `D7TUZaOtfxdBc4P0lQLx` |
 | A8 Change Freeze | ✅ | Charter |
-| OR-14 CLOSE | ⏳ | §13.7 |
+| OR-14 CLOSE | ✅ | §13.15.3 |
 | Beta Ops Plan signed | ⏳ | Ops Plan §10 |
 
-**PM Signature:** _______________ · **Date:** _______________ · **Status:** ⏳ HOLD
+**Eng recommendation:** Eligible for **Final PASS** review pending Beta Ops Plan PM sign-off.
+
+### 15.2 Step 10 — PM Decision Record (pending)
+
+```text
+Step 10 Operation Readiness Final PASS: [ PASS | HOLD | REJECTED ]
+
+Reviewer: _______________ (PM)
+Date: _______________
+
+If PASS:
+Authorized Next: Step 11 Vision v2 Beta Start Approval
+```
+
+**PM signature:** _______________ · **Date:** _______________
 
 ---
 
