@@ -27,7 +27,7 @@
 | **PM Policy Review** | ✅ **COMPLETE** | §13.10 · Step 1~4 PASS |
 | **§13.5 Beta Rules Policy** | ✅ **APPROVED** | §13.5 · §13.10 |
 | **OR-14 Rules Gate** | ✅ **CLOSED** | §13.15.3 · 2026-07-02 |
-| **Vision v2 Beta Ops Plan** | 📋 **DRAFT** | Sign-off pending |
+| **Vision v2 Beta Ops Plan** | 📋 **DRAFT** | §9 PM Sign-off pending · **Step 10 blocker** |
 | **Operation Readiness Final PASS** | ▶️ **Step 10 검토** | OR-14 CLOSED · Beta Ops Plan sign-off pending |
 
 **Review 목적:** 기존 RC5 인프라 + I13-5 로컬 Persist 설계를 기준으로, **운영 반영 전** Firestore/GCS 구조·정책·권한·복구를 점검하고 PM 승인 기준을 확정한다.
@@ -1340,11 +1340,24 @@ Step 10 Operation Readiness Final PASS Review
 
 ### 15.2 Step 10 — PM Decision Record (pending)
 
+> **Blocker until complete:** Beta Ops Plan §9 PM Sign-off (`YAGO_VISION_V2_BETA_OPS_PLAN.md`)
+
+**PM sequence:**
+
+1. Sign Beta Ops Plan §9 (if SOP items accepted)
+2. Record Final PASS below
+3. `git commit -m "docs: record step 10 operation readiness final pass"`
+
 ```text
 Step 10 Operation Readiness Final PASS: [ PASS | HOLD | REJECTED ]
 
 Reviewer: _______________ (PM)
 Date: _______________
+
+Prerequisites checked:
+- OR-14 CLOSED (§13.15.3)
+- Rules Deploy + Dry Run #2 PASS (§13.13–§13.14)
+- Beta Ops Plan PM Sign-off (§9)
 
 If PASS:
 Authorized Next: Step 11 Vision v2 Beta Start Approval
