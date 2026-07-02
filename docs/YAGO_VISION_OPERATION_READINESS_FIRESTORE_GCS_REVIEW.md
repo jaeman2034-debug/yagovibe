@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — PM Policy Review COMPLETE · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD (Dry Run #2 후)  
+**Status:** 📋 **EXECUTION PREP** — Step 5 PR draft READY · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD (Dry Run #2 후)  
 **Date:** 2026-07-02  
-**Branch:** `vision-v2-i13` @ `4860d92`  
+**Branch:** `vision-v2-i13` @ Step 5 PR draft  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -1063,7 +1063,7 @@ Verify: decision is explicit · Actions align with decision.
 
 ### 13.11 Repository Change Review — Step 5 (PRE-DEPLOY)
 
-> **Status:** 📋 **REVIEW ONLY** — no `firestore.rules` edit · no Deploy.  
+> **Status:** ✅ **PR DRAFT READY** — `firestore.rules` merge committed locally · **no Deploy**.  
 > **SoT:** §13.5 APPROVED (Option B) · Production baseline + §13.5 deltas.
 
 #### 13.11.1 Three-way summary
@@ -1111,9 +1111,52 @@ Verify: decision is explicit · Actions align with decision.
 |------|:------:|
 | Repository diff documented | ✅ |
 | Merge strategy defined | ✅ |
-| `firestore.rules` PR | ⏳ **Next Eng task** (after PM confirms Step 5) |
-| PM Deploy Approval | ⏳ **Not requested** |
-| Rules Deploy | ❌ **Forbidden** until Step 6 |
+| `firestore.rules` PR draft | ✅ **READY** (production baseline + §13.5 overlay) |
+| Rules compile (`firebase deploy --dry-run`) | ✅ PASS |
+| PM Deploy Approval (Step 6) | ⏳ **Awaiting PM review** |
+| Rules Deploy (Step 7) | ❌ **Forbidden** until Step 6 |
+
+#### 13.11.6 Step 5 PR — change summary
+
+| Category | Change |
+|----------|--------|
+| **Baseline** | Production deployed rules (`d3429b67…`) — preserves academy · parentLinks · aiIngest · non-Vision prod blocks |
+| **§13.5 Vision reads** | `visionMatchIndex` · `visionUploadQueue` *(new)* · `aiIngest` · `visionRuns` → `isSignedIn() && isActiveMember(teamId)` |
+| **Parent read** | `visionAnalysis` → `isActiveMember \|\| parentLinkReadAllowed(teamId, matchId)` |
+| **Helper** | `parentLinkReadAllowed` — `teams/{teamId}/parentLinks/{parentUid}_{playerUid}` · match `playerId`/`playerUid` gate |
+| **Writes** | All Vision paths `write: false` (CF-only, unchanged) |
+| **cvRuns** | Unchanged — `isTeamStaffElevated` (not in §13.5 scope) |
+| **Deploy scope** | `firebase deploy --only firestore:rules` only (Step 7) |
+
+**Pilot parent note:** Pilot parent is `isActiveMember` (role `parent`) — `visionAnalysis` ALLOW via member path even if match doc lacks `playerId`.
+
+### 13.12 PM Deploy Approval — Step 6 (GOVERNANCE GATE)
+
+> **Status:** ⏳ **NOT APPROVED** — review Step 5 PR before any Deploy.  
+> **Nature:** 운영 승인 Gate — **not** feature development.
+
+#### 13.12.1 Step 6 checklist (PM)
+
+| # | 확인 항목 | 목적 | Eng pre-read |
+|---|-----------|------|--------------|
+| 1 | Repository 변경이 §13.5만 반영 | 정책 외 권한 확대 없음 | ✅ Vision paths only · prod baseline preserved |
+| 2 | 기존 권한 회귀 없음 | non-Vision prod rules 유지 | ✅ Full prod baseline merged |
+| 3 | Production Drift 해소 | Repo ↔ Prod 정합 | ✅ Post-deploy target = §13.5 |
+| 4 | OR-11 영향 | Job Monitor client path | ⚠ `useVisionJobMonitor` `media/` stale — Dry Run #2 전 fix |
+| 5 | Parent 권한 | 개인정보·parentLinks 정합 | ✅ `parentLinkReadAllowed` + `isActiveMember` |
+| 6 | visionUploadQueue | Beta RC5-2 queue UI | ✅ New read block per §13.5 |
+| 7 | Deploy 범위 | Rules only | ✅ `--only firestore:rules` |
+| 8 | Rollback | 이전 ruleset 복구 | ✅ `d3429b67-52dc-47d6-bb88-73945fe56b0c` documented §13.7.1 |
+
+#### 13.12.2 Step 6 outcomes
+
+| Result | Next |
+|--------|------|
+| ✅ **APPROVED** | Step 7 Rules Deploy → Step 8 Dry Run #2 |
+| ⏳ **HOLD** | Eng revision · re-review Step 5 PR |
+| ❌ **REJECTED** | Roll back PR · PM policy re-review |
+
+**Forbidden until Step 6 APPROVED:** Rules Deploy · Dry Run #2 · OR-14 CLOSE · Final PASS · Beta Start
 
 ---
 
