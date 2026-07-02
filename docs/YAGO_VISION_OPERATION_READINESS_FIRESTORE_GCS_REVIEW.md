@@ -1,6 +1,6 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — Step 8 ✅ PASS · Step 9 ▶️ OR-14 CLOSE 검토 · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD  
+**Status:** 📋 **EXECUTION PREP** — Step 8 ✅ PASS · Step 9 ▶️ OR-14 CLOSE (PM decision pending) · OR-14 **OPEN**  
 **Date:** 2026-07-02  
 **Branch:** `main` @ `be77c9d` · deployed ruleset `c810909f…`  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
@@ -814,13 +814,15 @@ Parent read helper must align with existing `parentLinks` pattern (CF-only write
 | 4 | Engineering Review (repo static) | ✅ DONE | Eng | §13.3 |
 | 5 | Production Rules read probe (5 paths) | ✅ DONE | Eng | §13.7.1 |
 | 5b | Console Cross-check | ⏳ PENDING | Ops | §13.7.1 |
-| 6 | Deployed vs repo diff | ✅ DONE (**DIFF**) | Eng | §13.7.1 |
-| 7 | PM Rules SoT decision (A or B) | ⏳ PENDING | PM | §13.8 |
-| 8 | PM Deploy Approval | ⏳ PENDING | PM | After step 7 |
-| 9 | `firebase deploy --only firestore:rules` | ⏳ PENDING | Eng | After step 8 only |
-| 10 | Dry Run Attempt #2 (10/10) | ⏳ PENDING | Ops | ≤3min MP4 |
+| 6 | Deployed vs repo diff | ✅ **RESOLVED** | Eng | Post-Step-7 merge + deploy · ruleset `c810909f…` |
+| 7 | PM Rules SoT decision (Option B) | ✅ DONE | PM | §13.10 · §13.5 APPROVED |
+| 8 | PM Deploy Approval | ✅ DONE | PM | §13.12.4 · 2026-07-02 |
+| 9 | `firebase deploy --only firestore:rules` | ✅ DONE | Eng | §13.13 · 2026-07-02 |
+| 10 | Dry Run #2 (rules 5-path) | ✅ DONE | Eng | §13.14 · 5/5 ALLOW |
+| 10b | Dry Run #2 (Job Monitor UI) | ⚠ **DEFERRED** | Eng | OR-11 client path · Beta Ops P2 · not Rules gate |
+| 5b | Console Cross-check | ⏳ **OPTIONAL** | Ops | Programmatic probe §13.14 equivalent |
 
-**OR-14 = OPEN** until SoT decision · deploy gate · Dry Run #2 complete. Steps 1~6 = observation recorded · **not** gate close.
+**OR-14 = OPEN** until PM Step 9 CLOSE decision (§13.15). Steps 1~10 rules path **complete**.
 
 ### 13.7.1 Observed Production Evidence (2026-07-02)
 
@@ -1252,6 +1254,54 @@ Authorized Next:
 **Step 8 verdict:** ✅ **PASS** — post-deploy rules behave per §13.5 on all 5 probed paths.
 
 **Authorized next:** Step 9 OR-14 CLOSE 검토
+
+### 13.15 Step 9 — OR-14 CLOSE Review (2026-07-02)
+
+> **Status:** ▶️ **IN REVIEW** — Eng eligibility assessed · **PM CLOSE decision pending**  
+> **Nature:** Rules Gate close — distinct from OR-11 client fix
+
+#### 13.15.1 OR-14 Close Criteria (§13.6) — assessment
+
+| # | Criterion | Status | Evidence |
+|---|-----------|:------:|----------|
+| 1 | Rules read probe (5 paths) | ✅ PASS | §13.14 · post-deploy 5/5 ALLOW |
+| 2 | Rules draft reviewed | ✅ | §13.5 · Eng review |
+| 3 | PM Deploy Approval | ✅ | §13.12.4 |
+| 4 | Rules Deploy | ✅ | §13.13 · `c810909f…` |
+| 5 | Dry Run #2 (rules) | ✅ PASS | §13.14 |
+| 5b | Console Playground cross-check | ⏳ Optional | Ops manual · programmatic probe equivalent |
+| — | Job Monitor UI (OR-11) | ⚠ Deferred | Client `media/` path · **not** Firestore Rules failure |
+
+#### 13.15.2 OR-11 vs OR-14 boundary
+
+| Gate | Scope | OR-11 impact |
+|------|-------|--------------|
+| **OR-14** | Firestore Rules = §13.5 policy in production | **None** — 5-path probe PASS |
+| **OR-11** | `useVisionJobMonitor` client subscription path | Job Monitor run-doc may not load · Beta Ops Plan **P2** degraded UX |
+
+**Eng recommendation:** OR-14 **eligible for CLOSE** — Rules gate objectives met. OR-11 → separate PR after Beta Start or as RC patch (PM confirms Job Monitor is not Beta blocker).
+
+#### 13.15.3 PM Decision Record (pending)
+
+```text
+Step 9 OR-14 CLOSE Decision: [ CLOSED | HOLD | REJECTED ]
+
+Reviewer: _______________ (PM)
+Date: _______________
+
+Basis:
+- Step 5~8 complete
+- §13.14 post-deploy 5-path PASS
+- §13.5 policy live in production
+- OR-11 documented as client follow-up (not Rules gate)
+
+If CLOSED:
+- OR-14 status → CLOSED
+- Proceed Step 10 Final PASS review
+- OR-11 fix PR authorized (non-blocking unless PM declares Beta blocker)
+```
+
+**PM signature:** _______________ · **Date:** _______________
 
 ---
 
