@@ -58,9 +58,11 @@ export type TeamOwnerHubPanelContentProps = {
   onNavigateMemberManage: () => void;
   canManageCaptainPhoto: boolean;
   ownerDiffBlock?: ReactNode;
-  /** Academy + coach/admin — AI Growth validation console in AI tab */
+  /** Academy — AI 분석 Lite 탭 분기 */
   isAcademyTeam?: boolean;
   viewerMemberRole?: string;
+  /** 팀 문서 owner — Validation Console 표시 (coach/admin과 동일 게이트) */
+  isTeamOwner?: boolean;
 };
 
 export function buildOwnerHubPanelTabs(props: TeamOwnerHubPanelContentProps) {
@@ -108,10 +110,11 @@ export function buildOwnerHubPanelTabs(props: TeamOwnerHubPanelContentProps) {
     ownerDiffBlock,
     isAcademyTeam = false,
     viewerMemberRole,
+    isTeamOwner = false,
   } = props;
 
   const showGrowthValidation =
-    isAcademyTeam &&
+    isTeamOwner ||
     canViewAIGrowthValidationConsole(normalizeMemberRole(viewerMemberRole));
 
   const showAiAnalysisLite = !isAcademyTeam;
