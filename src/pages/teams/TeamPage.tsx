@@ -119,6 +119,7 @@ import { TeamOwnerManagementPanel } from "@/components/team/TeamOwnerManagementP
 import { buildOwnerHubPanelTabs } from "@/components/team/TeamOwnerHubPanelContent";
 import { sharePublicTeamHubKakaoOrWebShare } from "@/services/kakaoShare";
 import { sportHubHref } from "@/utils/sportHubHref";
+import { isAcademyOrganization } from "@/lib/p0/terminology";
 
 type TabType = "overview" | "activity" | "matches" | "players" | "records" | "awards" | "media";
 
@@ -260,6 +261,19 @@ export default function TeamPage() {
   const isTeamOwner = hubPermissions.isTeamOwner;
   const canManageTeamHub = hubPermissions.canManage;
   const canUploadTeamMedia = hubPermissions.canUploadMedia;
+
+  const viewerMemberRole = useMemo(() => {
+    if (!effectiveTeamId || !user?.uid) return undefined;
+    const row = teamMembers.find(
+      (m) => m.teamId === effectiveTeamId && isActiveTeamMemberStatus(m.status)
+    );
+    return row?.role;
+  }, [teamMembers, effectiveTeamId, user?.uid]);
+
+  const isAcademyTeam = useMemo(
+    () => (team ? isAcademyOrganization(team) : false),
+    [team]
+  );
 
   const playMemberOnlyHint = searchParams.get("hint") === "playMember";
   const firstTeamWelcome = searchParams.get("firstTeam") === "1";
@@ -816,6 +830,9 @@ export default function TeamPage() {
           onAiCaptain: () => void handleRegeneratePublicField("captainMessage"),
           onNavigateMemberManage: () => navigate(`/team/${encodeURIComponent(effectiveTeamId)}/overview`),
           canManageCaptainPhoto,
+          isAcademyTeam,
+          viewerMemberRole,
+          isTeamOwner,
         })
       : null;
 
