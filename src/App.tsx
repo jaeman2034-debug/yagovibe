@@ -398,6 +398,15 @@ export default function App() {
                   </ProtectedRoute>
                 } 
               />
+              {/* Canonical /hub — alias until HubHome ships on main (vision-v2-i13) */}
+              <Route 
+                path="/hub" 
+                element={
+                  <ProtectedRoute>
+                    <SportsHubPage />
+                  </ProtectedRoute>
+                } 
+              />
               <Route 
                 path="/home" 
                 element={
