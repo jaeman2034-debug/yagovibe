@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — Step 7 ✅ COMPLETE · Step 8 ▶️ Dry Run #2 · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD  
+**Status:** 📋 **EXECUTION PREP** — Step 8 ✅ PASS · Step 9 ▶️ OR-14 CLOSE 검토 · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD  
 **Date:** 2026-07-02  
-**Branch:** `main` @ `9c365b2` (merged `or14/step5-rules-merge`)  
+**Branch:** `main` @ `be77c9d` · deployed ruleset `c810909f…`  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -1224,11 +1224,34 @@ Authorized Next:
 |---|--------|:------:|----------|
 | 1 | PR Merge (`or14/step5-rules-merge` → `main`) | ✅ | `main` @ `9c365b2` fast-forward |
 | 2 | `firebase deploy --only firestore:rules` | ✅ | Deploy complete · `yago-vibe-spt` |
-| 3 | Post-deploy 5-path prod probe | ⏳ | Automated probe failed (`auth/invalid-custom-token`) — **Step 8 Dry Run #2** required |
+| 3 | Post-deploy 5-path prod probe | ✅ | Step 8 §13.14 — 5/5 ALLOW |
 
-**Rollback (if needed):** ruleset `d3429b67-52dc-47d6-bb88-73945fe56b0c` (§13.7.1)
+**Rollback (pre-Step-7):** ruleset `d3429b67-52dc-47d6-bb88-73945fe56b0c`  
+**Current deployed:** ruleset `c810909f-d399-49a7-8872-b5c009333724` (post-Step-7)
 
-**Next:** Step 8 Dry Run #2 (prod 5-path probe + Job Monitor / Coach UI) → Step 9 OR-14 CLOSE
+**Next:** ~~Step 8~~ → Step 9 OR-14 CLOSE
+
+### 13.14 Step 8 — Dry Run #2 (Post-Deploy Production Probe · 2026-07-02)
+
+> **Status:** ✅ **PASS** (rules 5-path probe) · ⚠ **OR-11 OPEN** (Job Monitor client path)
+
+**Method:** `or14-prod-console-proxy.mjs` · prod Firestore client SDK + custom token · pilot team `D7TUZaOtfxdBc4P0lQLx`
+
+| # | Path | Actor | Pre-deploy | Post-deploy | Verdict |
+|---|------|-------|:----------:|:-----------:|:-------:|
+| 1 | `visionMatchIndex/{matchId}` | Coach | ALLOW | **ALLOW** | ✅ |
+| 2 | `visionUploadQueue/{mediaId}` | Coach | **DENY** | **ALLOW** | ✅ §13.5 |
+| 3 | `aiIngest/{mediaId}/visionRuns/{runId}` | Coach | ALLOW | **ALLOW** | ✅ |
+| 4 | `matches/{matchId}/visionAnalysis/{id}` | Coach | ALLOW | **ALLOW** | ✅ |
+| 5 | `matches/{matchId}/visionAnalysis/{id}` | Parent | **DENY** | **ALLOW** | ✅ `parentLinkReadAllowed` |
+
+**permission-denied:** none on probed paths.
+
+**OR-11 (client — not rules):** `useVisionJobMonitor.ts:84` still subscribes `teams/{teamId}/media/{mediaId}/visionRuns` — SoT is `aiIngest`. Rules probe PASS does not fix Job Monitor run-doc subscription; **separate fix recommended** before Coach UI 10/10 sign-off.
+
+**Step 8 verdict:** ✅ **PASS** — post-deploy rules behave per §13.5 on all 5 probed paths.
+
+**Authorized next:** Step 9 OR-14 CLOSE 검토
 
 ---
 
