@@ -1,488 +1,2711 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 팀 문서: 팀 멤버만 읽기 가능, Owner만 쓰기 가능
-    match /teams/{teamId} {
-      // 읽기: 팀 멤버 (owners, coaches, members) 또는 관리자
-      allow read: if request.auth != null && (
-        request.auth.uid in resource.data.get('owners', []) ||
-        request.auth.uid in resource.data.get('coaches', []) ||
-        request.auth.uid in resource.data.get('members', []) ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
+    
+    /* =====================
+       Helper Functions
+    ====================== */
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // 🔥 전역 관리자 확인 (users/{uid}.role == "ADMIN")
+    function isGlobalAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "ADMIN";
+    }
+    
+    function isAdmin(teamId) {
+      return exists(
+        /databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)
+      ) &&
+      get(
+        /databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)
+      ).data.role == "admin" &&
+      get(
+        /databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)
+      ).data.status == "active";
+    }
+    
+    /** members/{uid}.status — 비어 있으면 active(레거시·시드)와 useMyTeams 정합 */
+    function memberStatusIsActive(data) {
+      return !("status" in data) ||
+        data.status == "active" ||
+        data.status == "Active" ||
+        data.status == "ACTIVE" ||
+        data.status == "approved" ||
+        data.status == "Approved" ||
+        data.status == "joined" ||
+        data.status == "";
+    }
+
+    function teamSelfMemberPath(teamId) {
+      return /databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid);
+    }
+
+    function isActiveMember(teamId) {
+      return exists(teamSelfMemberPath(teamId)) &&
+        memberStatusIsActive(get(teamSelfMemberPath(teamId)).data);
+    }
+
+    /** 팀 멤버 문서 (본인) — owner/admin 회비·시드 등 */
+    function teamSelfMemberData(teamId) {
+      return get(teamSelfMemberPath(teamId)).data;
+    }
+
+    /** 운영·코치 역할 — members/{uid}.role (대소문자·레거시 혼재) */
+    function isTeamStaffRole(role) {
+      return role is string && (
+        role == 'owner' || role == 'Owner' || role == 'OWNER' ||
+        role == 'admin' || role == 'Admin' || role == 'ADMIN' ||
+        role == 'manager' || role == 'Manager' ||
+        role == 'staff' || role == 'Staff' ||
+        role == 'coach' || role == 'Coach'
       );
-      
-      // 쓰기: Owner만 가능
-      allow write: if request.auth != null && 
-                     request.auth.uid in resource.data.get('owners', []);
-      
-      // 팀 리포트
-      match /reports/{reportId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && 
-                       request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []);
-        
-        // 품질 리포트
-        match /qualityReports/{qualityReportId} {
-          allow read: if request.auth != null;
-          allow create: if request.auth != null;
-          allow update, delete: if false; // Functions에서만 관리
-        }
-      }
-      
-      // 역할 관리
-      match /roles/{userId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow write: if request.auth != null && 
-                       request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []);
-      }
-      
-      // 알림 로그: Owner 및 관리자만 읽기 가능
-      match /alerts/{alertId} {
-        allow read: if request.auth != null && (
-          request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('owners', []) ||
-          request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-          request.auth.token.email.matches('.*admin.*')
+    }
+
+    function memberAccessLevelIsElevated(accessLevel) {
+      return accessLevel == 'OWNER' || accessLevel == 'ADMIN' ||
+        accessLevel == 'owner' || accessLevel == 'admin';
+    }
+
+    /**
+     * allow get(members/{authUid}) 와 list 권한 정합 — 본인 멤버십 문서가 있으면
+     * active 멤버 또는 운영진(role/accessLevel)은 명단 list 허용.
+     */
+    function selfMemberGrantsRosterRead(teamId) {
+      return exists(teamSelfMemberPath(teamId)) && (
+        memberStatusIsActive(get(teamSelfMemberPath(teamId)).data) ||
+        isTeamStaffRole(get(teamSelfMemberPath(teamId)).data.role) ||
+        memberAccessLevelIsElevated(get(teamSelfMemberPath(teamId)).data.accessLevel)
+      );
+    }
+
+    /** teams 문서 captainId (ownerUid와 별도인 레거시·시드) */
+    function isTeamCaptainByTeamDoc(teamId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/teams/$(teamId)) &&
+        'captainId' in get(/databases/$(database)/documents/teams/$(teamId)).data &&
+        tradeUidMatchesField(
+          request.auth.uid,
+          get(/databases/$(database)/documents/teams/$(teamId)).data.captainId
         );
-        allow write: if false; // Functions에서만 쓰기
-      }
-    }
-    
-    // Step 59-60: Proactive Insights
-    match /insightSubs/{subId} {
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    // Step 20: AI 주간 인사이트
-    match /insights/{insightId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
     }
 
-    match /insightReports/{reportId} {
-      // 읽기: 팀 멤버 또는 관리자
-      allow read: if request.auth != null && (
-        // 보고서의 teamId로 팀 문서 확인
-        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('owners', []) ||
-        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('coaches', []) ||
-        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('members', []) ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      
-      // 쓰기 (승인/반려): Owner 또는 관리자만 가능
-      allow update: if request.auth != null && (
-        request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('owners', []) ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      
-      // 생성: Functions에서만 가능
-      allow create: if false;
-      
-      // 삭제: 관리자만 가능
-      allow delete: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    // Step 26 & Step 62: 감사 로그 (Audit Logs)
-    match /auditLogs/{logId} {
-      // 읽기: 관리자(role="admin") 또는 관리자 이메일만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: 인증된 사용자가 자신의 액션을 기록 가능 (uid 일치)
-      allow create: if request.auth != null && 
-                       request.resource.data.uid == request.auth.uid;
-      // 수정/삭제: 불가 (감사 로그는 변경 불가)
-      allow update, delete: if false;
+    /** team_members 역인덱스 — 활성 멤버 (문서 ID ≠ auth uid 레거시) */
+    function isTeamMemberByMirrorActive(teamId) {
+      let uidTeamIdDoc = /databases/$(database)/documents/team_members/$(request.auth.uid + '_' + teamId);
+      let teamIdUidDoc = /databases/$(database)/documents/team_members/$(teamId + '_' + request.auth.uid);
+
+      return (exists(uidTeamIdDoc) && memberStatusIsActive(get(uidTeamIdDoc).data)) ||
+        (exists(teamIdUidDoc) && memberStatusIsActive(get(teamIdUidDoc).data));
     }
 
-    // Step 27: 워크플로우 로그 (Workflow Logs)
-    match /workflowLogs/{logId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
+    /** team_members 역인덱스(레거시 문서 ID 혼재: uid_teamId | teamId_uid) 기준 캡틴 권한 */
+    function isTeamCaptainByMirror(teamId) {
+      let uidTeamIdDoc = /databases/$(database)/documents/team_members/$(request.auth.uid + '_' + teamId);
+      let teamIdUidDoc = /databases/$(database)/documents/team_members/$(teamId + '_' + request.auth.uid);
+
+      return isSignedIn() && (
+        (
+          exists(uidTeamIdDoc) &&
+          (
+            !('status' in get(uidTeamIdDoc).data) ||
+            memberStatusIsActive(get(uidTeamIdDoc).data)
+          ) &&
+          (
+            isTeamStaffRole(get(uidTeamIdDoc).data.role) ||
+            memberAccessLevelIsElevated(get(uidTeamIdDoc).data.accessLevel)
+          )
+        ) ||
+        (
+          exists(teamIdUidDoc) &&
+          (
+            !('status' in get(teamIdUidDoc).data) ||
+            memberStatusIsActive(get(teamIdUidDoc).data)
+          ) &&
+          (
+            isTeamStaffRole(get(teamIdUidDoc).data.role) ||
+            memberAccessLevelIsElevated(get(teamIdUidDoc).data.accessLevel)
+          )
+        )
       );
-      // 쓰기: Functions에서만 가능 (클라이언트는 읽기만 가능)
-      allow write: if false;
     }
 
-    // Step 28: 워크플로우 통계 (Workflow Stats)
-    match /workflowStats/{statId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
+    /**
+     * teams/.../members list · lineups read — useMyTeams(ownerUid·SoT)와 동일 축.
+     * ownerUid/captainId 우선(평가 비용·레거시 owner) → 본인 members/{uid} → mirror.
+     */
+    function canReadTeamMembersList(teamId) {
+      return isSignedIn() && (
+        isTeamOwnerByTeamDoc(teamId) ||
+        isTeamCaptainByTeamDoc(teamId) ||
+        selfMemberGrantsRosterRead(teamId) ||
+        isTeamMemberByMirrorActive(teamId) ||
+        isTeamCaptainByMirror(teamId)
       );
-      // 쓰기: Functions에서만 가능 (클라이언트는 읽기만 가능)
-      allow write: if false;
     }
 
-    // Step 31: 베타 피드백 (Beta Feedback)
-    match /betaFeedback/{feedbackId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
+    function isTeamStaffElevated(teamId) {
+      return isActiveMember(teamId) && (
+        isTeamStaffRole(teamSelfMemberData(teamId).role) ||
+        teamSelfMemberData(teamId).accessLevel == 'OWNER' ||
+        teamSelfMemberData(teamId).accessLevel == 'ADMIN'
       );
-      // 쓰기: Functions/HTTPS API에서만 가능 (웹 직접 접근은 rate-limit 필요)
-      // 실제로는 feedbackApi 함수를 통해만 쓰기 가능하도록 제한
-      allow write: if false;
     }
 
-    // Step 32: 릴리즈 체크 및 노트 (Release Checks & Notes)
-    match /releaseChecks/{checkId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-
-    match /releaseNotes/{noteId} {
-      // 읽기: 관리자 또는 매니저만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.role == "admin" ||
-        request.auth.token.role == "manager" ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /modelCards/{cardId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    // Step 63: Compliance Export & DSAR
-    match /complianceExports/{exportId} {
-      // 읽기: Owner 또는 SecOps(관리자)만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.uid ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /dsarRequests/{requestId} {
-      // 읽기: 요청자 또는 SecOps(관리자)만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.uid ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /deletionRequests/{requestId} {
-      // 읽기: 요청자 또는 SecOps(관리자)만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.uid ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /systemLogs/{logId} {
-      // 읽기: SecOps(관리자)만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    // Step 64: Global Governance Portal
-    match /policies/{policyId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: Functions에서만 가능 (policyCompiler)
-      allow write: if false;
-    }
-    
-    // Step 65: Multi-Tenant Org Rollout & Billing Guard
-    match /orgs/{orgId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    match /tenants/{tenantId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    match /plans/{planId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    match /usage/{day}/{orgId} {
-      // 읽기: 해당 조직 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == orgId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /ratelimits/{limitId} {
-      // 읽기: 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /billingDaily/{billId} {
-      // 읽기: 해당 조직 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.orgId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /featureOverrides/{orgId} {
-      // 읽기: 해당 조직 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == orgId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    // Step 68: Real-World Pilot & Telemetry Review
-    match /events/{day}/{eventId} {
-      // 읽기: 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /telemetryDaily/{docId} {
-      // 읽기: 인증된 사용자 모두 가능 (공개 정보)
-      allow read: if request.auth != null;
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    match /improvements/{docId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: Functions 또는 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-    }
-    
-    match /pilotRollbacks/{docId} {
-      // 읽기: 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
-      );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
-    }
-    
-    // Step 69: Production Hardening - 헬스체크용 임시 컬렉션
-    match /_health/{docId} {
-      // 읽기/쓰기: 인증된 사용자 모두 가능
-      allow read, write: if request.auth != null;
-    }
-    
-    // Step 69: Production Hardening - 런북 템플릿
-    match /runbookTemplates/{docId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin']
-      );
-    }
-    
-    // Step 69: Production Hardening - 론치 플랜
-    match /launchPlans/{docId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin']
-      );
-    }
-    
-    // Step 70: Post-Launch SRE & Growth Experiments
-    match /slo/{metricId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin']
-      );
-    }
-    
-    match /experiments/{expId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin']
-      );
-      
-      // 실험 할당
-      match /assign/{userId} {
-        // 읽기: 본인 또는 관리자만 가능
-        allow read: if request.auth != null && (
-          request.auth.uid == userId ||
-          request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-          request.auth.token.email.matches('.*admin.*')
+    /**
+     * teams 문서 SoT — members/{authUid} 없거나 문서 ID가 UID가 아닌 레거시 대비
+     * ownerId / leaderId / owners[] 는 구 시드·레거시 팀 문서에 흔함 (ownerUid 미만)
+     */
+    function isTeamOwnerByTeamDoc(teamId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/teams/$(teamId)) && (
+          (
+            'ownerUid' in get(/databases/$(database)/documents/teams/$(teamId)).data &&
+            tradeUidMatchesField(request.auth.uid, get(/databases/$(database)/documents/teams/$(teamId)).data.ownerUid)
+          ) ||
+          (
+            'ownerUserId' in get(/databases/$(database)/documents/teams/$(teamId)).data &&
+            tradeUidMatchesField(request.auth.uid, get(/databases/$(database)/documents/teams/$(teamId)).data.ownerUserId)
+          ) ||
+          (
+            'ownerId' in get(/databases/$(database)/documents/teams/$(teamId)).data &&
+            tradeUidMatchesField(request.auth.uid, get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId)
+          ) ||
+          (
+            'leaderId' in get(/databases/$(database)/documents/teams/$(teamId)).data &&
+            tradeUidMatchesField(request.auth.uid, get(/databases/$(database)/documents/teams/$(teamId)).data.leaderId)
+          ) ||
+          (
+            'createdBy' in get(/databases/$(database)/documents/teams/$(teamId)).data &&
+            tradeUidMatchesField(request.auth.uid, get(/databases/$(database)/documents/teams/$(teamId)).data.createdBy)
+          ) ||
+          (
+            'owners' in get(/databases/$(database)/documents/teams/$(teamId)).data &&
+            get(/databases/$(database)/documents/teams/$(teamId)).data.owners is list &&
+            request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.owners
+          )
         );
-        // 쓰기: Functions에서만 가능 (abRouter)
+    }
+
+    /** RSVP·일정 허브 — 멤버 SoT 또는 팀 문서상 팀장 */
+    function isActiveMemberOrTeamOwnerDoc(teamId) {
+      return isActiveMember(teamId) || isTeamOwnerByTeamDoc(teamId);
+    }
+
+    /** Vision v6-7 coach pipeline read — owner/coach/staff (active status 불필요, members list 축 정합) */
+    function isTeamVisionStaffReader(teamId) {
+      return isSignedIn() && (
+        isTeamOwnerByTeamDoc(teamId) ||
+        isTeamCaptainByTeamDoc(teamId) ||
+        (
+          exists(teamSelfMemberPath(teamId)) &&
+          isTeamStaffRole(teamSelfMemberData(teamId).role)
+        ) ||
+        isTeamCaptainByMirror(teamId)
+      );
+    }
+
+    /** Vision Beta §13.5 — parentLinks SoT (teams/{teamId}/parentLinks/{parentUid}_{playerUid}) */
+    function parentLinkStatusActive(data) {
+      return data != null && (
+        !('status' in data) ||
+        data.status == 'active'
+      );
+    }
+
+    function parentUidMatchesParentLink(data) {
+      return tradeUidMatchesField(request.auth.uid, data.parentUid) ||
+        tradeUidMatchesField(request.auth.uid, data.parentUserId);
+    }
+
+    function parentLinkDocActive(teamId, linkId) {
+      let linkPath = /databases/$(database)/documents/teams/$(teamId)/parentLinks/$(linkId);
+      return exists(linkPath) &&
+        parentUidMatchesParentLink(get(linkPath).data) &&
+        parentLinkStatusActive(get(linkPath).data);
+    }
+
+    /** Parent visionAnalysis read — active parentLink for match player when match doc carries playerUid */
+    function matchPlayerUidForParentLink(teamId, matchId) {
+      let matchPath = /databases/$(database)/documents/teams/$(teamId)/matches/$(matchId);
+      return exists(matchPath) ? (
+        get(matchPath).data.playerUid is string && get(matchPath).data.playerUid != ''
+          ? get(matchPath).data.playerUid
+          : (get(matchPath).data.playerId is string && get(matchPath).data.playerId != ''
+            ? get(matchPath).data.playerId
+            : '')
+      ) : '';
+    }
+
+    function parentLinkReadAllowed(teamId, matchId) {
+      let playerUid = matchPlayerUidForParentLink(teamId, matchId);
+      return playerUid != '' && parentLinkDocActive(teamId, request.auth.uid + '_' + playerUid);
+    }
+
+    /** 일정 생성·삭제 등 — 기존 운영진 또는 팀 문서상 팀장 */
+    function isTeamStaffForScheduledHub(teamId) {
+      return isTeamStaffElevated(teamId) || isTeamOwnerByTeamDoc(teamId);
+    }
+
+    /** Phase B S1 — trainingBlocks library (staff/coach only; CF write only) */
+    function canReadAcademyTrainingBlocksLibrary(teamId) {
+      return isSignedIn() && (
+        isTeamOwnerByTeamDoc(teamId) ||
+        (isActiveMember(teamId) && isTeamStaffRole(teamSelfMemberData(teamId).role))
+      );
+    }
+
+    /** 공개 허브 미디어·수상 — owner/admin/manager 등 운영 역할 또는 팀 문서 SoT 팀장 */
+    function memberRoleCanManagePublicHub(role) {
+      return role == 'owner' || role == 'admin' || role == 'manager' ||
+        role == 'staff' || role == 'vice' || role == 'vice_president' ||
+        role == 'senior_vice_president' || role == 'coach';
+    }
+
+    function isTeamPublicHubManager(teamId) {
+      return isTeamOwnerByTeamDoc(teamId) || (
+        isActiveMember(teamId) && (
+          memberRoleCanManagePublicHub(teamSelfMemberData(teamId).role) ||
+          teamSelfMemberData(teamId).accessLevel == 'OWNER' ||
+          teamSelfMemberData(teamId).accessLevel == 'ADMIN'
+        )
+      );
+    }
+
+    function mediaTeamHubManagerCanWrite() {
+      return resource.data.entityType == 'team' &&
+        resource.data.entityId is string &&
+        isTeamPublicHubManager(resource.data.entityId);
+    }
+
+    /** 팀 경기 매칭글(`matches`) 작성자 또는 해당 글의 호스트 팀 owner/admin */
+    function matchListingHostCanWrite(data) {
+      return request.auth.uid == data.authorId ||
+        ("teamId" in data && data.teamId is string && isTeamStaffElevated(data.teamId));
+    }
+    
+    // 🔥 협회 관리자 확인 (adminUids 우선 + Custom Claims 보조)
+    // 운영 안정성: adminUids 배열/맵 기반으로 동작, Custom Claims는 보조
+    function isAssociationAdmin(associationId) {
+      return request.auth != null && (
+        // ✅ 방법 1: adminUids 체크 (우선, 가장 안정적)
+        // 🔥 get() 호출 최적화: 한 번만 호출
+        (exists(/databases/$(database)/documents/associations/$(associationId)) &&
+         ("adminUids" in get(/databases/$(database)/documents/associations/$(associationId)).data) &&
+         request.auth.uid in get(/databases/$(database)/documents/associations/$(associationId)).data.adminUids) ||
+        // ✅ 방법 2: Custom Claims 체크 (보조, role이 있을 때만)
+        (request.auth.token.role != null && 
+         request.auth.token.role == "ADMIN" && 
+         request.auth.token.associationId == associationId)
+      );
+    }
+    
+    // 🔥 역할 확인 헬퍼 함수 (대회 운영용)
+    function roleIsTournament(r) {
+      return isSignedIn() && request.auth.token.role == r;
+    }
+    
+    function isTournamentAdmin() {
+      return roleIsTournament("ADMIN");
+    }
+    
+    function isTournamentReferee() {
+      return roleIsTournament("REFEREE");
+    }
+    
+    // 🔥 배정된 심판 확인 (경기 문서의 referees에 포함되어 있고, Custom Claims에 REFEREE 역할이 있어야 함)
+    function isAssignedReferee(associationId, tournamentId, matchId) {
+      return isTournamentReferee() &&
+        (
+          request.auth.uid == get(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)/matches/$(matchId)).data.referees.main ||
+          request.auth.uid == get(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)/matches/$(matchId)).data.referees.assistant1 ||
+          request.auth.uid == get(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)/matches/$(matchId)).data.referees.assistant2
+        );
+    }
+    
+    // 🔒 대회 종료 Lock 확인
+    function isLocked(associationId, tournamentId) {
+      // 🔥 문서가 존재하지 않으면 Lock 아님 (새 문서 생성 시)
+      return exists(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)) &&
+             get(/databases/$(database)/documents/associations/$(associationId)/tournaments/$(tournamentId)).data.status == "LOCKED";
+    }
+    
+    // 🔒 공지 종료 확인
+    function noticeClosed(associationId, noticeId) {
+      let noticeDoc = get(/databases/$(database)/documents/associations/$(associationId)/notices/$(noticeId));
+      return noticeDoc.data.status == "closed";
+    }
+    
+    /** 레거시 문서에서 buyerId/sellerId가 숫자·비문자로 들어간 경우 대비 */
+    function tradeUidMatchesField(uid, field) {
+      return uid == field ||
+        (field != null && uid == string(field)) ||
+        (field is path && field == /databases/$(database)/documents/users/$(uid));
+    }
+
+    /** media/{id} — 팀 허브 갤러리 등 (resource 기준, get/list/update에서만 호출) */
+    function mediaResourceTeamReadOk() {
+      return resource.data.entityType == 'team' &&
+        resource.data.entityId is string &&
+        (
+          resource.data.uploadedBy == request.auth.uid ||
+          isActiveMember(resource.data.entityId) ||
+          isTeamOwnerByTeamDoc(resource.data.entityId) ||
+          !('visibility' in resource.data) ||
+          resource.data.visibility == 'public'
+        );
+    }
+
+    function mediaResourceReadOk() {
+      return resource.data.entityType is string &&
+        resource.data.entityId is string &&
+        (
+          mediaResourceTeamReadOk() ||
+          resource.data.entityType == 'match' ||
+          resource.data.entityType == 'event' ||
+          resource.data.entityType == 'player'
+        );
+    }
+
+    // 💬 거래 채팅 참가자 — buyer/seller 우선, users/participants는 타입 확인 후에만 `in`
+    function chatParticipant(data) {
+      return tradeUidMatchesField(request.auth.uid, data.buyerId) ||
+        tradeUidMatchesField(request.auth.uid, data.sellerId) ||
+        ("users" in data && data.users is list && request.auth.uid in data.users) ||
+        ("users" in data && data.users is map && request.auth.uid in data.users) ||
+        ("participants" in data && data.participants is list && request.auth.uid in data.participants) ||
+        ("participants" in data && data.participants is map && request.auth.uid in data.participants);
+    }
+
+    /**
+     * Canonical 거래 채팅 ID `..._<uidA>_<uidB>` — 필드(buyer/seller/participants) 백필 실패·불일치 시에도
+     * 문서 ID에 본인 UID가 마지막 두 세그먼트 중 하나로 포함되면 참가자로 인정 (쿼리 list·부모 get·update 복구용).
+     * 전체 ID를 알아야 하므로 열거 난이도는 높음.
+     */
+    /** 빌드된 거래 방 ID `postId_uidLo_uidHi` — 로그인 UID가 마지막 두 세그먼트 중 하나면 참가자 (buyer/seller 필드 백필 지연·불일치 시에도 list/get 허용) */
+    function tradeChatDocumentIdImpliesParticipant(chatId) {
+      return request.auth != null &&
+        request.auth.uid is string &&
+        request.auth.uid.size() >= 10 &&
+        chatId is string &&
+        (
+          chatId.matches('.*_' + request.auth.uid + '$') ||
+          chatId.matches('.*_' + request.auth.uid + '_[A-Za-z0-9_-]{10,}$')
+        );
+    }
+
+    /** 단건 조회: 없는 문서 허용 + 참가자만 내용 읽기 (+ 문서 ID 기준 예외) */
+    function tradeChatDocGetAllowed(chatId) {
+      let p = /databases/$(database)/documents/chats/$(chatId);
+      return !exists(p) ||
+        chatParticipant(resource.data) ||
+        tradeChatDocumentIdImpliesParticipant(chatId);
+    }
+
+    function chatParticipantByChatId(chatId) {
+      let p = /databases/$(database)/documents/chats/$(chatId);
+      return tradeChatDocumentIdImpliesParticipant(chatId) ||
+        (exists(p) && chatParticipant(get(p).data));
+    }
+
+    /**
+     * chats/{chatId}/messages 컬렉션 쿼리(list) — 부모 chats 판별만 사용(resource.data 불가).
+     */
+    function tradeChatMessagesQueryAllowed(chatId) {
+      return isSignedIn() && chatParticipantByChatId(chatId);
+    }
+
+    /** 메시지에 저장된 2인 배열이 부모 거래 방의 buyer/seller 와 일치하는지 (위조 방지, create 시만 사용) */
+    function tradeTwoPartyThreadMemberIdsValid(chatId, mids) {
+      let p = /databases/$(database)/documents/chats/$(chatId);
+      let d = get(p).data;
+      return exists(p) && mids is list && mids.size() == 2 &&
+        chatParticipant(d) &&
+        (
+          (tradeUidMatchesField(mids[0], d.buyerId) && tradeUidMatchesField(mids[1], d.sellerId)) ||
+          (tradeUidMatchesField(mids[0], d.sellerId) && tradeUidMatchesField(mids[1], d.buyerId))
+        );
+    }
+    
+    // 거래 메시지: 작성자 수정 vs 참가자 읽음(readBy) vs 제안 수락/거절(offerStatus)
+    function tradeChatMessageParticipantUpdate() {
+      let affected = request.resource.data.diff(resource.data).affectedKeys();
+      return request.auth.uid == resource.data.uid ||
+        request.auth.uid == resource.data.senderId ||
+        affected.hasOnly(['readBy']) ||
+        (
+          resource.data.type == 'offer' &&
+          affected.hasOnly(['offerStatus'])
+        );
+    }
+
+    /* =====================
+       협회 포털 federations/{slug} — 문서·비민감 서브경로 공개 읽기 (기존 미등록으로 전부 거부되던 이슈 수정)
+    ====================== */
+    function federationDocExists(fedSlug) {
+      return exists(/databases/$(database)/documents/federations/$(fedSlug));
+    }
+    function federationDoc(fedSlug) {
+      return get(/databases/$(database)/documents/federations/$(fedSlug)).data;
+    }
+    function isFederationManager(fedSlug) {
+      return isSignedIn() && federationDocExists(fedSlug) && (
+        request.auth.uid == federationDoc(fedSlug).ownerId ||
+        request.auth.uid == federationDoc(fedSlug).ownerUid ||
+        ("adminIds" in federationDoc(fedSlug) && federationDoc(fedSlug).adminIds is list &&
+          request.auth.uid in federationDoc(fedSlug).adminIds) ||
+        ("roles" in federationDoc(fedSlug) && federationDoc(fedSlug).roles is map &&
+          "admins" in federationDoc(fedSlug).roles && federationDoc(fedSlug).roles.admins is list &&
+          request.auth.uid in federationDoc(fedSlug).roles.admins) ||
+        ("roles" in federationDoc(fedSlug) && federationDoc(fedSlug).roles is map &&
+          "editors" in federationDoc(fedSlug).roles && federationDoc(fedSlug).roles.editors is list &&
+          request.auth.uid in federationDoc(fedSlug).roles.editors)
+      );
+    }
+    function federationSensitiveSubpath(docPath) {
+      return docPath.matches('transactions/.*') ||
+        docPath.matches('teamFeePayments/.*') ||
+        docPath.matches('teamFeeAccounts/.*') ||
+        docPath.matches('competitions/.*') ||
+        docPath.matches('competitionEntries/.*') ||
+        docPath.matches('competitionFeePayments/.*') ||
+        docPath.matches('invites/.*');
+    }
+    /** 팀 등록·신청 페이지 클라이언트 쓰기 (추후 서버 검증 권장) */
+    function federationTeamSelfServeWritePath(docPath) {
+      return docPath.matches('teams/[^/]+/players/[^/]+') ||
+        docPath.matches('teams/[^/]+/profile/[^/]+') ||
+        docPath.matches('teams/[^/]+/staff/[^/]+') ||
+        docPath.matches('teams/[^/]+/submission/[^/]+') ||
+        docPath.matches('leagues/[^/]+/applications/[^/]+');
+    }
+    
+    // 🔔 notifications/{id} 수신자 — 목록 쿼리는 userId 동등 필터 사용, 레거시 필드(uid/targetUid) 문서도 읽기 허용
+    function notificationRecipientMatches() {
+      return ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        ('uid' in resource.data && resource.data.uid == request.auth.uid) ||
+        ('targetUid' in resource.data && resource.data.targetUid == request.auth.uid);
+    }
+
+    /** 팀 회비 KPI: `fee_due_reminder` 알림은 팀 owner/admin이 팀 단위로 조회 가능(수신자 외 열람) */
+    function notificationTeamFeeReminderStaffRead() {
+      return 'teamId' in resource.data &&
+        resource.data.teamId is string &&
+        'type' in resource.data &&
+        resource.data.type == 'fee_due_reminder' &&
+        isTeamStaffElevated(resource.data.teamId);
+    }
+
+    function notificationReadAllowed() {
+      return notificationRecipientMatches() || notificationTeamFeeReminderStaffRead();
+    }
+
+    /** Phase 2 avatar domain — 문서의 uid가 로그인 사용자와 일치 */
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    /** avatars 생성 시 progression 고정값 (온보딩 Phase 2) */
+    function avatarCreateProgressionInitial(p) {
+      return p is map &&
+        p.keys().hasOnly(['level', 'xp', 'stamina']) &&
+        p.level is int && p.level == 1 &&
+        p.xp is int && p.xp == 0 &&
+        p.stamina is int && p.stamina == 100;
+    }
+
+    /** stats 전부 0 — 키 화이트리스트 */
+    function avatarCreateStatsInitial(s) {
+      return s is map &&
+        s.keys().hasOnly(['shooting', 'passing', 'dribbling', 'defense', 'speed']) &&
+        s.shooting is int && s.shooting == 0 &&
+        s.passing is int && s.passing == 0 &&
+        s.dribbling is int && s.dribbling == 0 &&
+        s.defense is int && s.defense == 0 &&
+        s.speed is int && s.speed == 0;
+    }
+
+    /** appearance: 키 화이트리스트. 생성 시 6종 코스메틱 필수(1~64자). 수정 시에는 존재하는 필드만 길이 검증. */
+    function avatarAppearanceCosmeticOptional(a, field) {
+      return !(field in a) ||
+        (a[field] is string && a[field].size() >= 1 && a[field].size() <= 64);
+    }
+
+    function avatarAppearanceCreateOk(a) {
+      return a is map &&
+        a.keys().hasOnly(['stylePresetId', 'bodyType', 'hair', 'face', 'skinTone', 'outfit', 'shoes', 'accessories']) &&
+        a.keys().hasAll(['bodyType', 'hair', 'face', 'skinTone', 'outfit', 'shoes']) &&
+        (!('stylePresetId' in a) || (a.stylePresetId is string && a.stylePresetId.size() <= 64)) &&
+        (!('accessories' in a) ||
+          (a.accessories is list && a.accessories.size() <= 16)) &&
+        a.bodyType is string && a.bodyType.size() >= 1 && a.bodyType.size() <= 64 &&
+        a.hair is string && a.hair.size() >= 1 && a.hair.size() <= 64 &&
+        a.face is string && a.face.size() >= 1 && a.face.size() <= 64 &&
+        a.skinTone is string && a.skinTone.size() >= 1 && a.skinTone.size() <= 64 &&
+        a.outfit is string && a.outfit.size() >= 1 && a.outfit.size() <= 64 &&
+        a.shoes is string && a.shoes.size() >= 1 && a.shoes.size() <= 64;
+    }
+
+    function avatarAppearanceUpdateOk(a) {
+      return a is map &&
+        a.keys().hasOnly(['stylePresetId', 'bodyType', 'hair', 'face', 'skinTone', 'outfit', 'shoes', 'accessories']) &&
+        (!('stylePresetId' in a) || (a.stylePresetId is string && a.stylePresetId.size() <= 64)) &&
+        (!('accessories' in a) ||
+          (a.accessories is list && a.accessories.size() <= 16)) &&
+        avatarAppearanceCosmeticOptional(a, 'bodyType') &&
+        avatarAppearanceCosmeticOptional(a, 'hair') &&
+        avatarAppearanceCosmeticOptional(a, 'face') &&
+        avatarAppearanceCosmeticOptional(a, 'skinTone') &&
+        avatarAppearanceCosmeticOptional(a, 'outfit') &&
+        avatarAppearanceCosmeticOptional(a, 'shoes');
+    }
+
+    function avatarCreateValid(uid) {
+      let d = request.resource.data;
+      return isSelf(uid) &&
+        d.uid == uid &&
+        d.schemaVersion is int && d.schemaVersion == 1 &&
+        d.appearance is map &&
+        avatarAppearanceCreateOk(d.appearance) &&
+        d.progression is map &&
+        avatarCreateProgressionInitial(d.progression) &&
+        d.stats is map &&
+        avatarCreateStatsInitial(d.stats) &&
+        d.createdAt == request.time &&
+        d.updatedAt == request.time &&
+        'displayName' in d &&
+        d.displayName is string &&
+        d.displayName.size() >= 1 &&
+        d.displayName.size() <= 64 &&
+        (!('jerseyNumber' in d) ||
+          (d.jerseyNumber is int && d.jerseyNumber >= 1 && d.jerseyNumber <= 99));
+    }
+
+    /** 업데이트 시 progression·stats·schemaVersion·uid·createdAt 불변 (Functions/Admin만 변경 가능) */
+    function avatarServerSlicesUnchanged() {
+      return request.resource.data.schemaVersion == resource.data.schemaVersion &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.progression == resource.data.progression &&
+        request.resource.data.stats == resource.data.stats;
+    }
+
+    function avatarGrowthFieldOk(field, value) {
+      return field == 'growthOvr' && value is int && value >= 40 && value <= 99 ||
+        field == 'growthTier' && value in ['starter', 'bronze', 'silver', 'gold', 'elite'] ||
+        field == 'growthBadges' && value is list ||
+        field == 'growthVision' && value is int && value >= 0 && value <= 99 ||
+        field == 'growthPressure' && value is int && value >= 0 && value <= 99 ||
+        field == 'growthRecovery' && value is int && value >= 0 && value <= 99 ||
+        field == 'growthUpdatedAt' ||
+        field == 'growthSyncedFromTeamId' && value is string ||
+        field == 'growthPlayerId' && value is string;
+    }
+
+    function avatarGrowthMirrorUpdateOk() {
+      let d = request.resource.data;
+      return (!('growthOvr' in d) || avatarGrowthFieldOk('growthOvr', d.growthOvr)) &&
+        (!('growthTier' in d) || avatarGrowthFieldOk('growthTier', d.growthTier)) &&
+        (!('growthBadges' in d) || avatarGrowthFieldOk('growthBadges', d.growthBadges)) &&
+        (!('growthVision' in d) || avatarGrowthFieldOk('growthVision', d.growthVision)) &&
+        (!('growthPressure' in d) || avatarGrowthFieldOk('growthPressure', d.growthPressure)) &&
+        (!('growthRecovery' in d) || avatarGrowthFieldOk('growthRecovery', d.growthRecovery)) &&
+        (!('growthUpdatedAt' in d) || avatarGrowthFieldOk('growthUpdatedAt', d.growthUpdatedAt)) &&
+        (!('growthSyncedFromTeamId' in d) ||
+          avatarGrowthFieldOk('growthSyncedFromTeamId', d.growthSyncedFromTeamId)) &&
+        (!('growthPlayerId' in d) || avatarGrowthFieldOk('growthPlayerId', d.growthPlayerId));
+    }
+
+    function avatarClientUpdateOk(uid) {
+      return isSelf(uid) &&
+        avatarServerSlicesUnchanged() &&
+        avatarGrowthMirrorUpdateOk() &&
+        request.resource.data.updatedAt == request.time &&
+        (!('displayName' in request.resource.data) ||
+          (request.resource.data.displayName is string &&
+            request.resource.data.displayName.size() >= 1 &&
+            request.resource.data.displayName.size() <= 64)) &&
+        (!('appearance' in request.resource.data) ||
+          avatarAppearanceUpdateOk(request.resource.data.appearance)) &&
+        (!('jerseyNumber' in request.resource.data) ||
+          (request.resource.data.jerseyNumber is int &&
+            request.resource.data.jerseyNumber >= 1 &&
+            request.resource.data.jerseyNumber <= 99));
+    }
+    
+    // 📊 posts/{id} — 카운터만 갱신(마켓 찜/조회 집계, 협회 글 좋아요·댓글 수 등)
+    function postsCounterFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['likesCount', 'viewsCount', 'chatsCount', 'score', 'commentsCount']);
+    }
+    
+    function postsAuthorPreservesOwnerFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'associationId']);
+    }
+    
+    function associationPostAdminMetaOnly() {
+      let k = request.resource.data.diff(resource.data).affectedKeys();
+      return k.hasOnly(['isPinned']) || k.hasOnly(['type']) ||
+        k.hasOnly(['isPinned', 'type']);
+    }
+    
+    /* =====================
+       Users
+    ====================== */
+    
+    match /users/{uid} {
+      // 읽기: 인증된 사용자 모두 가능 (공개 프로필)
+      allow read: if isSignedIn();
+      
+      // 생성: 서버만
+      allow create: if false; // server only
+      
+      // 수정: 인증된 사용자 모두 가능 (위험도 필드는 신고 로직에서만 업데이트)
+      // 🔥 실제 보호는 애플리케이션 로직에서 처리
+      // ⚠️ 실제 운영 환경에서는 Functions를 통해 처리하는 것을 권장
+      allow update: if isSignedIn();
+      
+      /* =====================
+         즐겨찾기 (Favorites)
+      ====================== */
+      
+      match /favorites/{favoriteId} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      /* =====================
+         장바구니 (Cart)
+      ====================== */
+      
+      match /cart/{itemId} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      /* =====================
+         알림 설정 (Notification Settings)
+      ====================== */
+      
+      // 🔔 알림 설정 (실제 경로: users/{uid}/settings/notifications)
+      match /settings/notifications {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      // 🔔 기타 설정 (하위 호환성)
+      match /settings/{settingId} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      /* =====================
+         차단된 사용자 (Blocked Users)
+      ====================== */
+      
+      match /blockedUsers/{blockedUserId} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      
+      /* =====================
+         FCM 토큰 (채팅 푸시 알림용)
+      ====================== */
+      
+      match /fcmTokens/{token} {
+        // 읽기/쓰기: 본인만 가능
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+
+      /** Sprint D-5.2 — Parent Home 성장 알림 읽음 상태 */
+      match /parentGrowthNotificationReads/{readId} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+
+      /** 게임·미니샷 배지 (useMiniShotSuperBadge — 타인 프로필에서도 읽기) */
+      match /badges/{badgeId} {
+        allow read: if isSignedIn();
         allow write: if false;
       }
     }
-    
-    match /sessions/{userId} {
-      // 읽기: 본인 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == userId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
+
+    /* =====================
+       Avatar / game domain (Phase 2) — avatars/{uid}, wallets, xpLogs, badges
+       클라: 본인 아바타 읽기 + appearance/displayName만 수정.
+       progression·stats·XP·배지·지갑 잔액은 Admin SDK / Cloud Functions 전용.
+    ====================== */
+
+    match /avatars/{uid} {
+      allow read: if isSelf(uid);
+      allow create: if avatarCreateValid(uid);
+      allow update: if avatarClientUpdateOk(uid);
+      allow delete: if false;
+    }
+
+    match /wallets/{uid} {
+      allow read: if isSelf(uid);
+      allow create, update, delete: if false;
+    }
+
+    match /xpLogs/{logId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /badges/{uid} {
+      allow read: if isSelf(uid);
+      allow create, update, delete: if false;
+    }
+
+    /* =====================
+       Live game sessions (matchmaking → /game/session/:id)
+    ====================== */
+
+    match /gameSessions/{sessionId} {
+      allow read: if isSignedIn() &&
+        resource.data.playerUids is list &&
+        request.auth.uid in resource.data.playerUids;
+      allow create, update, delete: if false;
+    }
+
+    /* =====================
+       Live simulation telemetry (TRACK 1) — append via appendMatchEvents CF only
+    ====================== */
+
+    function isSimulationMatchParticipant(matchId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/matchEvents/$(matchId)) &&
+        get(/databases/$(database)/documents/matchEvents/$(matchId)).data.playerUids is list &&
+        request.auth.uid in get(/databases/$(database)/documents/matchEvents/$(matchId)).data.playerUids;
+    }
+
+    match /matchEvents/{matchId} {
+      allow read: if isSimulationMatchParticipant(matchId);
+      allow create, update, delete: if false;
+
+      match /events/{eventId} {
+        allow read: if isSimulationMatchParticipant(matchId);
+        allow create, update, delete: if false;
+      }
+    }
+
+    /* =====================
+       Simulation player intelligence (TRACK 2 D3) — CF write only
+    ====================== */
+
+    match /playerProfiles/{playerId} {
+      allow read: if isSignedIn() && request.auth.uid == playerId;
+      allow create, update, delete: if false;
+    }
+
+    match /playerSkillSnapshots/{playerId}/history/{snapshotId} {
+      allow read: if isSignedIn() && request.auth.uid == playerId;
+      allow create, update, delete: if false;
+    }
+
+    /* =====================
+       Friendships (PR-8) — 클라 읽기만; 쓰기는 Cloud Functions (Admin SDK)
+    ====================== */
+
+    match /friendships/{friendshipId} {
+      allow read: if isSignedIn() &&
+        resource.data.schemaVersion is int &&
+        resource.data.users is list &&
+        resource.data.users.size() == 2 &&
+        request.auth.uid in resource.data.users &&
+        resource.data.requesterUid is string &&
+        resource.data.addresseeUid is string &&
+        resource.data.status in ["pending", "accepted", "blocked"];
+      allow create, update, delete: if false;
+    }
+
+    /* =====================
+       Social graph (TRACK 6A.1) — owner read; CF-only write
+    ====================== */
+
+    match /socialGraph/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update, delete: if false;
+
+      match /following/{targetUid} {
+        allow read: if isSignedIn() && request.auth.uid == uid;
+        allow create, update, delete: if false;
+      }
+
+      match /followers/{sourceUid} {
+        allow read: if isSignedIn() && request.auth.uid == uid;
+        allow create, update, delete: if false;
+      }
+    }
+
+    /* =====================
+       Async challenges (PR-9A / PR-10B) — templates 읽기 전용, submissions 불변 생성
+    ====================== */
+
+    function pkChallengeSubmissionMetadataValid(m) {
+      return m is map &&
+        m.keys().hasOnly(['shotsTaken', 'goals', 'durationMs']) &&
+        (!('shotsTaken' in m) || (m.shotsTaken is int && m.shotsTaken >= 0 && m.shotsTaken <= 10)) &&
+        (!('goals' in m) || (m.goals is int && m.goals >= 0 && m.goals <= 10)) &&
+        (!('durationMs' in m) || (m.durationMs is int && m.durationMs >= 0 && m.durationMs <= 600000)) &&
+        (!('goals' in m) || (
+          'shotsTaken' in m &&
+          m.goals is int &&
+          m.shotsTaken is int &&
+          m.goals <= m.shotsTaken
+        ));
+    }
+
+    function dribbleChallengeSubmissionMetadataValid(m) {
+      return m is map &&
+        m.keys().hasOnly(['conesCleared', 'durationMs']) &&
+        m.conesCleared is int &&
+        m.conesCleared >= 0 &&
+        m.conesCleared <= 50 &&
+        m.durationMs is int &&
+        m.durationMs >= 0 &&
+        m.durationMs <= 600000;
+    }
+
+    function challengeSubmissionCreateCore(d) {
+      return isSignedIn() &&
+        (
+          (!('avatarId' in d) &&
+            d.keys().hasOnly(['schemaVersion', 'challengeId', 'uid', 'score', 'rulesVersion', 'metadata', 'createdAt'])) ||
+          (('avatarId' in d) &&
+            d.keys().hasOnly(['schemaVersion', 'challengeId', 'uid', 'avatarId', 'score', 'rulesVersion', 'metadata', 'createdAt']))
+        ) &&
+        d.schemaVersion is int &&
+        d.schemaVersion == 1 &&
+        d.challengeId is string &&
+        d.rulesVersion is string &&
+        d.uid is string &&
+        d.uid == request.auth.uid &&
+        (d.score is int || d.score is float) &&
+        d.score >= 0 &&
+        d.score <= 1000 &&
+        d.metadata is map &&
+        d.createdAt is timestamp &&
+        (!('avatarId' in d) ||
+          (d.avatarId is string && d.avatarId.size() > 0 && d.avatarId.size() <= 128));
+    }
+
+    function challengeSubmissionCreateValid() {
+      let d = request.resource.data;
+      return challengeSubmissionCreateCore(d) && (
+        (
+          d.challengeId == 'pk_challenge_v1' &&
+          d.rulesVersion == 'pk_rules_v1' &&
+          pkChallengeSubmissionMetadataValid(d.metadata)
+        ) ||
+        (
+          d.challengeId == 'dribble_challenge_v1' &&
+          d.rulesVersion == 'dribble_rules_v1' &&
+          dribbleChallengeSubmissionMetadataValid(d.metadata)
+        )
       );
-      // 쓰기: 본인만 가능
-      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /challenge_templates/{challengeId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /challenge_submissions/{submissionId} {
+      allow read: if isSignedIn() &&
+        resource.data.schemaVersion is int &&
+        resource.data.schemaVersion == 1 &&
+        resource.data.challengeId is string &&
+        (resource.data.challengeId == 'pk_challenge_v1' ||
+          resource.data.challengeId == 'dribble_challenge_v1');
+      allow create: if challengeSubmissionCreateValid();
+      allow update, delete: if false;
+    }
+
+    /** PR-10A — 보상 원장·일일 카운터 (Admin / Callable 전용, 클라 직접 쓰기 금지) */
+    match /challenge_reward_ledger/{id} {
+      allow read, create, update, delete: if false;
+    }
+    match /challenge_reward_dailyCounters/{id} {
+      allow read, create, update, delete: if false;
+    }
+
+    /* =====================
+       Global Audit Logs (L-1 LOCK)
+    ====================== */
+    
+    match /auditLogs/{logId} {
+      // 🔥 L-4: Audit Log 완전 봉인
+      // 클라 write 절대 금지
+      allow create, update, delete: if false;
       
-      // 세션 방문 기록
-      match /visits/{visitId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+      // 읽기: 로그인한 사용자만 (실제로는 admin/owner 권한 체크 필요)
+      allow read: if isSignedIn();
+    }
+    
+    /* =====================
+       Teams
+    ====================== */
+    
+    match /teams/{teamId} {
+      // 🔥 읽기: 인증된 사용자 모두 가능 (list 쿼리 지원)
+      // list 쿼리에서는 resource.data를 사용할 수 없으므로 isSignedIn()만 체크
+      // get 쿼리에서는 resource.data.isDeleted 체크는 애플리케이션 로직에서 처리
+      allow read: if isSignedIn();
+      allow write: if false; // server only
+      
+      /* =====================
+         Team Members (SSOT)
+      ====================== */
+      
+      match /members/{memberId} {
+        // list: get(members/{authUid})만 통과하고 list는 거부되던 split 정합
+        allow list: if canReadTeamMembersList(teamId);
+        // get: 본인 문서 또는 명단 list 권한
+        allow get: if isSignedIn() && (
+          memberId == request.auth.uid ||
+          canReadTeamMembersList(teamId)
+        );
+        
+        // 쓰기: 서버만 (합류는 joinTeam 함수만)
+        allow create, update, delete: if false; // 🔒 핵심: 클라이언트 직접 쓰기 차단
+      }
+
+      /** 회비 정책(TeamHome·회비 생성 시 조회) */
+      match /feePolicies/{policyId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if isSignedIn() && isTeamStaffElevated(teamId);
+      }
+
+      /** 팀 허브 활동 로그(카운트·피드) */
+      match /activities/{activityId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow create: if isSignedIn() && isActiveMember(teamId);
+        allow update, delete: if isSignedIn() && isTeamStaffElevated(teamId);
+      }
+
+      /** AI Growth — coach-verified session history (canonical longitudinal) */
+      match /playerGrowthHistory/{sessionId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+        allow update: if isSignedIn() && isTeamStaffForScheduledHub(teamId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['delivery']);
+        allow delete: if false;
+      }
+
+      /** Sprint D-1.1b — Parent weekly growth digest (CF write only) */
+      match /weeklyDigests/{digestId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow write: if false;
+      }
+
+      /** AI Growth — OVR (Vision / Pressure / Recovery, Growth Score 연동) */
+      match /playerGrowthOvr/{playerId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create, update: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+        allow delete: if false;
+      }
+
+      /** AI Growth — Avatar tier / badges (OVR 시각화) — GAP-1 Option A: CF-only write */
+      match /playerGrowthAvatar/{playerId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create, update: if false;
+        allow delete: if false;
+      }
+
+      /** J4-1 — Avatar match simulation logs (append-only · team subcollection) */
+      match /matchSimulationLogs/{logId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow update, delete: if false;
+      }
+
+      /** J4-2 — Team vs team simulation logs (append-only) */
+      match /teamVsTeamLogs/{logId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow update, delete: if false;
+      }
+
+      /** J4-3 — Academy league simulation logs (append-only) */
+      match /academyLeagueLogs/{logId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow update, delete: if false;
+      }
+
+      /** J4-4 — Transfer market evaluation logs (append-only) */
+      match /transferMarketLogs/{logId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow update, delete: if false;
+      }
+
+      /** I-2.1 — VOC interview feedback (Interview Table v1) */
+      match /vocFeedback/{feedbackId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId)
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.source == 'interview'
+          && request.resource.data.capturedByUid == request.auth.uid
+          && request.resource.data.ratingUnderstanding is number
+          && request.resource.data.ratingUsage is number;
+        allow update: if isSignedIn() && (
+          isTeamStaffElevated(teamId) ||
+          (resource.data.capturedByUid == request.auth.uid && isActiveMember(teamId))
+        );
+        allow delete: if false;
+      }
+
+      /** Parent Delivery v2 — team send settings (staff) */
+      match /settings/parentDelivery {
+        allow read: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+        allow create, update: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+        allow delete: if false;
+      }
+
+      /** Parent Delivery v2 — mock/auto send audit log */
+      match /deliveryLogs/{deliveryId} {
+        allow read: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+        allow create: if isSignedIn() && isTeamStaffForScheduledHub(teamId)
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.triggeredByUid == request.auth.uid;
+        allow update: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+        allow delete: if false;
+      }
+
+      /** Parent Delivery v2.1 — parent contact + consent (staff) */
+      match /parentDeliveryContacts/{playerId} {
+        allow read: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+        allow create, update: if isSignedIn() && isTeamStaffForScheduledHub(teamId)
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.playerId == playerId
+          && request.resource.data.updatedByUid == request.auth.uid
+          && request.resource.data.parentConsent is bool;
+        allow delete: if false;
+      }
+
+      /** Sprint 10B-1a — Academy MP4 upload ingest meta (CF writes only) */
+      match /aiIngest/{mediaId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false;
+
+        /** CV-1 I3 — physical metrics runs (CF/server only) */
+        match /cvRuns/{runId} {
+          allow read: if isSignedIn() && isTeamStaffElevated(teamId);
+          allow write: if false;
+        }
+
+        /** Vision v6-7 — vision pipeline runs (CF/server only) */
+        match /visionRuns/{runId} {
+          allow read: if isSignedIn() && isActiveMember(teamId);
+          allow write: if false;
+        }
+      }
+
+      /** Vision v6-7 — match ↔ media pipeline index (CF write only) */
+      match /visionMatchIndex/{matchId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false;
+      }
+
+      /** Vision RC5-2 — upload queue status (CF write only) */
+      match /visionUploadQueue/{mediaId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false;
+      }
+
+      /** Vision v6-3/6-7 — match-scoped vision analysis (CF write only) */
+      match /matches/{matchId} {
+        allow read: if isTeamVisionStaffReader(teamId) || canReadTeamMembersList(teamId);
+        allow create, update: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId) &&
+          request.resource.data.teamId == teamId &&
+          request.resource.data.matchId == matchId;
+        allow delete: if false;
+
+        match /visionAnalysis/{analysisId} {
+          allow read: if isSignedIn() && (
+            isActiveMember(teamId) ||
+            parentLinkReadAllowed(teamId, matchId)
+          );
+          allow write: if false;
+        }
+
+        /** Play 탭 — 경기 피드백 (matchPlayFeedbackService · useMatchFeedbackProgress) */
+        match /feedbacks/{memberId} {
+          allow list, get: if isSignedIn() && canReadTeamMembersList(teamId);
+          allow create: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId) &&
+            request.auth.uid == request.resource.data.userId &&
+            memberId == request.resource.data.memberId &&
+            request.resource.data.teamId == teamId &&
+            request.resource.data.matchId == matchId;
+          allow update, delete: if false;
+        }
+      }
+
+      /** 출전 라인업 — teamLineupService (teams/{teamId}/lineups) */
+      match /lineups/{lineupId} {
+        allow list: if isSignedIn() && canReadTeamMembersList(teamId);
+        allow get: if isSignedIn() && canReadTeamMembersList(teamId);
+        allow create, update, delete: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+
+        match /responses/{userId} {
+          allow read: if isSignedIn() && canReadTeamMembersList(teamId);
+          allow create, update: if isSignedIn() && (
+            isActiveMember(teamId) || isTeamOwnerByTeamDoc(teamId)
+          ) && userId == request.auth.uid;
+          allow delete: if false;
+        }
+
+        match /viewers/{userId} {
+          allow read: if isSignedIn() && canReadTeamMembersList(teamId);
+          allow create: if isSignedIn() && (
+            isActiveMember(teamId) || isTeamOwnerByTeamDoc(teamId)
+          ) && userId == request.auth.uid;
+          allow update, delete: if false;
+        }
+
+        match /reminders/{userId} {
+          allow read: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+          allow create, update: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+          allow delete: if false;
+        }
+      }
+
+      /** 회비 납부 SoT — 멤버 읽기 + 본인/운영자 갱신 */
+      match /payments/{paymentId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow create: if isSignedIn() && isTeamStaffElevated(teamId);
+        allow update: if isSignedIn() && isActiveMember(teamId) && (
+          isTeamStaffElevated(teamId) ||
+          resource.data.userId == request.auth.uid ||
+          resource.data.uid == request.auth.uid
+        );
+        allow delete: if false;
+
+        /** 회비 알림 쿨다운 등 — 운영자만 */
+        match /reminders/{reminderId} {
+          allow read, write: if isSignedIn() && isTeamStaffElevated(teamId);
+        }
+      }
+      
+      /* =====================
+         Other Subcollections
+      ====================== */
+      
+      match /blog/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if isSignedIn() && isAdmin(teamId);
+      }
+      
+      match /blog_posts/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if isSignedIn() && isAdmin(teamId);
+      }
+      
+      match /fees/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow create, update: if isSignedIn() && isTeamStaffElevated(teamId);
+        allow delete: if false;
+      }
+
+      /** 팀 현금 출납부 — 회계 탭(useTeamCashBook, 정합 점검) */
+      match /cashBook/{txId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow create, update: if isSignedIn() && isTeamStaffElevated(teamId);
+        allow delete: if false;
+      }
+
+      match /cashBookSummary/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow create, update: if isSignedIn() && isTeamStaffElevated(teamId);
+        allow delete: if false;
+      }
+
+      /** 월별 회비·매출 집계 차트 — useTeamMonthlyStatsSeries */
+      match /statsMonthly/{monthId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false;
+      }
+
+      /** 팀 플레이 OVR/배지 — useTeamPlayerRankings 등 (members list와 동일 read 축) */
+      match /playerStats/{memberId} {
+        allow list: if isSignedIn() && canReadTeamMembersList(teamId);
+        allow get: if isSignedIn() && canReadTeamMembersList(teamId);
+        allow create, update: if isSignedIn() && isTeamStaffElevated(teamId);
+        allow delete: if false;
+      }
+
+      /** 회비 환불 기록 — useFeeRefundsForFee */
+      match /feeRefunds/{refundId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow create, update: if isSignedIn() && isTeamStaffElevated(teamId);
+        allow delete: if false;
+      }
+
+      /** 회비 알림 전환 KPI 서버 스냅샷 — useFeeReminderConversionKpi */
+      match /feeReminderStats/{feeId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false;
+      }
+      
+      /** Sprint C3-0 — academyPlayers roster (CF write only) */
+      match /academyPlayers/{playerId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create, update, delete: if false;
+      }
+
+      /** Phase A A2-3 — parentLinks (CF write only; read for roster + attendance persona filter) */
+      match /parentLinks/{linkId} {
+        allow read: if isSignedIn() && (
+          isActiveMemberOrTeamOwnerDoc(teamId) ||
+          (
+            resource != null &&
+            (
+              tradeUidMatchesField(request.auth.uid, resource.data.parentUid) ||
+              tradeUidMatchesField(request.auth.uid, resource.data.parentUserId)
+            )
+          )
+        );
+        allow create, update, delete: if false;
+      }
+
+      /** Phase A A2-6 — academy sessions + attendance (CF only; read aligned with scheduled hub) */
+      match /sessions/{sessionId} {
+        allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+        allow create, update, delete: if false;
+
+        match /attendance/{attendanceUid} {
+          allow read: if isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId);
+          allow create, update, delete: if false;
+        }
+      }
+
+      /** Phase B S1 — trainingBlocks library (CF only write; staff/coach read) */
+      match /trainingBlocks/{blockId} {
+        allow read: if canReadAcademyTrainingBlocksLibrary(teamId);
+        allow create, update, delete: if false;
+      }
+
+      match /auditLogs/{docId} {
+        // 🔥 L-4: 팀별 auditLogs (하위 호환성)
+        allow read: if isSignedIn() && isAdmin(teamId);
+        allow write: if false;
+      }
+      
+      match /usage/{docId} {
+        allow read: if isSignedIn() && isAdmin(teamId);
+        allow write: if false; // server only
+      }
+      
+      match /ai_reports/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false; // server only (Cloud Functions)
+      }
+      
+      match /ops/{docId} {
+        allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false; // server only (Cloud Functions)
+      }
+
+      /**
+       * 다가오는 팀 일정 + RSVP — 공개 허브 활동성
+       * teams/{teamId}/scheduled_matches/{fixtureId}/participants/{uid}
+       */
+      match /scheduled_matches/{fixtureId} {
+        allow read: if resource.data.visibility == 'public' ||
+          (isSignedIn() && isActiveMemberOrTeamOwnerDoc(teamId));
+
+        allow create: if isSignedIn() && isTeamStaffForScheduledHub(teamId) &&
+          request.resource.data.createdBy == request.auth.uid &&
+          request.resource.data.title is string &&
+          request.resource.data.title.size() > 0 &&
+          request.resource.data.title.size() <= 200 &&
+          request.resource.data.location is string &&
+          request.resource.data.location.size() > 0 &&
+          request.resource.data.location.size() <= 500 &&
+          (!('description' in request.resource.data) ||
+            (request.resource.data.description is string && request.resource.data.description.size() <= 2000)) &&
+          request.resource.data.startAt is timestamp &&
+          request.resource.data.visibility in ['public', 'team'] &&
+          (!('endAt' in request.resource.data) || request.resource.data.endAt is timestamp) &&
+          request.resource.data.goingCount == 0 &&
+          request.resource.data.maybeCount == 0 &&
+          request.resource.data.noCount == 0 &&
+          request.resource.data.createdAt == request.time &&
+          request.resource.data.updatedAt == request.time;
+
+        allow update: if isSignedIn() && (
+          isTeamStaffForScheduledHub(teamId) ||
+          (
+            isActiveMemberOrTeamOwnerDoc(teamId) &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['goingCount', 'maybeCount', 'noCount', 'updatedAt']) &&
+            request.resource.data.goingCount is int &&
+            request.resource.data.maybeCount is int &&
+            request.resource.data.noCount is int &&
+            request.resource.data.goingCount >= 0 &&
+            request.resource.data.maybeCount >= 0 &&
+            request.resource.data.noCount >= 0 &&
+            request.resource.data.updatedAt == request.time
+          )
+        );
+
+        allow delete: if isSignedIn() && isTeamStaffForScheduledHub(teamId);
+
+        match /participants/{participantId} {
+          allow read: if isSignedIn() && (
+            isActiveMember(teamId) ||
+            participantId == request.auth.uid ||
+            isTeamOwnerByTeamDoc(teamId)
+          );
+          allow create, update: if isSignedIn() &&
+            participantId == request.auth.uid &&
+            request.resource.data.uid == request.auth.uid &&
+            request.resource.data.status in ['going', 'maybe', 'no'] &&
+            request.resource.data.respondedAt == request.time &&
+            isActiveMemberOrTeamOwnerDoc(teamId);
+          allow delete: if false;
+        }
       }
     }
     
-    match /retention/{docId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: Functions에서만 가능
+    /* =====================
+       team_members (Index)
+    ====================== */
+    
+    match /team_members/{docId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.uid;
+      allow write: if false; // server only
+    }
+
+    /* =====================
+       팀 초대 링크 inviteLinks/{inviteId} (루트 — /invite/:id, teamInviteLink.ts)
+       - get: 공개 랜딩(비로그인)은 활성 링크만 단건 조회. 팀 운영진은 비활성 포함 조회.
+       - list: 팀 owner/admin만(teamId 쿼리와 함께 사용 — 전역 isActive 목록 유출 방지)
+    ====================== */
+    match /inviteLinks/{inviteId} {
+      allow get: if isGlobalAdmin() ||
+        (
+          resource.data.teamId is string &&
+          (
+            isTeamStaffForScheduledHub(resource.data.teamId) ||
+            (('isActive' in resource.data) && resource.data.isActive == true)
+          )
+        );
+
+      allow list: if isGlobalAdmin() ||
+        (
+          isSignedIn() &&
+          resource.data.teamId is string &&
+          isTeamStaffForScheduledHub(resource.data.teamId)
+        );
+
+      allow create: if isSignedIn() &&
+        request.resource.data.teamId is string &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.usedCount == 0 &&
+        request.resource.data.isActive == true &&
+        request.resource.data.role == 'member' &&
+        isTeamStaffForScheduledHub(request.resource.data.teamId) &&
+        request.resource.data.createdAt == request.time &&
+        (!('expiresAt' in request.resource.data) ||
+          request.resource.data.expiresAt == null ||
+          request.resource.data.expiresAt is timestamp) &&
+        (!('maxUses' in request.resource.data) ||
+          request.resource.data.maxUses == null ||
+          (request.resource.data.maxUses is int && request.resource.data.maxUses >= 1)) &&
+        (!('teamName' in request.resource.data) ||
+          (request.resource.data.teamName is string && request.resource.data.teamName.size() <= 200)) &&
+        (!('teamRegion' in request.resource.data) ||
+          (request.resource.data.teamRegion is string && request.resource.data.teamRegion.size() <= 200)) &&
+        (!('teamDescription' in request.resource.data) ||
+          (request.resource.data.teamDescription is string &&
+            request.resource.data.teamDescription.size() <= 2000)) &&
+        (!('teamActivityNote' in request.resource.data) ||
+          (request.resource.data.teamActivityNote is string &&
+            request.resource.data.teamActivityNote.size() <= 500));
+
+      allow update: if isSignedIn() &&
+        resource.data.teamId is string &&
+        (
+          (
+            isTeamStaffForScheduledHub(resource.data.teamId) &&
+            request.resource.data.teamId == resource.data.teamId &&
+            request.resource.data.createdBy == resource.data.createdBy
+          ) ||
+          (
+            resource.data.isActive == true &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedCount']) &&
+            request.resource.data.usedCount is int &&
+            resource.data.usedCount is int &&
+            request.resource.data.usedCount == resource.data.usedCount + 1 &&
+            request.resource.data.teamId == resource.data.teamId &&
+            request.resource.data.createdBy == resource.data.createdBy &&
+            request.resource.data.isActive == resource.data.isActive &&
+            request.resource.data.role == resource.data.role
+          )
+        );
+
+      allow delete: if isSignedIn() &&
+        resource.data.teamId is string &&
+        (isTeamStaffForScheduledHub(resource.data.teamId) || isGlobalAdmin());
+    }
+
+    /* =====================
+       팀 가입 요청 teamJoinRequests/{requestId} (teamJoinRequest.ts — 초대 링크 후 신청)
+       승인·거절은 Callable만; 클라이언트는 pending 생성·본인 삭제(거절 후 재신청)만.
+    ====================== */
+    match /teamJoinRequests/{requestId} {
+      allow get: if isGlobalAdmin() ||
+        (isSignedIn() && resource.data.userId == request.auth.uid) ||
+        (
+          isSignedIn() &&
+          resource.data.teamId is string &&
+          isTeamStaffForScheduledHub(resource.data.teamId)
+        );
+
+      allow list: if isGlobalAdmin() ||
+        (isSignedIn() && resource.data.userId == request.auth.uid) ||
+        (
+          isSignedIn() &&
+          resource.data.teamId is string &&
+          isTeamStaffForScheduledHub(resource.data.teamId)
+        );
+
+      allow create: if isSignedIn() &&
+        request.resource.data.teamId is string &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time &&
+        requestId == request.resource.data.teamId + '__' + request.resource.data.userId &&
+        (!('joinAs' in request.resource.data) ||
+          request.resource.data.joinAs in ['player', 'parent']) &&
+        (!('message' in request.resource.data) ||
+          (request.resource.data.message is string && request.resource.data.message.size() <= 500)) &&
+        (!('userName' in request.resource.data) ||
+          (request.resource.data.userName is string && request.resource.data.userName.size() <= 200)) &&
+        (!('userEmail' in request.resource.data) ||
+          (request.resource.data.userEmail is string && request.resource.data.userEmail.size() <= 320)) &&
+        (!('contactPhone' in request.resource.data) ||
+          (request.resource.data.contactPhone is string && request.resource.data.contactPhone.size() <= 32));
+
+      allow update: if false;
+
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    /* =====================
+       팀 일정 (루트 컬렉션 — teamId 필드로 소속 판별)
+    ====================== */
+    match /teamSchedules/{scheduleId} {
+      allow read: if isSignedIn() &&
+        resource.data.teamId is string &&
+        isActiveMember(resource.data.teamId);
+      allow create: if isSignedIn() &&
+        request.resource.data.teamId is string &&
+        isActiveMember(request.resource.data.teamId);
+      allow update, delete: if isSignedIn() &&
+        resource.data.teamId is string &&
+        isActiveMember(resource.data.teamId);
+    }
+
+    /* =====================
+       팀 집계·경기 이력·수상 (팀 공개 페이지 등 — 클라 읽기 전용, 쓰기는 Functions만)
+       teamSummaryService.getTeamSummary / getTeamMatchHistory / getTeamAwards
+    ====================== */
+    match /team_summary/{teamId} {
+      allow read: if isSignedIn();
       allow write: if false;
     }
-    
-    // Step 71: Multi-Modal AI Extensions & Voice UX 2.0
-    match /plugins/{pluginId} {
-      // 읽기: 인증된 사용자 모두 가능
-      allow read: if request.auth != null;
-      // 쓰기: 소유자(ownerId) 또는 관리자만 가능
-      allow write: if request.auth != null && (
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*') ||
-        request.auth.token.role in ['owner', 'admin'] ||
-        request.auth.uid == request.resource.data.ownerId
+
+    match /team_match_history/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /team_awards/{awardId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.teamId is string &&
+        isTeamPublicHubManager(request.resource.data.teamId);
+      allow update, delete: if isSignedIn() &&
+        resource.data.teamId is string &&
+        isTeamPublicHubManager(resource.data.teamId);
+    }
+
+    /* =====================
+       Media (팀·경기·이벤트·플레이어) — getMediaByEntity, MediaGallery, Storage 연동
+    ====================== */
+    match /media/{mediaId} {
+      allow read: if isSignedIn() && mediaResourceReadOk();
+
+      allow create: if isSignedIn() &&
+        request.resource.data.uploadedBy == request.auth.uid &&
+        request.resource.data.entityType is string &&
+        request.resource.data.entityId is string &&
+        (
+          (request.resource.data.entityType == 'team' &&
+            (isActiveMember(request.resource.data.entityId) ||
+              isTeamOwnerByTeamDoc(request.resource.data.entityId))) ||
+          request.resource.data.entityType == 'match' ||
+          request.resource.data.entityType == 'event' ||
+          request.resource.data.entityType == 'player'
+        );
+
+      allow update: if isSignedIn() && (
+        resource.data.uploadedBy == request.auth.uid ||
+        (
+          mediaResourceReadOk() &&
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']) ||
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'updatedAt'])
+          )
+        ) ||
+        (
+          mediaTeamHubManagerCanWrite() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'updatedAt'])
+        )
+      );
+
+      allow delete: if isSignedIn() && (
+        resource.data.uploadedBy == request.auth.uid ||
+        mediaTeamHubManagerCanWrite()
       );
     }
     
-    match /assistantLogs/{logId} {
-      // 읽기: 본인 또는 관리자만 가능
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.userId ||
-        request.auth.token.email.matches('.*@yagovibe\\.com$') ||
-        request.auth.token.email.matches('.*admin.*')
+    /** team_games — PlayTab 종료 경기 · 피드백 · Vision matchId (members list read 축과 정합) */
+    function canReadTeamGameForTeam(gameTeamId) {
+      return gameTeamId is string && (
+        canReadTeamMembersList(gameTeamId) ||
+        isTeamVisionStaffReader(gameTeamId) ||
+        isActiveMemberOrTeamOwnerDoc(gameTeamId)
       );
-      // 쓰기: Functions에서만 가능
-      allow write: if false;
+    }
+
+    function canManageTeamGameForTeam(gameTeamId) {
+      return gameTeamId is string && isTeamStaffForScheduledHub(gameTeamId);
+    }
+
+    function isTeamGameParticipant(gameData) {
+      return isSignedIn() && gameData != null && (
+        (gameData.homeTeamId is string && canReadTeamGameForTeam(gameData.homeTeamId)) ||
+        (gameData.awayTeamId is string && canReadTeamGameForTeam(gameData.awayTeamId))
+      );
+    }
+
+    function teamGameCreateValid() {
+      let d = request.resource.data;
+      return d.createdBy == request.auth.uid &&
+        d.status == 'scheduled' &&
+        d.homeTeamId is string &&
+        d.awayTeamId is string &&
+        d.homeTeamId != d.awayTeamId &&
+        d.homeTeamName is string &&
+        d.awayTeamName is string &&
+        d.scheduledAt is timestamp &&
+        canManageTeamGameForTeam(d.homeTeamId);
+    }
+
+    match /team_games/{gameId} {
+      allow get: if isTeamGameParticipant(resource.data);
+      /** OR 단일 list 규칙은 home/away 쿼리와 정합 실패 → 분리 (Firestore secure query 패턴) */
+      allow list: if isSignedIn() && resource.data.homeTeamId is string &&
+        canReadTeamGameForTeam(resource.data.homeTeamId);
+      allow list: if isSignedIn() && resource.data.awayTeamId is string &&
+        canReadTeamGameForTeam(resource.data.awayTeamId);
+      allow create: if isSignedIn() && teamGameCreateValid();
+      allow update: if isSignedIn() && resource.data != null && (
+        canManageTeamGameForTeam(resource.data.homeTeamId) ||
+        canManageTeamGameForTeam(resource.data.awayTeamId)
+      );
+      allow delete: if isSignedIn() && resource.data != null &&
+        canManageTeamGameForTeam(resource.data.homeTeamId);
+    }
+
+    /* =====================
+       Invites (QR 초대 토큰) - v1 LOCK
+    ====================== */
+    
+    match /invites/{inviteId} {
+      // 읽기: (v1) preview에서 필요하면 허용. 더 엄격하게 하려면 제한 가능
+      allow read: if true;
+      
+      // 쓰기: 서버만 가능 (Cloud Functions만 생성/수정)
+      allow create, update, delete: if false; // 🔒 핵심: 클라이언트 직접 쓰기 차단
+    }
+
+    /* =====================
+       🏛 federations/{slug} — 공개 포털 (/federations/nowon-football 등)
+    ====================== */
+    match /federations/{fedSlug} {
+      allow read: if true;
+      allow create: if isSignedIn() &&
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.slug == fedSlug &&
+        request.resource.data.name is string;
+      allow update, delete: if isFederationManager(fedSlug);
+
+      match /{document=**} {
+        allow read: if federationSensitiveSubpath(string(document))
+          ? isFederationManager(fedSlug)
+          : true;
+        allow write: if isFederationManager(fedSlug) ||
+          (isSignedIn() && federationTeamSelfServeWritePath(string(document)));
+      }
     }
     
-    // 🔧 개발/테스트용 컬렉션 (에뮬레이터에서 사용)
-    match /testConnection/{docId} {
-      // 읽기/쓰기: 인증된 사용자 모두 가능 (개발용)
-      allow read, write: if request.auth != null;
+    /* =====================
+       💬 채팅 (Chats) - 거래 성사 가속
+       단건 get / messages read 는 chatParticipant(buyer·seller·users·participants·맵·리스트) 로 통일.
+       list 는 인증 사용자에게 허용 — array-contains 쿼리가 문서 단위 조건과 정적 검증에서 깨지는 이슈 완화.
+       ⚠️ 필터 없는 대량 list 로 메타데이터가 노출될 수 있으므로 클라이언트는 반드시 조건 쿼리만 사용 권장.
+    ====================== */
+    
+    match /chats/{chatId} {
+      allow create: if isSignedIn() && chatParticipant(request.resource.data);
+
+      allow get: if isSignedIn() && tradeChatDocGetAllowed(chatId);
+      allow list: if isSignedIn();
+
+      allow update: if isSignedIn() && (
+        chatParticipant(resource.data) ||
+        tradeChatDocumentIdImpliesParticipant(chatId)
+      );
+
+      allow delete: if isSignedIn() && chatParticipant(resource.data);
+
+      // messages: create 시에는 하위 문서에 resource(기존 데이터)가 없음 → 부모 chats/{chatId} get()으로 참가자 판별
+      match /messages/{messageId} {
+        /**
+         * 단건 get: 부모 참가자 또는 메시지 단위 예외(threadMemberIds·발신자 필드).
+         * 컬렉션 쿼리(list): resource.data를 쓰면 안 됨 → tradeChatMessagesQueryAllowed(chatId)만 사용.
+         */
+        allow get: if isSignedIn() && (
+          chatParticipantByChatId(chatId) ||
+          (
+            resource.data.threadMemberIds is list &&
+            resource.data.threadMemberIds.size() == 2 &&
+            request.auth.uid in resource.data.threadMemberIds
+          ) ||
+          resource.data.senderId == request.auth.uid ||
+          resource.data.uid == request.auth.uid ||
+          resource.data.userId == request.auth.uid
+        );
+
+        allow list: if tradeChatMessagesQueryAllowed(chatId) || isGlobalAdmin();
+
+        // 발신자 위조 방지 — threadMemberIds 가 있으면 부모 buyer/seller 와 반드시 일치
+        allow create: if isSignedIn() && chatParticipantByChatId(chatId) &&
+          request.resource.data.senderId == request.auth.uid &&
+          (
+            !('threadMemberIds' in request.resource.data) ||
+            tradeTwoPartyThreadMemberIdsValid(chatId, request.resource.data.threadMemberIds)
+          );
+        
+        allow update: if isSignedIn() && chatParticipantByChatId(chatId) &&
+          tradeChatMessageParticipantUpdate();
+        
+        allow delete: if isSignedIn() && (
+          request.auth.uid == resource.data.uid || request.auth.uid == resource.data.senderId
+        ) && (
+          !("createdAt" in resource.data) || 
+          request.time.seconds <= resource.data.createdAt.seconds + 300
+        );
+      }
     }
     
-    // 🛒 마켓 상품 (Market Products)
-    // ✅ 테스트용 — 에뮬레이터에서 모든 요청 허용
+    /* =====================
+       💬 chatRooms (모집 단체방 teamRecruit_* · 팀 · 마켓 room — ChatListPage·sendMessageCommon)
+    ====================== */
+    
+    function chatRoomsMember(data) {
+      return request.auth.uid == data.authorId ||
+        ("members" in data && data.members is list && request.auth.uid in data.members) ||
+        ("participants" in data && data.participants is list && request.auth.uid in data.participants);
+    }
+
+    /** 팀 단체방: CF/레거시 동기화 지연 시 members 배열에 아직 없어도 팀 활성 멤버는 조회·자기 추가 가능 */
+    function chatRoomsTeamMemberAccess(data) {
+      return data.type == "team" &&
+        data.teamId is string &&
+        isActiveMember(data.teamId);
+    }
+    
+    function chatRoomsMemberFromRoomId(roomId) {
+      let p = /databases/$(database)/documents/chatRooms/$(roomId);
+      return exists(p) && (
+        chatRoomsMember(get(p).data) ||
+        chatRoomsTeamMemberAccess(get(p).data)
+      );
+    }
+
+    /** 경기 매칭 스레드(chatRooms/match_*): 목록 문서 조회용 — 매칭 원문이 있으면 로그인 사용자 읽기 허용 */
+    function matchChatRoomListingRead(data) {
+      return data.type == "match" &&
+        data.matchId is string &&
+        exists(/databases/$(database)/documents/matches/$(data.matchId));
+    }
+
+    /** match 방 레거시: participants 만 있고 members 없음 — 병합 기준선 */
+    function matchChatBaselineMembers(d) {
+      return ("members" in d && d.members is list)
+        ? d.members
+        : (("participants" in d && d.participants is list) ? d.participants : []);
+    }
+
+    /**
+     * 비참여자가 멤버 배열에 자신을 추가하는 등 확장-only 업데이트 (대량 멤버 병합은 호스트 승인 플로우·클라이언트 merge 와 호환)
+     */
+    function matchChatRoomMembersMergeOk(before, after) {
+      let base = matchChatBaselineMembers(before);
+      return before.type == "match" &&
+        before.matchId is string &&
+        exists(/databases/$(database)/documents/matches/$(before.matchId)) &&
+        after.members is list &&
+        after.members.hasAll(base) &&
+        after.members.size() >= base.size() &&
+        after.members.size() <= base.size() + 64 &&
+        request.auth.uid in after.members;
+    }
+    
+    match /chatRooms/{roomId} {
+      allow read: if isSignedIn() && (
+        !exists(/databases/$(database)/documents/chatRooms/$(roomId)) ||
+        chatRoomsMember(resource.data) ||
+        chatRoomsTeamMemberAccess(resource.data) ||
+        matchChatRoomListingRead(resource.data)
+      );
+      allow create: if isSignedIn() && chatRoomsMember(request.resource.data) &&
+        (
+          request.resource.data.type != "team" ||
+          (request.resource.data.teamId is string && isActiveMember(request.resource.data.teamId))
+        );
+      allow update: if isSignedIn() && (
+        chatRoomsMember(resource.data) ||
+        chatRoomsTeamMemberAccess(resource.data) ||
+        matchChatRoomMembersMergeOk(resource.data, request.resource.data)
+      );
+      allow delete: if false;
+      
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && chatRoomsMemberFromRoomId(roomId);
+        allow create: if isSignedIn() && chatRoomsMemberFromRoomId(roomId) &&
+          request.resource.data.senderId == request.auth.uid;
+        allow update: if isSignedIn() && chatRoomsMemberFromRoomId(roomId);
+        allow delete: if isSignedIn() && chatRoomsMemberFromRoomId(roomId) &&
+          request.auth.uid == resource.data.senderId;
+      }
+    }
+    
+    /* =====================
+       🗄️ 삭제된 메시지 로그 (운영/분쟁 대응용)
+    ====================== */
+    
+    match /deletedMessages/{logId} {
+      // 읽기: 관리자만 가능
+      allow read: if isSignedIn() && isGlobalAdmin();
+      
+      // 생성: 로그인 사용자 모두 가능 (자기 메시지 삭제 시 로그 기록)
+      allow create: if isSignedIn();
+      
+      // 수정/삭제: 금지 (로그는 변경/삭제 불가)
+      allow update, delete: if false;
+    }
+    
+    /* =====================
+       🚨 채팅 메시지 신고 (증거 보존용)
+    ====================== */
+    
+    match /chatReports/{reportId} {
+      // 신고 생성: 로그인 사용자만, 본인이 신고자여야 함
+      allow create: if isSignedIn() && 
+        request.auth.uid == request.resource.data.reporterId;
+      
+      // 읽기: 본인 신고 또는 관리자
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.reporterId ||
+        isGlobalAdmin()
+      );
+      
+      // 수정: 관리자만 가능 (resolved 처리 등)
+      allow update: if isSignedIn() && isGlobalAdmin();
+      
+      // 삭제: 금지 (증거 보호)
+      allow delete: if false;
+    }
+    
+    /* =====================
+       🛒 마켓 상품 (Market Products)
+    ====================== */
+    
     match /marketProducts/{productId} {
-      allow read, write: if true;
+      // 읽기: 비로그인 포함 (상품 목록/상세 미리보기 — 쓰기는 아래에서 제한)
+      allow read: if true;
+      
+      // 🔥 생성: 로그인 사용자만 가능 + 위치 정보 필수 (품질 보장)
+      allow create: if isSignedIn() && (
+        request.resource.data.sellerId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      ) && (
+        // 🔥 위치 정보 필수 검증 (latitude, longitude는 숫자여야 함)
+        request.resource.data.latitude is number &&
+        request.resource.data.longitude is number &&
+        request.resource.data.latitude >= -90 &&
+        request.resource.data.latitude <= 90 &&
+        request.resource.data.longitude >= -180 &&
+        request.resource.data.longitude <= 180
+      );
+      
+      // 수정/삭제: 본인만 가능
+      allow update, delete: if isSignedIn() && (
+        resource.data.sellerId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
     }
     
-    // 🔥 FCM 푸시 알림 - 사용자 기기 토큰 저장
-    // users/{uid}/devices/{deviceId}
-    match /users/{userId}/devices/{deviceId} {
-      // 읽기/쓰기: 본인만 가능
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    /* =====================
+       📌 허브 / 빠른거래 / 활동 — 클라이언트가 조회하는 컬렉션
+       (규칙 미정의 시 전부 거부되어 permission-denied 연쇄 발생)
+    ====================== */
+    
+    match /activities/{activityId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+    }
+    
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    
+    // 구매자가 채팅 시작 시 예약만 반영 (판매자 필드와 sellerId 변형까지 제외)
+    function marketBuyerReserveFromOpen() {
+      let affected = request.resource.data.diff(resource.data).affectedKeys();
+      let isOwner = ('authorId' in resource.data && resource.data.authorId == request.auth.uid) ||
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        ('sellerId' in resource.data && resource.data.sellerId == request.auth.uid);
+      return affected.hasOnly(['status', 'reservedBy', 'reservedAt', 'updatedAt']) &&
+        request.resource.data.status == 'reserved' &&
+        request.resource.data.reservedBy == request.auth.uid &&
+        (resource.data.status == 'active' || resource.data.status == 'open') &&
+        !isOwner;
+    }
+
+    match /market/{marketId} {
+      // 목록·상세 미리보기: 비로그인 허용 (쓰기는 아래에서 로그인 필수)
+      allow read: if true;
+      allow create: if isSignedIn() && (
+        request.resource.data.authorId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        marketBuyerReserveFromOpen() ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['views', 'viewCount', 'rankScore', 'updatedAt', 'likesCount', 'likeCount', 'chatCount'])
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+    
+    match /marketPosts/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (
+        request.resource.data.authorId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        marketBuyerReserveFromOpen() ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['viewCount', 'views', 'rankScore', 'updatedAt', 'likesCount', 'likeCount', 'chatCount'])
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+    
+    match /recruitPosts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        request.resource.data.authorId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['viewCount', 'views', 'rankScore', 'updatedAt', 'likesCount', 'likeCount', 'chatCount'])
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+    
+    match /matchPosts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        request.resource.data.authorId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['viewCount', 'views', 'rankScore', 'updatedAt', 'likesCount', 'likeCount', 'chatCount'])
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+
+    /* =====================
+       ⚽ 팀 경기 매칭 — `matchService` 루트 `matches` / `match_requests`
+       (종목 허브 `matchPosts` 와 별도 컬렉션)
+    ====================== */
+    match /matches/{matchId} {
+      allow read: if true;
+      allow create: if isSignedIn() &&
+        request.resource.data.authorId == request.auth.uid &&
+        request.resource.data.teamId is string;
+      allow update: if isSignedIn() && matchListingHostCanWrite(resource.data);
+      allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+    }
+
+    match /match_requests/{requestId} {
+      allow read: if isSignedIn() && (
+        resource.data.applicantUid == request.auth.uid ||
+        (
+          resource.data.matchId is string &&
+          exists(/databases/$(database)/documents/matches/$(resource.data.matchId)) &&
+          matchListingHostCanWrite(get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data)
+        )
+      );
+      allow create: if isSignedIn() &&
+        request.resource.data.matchId is string &&
+        request.resource.data.teamId is string &&
+        request.resource.data.teamName is string &&
+        request.resource.data.status == "pending" &&
+        (!("applicantUid" in request.resource.data) || request.resource.data.applicantUid == request.auth.uid);
+      allow update: if isSignedIn() && (
+        resource.data.applicantUid == request.auth.uid ||
+        (
+          resource.data.matchId is string &&
+          exists(/databases/$(database)/documents/matches/$(resource.data.matchId)) &&
+          matchListingHostCanWrite(get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data)
+        )
+      );
+      allow delete: if false;
+    }
+    
+    match /marketJoins/{joinId} {
+      allow read: if isSignedIn() && (
+        resource.data.postAuthorId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
+      );
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.postAuthorId is string &&
+        request.resource.data.postAuthorId != request.auth.uid &&
+        request.resource.data.postId is string &&
+        request.resource.data.category in ["recruit", "match"] &&
+        request.resource.data.status == "pending";
+      allow update: if isSignedIn() && (
+        resource.data.postAuthorId == request.auth.uid ||
+        (resource.data.userId == request.auth.uid &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.postAuthorId == resource.data.postAuthorId &&
+          request.resource.data.postId == resource.data.postId)
+      );
+      allow delete: if false;
+    }
+    
+    // 🔹 공용 posts (협회 커뮤니티 글 + 마켓 메트릭 그림자 문서 — MarketPostCard가 posts/{marketDocId} 실시간 구독)
+    match /posts/{postId} {
+      // 마켓 카드가 동일 ID로 조회수·찜 카운터 구독 — 비로그인 브라우징 허용
+      allow read: if true;
+      allow create: if isSignedIn() &&
+        request.resource.data.uid == request.auth.uid &&
+        'associationId' in request.resource.data;
+      allow update: if isSignedIn() && (
+        postsCounterFieldsOnly() ||
+        (resource.data.uid == request.auth.uid && postsAuthorPreservesOwnerFields()) ||
+        ('associationId' in resource.data &&
+          isAssociationAdmin(resource.data.associationId) &&
+          associationPostAdminMetaOnly())
+      );
+      allow delete: if isSignedIn() &&
+        resource.data.uid == request.auth.uid &&
+        'associationId' in resource.data;
+      
+      match /likes/{likeUid} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.auth.uid == likeUid &&
+          request.resource.data.uid == request.auth.uid;
+        allow delete: if isSignedIn() && request.auth.uid == likeUid;
+        allow update: if false;
+      }
+      
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+        allow update: if isSignedIn() && resource.data.uid == request.auth.uid;
+        allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+        
+        match /likes/{likerUid} {
+          allow read: if isSignedIn();
+          allow create: if isSignedIn() && request.auth.uid == likerUid &&
+            request.resource.data.uid == request.auth.uid;
+          allow delete: if isSignedIn() && request.auth.uid == likerUid;
+          allow update: if false;
+        }
+      }
+    }
+    
+    // 🔹 마켓 찜 (루트 likes — postId + userId, features/market/services/likes.ts)
+    match /likes/{likeId} {
+      allow read: if true;
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        'postId' in request.resource.data;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update: if false;
+    }
+    
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+    
+    match /activityHistory/{entryId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+    
+    match /activityFeed/{entryId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+    
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && notificationReadAllowed();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && notificationRecipientMatches();
+    }
+    
+    match /sellerProfiles/{sellerId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.auth.uid == sellerId;
+      allow delete: if isSignedIn() && request.auth.uid == sellerId;
+    }
+    
+    /* =====================
+       ⚽ 협회 (Associations) - 노원 실전
+    ====================== */
+    
+    match /associations/{associationId} {
+      // 🔥 읽기: 인증된 사용자 모두 가능 (협회 목록/상세 조회)
+      // 협회 중심 플랫폼에서는 협회 정보는 거의 public에 가까움
+      // ⚠️ isAssociationAdmin 함수 내부에서 get() 호출을 위해 읽기 허용 필수
+      allow read: if isSignedIn() || true; // 임시로 모두 허용 (안정화)
+      
+      // 쓰기: 서버만 (Cloud Functions만 생성/수정)
+      allow create, update, delete: if false; // server only
+      
+      /* =====================
+         공지사항 (Notices) - 서브컬렉션 (레거시)
+      ====================== */
+      
+      match /notices/{noticeId} {
+        // 🔥 읽기: 모두 허용 (공개 공지 + 시스템 공지 포함)
+        // 시스템 공지(isSystemGenerated)는 읽기 전체 허용, 수정/삭제만 차단
+        allow read: if true;
+        // 🔥 쓰기: 협회 관리자만 (시스템 공지는 Functions에서만 생성)
+        // 시스템 공지 수정/삭제는 차단 (isSystemGenerated 체크는 애플리케이션 로직에서)
+        allow write: if isSignedIn() && isAssociationAdmin(associationId);
+      }
+      
+      /* =====================
+         공지 히스토리 (Notice History)
+      ====================== */
+      
+      match /notices/{noticeId}/history/{historyId} {
+        // 읽기/쓰기: 협회 관리자만
+        allow read, write: if isSignedIn() && 
+          isAssociationAdmin(resource.data.associationId);
+      }
+      
+      /* =====================
+         🔥 공지 기반 대화 (Notice Conversations)
+      ====================== */
+      
+      match /noticeConversations/{conversationId} {
+        // 읽기: 인증된 사용자 모두
+        allow read: if isSignedIn();
+        // 쓰기: Functions 전용 (자동 생성)
+        allow write: if false;
+        
+        // 메시지
+        match /messages/{messageId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: 인증된 사용자 (질문/답변) + 공지 종료되지 않았을 때만
+          allow create: if isSignedIn() && !noticeClosed(associationId, conversationId);
+          // 수정/삭제: 관리자만 (또는 본인 메시지) + 공지 종료되지 않았을 때만
+          allow update, delete: if isSignedIn() && 
+            !noticeClosed(associationId, conversationId) && (
+            isAssociationAdmin(associationId) ||
+            resource.data.senderId == request.auth.uid
+          );
+        }
+      }
+      
+      /* =====================
+         🔥 공지 기반 FAQ (Notice FAQs)
+      ====================== */
+      
+      match /noticeFaqs/{faqId} {
+        // 읽기: 인증된 사용자 모두 (FAQ는 공개 정보)
+        allow read: if isSignedIn();
+        // 쓰기: 협회 관리자만 (FAQ 고정) + 공지 종료되지 않았을 때만
+        allow create, update: if isSignedIn() && 
+          isAssociationAdmin(associationId) && 
+          !noticeClosed(associationId, resource.data.noticeId);
+        // 삭제: 협회 관리자만 + 공지 종료되지 않았을 때만
+        allow delete: if isSignedIn() && 
+          isAssociationAdmin(associationId) && 
+          !noticeClosed(associationId, resource.data.noticeId);
+      }
+      
+      /* =====================
+         🔥 공지 질문 통계 (Notice Stats)
+      ====================== */
+      
+      match /noticeStats/{noticeId} {
+        // 읽기: 인증된 사용자 모두 (통계는 공개 정보)
+        allow read: if isSignedIn();
+        // 쓰기: Functions 전용 (자동 집계)
+        allow write: if false;
+      }
+      
+      /* =====================
+         🔥 공지 스냅샷 (Notice Snapshots)
+      ====================== */
+      
+      match /noticeSnapshots/{noticeId} {
+        // 읽기: 인증된 사용자 모두 (스냅샷은 공개 정보)
+        allow read: if isSignedIn();
+        // 쓰기: Functions 전용 (자동 생성)
+        allow write: if false;
+      }
+      
+      /* =====================
+         대회 (Tournaments)
+      ====================== */
+      
+      match /tournaments/{tournamentId} {
+        // 읽기: 모두 허용 (공개 대회 정보)
+        allow read: if true;
+        // 쓰기: 협회 관리자만 + Lock 상태가 아닐 때만 + completed 상태가 아닐 때만
+        // 🔥 하이브리드: adminUids 우선 (Custom Claims 없어도 동작)
+        // 🔥 새 문서 생성 시 isLocked 체크 생략 (문서가 아직 없으므로)
+        allow create: if isSignedIn() && isAssociationAdmin(associationId);
+        // 🔥 기존 문서 수정 시 Lock 체크 + completed 상태 차단
+        allow update, delete: if isSignedIn() && isAssociationAdmin(associationId) && 
+          !isLocked(associationId, tournamentId) &&
+          resource.data.status != "completed";
+        
+        /* 🔥 Phase 1-4: 대회 운영 서브컬렉션 */
+        
+        // 경기장
+        match /venues/{venueId} {
+          allow read: if isSignedIn();
+          allow write: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 🔥 라운드 (Rounds) - 대진표 생성용
+        match /rounds/{roundId} {
+          // 🔥 읽기: 모두 허용 (공개 대진표용)
+          allow read: if true;
+          // 쓰기: Functions 전용 (경기 자동 생성 시 생성)
+          allow create, update: if false;
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 경기
+        match /matches/{matchId} {
+          // 🔥 읽기: 모두 허용 (공개 대진표용)
+          allow read: if true;
+          
+          // 🔥 쓰기: 관리자만 허용
+          allow create: if isSignedIn() && (isAssociationAdmin(associationId) || isTournamentAdmin()) && !isLocked(associationId, tournamentId);
+          
+          // 🔥 업데이트: 관리자만 허용
+          // winner는 admin만 설정 가능 (일반 유저가 REST/콘솔로 winner 못 바꿈)
+          // nextMatch team 세팅도 admin만 허용
+          allow update: if isSignedIn() && (isAssociationAdmin(associationId) || isTournamentAdmin()) && !isLocked(associationId, tournamentId);
+          
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+          
+          // 출전 명단
+          match /rosters/{rosterId} {
+            allow read: if isSignedIn();
+            allow write: if isSignedIn() && (isAssociationAdmin(associationId) || isTournamentAdmin()) && !isLocked(associationId, tournamentId);
+          }
+          
+          // 🔒 검인 기록 (QR 체크인은 Functions에서만)
+          match /checkins/{checkinId} {
+            allow read: if isSignedIn();
+            allow write: if false; // ✅ QR 체크인은 Functions에서만 (Lock 무관)
+          }
+          
+          // 🟨 경고/퇴장 (배정된 심판 또는 관리자만 + Lock 체크)
+          match /cards/{cardId} {
+            allow read: if isSignedIn();
+            allow create, update: if isSignedIn() && !isLocked(associationId, tournamentId) && (
+              isAssociationAdmin(associationId) ||
+              isTournamentAdmin() ||
+              isAssignedReferee(associationId, tournamentId, matchId)
+            );
+            allow delete: if false; // 삭제 불가 (감사 로그 보호)
+          }
+          
+          // 🟪 심판 메모 (배정된 심판 또는 관리자만 + Lock 체크)
+          match /memos/{memoId} {
+            allow read: if isSignedIn();
+            allow create, update: if isSignedIn() && !isLocked(associationId, tournamentId) && (
+              isAssociationAdmin(associationId) ||
+              isTournamentAdmin() ||
+              isAssignedReferee(associationId, tournamentId, matchId)
+            );
+            allow delete: if false; // 삭제 불가 (감사 로그 보호)
+          }
+        }
+        
+        // 🔥 참가 신청 (Entries) - 개인 참가 신청 상태
+        match /entries/{entryId} {
+          // 읽기: 본인만 (userId == request.auth.uid) 또는 관리자
+          allow read: if isSignedIn() && (
+            resource.data.userId == request.auth.uid ||
+            isAssociationAdmin(associationId)
+          );
+          // 생성: 로그인한 사용자 모두 (본인의 entry만)
+          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+          // 수정: 본인만 또는 관리자
+          allow update: if isSignedIn() && (
+            resource.data.userId == request.auth.uid ||
+            isAssociationAdmin(associationId)
+          );
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 참가 신청 (Applications)
+        match /applications/{applicationId} {
+          // 읽기: 인증된 사용자 모두 (신청 조회)
+          allow read: if isSignedIn();
+          // 생성: 인증된 사용자 모두 (팀/사용자 신청) - ✅ 클라이언트 허용
+          // 🔥 관리자는 생성 시 바로 status: "approved"로 생성 가능 (테스트용)
+          allow create: if isSignedIn() && (
+            // 일반 사용자: status는 "pending"만 가능
+            (request.resource.data.status == "pending" || request.resource.data.status == null) ||
+            // 관리자: "approved"로 직접 생성 가능 (테스트 팀 생성용)
+            (isAssociationAdmin(associationId) && request.resource.data.status == "approved")
+          );
+          // 수정: Functions 전용 (승인/거절은 Function에서 처리) 또는 관리자 (테스트용)
+          allow update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지
+          allow delete: if false;
+          
+          // 🔥 결제 기록 (Payments)
+          match /payments/{paymentId} {
+            // 읽기: 인증된 사용자 모두
+            allow read: if isSignedIn();
+            // 생성/수정: 협회 관리자만
+            allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+            // 삭제: 금지 (감사 로그 보호)
+            allow delete: if false;
+          }
+          
+          // 🔥 영수증 (Receipts)
+          match /receipts/{receiptId} {
+            // 읽기: 인증된 사용자 모두
+            allow read: if isSignedIn();
+            // 생성: 협회 관리자만
+            allow create: if isSignedIn() && isAssociationAdmin(associationId);
+            // 수정/삭제: 금지 (증빙 보호)
+            allow update, delete: if false;
+          }
+          
+          // 🔥 알림 로그 (Reminders) - Functions 전용
+          match /reminders/{reminderId} {
+            // 읽기: 협회 관리자만
+            allow read: if isSignedIn() && isAssociationAdmin(associationId);
+            // 쓰기: Functions 전용 (조작 불가)
+            allow write: if false;
+          }
+        }
+        
+        // 🔥 참가팀 (Approved Teams)
+        match /teams/{teamId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 생성/수정: 협회 관리자만 (테스트 팀 생성 및 승인 처리)
+          allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 협회 관리자만 (테스트 팀 삭제 허용)
+          allow delete: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 🔥 팀장 초대 (TeamInvites)
+        match /TeamInvites/{inviteId} {
+          // 읽기: 모두 허용 (토큰 검증용)
+          allow read: if true;
+          // 생성: 협회 관리자만
+          allow create: if isSignedIn() && isAssociationAdmin(associationId);
+          // 수정: 
+          // 1) 로그인한 사용자가 자신의 UID로 바인딩하는 경우 (used=true)
+          // 2) 관리자가 revoked 처리하는 경우
+          allow update: if isSignedIn() && (
+            (
+              request.resource.data.used == true
+              && request.resource.data.usedByUid == request.auth.uid
+              && resource.data.used == false
+              && resource.data.revoked != true
+              && (resource.data.expiresAt == null || resource.data.expiresAt > request.time)
+            ) || (
+              isAssociationAdmin(associationId)
+              && request.resource.data.revoked == true
+              && resource.data.revoked != true
+            )
+          );
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 참가 신청 (Applications)
+        match /Applications/{applicationId} {
+          // 읽기: 모두 허용 (공개 신청)
+          allow read: if true;
+          // 생성: 모두 허용 (비로그인도 신청 가능)
+          allow create: if true;
+          // 수정: 관리자만 (승인/반려)
+          allow update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지 (감사 로그)
+          allow delete: if false;
+        }
+        
+        // 🔥 일반 팀 (Teams) - 대회 외부 팀
+        match /Teams/{teamId} {
+          // 읽기: 모두 허용 (토큰 검증용)
+          allow read: if true;
+          // 수정: 관리자 또는 팀장(captainUid)만, 대회 시작 전까지만
+          // 🔥 실운영 보강: locked=true면 수정 불가, members 배열 길이 제한은 트랜잭션에서 처리
+          allow update: if isSignedIn()
+            && (
+              isAssociationAdmin(associationId) ||
+              (request.auth.uid == resource.data.captainUid && resource.data.locked != true)
+            )
+            && (!("locked" in resource.data) || resource.data.locked != true);
+          // 생성/삭제: 협회 관리자만
+          allow create, delete: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 🔥 테스트 조 추첨 결과 (test_groups)
+        match /test_groups/{groupId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: 협회 관리자만 (테스트 모드 조 추첨 결과 저장)
+          allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 협회 관리자만
+          allow delete: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 🔥 테스트 조 추첨 로그 (test_drawLogs)
+        match /test_drawLogs/{logId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: 협회 관리자만 (테스트 모드 조 추첨 로그 저장)
+          allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 조 추첨 로그 (drawLogs)
+        match /drawLogs/{logId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: Functions 전용 (운영 모드 조 추첨 로그 저장)
+          allow create, update: if false;
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 징계 로그 (discipline_logs)
+        match /discipline_logs/{logId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: 협회 관리자만
+          allow create, update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔥 결제 관리 (Payments) - Functions 전용
+        match /payments/{paymentId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 쓰기: Functions 전용 (승인 시 자동 생성)
+          allow create, update: if false;
+          // 삭제: 금지
+          allow delete: if false;
+        }
+        
+        // 🔥 선수 명단 (Players) - 연령 검증 결과 저장
+        match /players/{playerId} {
+          // 읽기: 인증된 사용자 모두
+          allow read: if isSignedIn();
+          // 생성: 인증된 사용자 모두 (팀이 등록)
+          allow create: if isSignedIn();
+          // 수정: 협회 관리자만 (승인/거절)
+          allow update: if isSignedIn() && isAssociationAdmin(associationId);
+          // 삭제: 금지 (감사 로그 보호)
+          allow delete: if false;
+        }
+        
+        // 🔒 체크인 기록 (QR 체크인은 Functions에서만)
+        match /checkins/{checkinId} {
+          allow read: if isSignedIn();
+          allow write: if false; // ✅ QR 체크인은 Functions에서만
+        }
+        
+        // QR 토큰
+        match /qrTokens/{tokenId} {
+          allow read: if isSignedIn();
+          allow write: if false; // Functions 전용
+        }
+        
+        // JoinKFA 캐시 (사무국 전용)
+        match /joinKfaCache/{cacheId} {
+          allow read: if isSignedIn();
+          allow write: if isSignedIn() && isAssociationAdmin(associationId);
+        }
+        
+        // 통계 (Functions 전용)
+        match /stats/{dateKey} {
+          allow read: if isSignedIn();
+          allow write: if false; // Functions 전용
+        }
+      }
+      
+      /* =====================
+         대관 (Facilities)
+      ====================== */
+      
+      match /facility_slots/{slotId} {
+        // 읽기: 모두 허용 (대관 현황 공개)
+        allow read: if true;
+        // 쓰기: 협회 관리자만
+        allow write: if isSignedIn() && isAssociationAdmin(associationId);
+      }
+      
+      /* =====================
+         스토리 (Stories)
+      ====================== */
+      
+      match /stories/{storyId} {
+        // 읽기: 모두 허용 (공개 스토리)
+        allow read: if true;
+        // 쓰기: 협회 관리자만
+        allow write: if isSignedIn() && isAssociationAdmin(associationId);
+      }
+      
+      /* =====================
+         감사 로그 (Audit Logs)
+      ====================== */
+      
+      match /audit_logs/{logId} {
+        // 읽기: 협회 관리자만
+        allow read: if isSignedIn() && isAssociationAdmin(associationId);
+        // 쓰기: 협회 관리자만 (애플리케이션에서 기록)
+        allow write: if isSignedIn() && isAssociationAdmin(associationId);
+      }
+      
+      /* =====================
+         협회 설정 (Report Settings 등)
+      ====================== */
+      
+      match /report_settings {
+        // 읽기/쓰기: 협회 관리자만 (추후 구현)
+        allow read, write: if false; // server only (임시)
+      }
+    }
+    
+    /* =====================
+       📢 공지사항 (Notices) - 루트 컬렉션
+    ====================== */
+    
+    match /notices/{noticeId} {
+      // 읽기: 모두 허용 (공개 공지)
+      allow read: if true;
+      
+      // 생성: 인증된 사용자 모두 가능 (associationId 필드로 권한 체크)
+      allow create: if isSignedIn() && 
+        isAssociationAdmin(request.resource.data.associationId);
+      
+      // 수정: 권한 분기
+      // - 관리자: 모든 필드 수정 가능 (pinned, status 등, publish/scheduled 포함)
+      // - 일반 유저: draft 상태이고 pinned/status 변경 없을 때만 수정 가능
+      allow update: if isSignedIn() && (
+        // 🔥 관리자는 모든 수정 가능 (publish/scheduled 포함)
+        isAssociationAdmin(resource.data.associationId) ||
+        // 일반 유저는 draft 상태이고 pinned/status 변경 없을 때만
+        (
+          resource.data.status == 'draft' &&
+          request.resource.data.status == 'draft' &&
+          resource.data.isPinned == request.resource.data.isPinned
+        )
+      );
+      
+      // 삭제: 관리자만
+      allow delete: if isSignedIn() && 
+        isAssociationAdmin(resource.data.associationId);
+    }
+    
+    /* =====================
+       📢 공지 히스토리 (Notice History) - 루트 컬렉션
+    ====================== */
+    
+    match /notices/{noticeId}/history/{historyId} {
+      // 읽기/쓰기: 해당 공지의 협회 관리자만
+      allow read, write: if isSignedIn() && 
+        exists(/databases/$(database)/documents/notices/$(noticeId)) &&
+        isAssociationAdmin(
+          get(/databases/$(database)/documents/notices/$(noticeId)).data.associationId
+        );
+    }
+    
+    /* =====================
+       📋 회원 신청 (Membership Requests)
+    ====================== */
+    
+    match /membershipRequests/{requestId} {
+      // 읽기: 본인이 신청한 것 또는 협회 관리자
+      allow read: if isSignedIn();
+      
+      // 쓰기: 서버만 (Cloud Functions만 생성/수정)
+      allow create, update, delete: if false; // server only
+    }
+    
+    /* =====================
+       ✅ COMMIT 13: Tenant Isolation & Security
+       테넌트 격리 규칙 (멀티테넌시 보안 강화)
+    ===================== */
+    
+    // ✅ 테넌트 매칭: 토큰에 tenantId가 있다고 가정
+    function tenantId() { 
+      return request.auth.token.tenantId; 
+    }
+    
+    function isTenant(tid) { 
+      return isSignedIn() && tenantId() == tid; 
+    }
+    
+    function tenantRole() { 
+      return request.auth.token.role; 
+    } // admin/editor/viewer (tenant context)
+    
+    function isTenantAdmin() {
+      return isSignedIn() && tenantRole() == "admin";
+    }
+    
+    function isTenantEditor() { 
+      return isSignedIn() && (tenantRole() == "admin" || tenantRole() == "editor"); 
+    }
+    
+    // ---------------------------
+    // 1) 도메인 데이터: tenants/{tenantId}/(collection)/(doc)
+    // ---------------------------
+    match /tenants/{tid}/{col}/{docId} {
+      allow read: if isTenant(tid);              // viewer 포함 read 허용
+      allow create, update: if isTenant(tid) && isTenantEditor();
+      allow delete: if isTenant(tid) && isTenantAdmin();
+    }
+    
+    // ---------------------------
+    // 2) Approvals: admin만 + tenantId 필드로 격리
+    // ---------------------------
+    match /_approvals/{id} {
+      allow read: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow create: if isSignedIn() && request.resource.data.tenantId == tenantId(); // review_required 생성은 editor도 가능
+      allow update: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow delete: if false;
+    }
+    
+    // ---------------------------
+    // 3) Ethics Decisions: admin만(대시보드/감사)
+    // ---------------------------
+    match /_ethicsDecisions/{auditId} {
+      allow read: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow create: if isSignedIn() && request.resource.data.tenantId == tenantId();
+      allow update, delete: if false;
+    }
+    
+    // ---------------------------
+    // 4) Policy Changes / Policies: admin만 + tenant 격리
+    // ---------------------------
+    match /_policyChanges/{id} {
+      allow read, create, update: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow delete: if false;
+    }
+    
+    match /_policies/{tid} {
+      allow read: if isTenantAdmin() && isTenant(tid);
+      allow write: if isTenantAdmin() && isTenant(tid);
+    }
+    
+    // ---------------------------
+    // 5) Daily reports / audit logs / versions: admin만 + tenant 격리
+    // ---------------------------
+    match /_dailyReports/{id} {
+      allow read, create: if isTenantAdmin() && request.resource.data.tenantId == tenantId();
+      allow update: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow delete: if false;
+    }
+    
+    match /_auditLogs/{id} {
+      allow read: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow create: if isSignedIn() && request.resource.data.tenantId == tenantId();
+      allow update, delete: if false;
+    }
+    
+    match /_versions/{id} {
+      allow read: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
+      allow create: if isSignedIn() && request.resource.data.tenantId == tenantId();
+      allow update, delete: if false;
     }
   }
 }
-
