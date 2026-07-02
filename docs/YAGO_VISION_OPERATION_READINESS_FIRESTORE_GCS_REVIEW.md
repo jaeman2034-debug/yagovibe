@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — Step 5 PR draft READY · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD (Dry Run #2 후)  
+**Status:** 📋 **EXECUTION PREP** — Step 5 ✅ COMPLETE · Step 6 ▶️ PM Deploy Approval · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD  
 **Date:** 2026-07-02  
-**Branch:** `vision-v2-i13` @ Step 5 PR draft  
+**Branch:** `or14/step5-rules-merge` → `main` (PR opened · **Merge HOLD** until Step 6 APPROVED)  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -1111,10 +1111,13 @@ Verify: decision is explicit · Actions align with decision.
 |------|:------:|
 | Repository diff documented | ✅ |
 | Merge strategy defined | ✅ |
-| `firestore.rules` PR draft | ✅ **READY** (production baseline + §13.5 overlay) |
+| Focused PR (`or14/step5-rules-merge` → `main`) | ✅ **OPENED** — no base conflict · CI PASS · **do not Merge** until Step 6 |
+| `firestore.rules` PR content | ✅ (production baseline + §13.5 overlay · `304afda`) |
 | Rules compile (`firebase deploy --dry-run`) | ✅ PASS |
-| PM Deploy Approval (Step 6) | ⏳ **Awaiting PM review** |
-| Rules Deploy (Step 7) | ❌ **Forbidden** until Step 6 |
+| **Step 5 verdict** | ✅ **COMPLETE** |
+| PM Deploy Approval (Step 6) | ▶️ **In review** |
+| PR Merge | ❌ **HOLD** until Step 6 APPROVED |
+| Rules Deploy (Step 7) | ❌ **Forbidden** until Step 6 + Merge |
 
 #### 13.11.6 Step 5 PR — change summary
 
@@ -1132,8 +1135,12 @@ Verify: decision is explicit · Actions align with decision.
 
 ### 13.12 PM Deploy Approval — Step 6 (GOVERNANCE GATE)
 
-> **Status:** ⏳ **NOT APPROVED** — review Step 5 PR before any Deploy.  
-> **Nature:** 운영 승인 Gate — **not** feature development.
+> **Status:** ▶️ **IN REVIEW** — Step 5 PR opened · Eng pre-read complete · **PM decision pending**  
+> **Nature:** 운영 승인 Gate — **not** feature development · **not** code change · **not** deploy
+
+**PR scope (focused):** `or14/step5-rules-merge` → `main` · 2 files only (`firestore.rules`, operation readiness doc) · `304afda`
+
+**Hold until Step 6 APPROVED:** PR Merge · `firebase deploy --only firestore:rules` · Dry Run #2 · OR-14 CLOSE
 
 #### 13.12.1 Step 6 checklist (PM)
 
@@ -1156,7 +1163,68 @@ Verify: decision is explicit · Actions align with decision.
 | ⏳ **HOLD** | Eng revision · re-review Step 5 PR |
 | ❌ **REJECTED** | Roll back PR · PM policy re-review |
 
-**Forbidden until Step 6 APPROVED:** Rules Deploy · Dry Run #2 · OR-14 CLOSE · Final PASS · Beta Start
+**Forbidden until Step 6 APPROVED:** PR Merge · Rules Deploy · Dry Run #2 · OR-14 CLOSE · Final PASS · Beta Start
+
+**Step 6 APPROVED 후 순서 (locked):** PR Merge → Step 7 Rules Deploy → Step 8 Dry Run #2 → Step 9 OR-14 CLOSE
+
+#### 13.12.3 Step 6 — Eng pre-read verification (2026-07-02)
+
+> Eng verification only — **does not substitute PM Deploy Approval.**
+
+| # | Checklist item | Eng result | Evidence |
+|---|----------------|:----------:|----------|
+| ① | §13.5 Vision read policy only (intent) | ✅ PASS | Vision paths: `visionMatchIndex` · `visionUploadQueue` · `aiIngest` · `visionRuns` · `visionAnalysis` + `parentLinkReadAllowed` helper |
+| ① | No unintended non-Vision policy change (intent) | ✅ PASS | Full Production baseline merge — repo was behind prod; merge restores prod blocks + §13.5 overlay |
+| ② | Production baseline preserved | ✅ PASS | Deployed ruleset `d3429b67…` used as baseline (§13.11.3) |
+| ② | Regression risk (non-Vision) | ✅ LOW | Baseline = current prod; deploy widens Vision **reads** only per §13.5 |
+| ③ | Rollback available | ✅ PASS | `projects/yago-vibe-spt/rulesets/d3429b67-52dc-47d6-bb88-73945fe56b0c` (§13.7.1) |
+| ④ | OR-11 separated from Step 6 | ✅ PASS | `useVisionJobMonitor` `media/` path — Dry Run #2 scope; not in this PR |
+
+**Eng recommendation:** Checklist satisfied — **eligible for PM Deploy Approval review.**
+
+#### 13.12.4 Step 6 — PM Decision Record
+
+> **Status:** ⏳ **PENDING** — PM fills this section to complete Step 6.  
+> **Methods:** (1) This doc — **required** · (2) GitHub PR Approve — **recommended supplement**
+
+**How to complete Step 6 (PM):**
+
+1. Fill the record below (`APPROVED` / `HOLD` / `REJECTED`)
+2. `git add docs/YAGO_VISION_OPERATION_READINESS_FIRESTORE_GCS_REVIEW.md`
+3. `git commit -m "docs: record step 6 pm deploy approval"`
+4. (Optional) GitHub PR → Review changes → **Approve** with comment: `Step 6 PM Deploy Approval. Proceed to Step 7 after merge.`
+5. **Only if APPROVED:** Step 7 — PR Merge → `firebase deploy --only firestore:rules`
+
+---
+
+```text
+Step 6 PM Deploy Approval: [ APPROVED | HOLD | REJECTED ]
+
+Reviewer: _______________ (PM)
+Date: _______________
+
+PR:
+or14/step5-rules-merge → main
+
+Decision:
+[ APPROVED | HOLD | REJECTED ]
+
+Reason:
+- §13.5 정책과 일치
+- Production baseline 유지
+- Rollback 가능 (ruleset d3429b67…)
+- Dry-run compile PASS
+- OR-11은 Dry Run #2에서 별도 검증
+
+Authorized Next (APPROVED only):
+1. PR Merge
+2. firebase deploy --only firestore:rules
+3. Dry Run #2
+```
+
+**PM signature:** _______________ · **Date:** _______________
+
+**Until APPROVED recorded above:** PR Merge · Rules Deploy · Dry Run #2 · OR-14 CLOSE remain **FORBIDDEN**.
 
 ---
 
