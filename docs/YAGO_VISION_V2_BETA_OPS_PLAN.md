@@ -1,7 +1,7 @@
 # YAGO Vision v2 — Beta Operations Plan (Draft v1)
 
-**Status:** 📋 **DRAFT** — PM sign-off pending (required before Step 10 Final PASS)  
-**Date:** 2026-07-02 (updated)  
+**Status:** ✅ **PM SIGNED** — 2026-07-02  
+**Date:** 2026-07-02  
 **Branch:** `main` · pilot team `D7TUZaOtfxdBc4P0lQLx`  
 **Parent docs:** `YAGO_VISION_OPERATION_READINESS_FIRESTORE_GCS_REVIEW.md` §15 · `YAGO_VISION_OPERATIONS_CHARTER_v1.md`
 
@@ -17,7 +17,7 @@
 | Review Sprint Phase 1~3 | ✅ PASS |
 | PM Final Review | ✅ PASS |
 | OR-14 Rules Gate | ✅ **CLOSED** (§13.15.3) |
-| Operation Readiness Final PASS | ▶️ Step 10 PM decision pending |
+| Operation Readiness Final PASS | ✅ PASS (§15.2 · 2026-07-02) |
 
 **Conditional Beta:** OR-14 CLOSE + this Ops Plan PM sign-off + Final PASS.
 
@@ -216,29 +216,27 @@ Detect → Log (Daily Log + Issue Report) → Mitigate → PM notify if P0/P1
 | 1 | OR-14 Rules Gate CLOSE | ✅ §13.15.3 |
 | 2 | Dry Run #2 (rules 5-path post-deploy) | ✅ §13.14 |
 | 3 | Backup manual export once | ⏳ |
-| 4 | Ops Plan PM sign-off (§9) | ⏳ **required before Final PASS** |
-| 5 | Operation Readiness Final PASS (§15.2) | ⏳ |
+| 4 | Ops Plan PM sign-off (§9) | ✅ 2026-07-02 |
+| 5 | Operation Readiness Final PASS (§15.2) | ✅ 2026-07-02 |
 
 ---
 
-## 9. PM Sign-off (Pending)
+## 9. PM Sign-off
 
-> **Required before** Operation Readiness Final PASS (Review doc §15.2).
+> **Status:** ✅ **COMPLETE** — 2026-07-02
 
 | Item | Confirmed |
 |------|:---------:|
-| Clip Policy (§1) | □ |
-| Backup SOP (§2) | □ |
-| Restore SOP (§3) | □ |
-| Rollback SOP (§4) | □ |
-| Reconcile SOP (§5) | □ |
-| Retention draft (§6) | □ |
-| Incident SOP (§7) | □ |
-| Pre-Beta checklist (§8) | □ |
+| Clip Policy (§1) | ✅ |
+| Backup SOP (§2) | ✅ |
+| Restore SOP (§3) | ✅ |
+| Rollback SOP (§4) | ✅ |
+| Reconcile SOP (§5) | ✅ |
+| Retention draft (§6) | ✅ |
+| Incident SOP (§7) | ✅ |
+| Pre-Beta checklist (§8) | ✅ |
 
-**PM Sign-off:** _______________ · **Date:** _______________
-
-**After sign-off:** eligible for §15.2 Final PASS decision.
+**PM Sign-off:** 이재만 · **Date:** 2026-07-02
 
 ---
 
