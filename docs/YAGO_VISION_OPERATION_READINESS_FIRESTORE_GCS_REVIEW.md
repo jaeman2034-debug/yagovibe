@@ -966,6 +966,26 @@ PM Policy Decision → §13.5 Final Approval → Repository → PM Deploy Approv
 
 **Until rows 1–4 decided:** Decision Hold — no Repository change · no Deploy · no OR-14 CLOSE · no Push.
 
+#### 13.10.1 Review status (pre-meeting vs post-meeting)
+
+> Use **status**, not progress % (e.g. avoid "3/10 complete").
+
+| Phase | Status | Meaning |
+|-------|:------:|---------|
+| Pre-meeting preparation | ✅ **Complete** | Evidence `31ff85b` · Review Pack `78ebd12` · this template `df99d28` |
+| Meeting decisions | ⏳ **Pending** | Project owner PM Policy Review not yet held |
+| Post-meeting execution review | ⏳ **Pending** | Repository · Deploy · Dry Run #2 · OR-14 CLOSE — after official §13.10 record |
+
+**Terminology (Decision Hold):**
+
+| Avoid | Prefer |
+|-------|--------|
+| "Incomplete meeting result" | **회의 결과 미생성 (회의 미실시)** |
+| "Needs supplement" (pre-meeting) | **미기록 (회의 전)** |
+| Progress % on checklist | **Status by phase** (above) |
+
+**Post-meeting review sequence (when official record exists):** (1) meeting validity · (2) four agenda decisions + rationale + actions · (3) consistency · (4) Gate impact · (5) execution eligibility.
+
 ---
 
 ## 15. Operation Readiness Final PASS — Preparation (HOLD)
