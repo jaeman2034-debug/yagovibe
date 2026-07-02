@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — Step 10 ✅ Final PASS · Step 11 ▶️ Beta Start (PM decision pending)  
+**Status:** ✅ **Vision v2 Beta STARTED** — Step 11 APPROVED 2026-07-02  
 **Date:** 2026-07-02  
-**Branch:** `main` · deployed ruleset `c810909f…` · OR-14 **CLOSED**  
+**Branch:** `main` · deployed ruleset `c810909f…` · OR-14 **CLOSED** · Pilot `D7TUZaOtfxdBc4P0lQLx`  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -29,6 +29,7 @@
 | **OR-14 Rules Gate** | ✅ **CLOSED** | §13.15.3 · 2026-07-02 |
 | **Vision v2 Beta Ops Plan** | ✅ **PM SIGNED** | §9 · 2026-07-02 |
 | **Operation Readiness Final PASS** | ✅ **PASS** | §15.2 · 2026-07-02 |
+| **Vision v2 Beta** | ✅ **STARTED** | §15.3 · 2026-07-02 · pilot `D7TUZaOtfxdBc4P0lQLx` |
 
 **Review 목적:** 기존 RC5 인프라 + I13-5 로컬 Persist 설계를 기준으로, **운영 반영 전** Firestore/GCS 구조·정책·권한·복구를 점검하고 PM 승인 기준을 확정한다.
 
@@ -1363,25 +1364,44 @@ Step 11 Vision v2 Beta Start Review
 
 **PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** PASS
 
-### 15.3 Step 11 — Vision v2 Beta Start (PM decision pending)
+### 15.3 Step 11 — Vision v2 Beta Start
 
-> **Status:** ▶️ **IN REVIEW** — Final PASS complete · **Beta Start approval pending**
+> **Status:** ✅ **APPROVED** — Vision v2 Beta operation started 2026-07-02
 
-| # | Check | Eng pre-read |
-|---|-------|--------------|
+| # | Check | Result |
+|---|-------|:------:|
 | 1 | Pilot team scope | ✅ `D7TUZaOtfxdBc4P0lQLx` |
-| 2 | Rollback procedure | ✅ ruleset `d3429b67…` documented |
-| 3 | Monitoring | ✅ RC5 ops logs · pilot ops hooks |
-| 4 | OR-11 follow-up | ⚠ separate PR · P2 degraded UX · not Beta blocker |
+| 2 | Rollback procedure | ✅ ruleset `d3429b67…` |
+| 3 | OR-11 not Beta blocker | ✅ P2 · separate PR |
+| 4 | Backup manual export (§8 #3) | ⏳ **Run Day 0** — complete before first Beta upload |
 
 ```text
-Step 11 Vision v2 Beta Start: [ APPROVED | HOLD | REJECTED ]
+Step 11 Vision v2 Beta Start
 
-Reviewer: _______________ (PM)
-Date: _______________
+Decision:
+APPROVED
+
+Reviewer:
+이재만 (PM)
+
+Date:
+2026-07-02
+
+Reason:
+- Operation Readiness Final PASS 완료
+- OR-14 CLOSED
+- Dry Run #2 PASS
+- Pilot 운영 준비 완료
+- OR-11은 P2 개선 과제로 관리 (not Beta blocker)
+- Backup manual export: Run Day 0 ops task before first upload
+
+Authorized Next:
+Vision v2 Beta Operation Start
 ```
 
-**PM signature:** _______________ · **Date:** _______________
+**PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** APPROVED
+
+**Post-start ops:** OR-11 fix PR · Backup export §8 #3 · Console Playground cross-check (optional)
 
 ---
 
