@@ -932,6 +932,40 @@ Coach uid: `jMLLIxyOVkN1HERAd2gz88uKj9e2` · Parent uid: `wSlh4oDIqIP4GnV3Di1IeA
 
 **If §13.5 approved → locked sequence:** Repository update → PM Deploy approval → Rules Deploy → Dry Run #2 → OR-14 CLOSE review.
 
+### 13.10 PM Policy Review — Decision Record (Template)
+
+> **Status:** 📋 **TEMPLATE ONLY** — Decision Hold · no policy approved in this document.  
+> **Inputs:** Evidence `31ff85b` · Review Pack `78ebd12` (§13.9).  
+> **Authority:** Project PM / product owner only — not AI or Eng unilateral sign-off.
+
+**Meeting date:** _______________  
+**Attendees:** _______________  
+**Phase:** Policy Approval (post technical + ops validation)
+
+| # | Agenda | Decision (승인 / 보류 / 수정) | Notes |
+|---|--------|:----------------------------:|-------|
+| 1 | §13.5 Draft = Vision v2 Beta **official** Firestore read policy? | ⏳ | |
+| 2 | `visionUploadQueue` read = **Beta required** policy? | ⏳ | |
+| 3 | Parent `visionAnalysis` read = privacy + ops **compliant**? | ⏳ | |
+| 4 | Firestore Rules **SoT** — Production / approved Draft / other | ⏳ | |
+
+**SoT options (agenda 4 reference only — not pre-selected):**
+
+| Option | Meaning | PM note |
+|--------|---------|---------|
+| A | Repository ← Production | Drift fix · Beta draft gaps may remain |
+| B | Repository + Production ← **approved** §13.5 | Option B = **검토 후보** only until row 1–3 approved |
+| Other | _______________ | |
+
+**Post-decision gate (only if policy approved):**
+
+```text
+PM Policy Decision → §13.5 Final Approval → Repository → PM Deploy Approval
+→ Rules Deploy → Dry Run #2 → OR-14 CLOSE → Final PASS → Beta Start
+```
+
+**Until rows 1–4 decided:** Decision Hold — no Repository change · no Deploy · no OR-14 CLOSE · no Push.
+
 ---
 
 ## 15. Operation Readiness Final PASS — Preparation (HOLD)
