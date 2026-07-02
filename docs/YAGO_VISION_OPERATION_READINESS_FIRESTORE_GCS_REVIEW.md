@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **EXECUTION PREP** — Step 6 ✅ APPROVED · Step 7 ▶️ Merge + Rules Deploy · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD  
+**Status:** 📋 **EXECUTION PREP** — Step 7 ✅ COMPLETE · Step 8 ▶️ Dry Run #2 · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD  
 **Date:** 2026-07-02  
-**Branch:** `or14/step5-rules-merge` → `main` (Step 6 APPROVED · Step 7 authorized)  
+**Branch:** `main` @ `9c365b2` (merged `or14/step5-rules-merge`)  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -1215,6 +1215,20 @@ Authorized Next:
 ```
 
 **PM signature:** 이재만 · **Date:** 2026-07-02 · **Decision:** APPROVED
+
+### 13.13 Step 7 — PR Merge + Firestore Rules Deploy (2026-07-02)
+
+> **Status:** ✅ **COMPLETE**
+
+| # | Action | Result | Evidence |
+|---|--------|:------:|----------|
+| 1 | PR Merge (`or14/step5-rules-merge` → `main`) | ✅ | `main` @ `9c365b2` fast-forward |
+| 2 | `firebase deploy --only firestore:rules` | ✅ | Deploy complete · `yago-vibe-spt` |
+| 3 | Post-deploy 5-path prod probe | ⏳ | Automated probe failed (`auth/invalid-custom-token`) — **Step 8 Dry Run #2** required |
+
+**Rollback (if needed):** ruleset `d3429b67-52dc-47d6-bb88-73945fe56b0c` (§13.7.1)
+
+**Next:** Step 8 Dry Run #2 (prod 5-path probe + Job Monitor / Coach UI) → Step 9 OR-14 CLOSE
 
 ---
 
