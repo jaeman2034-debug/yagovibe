@@ -1,8 +1,8 @@
 # YAGO Vision — Operation Readiness: Firestore / GCS Review
 
-**Status:** 📋 **PRE-BETA GATES** — Review Sprint COMPLETE · OR-14 OPEN (Rules Drift) · Final PASS HOLD  
+**Status:** 📋 **EXECUTION PREP** — PM Policy Review COMPLETE · §13.5 APPROVED · OR-14 OPEN · Final PASS HOLD (Dry Run #2 후)  
 **Date:** 2026-07-02  
-**Branch:** `vision-v2-i13` @ `b382ac2`  
+**Branch:** `vision-v2-i13` @ `4860d92`  
 **Charter:** `docs/YAGO_VISION_OPERATIONS_CHARTER_v1.md`  
 **Persist design (read-only):** `docs/YAGO_VISION_I13_5_PERSIST_SPEC.md` §7
 
@@ -24,9 +24,11 @@
 | Pre-Pilot Dry Run #2 | ✅ PASS (§6) | PASS |
 | Engineering Design Review | ✅ PASS (§7) | PASS |
 | Backup Drill | ✅ PASS (§9) | PASS |
-| **OR-14 Rules Gate** | ⚠ **OPEN** | Pre-Beta Blocker · **Rules Drift confirmed** (§13.7.1) |
+| **PM Policy Review** | ✅ **COMPLETE** | §13.10 · Step 1~4 PASS |
+| **§13.5 Beta Rules Policy** | ✅ **APPROVED** | §13.5 · §13.10 |
+| **OR-14 Rules Gate** | ⚠ **OPEN** | Deploy + Dry Run #2 후 CLOSE 검토 |
 | **Vision v2 Beta Ops Plan** | 📋 **DRAFT** | Sign-off pending |
-| **Operation Readiness Final PASS** | ⏳ **HOLD** | OR-14 + Ops Plan 후 |
+| **Operation Readiness Final PASS** | ⏳ **HOLD** | Dry Run #2 이후 검토 |
 
 **Review 목적:** 기존 RC5 인프라 + I13-5 로컬 Persist 설계를 기준으로, **운영 반영 전** Firestore/GCS 구조·정책·권한·복구를 점검하고 PM 승인 기준을 확정한다.
 
@@ -761,7 +763,10 @@ Next sequence:
 
 Prior API 403 (user OAuth) resolved via service-account Rules API for **read-only** ruleset fetch. No deploy performed.
 
-### 13.5 Draft Rules Spec (design only — NOT applied)
+### 13.5 Beta Rules Policy (✅ APPROVED — PM Policy Review)
+
+> **Status:** ✅ **APPROVED** as Vision v2 Beta Firestore read policy (§13.10).  
+> **Not deployed** until Repository merge + PM Deploy approval.
 
 ```text
 teams/{teamId}/visionMatchIndex/{matchId}
@@ -932,39 +937,39 @@ Coach uid: `jMLLIxyOVkN1HERAd2gz88uKj9e2` · Parent uid: `wSlh4oDIqIP4GnV3Di1IeA
 
 **If §13.5 approved → locked sequence:** Repository update → PM Deploy approval → Rules Deploy → Dry Run #2 → OR-14 CLOSE review.
 
-### 13.10 PM Policy Review — Decision Record (Template)
+### 13.10 PM Policy Review — Decision Record
 
-> **Status:** 📋 **TEMPLATE ONLY** — Decision Hold · no policy approved in this document.  
-> **Inputs:** Evidence `31ff85b` · Review Pack `78ebd12` (§13.9).  
-> **Authority:** Project PM / product owner only — not AI or Eng unilateral sign-off.
+> **Status:** ✅ **OFFICIAL** — PM Policy Review complete · Step 1~4 PASS (§13.10.2).  
+> **Inputs:** Evidence `31ff85b` · Review Pack `78ebd12` · post-meeting criteria `4860d92`.  
+> **Note:** Meeting date / Attendees — record from official minutes when filed.
 
-**Meeting date:** _______________  
-**Attendees:** _______________  
-**Phase:** Policy Approval (post technical + ops validation)
+**Meeting date:** _(official minutes)_  
+**Attendees:** _(official minutes)_  
+**Phase:** Policy Approval → Execution Prep
 
-| # | Agenda | Decision (승인 / 보류 / 수정) | Notes |
-|---|--------|:----------------------------:|-------|
-| 1 | §13.5 Draft = Vision v2 Beta **official** Firestore read policy? | ⏳ | |
-| 2 | `visionUploadQueue` read = **Beta required** policy? | ⏳ | |
-| 3 | Parent `visionAnalysis` read = privacy + ops **compliant**? | ⏳ | |
-| 4 | Firestore Rules **SoT** — Production / approved Draft / other | ⏳ | |
+| # | Agenda | Decision | Notes |
+|---|--------|:--------:|-------|
+| 1 | §13.5 = Beta **official** Firestore read policy | ✅ **승인** | §13.5 APPROVED |
+| 2 | `visionUploadQueue` read = Beta required | ✅ **승인** | Included in §13.5 |
+| 3 | Parent `visionAnalysis` read | ✅ **승인** | `parentLinkReadAllowed` per §13.5 |
+| 4 | Firestore Rules **SoT** | ✅ **승인 Draft (Option B)** | Repo + Prod ← §13.5 |
 
-**SoT options (agenda 4 reference only — not pre-selected):**
+**Post-meeting review (§13.10.2):** Step 1~4 ✅ PASS · Step 5~8 ⏳ (Repository review in progress · Deploy not approved)
 
-| Option | Meaning | PM note |
-|--------|---------|---------|
-| A | Repository ← Production | Drift fix · Beta draft gaps may remain |
-| B | Repository + Production ← **approved** §13.5 | Option B = **검토 후보** only until row 1–3 approved |
-| Other | _______________ | |
+**Gate after meeting:**
 
-**Post-decision gate (only if policy approved):**
+| Gate | Status |
+|------|--------|
+| OR-14 | ⚠ **OPEN** (unchanged until Deploy + Dry Run #2) |
+| §13.5 Final Approval | ✅ **APPROVED** |
+| Final PASS | ⏳ **HOLD** — Dry Run #2 이후 검토 |
+
+**Locked sequence:**
 
 ```text
-PM Policy Decision → §13.5 Final Approval → Repository → PM Deploy Approval
-→ Rules Deploy → Dry Run #2 → OR-14 CLOSE → Final PASS → Beta Start
+§13.5 APPROVED → Repository merge (Step 5) → PM Deploy Approval → Rules Deploy
+→ Dry Run #2 → OR-14 CLOSE → Final PASS → Beta Start
 ```
-
-**Until rows 1–4 decided:** Decision Hold — no Repository change · no Deploy · no OR-14 CLOSE · no Push.
 
 #### 13.10.1 Review status (pre-meeting vs post-meeting)
 
@@ -972,9 +977,9 @@ PM Policy Decision → §13.5 Final Approval → Repository → PM Deploy Approv
 
 | Phase | Status | Meaning |
 |-------|:------:|---------|
-| Pre-meeting preparation | ✅ **Complete** | Evidence `31ff85b` · Review Pack `78ebd12` · this template `df99d28` |
-| Meeting decisions | ⏳ **Pending** | Project owner PM Policy Review not yet held |
-| Post-meeting execution review | ⏳ **Pending** | Repository · Deploy · Dry Run #2 · OR-14 CLOSE — after official §13.10 record |
+| Pre-meeting preparation | ✅ **Complete** | Evidence `31ff85b` · Review Pack `78ebd12` · template `df99d28` |
+| Meeting decisions | ✅ **Complete** | §13.10 official record · §13.5 APPROVED |
+| Post-meeting execution review | ⏳ **In progress** | Step 5 Repository review · Deploy **not approved** |
 
 **Terminology (Decision Hold):**
 
@@ -1046,6 +1051,69 @@ Verify: decision is explicit · Actions align with decision.
 | ☐ | Deploy review eligibility judged |
 | ☐ | Dry Run #2 need judged |
 | ☐ | OR-14 CLOSE eligibility judged |
+
+### 13.10.2 Post-meeting review record (PM Policy Review)
+
+| Step | Result | Date |
+|------|:------:|------|
+| 4 Meeting record validity | ✅ PASS | 2026-07-02 |
+| 5 Policy decisions (4 agenda) | ✅ PASS | |
+| 6 Cross-policy consistency | ✅ PASS (no contradiction) | |
+| 7 Gate impact | ✅ PASS | OR-14 OPEN · §13.5 APPROVED · Final PASS HOLD |
+
+### 13.11 Repository Change Review — Step 5 (PRE-DEPLOY)
+
+> **Status:** 📋 **REVIEW ONLY** — no `firestore.rules` edit · no Deploy.  
+> **SoT:** §13.5 APPROVED (Option B) · Production baseline + §13.5 deltas.
+
+#### 13.11.1 Three-way summary
+
+| Layer | Vision rules posture |
+|-------|---------------------|
+| **Repository (`firestore.rules`)** | ❌ No Vision paths · no `aiIngest` / `parentLinks` / academy blocks |
+| **Production (deployed)** | ⚠ Partial — `isTeamVisionStaffReader` on index/runs/analysis · **no** `visionUploadQueue` · parent **DENY** |
+| **§13.5 APPROVED** | ✅ `isActiveMember` reads · `visionUploadQueue` · parent via `parentLinkReadAllowed` |
+
+**Risk:** Deploying current Repository **would regress** Production (remove ~19KB of prod-only rules including Vision v6-7 blocks).
+
+#### 13.11.2 Required Repository changes (§13.5 target)
+
+| Path | Repository | Production | §13.5 APPROVED | Repo action |
+|------|:----------:|:----------:|:--------------:|-------------|
+| `visionMatchIndex` | ❌ | staff reader | `isActiveMember` | **Add** (§13.5 policy) |
+| `visionUploadQueue` | ❌ | ❌ | `isActiveMember` | **Add** (new vs prod) |
+| `aiIngest/{mediaId}` | ❌ | staff elevated | `isActiveMember` | **Add** (merge prod block + widen read) |
+| `aiIngest/…/visionRuns` | ❌ | staff reader | `isActiveMember` | **Add** (merge + widen) |
+| `matches/…/visionAnalysis` (member) | ❌ | staff reader | `isActiveMember` | **Add** (merge + widen) |
+| `matches/…/visionAnalysis` (parent) | ❌ | DENY | `parentLinkReadAllowed` | **Add** helper + rule |
+| All Vision writes | — | `false` | `false` | **Keep** CF-only |
+
+#### 13.11.3 Merge strategy (recommended)
+
+```text
+1. Baseline = Production deployed rules (preserve academy · parentLinks · cvRuns · non-Vision deltas)
+2. Overlay §13.5 APPROVED Vision read policy on listed paths
+3. Implement parentLinkReadAllowed(teamId, matchId) — align teams/{teamId}/parentLinks schema (deployed L1216+)
+4. Write merged result to repository firestore.rules
+5. Emulator / Playground probe — do NOT deploy until PM Deploy Approval (Step 6)
+```
+
+#### 13.11.4 Non-rules dependencies (Dry Run #2)
+
+| Item | Owner | Note |
+|------|-------|------|
+| `useVisionJobMonitor.ts` stale `media/` path | Eng | OR-11 — fix before/along Dry Run #2 |
+| `parentLinkReadAllowed` rules helper | Eng | Required for parent read per §13.5 |
+
+#### 13.11.5 Step 5 verdict
+
+| Item | Status |
+|------|:------:|
+| Repository diff documented | ✅ |
+| Merge strategy defined | ✅ |
+| `firestore.rules` PR | ⏳ **Next Eng task** (after PM confirms Step 5) |
+| PM Deploy Approval | ⏳ **Not requested** |
+| Rules Deploy | ❌ **Forbidden** until Step 6 |
 
 ---
 
