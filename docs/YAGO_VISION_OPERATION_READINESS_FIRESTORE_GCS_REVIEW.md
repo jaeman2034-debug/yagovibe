@@ -984,7 +984,68 @@ PM Policy Decision → §13.5 Final Approval → Repository → PM Deploy Approv
 | "Needs supplement" (pre-meeting) | **미기록 (회의 전)** |
 | Progress % on checklist | **Status by phase** (above) |
 
-**Post-meeting review sequence (when official record exists):** (1) meeting validity · (2) four agenda decisions + rationale + actions · (3) consistency · (4) Gate impact · (5) execution eligibility.
+**Post-meeting review:** See §13.10.2 — **criteria only** until official §13.10 record exists. Do not execute pre-meeting.
+
+#### 13.10.2 Post-meeting review procedure (Step 4–8 · criteria only)
+
+> **Status:** 📋 **REVIEW CRITERIA ONLY** — not executed until PM Policy Review official record in §13.10.  
+> **No auto-execution:** meeting results do not trigger Repository change · Deploy · Dry Run #2 · OR-14 CLOSE.
+
+**Step 4 — Meeting record validity**
+
+| Check | Pass criterion |
+|-------|----------------|
+| Meeting date | Recorded in §13.10 |
+| Attendees | Recorded |
+| §13.10 official record | Complete |
+| All 4 agenda rows | Decision recorded |
+
+**Verdict:** All present → Step 5 · Any missing → **record supplement required** (do not proceed).
+
+**Step 5 — Policy decisions (4 agenda items)**
+
+Per agenda: Decision (승인 / 보류 / 수정) · Notes · Action Items.
+
+Verify: decision is explicit · Actions align with decision.
+
+**Step 6 — Cross-policy consistency**
+
+| Check | Block if fail |
+|-------|---------------|
+| §13.5 vs SoT | Conflict → **no** Repository / Deploy review |
+| `visionUploadQueue` vs Beta ops goal | Misalign → hold Deploy |
+| Parent read vs privacy / ops policy | Conflict → hold Deploy |
+
+**Step 7 — Gate impact (eligibility only — no auto Gate change)**
+
+| Gate | Question |
+|------|----------|
+| OR-14 | Remain OPEN or CLOSE **eligible**? |
+| §13.5 Final Approval | HOLD **lift eligible**? |
+| Final PASS | Review **eligible**? |
+
+**Step 8 — Execution eligibility (review only — no auto-run)**
+
+1. Repository change **needed**?
+2. PM Deploy approval **conditions met**?
+3. Dry Run #2 **required**?
+4. OR-14 CLOSE **reviewable**?
+
+**Post-meeting checklist (apply when official record shared):**
+
+| ☐ | Item |
+|---|------|
+| ☐ | Meeting date |
+| ☐ | Attendees |
+| ☐ | 4 agenda decisions |
+| ☐ | Notes |
+| ☐ | Action Items |
+| ☐ | No cross-policy contradiction |
+| ☐ | Gate impact reviewed |
+| ☐ | Repository change need judged |
+| ☐ | Deploy review eligibility judged |
+| ☐ | Dry Run #2 need judged |
+| ☐ | OR-14 CLOSE eligibility judged |
 
 ---
 
