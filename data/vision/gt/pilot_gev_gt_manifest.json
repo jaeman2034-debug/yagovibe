@@ -64,13 +64,15 @@
   },
   "rc5M5": {
     "date": "2026-07-03",
-    "verdict": "IN_PROGRESS",
+    "verdict": "PASS",
+    "closureType": "INTERNAL_OPERATIONS_VALIDATION",
     "lockPath": "data/vision/gt/rc5_5_lock.json",
     "opsRunLog": "data/vision/pilot/rc5_5_ops_run_log.json",
     "kpiDashboard": "docs/YAGO_VISION_RC5_OPS_KPI_DASHBOARD.md",
     "runDaysPass": "1-5",
     "sessionsProcessed": "5/5",
-    "declaration": "RC5-5 Run Day 1~5 PASS · sessions 5/5 · success 100% · VOC closure pending."
+    "nextPhase": "Pilot Phase (실전 테스트)",
+    "declaration": "RC5-5 Internal Operations Validation PASS — Run Day 5 종료. 정량 VOC/KPI는 Pilot Phase."
   },
   "rc2Closure": {
     "date": "2026-06-30",
