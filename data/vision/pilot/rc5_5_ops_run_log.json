@@ -302,11 +302,11 @@
     { "id": "BL-003", "topic": "visionPilotOpsLog Firestore live 구조 점검", "severity": "low", "status": "open" }
   ],
   "pilotPhase": {
-    "status": "READY",
+    "status": "DEFERRED",
     "durationWeeks": 4,
     "startDate": null,
-    "endDate": null,
-    "note": "RC5-5 Internal Validation CLOSED. 실전 데이터는 안정 운영 입증 수준까지 수집 후 Production Ready 판정."
+    "startTrigger": "실제 운영 시작 시",
+    "note": "RC5-5 Internal CLOSED. 실전 Pilot·VOC는 운영 시작 후. 개발 재개 병행."
   },
   "opsNotes": "RC5-5 CLOSED (Internal Validation) 2026-07-03. Run Day 1~5 PASS. Next: Pilot Phase ~4주. Lock: data/vision/gt/rc5_5_lock.json"
 }

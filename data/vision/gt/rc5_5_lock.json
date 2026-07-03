@@ -64,7 +64,8 @@
   },
   "nextMilestone": "Pilot Phase (~4주) → Production Ready 선언",
   "pilotPhasePlan": {
-    "status": "READY",
+    "status": "DEFERRED",
+    "startTrigger": "실제 아카데미·코치·학부모 운영 시작 시",
     "durationWeeks": 4,
     "goal": "플랫폼 안정 운영 입증 · 실사용자 VOC · Production Ready 판정",
     "schedule": [
@@ -90,5 +91,23 @@
       "production_ready_evidence_sufficient"
     ],
     "exitVerdict": "Production Ready 선언 및 정식 운영"
+  },
+  "projectPhaseTransition": {
+    "asOf": "2026-07-03",
+    "currentPhase": "POST_RC5_5_DEV_RESUME",
+    "tracks": {
+      "internalOps": { "status": "CLOSED", "verdict": "PASS", "endPoint": "Run Day 5" },
+      "livePilot": { "status": "DEFERRED", "note": "실전 데이터·VOC는 Pilot 시작 후 자연 축적" },
+      "development": { "status": "ACTIVE", "note": "기능 고도화와 Pilot 준비 병행" }
+    },
+    "devResumePriorities": [
+      "Vision 기능 고도화",
+      "Intelligence Dashboard",
+      "AI Coach",
+      "GEV/Event Intelligence",
+      "Parent Experience 개선",
+      "운영 자동화"
+    ],
+    "finalGate": "Pilot ~4주 종료 후 Production Readiness 종합 판정"
   }
 }
