@@ -31,7 +31,7 @@
   "gates": {
     "runDay1Baseline": true,
     "runDay2": true,
-    "runDay3": false,
+    "runDay3": true,
     "runDay4": false,
     "runDay5": false,
     "kpiTargetsMet": false,

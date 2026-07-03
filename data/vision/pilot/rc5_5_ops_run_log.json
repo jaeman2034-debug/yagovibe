@@ -105,21 +105,65 @@
     },
     {
       "runDay": 3,
-      "runDate": null,
-      "status": "pending",
+      "runDate": "2026-07-03",
+      "status": "pass",
       "mediaId": null,
-      "matchId": null,
+      "sessionId": null,
+      "matchId": "vision-pilot-pass01-clip-002",
+      "playerId": "player-ap-63d56190",
+      "playerName": "홍길동",
       "runId": null,
-      "visionResult": null,
+      "visionResult": "completed",
       "pipelineElapsedMs": null,
       "videoDurationSec": null,
       "segmentCount": null,
-      "parentReportGenerated": null,
+      "parentReportGenerated": true,
+      "parentDeliveryAutoMock": true,
+      "parentDeliveryManualShare": true,
+      "pdfStorageUploaded": true,
+      "avatarLevel": 4,
+      "ovr": 85,
       "errorCode": null,
       "errorNote": null,
-      "coachVoc": { "rating": null, "comment": null },
-      "parentVoc": { "rating": null, "comment": null },
-      "improvementRequests": []
+      "processingEvidence": {
+        "verifiedAt": "2026-07-03",
+        "method": "screenshot",
+        "verdict": "PROCESSING_PASS",
+        "confirmed": [
+          "training_session_saved",
+          "firestore_canonical_saved",
+          "session_id_generated",
+          "avatar_snapshot_level_4",
+          "parent_auto_send_mock",
+          "delivery_logs_recorded",
+          "guardian_delivery_ready",
+          "pdf_storage_upload",
+          "avatar_ovr_85_display"
+        ]
+      },
+      "pdfEvidence": {
+        "verifiedAt": "2026-07-03",
+        "method": "pdf_review",
+        "verdict": "PARENT_PDF_PASS",
+        "pages": [
+          { "page": 1, "title": "cover", "confirmed": ["player_name", "season_2026_h2", "ovr_85", "ai_growth_summary", "recommended_training", "next_goals"] },
+          { "page": 2, "title": "growth_report", "confirmed": ["ovr_trend_5", "season_kpi", "avg_growth_score", "max_score", "coach_verified_events", "approval_rate_100", "growth_curve"] },
+          { "page": 3, "title": "season_summary", "confirmed": ["coach_season_review", "next_season_targets_vision_95_pressure_92_recovery_85", "yago_ai_footer", "generated_at"] }
+        ],
+        "parentReadability": "pass"
+      },
+      "coachVoc": { "rating": null, "comment": null, "note": "Run Day 4~5 배치 수집 가능" },
+      "parentVoc": { "rating": null, "comment": null, "note": "Run Day 4~5 배치 수집 가능" },
+      "improvementRequests": [],
+      "opsChecklist": {
+        "parentDeliveryAutoMock": true,
+        "parentDeliveryManualShare": true,
+        "parentPdfQuality": true,
+        "coachReview": true,
+        "firestoreAutoLogs": "skip_unless_issue",
+        "opsRecord": true,
+        "voc": false
+      }
     },
     {
       "runDay": 4,
@@ -160,14 +204,17 @@
   ],
   "kpiRollup": {
     "asOf": "2026-07-03",
-    "totalRunsAttempted": 2,
-    "totalRunsCompleted": 2,
-    "totalRunsUiE2ePass": 2,
-    "totalRunsPendingBackend": 0,
+    "totalRunsAttempted": 3,
+    "totalRunsCompleted": 3,
+    "totalRunsUiE2ePass": 3,
+    "totalRunsPendingVoc": 0,
+    "totalRunsVocDeferred": 1,
     "totalRunsFailed": 0,
     "uploadSuccessRate": 1.0,
     "whisperSuccessRate": 1.0,
     "parentReportRate": 1.0,
+    "parentPdfRate": 1.0,
+    "parentDeliveryMockRate": 1.0,
     "successRate": 1.0,
     "avgPipelineElapsedMs": 236755,
     "avgVideoDurationSec": 101,
@@ -176,9 +223,9 @@
     "coachAvgRating": 5.0,
     "parentAvgRating": 5.0,
     "closureProgress": {
-      "mp4Processed": "2/5",
-      "coachVoc": "2/5",
-      "parentVoc": "2/5"
+      "sessionsProcessed": "3/5",
+      "coachVoc": "2/5 (+1 Day3 deferred)",
+      "parentVoc": "2/5 (+1 Day3 deferred)"
     }
   },
   "betaBacklog": [
@@ -186,5 +233,5 @@
     { "id": "BL-002", "topic": "CF lazy export (processVisionUploadQueue, submitVisionPilotFeedback)", "severity": "medium", "status": "open" },
     { "id": "BL-003", "topic": "visionPilotOpsLog Firestore live 구조 점검", "severity": "low", "status": "open" }
   ],
-  "opsNotes": "RC5-5 ACTIVE (2026-07-03). Run Day 1~2 PASS. Day2 mediaId 49233eed6d254127b49e98ee · 430723ms · 202s · privacy anonymized. Run Day 3~5 pending. KPI 2/5. SoT: docs/YAGO_VISION_RC5_OPS_KPI_DASHBOARD.md"
+  "opsNotes": "RC5-5 ACTIVE (2026-07-03). Run Day 1~3 PASS. Day3: session·deliveryLogs·Parent PDF 3p(홍길동·OVR85)·Mock·Storage. Day3 VOC deferred. KPI sessions 3/5 · VOC 2/5. Run Day 4~5 pending."
 }
