@@ -215,28 +215,64 @@
     {
       "runDay": 5,
       "runDate": "2026-07-03",
-      "status": "pending",
+      "status": "pass",
       "mediaId": null,
-      "matchId": null,
+      "sessionId": null,
+      "matchId": "vision-pilot-pass01-clip-002",
+      "playerId": "player-ap-63d56190",
       "runId": null,
-      "visionResult": null,
+      "visionResult": "completed",
       "pipelineElapsedMs": null,
-      "videoDurationSec": null,
-      "segmentCount": null,
-      "parentReportGenerated": null,
+      "parentReportGenerated": true,
+      "parentDeliveryAutoMock": true,
+      "parentDeliveryManualShareReady": true,
       "errorCode": null,
       "errorNote": null,
-      "coachVoc": { "rating": null, "comment": null },
-      "parentVoc": { "rating": null, "comment": null },
-      "improvementRequests": []
+      "processingEvidence": {
+        "verifiedAt": "2026-07-03",
+        "method": "screenshot",
+        "verdict": "E2E_PASS",
+        "confirmed": [
+          "training_session_saved",
+          "firestore_canonical_saved",
+          "session_id_generated",
+          "avatar_snapshot_saved",
+          "parent_delivery_panel",
+          "auto_send_mock_enabled",
+          "phone_input_ready",
+          "kakao_share_link_copy_pdf_mock_buttons",
+          "generated_verification_log",
+          "coach_verified_growth_evidence",
+          "integrated_report_summary",
+          "integrated_parent_growth_report"
+        ]
+      },
+      "coachVoc": { "rating": null, "comment": null, "note": "RC5-5 closure — VOC 배치 수집 필요" },
+      "parentVoc": { "rating": null, "comment": null, "note": "RC5-5 closure — VOC 배치 수집 필요" },
+      "improvementRequests": [],
+      "opsChecklist": {
+        "sessionSave": true,
+        "firestore": true,
+        "parentDelivery": true,
+        "autoSendMock": true,
+        "manualShareUi": true,
+        "integratedReport": true,
+        "coachEvidence": true,
+        "voc": false
+      }
     }
   ],
+  "runDaySeriesSummary": {
+    "day1_day2": { "label": "MP4 Upload Pipeline", "count": 2, "status": "pass" },
+    "day3_day5": { "label": "Academy Session + Parent Delivery", "count": 3, "status": "pass" },
+    "total": { "count": 5, "status": "pass", "successRate": 1.0 }
+  },
   "kpiRollup": {
     "asOf": "2026-07-03",
-    "totalRunsAttempted": 4,
-    "totalRunsCompleted": 4,
-    "totalRunsUiE2ePass": 4,
-    "totalRunsVocDeferred": 2,
+    "totalRunsAttempted": 5,
+    "totalRunsCompleted": 5,
+    "totalRunsUiE2ePass": 5,
+    "totalRunsVocDeferred": 3,
     "totalRunsFailed": 0,
     "uploadSuccessRate": 1.0,
     "whisperSuccessRate": 1.0,
@@ -251,9 +287,11 @@
     "coachAvgRating": 5.0,
     "parentAvgRating": 5.0,
     "closureProgress": {
-      "sessionsProcessed": "4/5",
-      "coachVoc": "2/5 (+2 Day3-4 deferred)",
-      "parentVoc": "2/5 (+2 Day3-4 deferred)"
+      "sessionsProcessed": "5/5",
+      "sessionsProcessedDay3to5": "3/3",
+      "coachVoc": "2/5",
+      "parentVoc": "2/5",
+      "rc5_5_closureBlockedBy": "voc_accumulation"
     }
   },
   "betaBacklog": [
@@ -261,5 +299,5 @@
     { "id": "BL-002", "topic": "CF lazy export (processVisionUploadQueue, submitVisionPilotFeedback)", "severity": "medium", "status": "open" },
     { "id": "BL-003", "topic": "visionPilotOpsLog Firestore live 구조 점검", "severity": "low", "status": "open" }
   ],
-  "opsNotes": "RC5-5 ACTIVE (2026-07-03). Run Day 1~4 PASS. Day4: upload·AI·Growth Dashboard·Coach Review·session·Firestore·Parent PDF·delivery. KPI sessions 4/5 · VOC 2/5. Run Day 5 = RC5-5 closure run pending."
+  "opsNotes": "RC5-5 (2026-07-03). Run Day 1~5 ALL PASS. Sessions 5/5 · success 100%. VOC 2/5 each — closure pending VOC batch (Day3-5). Next: VOC 3건+ each → rc5_5_closure_ready."
 }

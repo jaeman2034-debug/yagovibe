@@ -68,7 +68,9 @@
     "lockPath": "data/vision/gt/rc5_5_lock.json",
     "opsRunLog": "data/vision/pilot/rc5_5_ops_run_log.json",
     "kpiDashboard": "docs/YAGO_VISION_RC5_OPS_KPI_DASHBOARD.md",
-    "declaration": "RC5-5 ACTIVE — Run Day 2~5 운영 반복 · KPI 누적 · Beta Backlog 병행."
+    "runDaysPass": "1-5",
+    "sessionsProcessed": "5/5",
+    "declaration": "RC5-5 Run Day 1~5 PASS · sessions 5/5 · success 100% · VOC closure pending."
   },
   "rc2Closure": {
     "date": "2026-06-30",

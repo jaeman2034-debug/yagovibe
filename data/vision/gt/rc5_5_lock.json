@@ -28,16 +28,25 @@
     "parentSatisfactionMin": 4.5,
     "noCriticalOutages": true
   },
+  "completionStatus": {
+    "sessionsProcessed": { "required": 5, "actual": 5, "met": true },
+    "successRate": { "required": 0.95, "actual": 1.0, "met": true },
+    "coachVoc": { "required": 5, "actual": 2, "met": false },
+    "parentVoc": { "required": 5, "actual": 2, "met": false },
+    "noCriticalOutages": true
+  },
   "gates": {
     "runDay1Baseline": true,
     "runDay2": true,
     "runDay3": true,
     "runDay4": true,
-    "runDay5": false,
+    "runDay5": true,
+    "kpiSessionsMet": true,
+    "kpiSuccessRateMet": true,
     "kpiTargetsMet": false,
     "vocAccumulated": false,
     "backlogPrioritized": false,
     "rc5_5_closure_ready": false
   },
-  "nextMilestone": "RC5-5 Closure → Academy Beta 확대 / SLA 정의"
+  "nextMilestone": "RC5-5 Closure (VOC 5+5) → Academy Beta 확대 / SLA 정의"
 }
