@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "yago-vision-rc5-milestone-lock-v1",
+  "milestone": "RC5-5",
+  "phase": "Production Operations",
+  "date": "2026-07-03",
+  "verdict": "IN_PROGRESS",
+  "status": "ACTIVE",
+  "extends": "data/vision/gt/rc5_4_lock.json",
+  "productionPreset": "rc3_1_phase_c",
+  "opsRunLog": "data/vision/pilot/rc5_5_ops_run_log.json",
+  "vocSummary": "data/vision/pilot/rc5_4_voc_summary.json",
+  "kpiDashboard": "docs/YAGO_VISION_RC5_OPS_KPI_DASHBOARD.md",
+  "improvementBacklog": "docs/YAGO_VISION_RC5_OPS_IMPROVEMENT_BACKLOG.md",
+  "pilotConfig": "data/vision/pilot/rc5_4_pilot_academy.json",
+  "forbiddenDuringOps": [
+    "GEV / FII 알고리즘 변경",
+    "Reference GT 수정",
+    "rc3_1_phase_c preset 변경",
+    "신규 플랫폼 기능 (Beta Phase 1)"
+  ],
+  "completionCriteria": {
+    "minMp4Processed": 5,
+    "maxMp4Processed": 10,
+    "successRateMin": 0.95,
+    "coachVocMin": 5,
+    "parentVocMin": 5,
+    "coachSatisfactionMin": 4.5,
+    "parentSatisfactionMin": 4.5,
+    "noCriticalOutages": true
+  },
+  "gates": {
+    "runDay1Baseline": true,
+    "runDay2": false,
+    "runDay3": false,
+    "runDay4": false,
+    "runDay5": false,
+    "kpiTargetsMet": false,
+    "vocAccumulated": false,
+    "backlogPrioritized": false,
+    "rc5_5_closure_ready": false
+  },
+  "nextMilestone": "RC5-5 Closure → Academy Beta 확대 / SLA 정의"
+}

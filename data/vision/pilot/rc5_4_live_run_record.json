@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "yago-vision-rc5-live-run-record-v1",
+  "phase": "rc5_4_pilot_beta",
+  "status": "pass",
+  "runLabel": "Run Day 1",
+  "runDate": "2026-07-03",
+  "pilotName": "YAGO Vision Pilot #1",
+  "teamId": "D7TUZaOtfxdBc4P0lQLx",
+  "matchId": "vision-pilot-pass01-clip-002",
+  "mediaId": "e246e63c61fa48629b523962",
+  "runId": null,
+  "analysisId": null,
+  "uploadedAt": null,
+  "completedAt": "2026-07-03",
+  "pipelineElapsedMs": 42786,
+  "success": true,
+  "errorCode": null,
+  "backendEvidence": {
+    "verifiedAt": "2026-07-03",
+    "source": "firestore_console",
+    "firestorePath": "teams/D7TUZaOtfxdBc4P0lQLx/aiIngest/e246e63c61fa48629b523962",
+    "mediaStatus": "completed",
+    "pipelineElapsedMs": 42786,
+    "segmentCount": 52,
+    "transcribeElapsedMs": true,
+    "whisperChunkCount": true,
+    "workerLogs": true,
+    "visionRunsSubcollection": {
+      "observed": false,
+      "note": "aiIngest 문서에 Whisper/ingest 상태 저장됨. Vision GEV run은 설계상 visionRuns 서브컬렉션 — Beta Run Day 1 시점 미관측. 운영 중단 사유 아님 · 설계-구현 차이 백로그."
+    }
+  },
+  "uiE2e": {
+    "verifiedAt": "2026-07-03",
+    "method": "screenshot",
+    "verdict": "UI_E2E_PASS",
+    "stepsConfirmed": [
+      "STEP1_Upload",
+      "STEP2_Whisper",
+      "STEP3_AI_Tag",
+      "STEP4_Coach_Review",
+      "STEP5_Parent_Report"
+    ],
+    "parentReportRendering": true,
+    "parentAccountVerified": false
+  },
+  "gates": {
+    "liveMp4Upload": true,
+    "queueOk": true,
+    "jobMonitorDone": true,
+    "firestoreSaved": true,
+    "coachUi": true,
+    "parentUi": true,
+    "timeline": true,
+    "opsLogRecorded": true,
+    "coachVoc": true,
+    "parentVoc": true
+  },
+  "gateScore": {
+    "confirmed": 10,
+    "pendingOpsLog": 0,
+    "pendingVoc": 0,
+    "total": 10
+  },
+  "voc": {
+    "coach": {
+      "rating": 5,
+      "comment": "영상 업로드 과정이 직관적이었고 분석이 정상적으로 완료되었습니다. AI 태그와 성장 리포트를 이해하기 쉬웠습니다. 처리 속도도 운영에 사용할 수 있는 수준이었습니다.",
+      "recordedAt": "2026-07-03",
+      "source": "run_record_json"
+    },
+    "parent": {
+      "rating": 5,
+      "comment": "성장 리포트가 이해하기 쉬웠습니다. 레이더 차트와 AI 설명이 도움이 되었습니다. 앞으로 리포트를 계속 받아보고 싶습니다.",
+      "recordedAt": "2026-07-03",
+      "source": "run_record_json"
+    }
+  },
+  "opsNotes": "Run Day 1 PASS (2026-07-03): Gate 10/10 · mediaId e246e63c61fa48629b523962 · pipelineElapsedMs 42786 · UI E2E + Backend + Parent Report + VOC 2건. opsLogRecorded: live_run_record + aiIngest SoT (visionPilotOpsLog CF 미확인 · 백로그). visionRuns 미관측 · 설계-구현 차이 백로그. SoT: docs/YAGO_VISION_RC5_4_LIVE_PILOT_RUN_SHEET.md"
+}
