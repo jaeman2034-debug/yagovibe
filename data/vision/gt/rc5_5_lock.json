@@ -32,7 +32,7 @@
     "runDay1Baseline": true,
     "runDay2": true,
     "runDay3": true,
-    "runDay4": false,
+    "runDay4": true,
     "runDay5": false,
     "kpiTargetsMet": false,
     "vocAccumulated": false,

@@ -167,25 +167,54 @@
     },
     {
       "runDay": 4,
-      "runDate": null,
-      "status": "pending",
+      "runDate": "2026-07-03",
+      "status": "pass",
       "mediaId": null,
-      "matchId": null,
+      "sessionId": null,
+      "matchId": "vision-pilot-pass01-clip-002",
+      "playerId": "player-ap-63d56190",
       "runId": null,
-      "visionResult": null,
+      "visionResult": "completed",
       "pipelineElapsedMs": null,
       "videoDurationSec": null,
-      "segmentCount": null,
-      "parentReportGenerated": null,
+      "parentReportGenerated": true,
+      "parentDeliverySent": true,
+      "parentPdfGenerated": true,
       "errorCode": null,
       "errorNote": null,
-      "coachVoc": { "rating": null, "comment": null },
-      "parentVoc": { "rating": null, "comment": null },
-      "improvementRequests": []
+      "processingEvidence": {
+        "verifiedAt": "2026-07-03",
+        "method": "screenshot",
+        "verdict": "E2E_PASS",
+        "confirmed": [
+          "video_upload",
+          "ai_analysis_complete",
+          "growth_dashboard",
+          "coach_review",
+          "training_session_saved",
+          "firestore_saved",
+          "parent_delivery",
+          "parent_pdf_generated"
+        ]
+      },
+      "coachVoc": { "rating": null, "comment": null, "note": "Run Day 5 배치 수집 가능" },
+      "parentVoc": { "rating": null, "comment": null, "note": "Run Day 5 배치 수집 가능" },
+      "improvementRequests": [],
+      "opsChecklist": {
+        "upload": true,
+        "aiAnalysis": true,
+        "growthDashboard": true,
+        "coachReview": true,
+        "sessionSave": true,
+        "firestore": true,
+        "parentDelivery": true,
+        "parentPdf": true,
+        "voc": false
+      }
     },
     {
       "runDay": 5,
-      "runDate": null,
+      "runDate": "2026-07-03",
       "status": "pending",
       "mediaId": null,
       "matchId": null,
@@ -204,17 +233,16 @@
   ],
   "kpiRollup": {
     "asOf": "2026-07-03",
-    "totalRunsAttempted": 3,
-    "totalRunsCompleted": 3,
-    "totalRunsUiE2ePass": 3,
-    "totalRunsPendingVoc": 0,
-    "totalRunsVocDeferred": 1,
+    "totalRunsAttempted": 4,
+    "totalRunsCompleted": 4,
+    "totalRunsUiE2ePass": 4,
+    "totalRunsVocDeferred": 2,
     "totalRunsFailed": 0,
     "uploadSuccessRate": 1.0,
     "whisperSuccessRate": 1.0,
     "parentReportRate": 1.0,
     "parentPdfRate": 1.0,
-    "parentDeliveryMockRate": 1.0,
+    "parentDeliveryRate": 1.0,
     "successRate": 1.0,
     "avgPipelineElapsedMs": 236755,
     "avgVideoDurationSec": 101,
@@ -223,9 +251,9 @@
     "coachAvgRating": 5.0,
     "parentAvgRating": 5.0,
     "closureProgress": {
-      "sessionsProcessed": "3/5",
-      "coachVoc": "2/5 (+1 Day3 deferred)",
-      "parentVoc": "2/5 (+1 Day3 deferred)"
+      "sessionsProcessed": "4/5",
+      "coachVoc": "2/5 (+2 Day3-4 deferred)",
+      "parentVoc": "2/5 (+2 Day3-4 deferred)"
     }
   },
   "betaBacklog": [
@@ -233,5 +261,5 @@
     { "id": "BL-002", "topic": "CF lazy export (processVisionUploadQueue, submitVisionPilotFeedback)", "severity": "medium", "status": "open" },
     { "id": "BL-003", "topic": "visionPilotOpsLog Firestore live 구조 점검", "severity": "low", "status": "open" }
   ],
-  "opsNotes": "RC5-5 ACTIVE (2026-07-03). Run Day 1~3 PASS. Day3: session·deliveryLogs·Parent PDF 3p(홍길동·OVR85)·Mock·Storage. Day3 VOC deferred. KPI sessions 3/5 · VOC 2/5. Run Day 4~5 pending."
+  "opsNotes": "RC5-5 ACTIVE (2026-07-03). Run Day 1~4 PASS. Day4: upload·AI·Growth Dashboard·Coach Review·session·Firestore·Parent PDF·delivery. KPI sessions 4/5 · VOC 2/5. Run Day 5 = RC5-5 closure run pending."
 }
