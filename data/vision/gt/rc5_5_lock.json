@@ -62,5 +62,33 @@
     "rc5_5_closure_ready": true,
     "pilotPhaseQuantitativeKpi": false
   },
-  "nextMilestone": "Pilot Phase (실전 테스트) — 정량 KPI · VOC 5+5 · 실사용자 증빙"
+  "nextMilestone": "Pilot Phase (~4주) → Production Ready 선언",
+  "pilotPhasePlan": {
+    "status": "READY",
+    "durationWeeks": 4,
+    "goal": "플랫폼 안정 운영 입증 · 실사용자 VOC · Production Ready 판정",
+    "schedule": [
+      { "week": 1, "label": "Pilot Week 1", "focus": "실제 사용자 적응 · 버그 확인" },
+      { "week": 2, "label": "Pilot Week 2", "focus": "반복 사용 · VOC 수집" },
+      { "week": "3-4", "label": "Pilot Week 3~4", "focus": "운영 안정성 · 효과 검증" }
+    ],
+    "collectMetrics": [
+      "actual_upload_count",
+      "ai_analysis_success_rate",
+      "coach_review_completion_rate",
+      "pdf_generation_success_rate",
+      "parent_delivery_success_rate",
+      "coach_voc",
+      "parent_voc",
+      "error_count_and_resolution"
+    ],
+    "exitCriteria": [
+      "stable_operation_4_weeks",
+      "ai_success_rate_95pct_plus",
+      "no_critical_bugs",
+      "positive_real_user_voc",
+      "production_ready_evidence_sufficient"
+    ],
+    "exitVerdict": "Production Ready 선언 및 정식 운영"
+  }
 }
