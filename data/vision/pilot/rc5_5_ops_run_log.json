@@ -49,20 +49,58 @@
     },
     {
       "runDay": 2,
-      "runDate": null,
-      "status": "pending",
-      "mediaId": null,
-      "matchId": null,
+      "runDate": "2026-07-03",
+      "status": "pass",
+      "mediaId": "49233eed6d254127b49e98ee",
+      "matchId": "vision-pilot-pass01-clip-002",
       "runId": null,
-      "visionResult": null,
-      "pipelineElapsedMs": null,
-      "videoDurationSec": null,
+      "visionResult": "completed",
+      "pipelineElapsedMs": 430723,
+      "videoDurationSec": 202,
       "segmentCount": null,
-      "parentReportGenerated": null,
+      "parentReportGenerated": true,
+      "privacyStatus": "anonymized",
+      "createdAt": "2026-07-03T10:06:50",
+      "completedAt": "2026-07-03T10:14:27",
       "errorCode": null,
       "errorNote": null,
-      "coachVoc": { "rating": null, "comment": null },
-      "parentVoc": { "rating": null, "comment": null },
+      "backendEvidence": {
+        "verifiedAt": "2026-07-03",
+        "source": "firestore_console",
+        "firestorePath": "teams/D7TUZaOtfxdBc4P0lQLx/aiIngest/49233eed6d254127b49e98ee",
+        "mediaStatus": "completed"
+      },
+      "uiE2e": {
+        "verifiedAt": "2026-07-03",
+        "method": "screenshot",
+        "verdict": "UI_E2E_PASS",
+        "stepsConfirmed": [
+          "STEP1_Upload",
+          "STEP2_Whisper",
+          "STEP3_AI_Tag",
+          "STEP4_Coach_Review",
+          "STEP5_Parent_Report"
+        ],
+        "dashboards": {
+          "growthReport": true,
+          "seasonDashboard": { "intensitySessions": 2, "avgScore": 85, "strengthEvents": 6, "approvalRate": 1.0 },
+          "ovrEngine": { "ovr": 85, "vision": 88, "pressure": 88, "recovery": 74 },
+          "growthTrend": true,
+          "evidenceFirstCoach": true
+        }
+      },
+      "coachVoc": {
+        "rating": 5,
+        "comment": "업로드가 쉬웠고 AI 분석 결과를 이해하기 쉬웠다.",
+        "recordedAt": "2026-07-03",
+        "source": "run_record_json"
+      },
+      "parentVoc": {
+        "rating": 5,
+        "comment": "성장 리포트가 이해하기 쉬웠고 도움이 되었다.",
+        "recordedAt": "2026-07-03",
+        "source": "run_record_json"
+      },
       "improvementRequests": []
     },
     {
@@ -122,22 +160,25 @@
   ],
   "kpiRollup": {
     "asOf": "2026-07-03",
-    "totalRunsAttempted": 1,
-    "totalRunsCompleted": 1,
+    "totalRunsAttempted": 2,
+    "totalRunsCompleted": 2,
+    "totalRunsUiE2ePass": 2,
+    "totalRunsPendingBackend": 0,
     "totalRunsFailed": 0,
     "uploadSuccessRate": 1.0,
     "whisperSuccessRate": 1.0,
     "parentReportRate": 1.0,
     "successRate": 1.0,
-    "avgPipelineElapsedMs": 42786,
-    "coachVocCount": 1,
-    "parentVocCount": 1,
+    "avgPipelineElapsedMs": 236755,
+    "avgVideoDurationSec": 101,
+    "coachVocCount": 2,
+    "parentVocCount": 2,
     "coachAvgRating": 5.0,
     "parentAvgRating": 5.0,
     "closureProgress": {
-      "mp4Processed": "1/5",
-      "coachVoc": "1/5",
-      "parentVoc": "1/5"
+      "mp4Processed": "2/5",
+      "coachVoc": "2/5",
+      "parentVoc": "2/5"
     }
   },
   "betaBacklog": [
@@ -145,5 +186,5 @@
     { "id": "BL-002", "topic": "CF lazy export (processVisionUploadQueue, submitVisionPilotFeedback)", "severity": "medium", "status": "open" },
     { "id": "BL-003", "topic": "visionPilotOpsLog Firestore live 구조 점검", "severity": "low", "status": "open" }
   ],
-  "opsNotes": "RC5-5 ACTIVE (2026-07-03). Run Day 1 → rc5_4_live_run_record 이관. Run Day 2~5 pending. KPI·VOC 누적 SoT. 기능 변경 없이 동일 E2E 반복. SoT: docs/YAGO_VISION_RC5_OPS_KPI_DASHBOARD.md"
+  "opsNotes": "RC5-5 ACTIVE (2026-07-03). Run Day 1~2 PASS. Day2 mediaId 49233eed6d254127b49e98ee · 430723ms · 202s · privacy anonymized. Run Day 3~5 pending. KPI 2/5. SoT: docs/YAGO_VISION_RC5_OPS_KPI_DASHBOARD.md"
 }

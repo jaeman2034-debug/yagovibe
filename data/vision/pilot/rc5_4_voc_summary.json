@@ -1,18 +1,28 @@
 {
   "schemaVersion": "yago-vision-rc5-pilot-voc-summary-v1",
-  "phase": "rc5_4_pilot_beta",
+  "phase": "rc5_5_production_operations",
   "date": "2026-07-03",
-  "runLabel": "Run Day 1",
+  "runLabel": "Run Day 1~2",
   "teamId": "D7TUZaOtfxdBc4P0lQLx",
-  "matchId": "vision-pilot-pass01-clip-002",
-  "mediaId": "e246e63c61fa48629b523962",
   "coach": [
     {
       "runDay": 1,
       "date": "2026-07-03",
       "persona": "coach",
+      "mediaId": "e246e63c61fa48629b523962",
+      "matchId": "vision-pilot-pass01-clip-002",
       "rating": 5,
       "comment": "영상 업로드 과정이 직관적이었고 분석이 정상적으로 완료되었습니다. AI 태그와 성장 리포트를 이해하기 쉬웠습니다. 처리 속도도 운영에 사용할 수 있는 수준이었습니다.",
+      "source": "run_record_json"
+    },
+    {
+      "runDay": 2,
+      "date": "2026-07-03",
+      "persona": "coach",
+      "mediaId": "49233eed6d254127b49e98ee",
+      "matchId": "vision-pilot-pass01-clip-002",
+      "rating": 5,
+      "comment": "업로드가 쉬웠고 AI 분석 결과를 이해하기 쉬웠다.",
       "source": "run_record_json"
     }
   ],
@@ -22,24 +32,36 @@
       "date": "2026-07-03",
       "persona": "parent",
       "playerId": "player-ap-63d56190",
+      "mediaId": "e246e63c61fa48629b523962",
+      "matchId": "vision-pilot-pass01-clip-002",
       "rating": 5,
       "comment": "성장 리포트가 이해하기 쉬웠습니다. 레이더 차트와 AI 설명이 도움이 되었습니다. 앞으로 리포트를 계속 받아보고 싶습니다.",
+      "source": "run_record_json"
+    },
+    {
+      "runDay": 2,
+      "date": "2026-07-03",
+      "persona": "parent",
+      "playerId": "player-ap-63d56190",
+      "mediaId": "49233eed6d254127b49e98ee",
+      "matchId": "vision-pilot-pass01-clip-002",
+      "rating": 5,
+      "comment": "성장 리포트가 이해하기 쉬웠고 도움이 되었다.",
       "source": "run_record_json"
     }
   ],
   "summary": {
-    "coachAvgRating": 5,
-    "parentAvgRating": 5,
-    "coachCount": 1,
-    "parentCount": 1,
+    "coachAvgRating": 5.0,
+    "parentAvgRating": 5.0,
+    "coachCount": 2,
+    "parentCount": 2,
     "positiveThemes": [
       "업로드 직관성",
-      "AI 태그·리포트 이해도",
-      "처리 속도 운영 가능",
+      "AI 분석·리포트 이해도",
       "레이더·AI 설명 유용",
       "지속 수신 의향"
     ],
     "issues": []
   },
-  "notes": "Run Day 1 VOC — JSON SoT. Run Day 2+ 누적: rc5_5_ops_run_log.json · rc5_4_voc_summary.json 동기화. 목표: Coach/Parent 각 5건+ (RC5-5 closure)."
+  "notes": "Run Day 1~2 VOC. SoT: rc5_5_ops_run_log.json. 목표: Coach/Parent 각 5건+ (RC5-5 closure)."
 }

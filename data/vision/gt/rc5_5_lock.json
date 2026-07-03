@@ -30,7 +30,7 @@
   },
   "gates": {
     "runDay1Baseline": true,
-    "runDay2": false,
+    "runDay2": true,
     "runDay3": false,
     "runDay4": false,
     "runDay5": false,
