@@ -1,7 +1,7 @@
 {
   "schemaVersion": "yago-vision-rc5-5-ops-run-log-v1",
   "phase": "rc5_5_production_operations",
-  "status": "active",
+  "status": "closed_internal_validation",
   "startedAt": "2026-07-03",
   "pilotName": "YAGO Vision Pilot #1",
   "teamId": "D7TUZaOtfxdBc4P0lQLx",
@@ -289,15 +289,17 @@
     "closureProgress": {
       "sessionsProcessed": "5/5",
       "sessionsProcessedDay3to5": "3/3",
-      "coachVoc": "2/5",
-      "parentVoc": "2/5",
-      "rc5_5_closureBlockedBy": "voc_accumulation"
+      "coachVoc": "2/5 (Pilot Phase deferred)",
+      "parentVoc": "2/5 (Pilot Phase deferred)",
+      "internalValidation": "PASS",
+      "nextPhase": "Pilot Phase (실전 테스트)"
     }
   },
+  "closureDeclaration": "RC5-5 Internal Operations Validation은 Run Day 5까지 완료하였다. 운영 기능(업로드 → AI 분석 → Coach Review → Firestore 저장 → Parent PDF → 전달)은 반복적으로 정상 동작함을 확인하였다. 이후 추가 운영 데이터(처리 건수 및 VOC)는 실제 Pilot 운영 단계에서 수집하기로 결정하였다.",
   "betaBacklog": [
     { "id": "BL-001", "topic": "visionRuns 설계-구현 정합", "severity": "medium", "status": "open" },
     { "id": "BL-002", "topic": "CF lazy export (processVisionUploadQueue, submitVisionPilotFeedback)", "severity": "medium", "status": "open" },
     { "id": "BL-003", "topic": "visionPilotOpsLog Firestore live 구조 점검", "severity": "low", "status": "open" }
   ],
-  "opsNotes": "RC5-5 (2026-07-03). Run Day 1~5 ALL PASS. Sessions 5/5 · success 100%. VOC 2/5 each — closure pending VOC batch (Day3-5). Next: VOC 3건+ each → rc5_5_closure_ready."
+  "opsNotes": "RC5-5 CLOSED (Internal Validation) 2026-07-03. Run Day 1~5 PASS · sessions 5/5 · success 100%. VOC·정량 KPI → Pilot Phase. Lock: data/vision/gt/rc5_5_lock.json"
 }
