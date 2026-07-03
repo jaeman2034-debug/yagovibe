@@ -1,0 +1,248 @@
+{
+  "schemaVersion": "yago-vision-pilot-gev-gt-manifest-v1",
+  "updated": "2026-07-03",
+  "phase": "rc5_m5",
+  "rc2_2_2_pass_ready": true,
+  "rc3_pass_ready": true,
+  "rc4_pass_ready": true,
+  "productionPreset": "rc3_1_phase_c",
+  "e2eDemo": "pass",
+  "rc5Kickoff": {
+    "date": "2026-06-30",
+    "status": "started",
+    "productionPreset": "rc3_1_phase_c",
+    "referenceGtLocked": true,
+    "kickoffReport": "docs/YAGO_VISION_RC5_KICKOFF.md",
+    "rc5_1Design": "docs/YAGO_VISION_RC5_1_FIRESTORE_PIPELINE_DESIGN.md",
+    "declaration": "RC5 Production Operations START — Firestore · Upload Queue · Job Monitor · Beta."
+  },
+  "rc5M1": {
+    "date": "2026-06-30",
+    "verdict": "CLOSED",
+    "milestoneReport": "docs/YAGO_VISION_RC5_1_REPORT.md",
+    "closureReport": "docs/YAGO_VISION_RC5_1_CLOSURE_REPORT.md",
+    "lockPath": "data/vision/gt/rc5_1_lock.json",
+    "schemaDoc": "docs/YAGO_VISION_RC5_1_FIRESTORE_SCHEMA.md",
+    "gateScript": "scripts/vision/rc5_1_pipeline_gate.py",
+    "workerPipeline": "m2",
+    "productionPreset": "rc3_1_phase_c",
+    "declaration": "RC5-1 CLOSED — Firestore production pipeline wiring."
+  },
+  "rc5M2": {
+    "date": "2026-06-30",
+    "verdict": "CLOSED",
+    "milestoneReport": "docs/YAGO_VISION_RC5_2_REPORT.md",
+    "closureReport": "docs/YAGO_VISION_RC5_2_CLOSURE_REPORT.md",
+    "designDoc": "docs/YAGO_VISION_RC5_2_UPLOAD_QUEUE_DESIGN.md",
+    "lockPath": "data/vision/gt/rc5_2_lock.json",
+    "gateScript": "scripts/vision/rc5_2_upload_queue_gate.py",
+    "declaration": "RC5-2 CLOSED — Auto Upload Queue."
+  },
+  "rc5M3": {
+    "date": "2026-06-30",
+    "verdict": "CLOSED",
+    "milestoneReport": "docs/YAGO_VISION_RC5_3_REPORT.md",
+    "closureReport": "docs/YAGO_VISION_RC5_3_CLOSURE_REPORT.md",
+    "designDoc": "docs/YAGO_VISION_RC5_3_JOB_MONITOR_DESIGN.md",
+    "lockPath": "data/vision/gt/rc5_3_lock.json",
+    "gateScript": "scripts/vision/rc5_3_job_monitor_gate.py",
+    "declaration": "RC5-3 CLOSED — Job Monitor."
+  },
+  "rc5M4": {
+    "date": "2026-07-03",
+    "verdict": "PASS",
+    "milestoneReport": "docs/YAGO_VISION_RC5_4_REPORT.md",
+    "designDoc": "docs/YAGO_VISION_RC5_4_PILOT_BETA_DESIGN.md",
+    "lockPath": "data/vision/gt/rc5_4_lock.json",
+    "gateScript": "scripts/vision/rc5_4_pilot_beta_gate.py",
+    "pilotConfig": "data/vision/pilot/rc5_4_pilot_academy.json",
+    "liveRunSheet": "docs/YAGO_VISION_RC5_4_LIVE_PILOT_RUN_SHEET.md",
+    "liveRunRecord": "data/vision/pilot/rc5_4_live_run_record.json",
+    "vocSummary": "data/vision/pilot/rc5_4_voc_summary.json",
+    "runDay1MediaId": "e246e63c61fa48629b523962",
+    "declaration": "RC5-4 PASS — Run Day 1 liveBetaPass · Gate 10/10 · VOC 2건."
+  },
+  "rc5M5": {
+    "date": "2026-07-03",
+    "verdict": "IN_PROGRESS",
+    "lockPath": "data/vision/gt/rc5_5_lock.json",
+    "opsRunLog": "data/vision/pilot/rc5_5_ops_run_log.json",
+    "kpiDashboard": "docs/YAGO_VISION_RC5_OPS_KPI_DASHBOARD.md",
+    "declaration": "RC5-5 ACTIVE — Run Day 2~5 운영 반복 · KPI 누적 · Beta Backlog 병행."
+  },
+  "rc2Closure": {
+    "date": "2026-06-30",
+    "verdict": "PASS",
+    "snapshotPath": "data/vision/gt/rc2_2_2_metrics_snapshot.json",
+    "closureReport": "docs/YAGO_VISION_RC2_CLOSURE_REPORT.md",
+    "declaration": "RC2-2.2 GT Validation PASS — 139 GT events, 4 pilot clips. RC3 uses this as Reference GT."
+  },
+  "rc3Closure": {
+    "date": "2026-06-29",
+    "verdict": "CLOSED",
+    "snapshotPath": "data/vision/gt/rc3_metrics_snapshot.json",
+    "closureReport": "docs/YAGO_VISION_RC3_CLOSURE_REPORT.md",
+    "productionPreset": "rc3_1_phase_c",
+    "declaration": "RC3 CLOSED — GEV rc3_1_phase_c production. Pooled Micro F1 0.740. RC4 Platform Integration next."
+  },
+  "rc4Kickoff": {
+    "date": "2026-06-29",
+    "verdict": "START",
+    "kickoffReport": "docs/YAGO_VISION_RC4_KICKOFF.md",
+    "declaration": "RC4 Platform Integration START — Video → GEV → FII → Insight → Platform UI."
+  },
+  "rc4M1": {
+    "date": "2026-06-30",
+    "verdict": "PASS",
+    "milestoneReport": "docs/YAGO_VISION_RC4_1_M1_REPORT.md",
+    "lockPath": "data/vision/gt/rc4_1_m1_lock.json",
+    "pilotRunDir": "data/vision/pipeline/runs/rc4_m1_pass01_clip_002",
+    "declaration": "RC4-1 M1 PASS — Video → Tracking → GEV(rc3_1_phase_c) E2E + latency."
+  },
+  "rc4M2": {
+    "date": "2026-06-30",
+    "verdict": "PASS",
+    "milestoneReport": "docs/YAGO_VISION_RC4_2_M2_REPORT.md",
+    "lockPath": "data/vision/gt/rc4_2_m2_lock.json",
+    "fiiEngine": "yago-worker/lib/vision/fii_engine.py",
+    "pilotFiiDir": "data/vision/pipeline/runs/rc4_m1_pass01_clip_002/fii",
+    "declaration": "RC4-2 M2 PASS — GEV(rc3_1_phase_c) → Player/Team FII + Match Summary."
+  },
+  "rc4M3": {
+    "date": "2026-06-30",
+    "verdict": "PASS",
+    "milestoneReport": "docs/YAGO_VISION_RC4_3_M3_REPORT.md",
+    "lockPath": "data/vision/gt/rc4_3_m3_lock.json",
+    "fiiSummaryFixture": "public/fixtures/vision/rc4_m2_fii_summary_clip_002.json",
+    "matchDetailRoute": "/teams/:teamId/vision/match/:matchId",
+    "declaration": "RC4-3 M3 PASS — fii_summary.json → Coach Dashboard + Match Detail."
+  },
+  "rc4M4": {
+    "date": "2026-06-30",
+    "verdict": "PASS",
+    "milestoneReport": "docs/YAGO_VISION_RC4_4_M4_REPORT.md",
+    "lockPath": "data/vision/gt/rc4_4_m4_lock.json",
+    "parentInsightsSource": "fii_summary.json → parentInsights",
+    "parentHomeRoute": "/home/parent",
+    "parentReportRoute": "/home/parent/vision/report",
+    "declaration": "RC4-4 M4 PASS — parentInsights → Parent Home + Parent Report."
+  },
+  "rc4M5": {
+    "date": "2026-06-30",
+    "verdict": "PASS",
+    "milestoneReport": "docs/YAGO_VISION_RC4_5_M5_REPORT.md",
+    "lockPath": "data/vision/gt/rc4_5_m5_lock.json",
+    "navigationModule": "src/lib/vision/visionPlatformRoutes.ts",
+    "teamHubRoute": "/teams/:teamId/play",
+    "declaration": "RC4-5 M5 PASS — Vision platform navigation + Team Hub / Match / Profile integration."
+  },
+  "rc4M6": {
+    "date": "2026-06-30",
+    "verdict": "PASS",
+    "milestoneReport": "docs/YAGO_VISION_RC4_6_M6_REPORT.md",
+    "screenshotGuide": "docs/YAGO_VISION_RC4_6_M6_SCREENSHOT_GUIDE.md",
+    "lockPath": "data/vision/gt/rc4_6_m6_lock.json",
+    "orchestrator": "scripts/vision/rc4_6_e2e_demo.py",
+    "demoFixture": "public/fixtures/vision/rc4_6_e2e_demo_summary.json",
+    "e2eDemoRoute": "/teams/:teamId/vision/demo",
+    "declaration": "RC4-6 M6 PASS — End-to-End Demo: Upload → GEV → FII → Coach → Parent → Platform UI."
+  },
+  "rc4Closure": {
+    "date": "2026-06-30",
+    "verdict": "CLOSED",
+    "snapshotPath": "data/vision/gt/rc4_metrics_snapshot.json",
+    "closureReport": "docs/YAGO_VISION_RC4_CLOSURE_REPORT.md",
+    "productionPreset": "rc3_1_phase_c",
+    "e2eDemo": "pass",
+    "pilotMatchId": "vision-pilot-pass01-clip-002",
+    "declaration": "RC4 CLOSED — Platform Integration complete. Video → GEV → FII → Coach → Parent → Platform UI E2E Demo PASS. RC5 Production Operations next."
+  },
+  "gtDatasetLock": {
+    "locked": true,
+    "doNotModifyEvents": true,
+    "files": [
+      "data/vision/gt/pilot_pass01_gev_gt_aggregate.json",
+      "data/vision/gt/pilot_pass01_clip_001_gev_gt.json",
+      "data/vision/gt/pilot_pass01_clip_002_gev_gt.json",
+      "data/vision/gt/pilot_pass01_clip_003_gev_gt.json",
+      "data/vision/gt/pilot_pass01_clip_004_gev_gt.json"
+    ]
+  },
+  "sourceTier": "Pass_01 Amateur",
+  "passCriteria": {
+    "minTotalEvents": 50,
+    "minClips": 4,
+    "minDurationS": 120,
+    "minPerType": {
+      "PASS": 10,
+      "RECEIVE": 10,
+      "TURNOVER": 10
+    },
+    "transitionEvalRequiresPred": true,
+    "requiresAggregateGt": true,
+    "requiresPerClipMetrics": true,
+    "notes": "RC2-2.2 PASS 🔒: 4 pilot clips, 50+ GT events, aggregate GT + gt_metrics.json."
+  },
+  "clips": [
+    {
+      "clipId": "pass01_clip_001",
+      "status": "seed",
+      "duration_s": 30,
+      "fps": 30,
+      "videoPath": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_001.mp4",
+      "metaPath": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_001.meta.json",
+      "gtPath": "data/vision/gt/pilot_pass01_clip_001_gev_gt.json",
+      "session": "20201110_General_102_DOS_S_M10_MB",
+      "frameRange": [1, 900],
+      "selectionGoal": "Validation baseline — pass/receive seed",
+      "targetEventCount": 15
+    },
+    {
+      "clipId": "pass01_clip_002",
+      "status": "complete",
+      "duration_s": 57.467,
+      "fps": 30,
+      "videoPath": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_002.mp4",
+      "metaPath": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_002.meta.json",
+      "gtPath": "data/vision/gt/pilot_pass01_clip_002_gev_gt.json",
+      "session": "20201110_General_102_DOS_S_M10_MB",
+      "frameRange": [901, 2624],
+      "selectionGoal": "Same session continuation after clip_001 (val JPG → MP4)",
+      "targetEventCount": 15
+    },
+    {
+      "clipId": "pass01_clip_003",
+      "status": "complete",
+      "duration_s": 60,
+      "fps": 30,
+      "videoPath": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_003.mp4",
+      "metaPath": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_003.meta.json",
+      "gtPath": "data/vision/gt/pilot_pass01_clip_003_gev_gt.json",
+      "session": "20201110_General_102_DOS_S_M20_MB",
+      "imageSource": "data/vision/pass_01_full/images/train",
+      "frameRange": [1, 1800],
+      "selectionGoal": "Train-split session (M20_MB) — different camera tier from clip_001/002",
+      "targetEventCount": 15
+    },
+    {
+      "clipId": "pass01_clip_004",
+      "status": "complete",
+      "duration_s": 60,
+      "fps": 30,
+      "videoPath": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_004.mp4",
+      "metaPath": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_004.meta.json",
+      "gtPath": "data/vision/gt/pilot_pass01_clip_004_gev_gt.json",
+      "session": "20201110_General_102_DOS_S_M20_MB",
+      "imageSource": "data/vision/pass_01_full/images/train",
+      "frameRange": [1801, 3600],
+      "selectionGoal": "M20_MB continuation — turnover/transition coverage",
+      "targetEventCount": 15
+    }
+  ],
+  "workflow": [
+    "STEP1: python scripts/vision_gev_gt_annotator.py (video + gt + candidates + tracks) — human verify, no auto-import",
+    "STEP2: python scripts/vision_gev_gt_scaffold.py validate --clip pass01_clip_002",
+    "STEP3: python scripts/vision_gev_gt_metrics.py --gt data/vision/gt/pilot_pass01_clip_002_gev_gt.json --pred data/vision/tracking/runs/pass01_clip_002/gev_v2_1/gev_events.jsonl",
+    "STEP4: python scripts/vision_gev_gt_scaffold.py aggregate"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "yago-vision-rc5-milestone-lock-v1",
+  "milestone": "RC5-4",
+  "phase": "Pilot Beta",
+  "date": "2026-07-03",
+  "verdict": "PASS",
+  "liveBetaPass": true,
+  "extends": "data/vision/gt/rc5_3_lock.json",
+  "productionPreset": "rc3_1_phase_c",
+  "pilotConfig": "data/vision/pilot/rc5_4_pilot_academy.json",
+  "liveRunRecord": "data/vision/pilot/rc5_4_live_run_record.json",
+  "vocSummary": "data/vision/pilot/rc5_4_voc_summary.json",
+  "runDay1": {
+    "date": "2026-07-03",
+    "mediaId": "e246e63c61fa48629b523962",
+    "pipelineElapsedMs": 42786,
+    "gateScore": "10/10"
+  },
+  "backlog": [
+    "visionRuns 서브컬렉션 — Run Day 1 미관측 · 설계-구현 정합",
+    "submitVisionPilotFeedback / processVisionUploadQueue CF lazy export",
+    "visionPilotOpsLog Firestore live 확인 (Run Day 1: run_record JSON SoT)"
+  ],
+  "forbiddenTouched": [
+    "Reference GT",
+    "vision_gev_engine.py",
+    "fii_engine.py",
+    "Baseline",
+    "Report Layer (scripts/report/*)"
+  ],
+  "firestorePaths": {
+    "opsLog": "teams/{teamId}/visionPilotOpsLog/{runId}",
+    "voc": "teams/{teamId}/visionPilotVoc/{vocId}"
+  },
+  "gates": {
+    "pilotAcademyConfig": true,
+    "opsLogWiring": true,
+    "vocWiring": true,
+    "pilotBetaHub": true,
+    "jobMonitorIntegration": true,
+    "fixtureFallback": true,
+    "rc5_3_regression": true,
+    "liveMp4Processed": true,
+    "coachUiVerified": true,
+    "parentUiVerified": true,
+    "timelineVerified": true,
+    "opsLogLive": true,
+    "pilotVocCaptured": true,
+    "rc5_4_infra_pass": true
+  },
+  "nextMilestone": "RC5-5 Production Operations (ACTIVE — rc5_5_lock.json)"
+}
