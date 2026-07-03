@@ -301,5 +301,12 @@
     { "id": "BL-002", "topic": "CF lazy export (processVisionUploadQueue, submitVisionPilotFeedback)", "severity": "medium", "status": "open" },
     { "id": "BL-003", "topic": "visionPilotOpsLog Firestore live 구조 점검", "severity": "low", "status": "open" }
   ],
-  "opsNotes": "RC5-5 CLOSED (Internal Validation) 2026-07-03. Run Day 1~5 PASS · sessions 5/5 · success 100%. VOC·정량 KPI → Pilot Phase. Lock: data/vision/gt/rc5_5_lock.json"
+  "pilotPhase": {
+    "status": "READY",
+    "durationWeeks": 4,
+    "startDate": null,
+    "endDate": null,
+    "note": "RC5-5 Internal Validation CLOSED. 실전 데이터는 안정 운영 입증 수준까지 수집 후 Production Ready 판정."
+  },
+  "opsNotes": "RC5-5 CLOSED (Internal Validation) 2026-07-03. Run Day 1~5 PASS. Next: Pilot Phase ~4주. Lock: data/vision/gt/rc5_5_lock.json"
 }
