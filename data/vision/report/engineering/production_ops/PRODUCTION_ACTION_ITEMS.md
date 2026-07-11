@@ -23,7 +23,7 @@
 
 | ID | Item | Status | Owner | Note |
 |---|---|---|---|---|
-| **PAI-011** | VOC-011 — 또래(팀·연령) 평균 기준선 | ✅ **PASS** | PM · Eng | 구현 검증 완료 · Manual QA FINAL PASS · Visual ACCEPTED · **COMPLETE/CLOSED 금지** (Prod 배포 전) · Day-03 분리 |
+| **PAI-011** | VOC-011 — 또래(팀·연령) 평균 기준선 | ✅ **PASS** · ▶ **Post-Deploy Smoke 대기** | PM · Eng | Hosting **Deployed** `64270a3` · 20:56 KST · `PAI_011_DEPLOY_FACT.md` · **COMPLETE/CLOSED 금지** · Day-03 분리 |
 | **PAI-012** | VOC-012 — 기간 데이터 비교 시각화 | ▶ 관찰 | Product | Count **7** · Coach 출처 중심 · 적용 범위 구분 |
 
 VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validation/E2_ENGINEERING_BACKLOG.md`
