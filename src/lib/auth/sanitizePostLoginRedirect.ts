@@ -17,6 +17,7 @@ function isLoopbackLikeHost(hostname: string): boolean {
 const TRUSTED_PATH_PREFIXES = [
   "/invite",
   "/hub",
+  "/home",
   "/teams",
   "/federations",
   "/association",

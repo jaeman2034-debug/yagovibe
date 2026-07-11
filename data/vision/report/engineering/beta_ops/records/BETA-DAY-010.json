@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "yago-vision-beta-ops-record-v1",
+  "recordId": "BETA-DAY-010",
+  "betaDay": 10,
+  "capturedAt": "2026-07-19",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "opsSoTReference": "data/vision/report/pilot1/bestone/YAGO_PILOT1_BESTONE_SOT_LOG.md",
+  "status": "OFFICIAL_FACT_LOCKED",
+  "ownerConfirmed": true,
+  "dataQuality": {
+    "note": "Official Fact와 devAnalysisMemo 분리. Beta Week-2 Day-10. PM LOCK."
+  },
+  "session": {
+    "operatedAt": "2026-07-19",
+    "label": "Beta Day-10",
+    "weekNote": "Beta Week-2"
+  },
+  "operationalFacts": {
+    "coachReportGenerated": true,
+    "parentReportGenerated": true,
+    "kakaoAlimtalkSent": true,
+    "mobileViewerUsed": true,
+    "loginIssueObserved": true,
+    "operationalErrorsObserved": false
+  },
+  "betaIssues": {
+    "newIssues": [],
+    "linkedIssues": [
+      {
+        "issueId": "BETA-ISSUE-001",
+        "day10Observation": "reproduced_iphone_not_android",
+        "officialFact": "iPhone 14 Pro(iOS 17.5.1) + 카카오 알림톡 인앱 브라우저에서 /login 페이지가 다시 요구됨. Android에서는 동일 현상이 관측되지 않음.",
+        "note": "iPhone 재현 · Android 미재현 · Parent 독립사용 N · OPEN 유지"
+      }
+    ]
+  },
+  "coachInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "usedInCoaching": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "usageQuoteVerbatim": "오늘 경기 중반에 미드필더진 활동량 정체 구간이 리포트에 찍힌 걸 보고, 다음 주 전술 훈련 때는 빌드업 시 측면 공간 활용 훈련을 더 배치하기로 결정했습니다. 데이터가 매번 든든한 기준이 되어 줍니다.",
+    "usageNote": "활동량 정체 구간 → 다음 주 전술 훈련(측면 공간 활용 빌드업) 결정"
+  },
+  "parentInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "understoodChildBetter": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "N"
+    },
+    "childUnderstandingQuoteVerbatim": "매주 리포트를 챙겨 보니까 아이가 지쳤을 때와 컨디션이 좋을 때가 숫자로 딱 비교가 돼서 설명해 주기가 너무 편해요.",
+    "operationalFrictionVerbatim": "근데 오늘도 카톡 링크 열 때 로그인 화면이 또 가로막아서 매번 비번 치는 건 정말 번거롭네요.",
+    "frictionNote": "독립 사용 Gate N (BETA-ISSUE-001 · iPhone 카카오 인앱 로그인 재요구)"
+  },
+  "vocDeltas": [
+    { "vocId": "VOC-011", "delta": 1, "source": "parent", "theme": "또래 평균 기준선" },
+    { "vocId": "VOC-012", "delta": 1, "source": "coach", "theme": "기간 데이터 비교 활용" }
+  ],
+  "daySummary": {
+    "coachGate": "4/4 Y",
+    "parentGate": "3/4 Y (독립사용 N — 로그인 재요구)",
+    "stability": "Report·알림톡·모바일 정상 · 운영 오류 없음 · ISSUE-001 iPhone 재현/Android 미재현"
+  },
+  "pmReview": {
+    "decision": "OFFICIAL_FACT_LOCKED",
+    "productionReview": "PENDING",
+    "note": "Coach 4/4 · Parent 3/4 · VOC-011=12 · VOC-012=5(Coach) · Quote 확정"
+  }
+}

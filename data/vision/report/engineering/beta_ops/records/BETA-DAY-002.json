@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "yago-vision-beta-ops-record-v1",
+  "recordId": "BETA-DAY-002",
+  "betaDay": 2,
+  "capturedAt": "2026-07-11",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "opsSoTReference": "data/vision/report/pilot1/bestone/YAGO_PILOT1_BESTONE_SOT_LOG.md",
+  "status": "OFFICIAL_FACT_RECORDED",
+  "ownerConfirmed": true,
+  "dataQuality": {
+    "note": "Official Fact(관측·원문)와 해석/분류 분리. Ops SoT 미반영. BETA-ISSUE-001 Day-02 미재현 — 완전 해결 단정 없음."
+  },
+  "session": {
+    "operatedAt": "2026-07-11",
+    "label": "Beta Day-02"
+  },
+  "operationalFacts": {
+    "coachReportGenerated": true,
+    "parentReportGenerated": true,
+    "kakaoAlimtalkSent": true,
+    "mobileViewerUsed": true,
+    "autoLoginNormal": true,
+    "operationalErrorsObserved": false
+  },
+  "betaIssues": {
+    "newIssues": [],
+    "linkedIssues": [
+      {
+        "issueId": "BETA-ISSUE-001",
+        "day02Observation": "not_reproduced",
+        "note": "Day-02 운영 중 iPhone 카카오 인앱 세션 이슈 재현 없음 · 추가 관찰 계속"
+      }
+    ]
+  },
+  "coachInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "usedInCoaching": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "usageQuoteVerbatim": "전환 속도 높이는 드릴을 집중적으로 적용했습니다.",
+    "usageNote": "AI Report → 훈련 프로그램 변경 (드릴 구성)"
+  },
+  "parentInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "understoodChildBetter": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "frictionNote": "로그인 불편 없음 · Parent UX 안정 관측"
+  },
+  "vocDeltas": [
+    { "vocId": "VOC-011", "delta": 1, "source": "parent", "theme": "U-12 평균선 (또래/포지션 평균 비교)" },
+    { "vocId": "VOC-014", "delta": 1, "source": "coach", "theme": "오늘의 MVP · 베스트11 추천" }
+  ],
+  "daySummary": {
+    "coachGate": "4/4 Y",
+    "parentGate": "4/4 Y",
+    "stability": "Report·알림톡·모바일·자동 로그인 정상 · 운영 오류 없음 · ISSUE-001 Day-02 미재현"
+  }
+}

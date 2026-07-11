@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "yago-vision-beta-ops-record-v1",
+  "recordId": "BETA-DAY-007",
+  "betaDay": 7,
+  "capturedAt": "2026-07-16",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "opsSoTReference": "data/vision/report/pilot1/bestone/YAGO_PILOT1_BESTONE_SOT_LOG.md",
+  "status": "OFFICIAL_FACT_RECORDED",
+  "ownerConfirmed": true,
+  "dataQuality": {
+    "note": "Official Fact와 devAnalysisMemo 분리. Beta Week-1 마무리 일차. 원인 단정·확률 표현 없음."
+  },
+  "session": {
+    "operatedAt": "2026-07-16",
+    "label": "Beta Day-07",
+    "weekNote": "Beta Week-1 종료 일차"
+  },
+  "operationalFacts": {
+    "coachReportGenerated": true,
+    "parentReportGenerated": true,
+    "kakaoAlimtalkSent": true,
+    "mobileViewerUsed": true,
+    "loginIssueObserved": true,
+    "operationalErrorsObserved": true
+  },
+  "betaIssues": {
+    "newIssues": [],
+    "linkedIssues": [
+      {
+        "issueId": "BETA-ISSUE-001",
+        "day07Observation": "reproduced",
+        "officialFact": "Beta Week-1 운영 기간 동안 iPhone 14 Pro(iOS 17.5.1) + 카카오톡 인앱 브라우저 환경에서 로그인 페이지로 리다이렉트되는 현상이 반복 관측됨. Android 환경에서는 동일 현상이 관측되지 않음.",
+        "note": "Parent 독립사용 N · Week-1 마무리 시점 OPEN 유지"
+      }
+    ]
+  },
+  "coachInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "usedInCoaching": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "usageQuoteVerbatim": "7일 치 데이터를 보고 미드필더 체력 패턴을 발견해 전술을 변경했고, 후반까지 경기 주도권을 유지했다.",
+    "usageNote": "누적 데이터 → 전술 변경 → 경기 운영 (Week-1 대표 활용 사례)"
+  },
+  "parentInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "understoodChildBetter": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "N"
+    },
+    "childUnderstandingQuoteVerbatim": "리포트를 보며 아이에게 구체적인 숫자를 근거로 칭찬했고, 가족 간 대화의 질이 달라졌다.",
+    "frictionNote": "독립 사용 Gate N (BETA-ISSUE-001 연계 · iPhone 로그인 재진입)"
+  },
+  "vocDeltas": [
+    { "vocId": "VOC-011", "delta": 1, "source": "parent", "theme": "또래 평균 기준선" },
+    { "vocId": "VOC-018", "delta": 1, "source": "coach", "theme": "상대 팀 비교 분석" }
+  ],
+  "daySummary": {
+    "coachGate": "4/4 Y",
+    "parentGate": "3/4 Y (독립사용 N — 로그인 재진입)",
+    "stability": "Report·알림톡·모바일 정상 · ISSUE-001 Week-1 반복 관측 · Beta Week-1 완료"
+  }
+}

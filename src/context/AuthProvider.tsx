@@ -7,6 +7,7 @@ import { setSentryUser } from "../lib/sentry";
 import { useNavigate, useLocation } from "react-router-dom";
 import { registerPushNotifications } from "../lib/pushNotifications";
 import { removeDeviceToken } from "../lib/saveDeviceToken";
+import { sanitizePostLoginRedirectTarget } from "@/lib/auth/sanitizePostLoginRedirect";
 
 interface AuthContextValue {
   user: User | null;
@@ -27,7 +28,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  /** 경로 변경마다 onAuthStateChanged 구독을 끊지 않도록 ref로 최신 경로만 참조 */
+  /** 경로 변경마다 onAuthStateChanged 구독을 끊지 않도록 ref로 최신 location만 참조 */
+  const locationRef = useRef(location);
+  locationRef.current = location;
   const pathnameRef = useRef(location.pathname);
   pathnameRef.current = location.pathname;
   /** DEV: 새로고침 후 세션 복구 여부 확인용(토큰 갱신 스팸 방지) */
@@ -86,17 +89,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("❌ [AuthProvider] FCM 등록 실패:", error);
         });
 
-        // 🔥 자동 리다이렉트 규칙: 이미 로그인했고, 로그인/회원가입 페이지에 있으면 → 스포츠 허브로 보내기
+        // P1: 이미 로그인 + auth 페이지 → ?next= 우선 (Vision deep link 보존). PublicRoute와 동일 규칙.
         const path = pathnameRef.current;
         const isAuthPage =
           path === "/signup" ||
           path === "/register" ||
           path === "/start" ||
           path.startsWith("/login");
-        
+
         if (isAuthPage) {
-          console.log("✅ [AuthProvider] 로그인 상태 감지 - /hub로 리다이렉트");
-          navigate("/hub", { replace: true });
+          const params = new URLSearchParams(locationRef.current.search);
+          const rawNext = params.get("next") ?? params.get("redirect");
+          const safeNext = sanitizePostLoginRedirectTarget(rawNext);
+          if (
+            safeNext &&
+            safeNext.startsWith("/") &&
+            !safeNext.startsWith("//") &&
+            safeNext.length < 2048
+          ) {
+            console.log("✅ [AuthProvider] 로그인 상태 — next 복귀", safeNext);
+            navigate(safeNext, { replace: true });
+          } else {
+            console.log("✅ [AuthProvider] 로그인 상태 — /hub 복귀");
+            navigate("/hub", { replace: true });
+          }
         }
       } else {
         // 로그아웃 시 Sentry 사용자 정보 초기화
@@ -109,13 +125,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // 🔥 자동 리다이렉트 규칙: 로그아웃 상태인데, 보호된 페이지에 있으면 → 로그인으로 보내기
         const path = pathnameRef.current;
+        const search = locationRef.current.search ?? "";
         const protectedPaths = ["/hub", "/sports-hub", "/home", "/app", "/admin"];
         const isProtected = protectedPaths.some((p) => path.startsWith(p));
 
         // /start 페이지는 예외 (게스트 모드 허용)
+        // PAI-001: ProtectedRoute와 동일하게 ?next= 보존 (deep link 유실 방지)
         if (isProtected && path !== "/start") {
-          console.log("⚠️ [AuthProvider] 로그인 필요 - /login으로 리다이렉트");
-          navigate("/login", { replace: true });
+          const from = `${path}${search}`;
+          const next =
+            from && from !== "/login" ? `?next=${encodeURIComponent(from)}` : "";
+          console.log("⚠️ [AuthProvider] 로그인 필요 - /login으로 리다이렉트", { next: next || null });
+          navigate(`/login${next}`, { replace: true });
         }
       }
     });

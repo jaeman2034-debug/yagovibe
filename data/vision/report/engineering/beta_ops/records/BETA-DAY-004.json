@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "yago-vision-beta-ops-record-v1",
+  "recordId": "BETA-DAY-004",
+  "betaDay": 4,
+  "capturedAt": "2026-07-13",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "opsSoTReference": "data/vision/report/pilot1/bestone/YAGO_PILOT1_BESTONE_SOT_LOG.md",
+  "status": "OFFICIAL_FACT_RECORDED",
+  "ownerConfirmed": true,
+  "dataQuality": {
+    "note": "Official Fact와 원인 추정 분리. 웹뷰 세션/쿠키 유실은 Official Fact 아님 — devAnalysisMemo 참조."
+  },
+  "session": {
+    "operatedAt": "2026-07-13",
+    "label": "Beta Day-04"
+  },
+  "operationalFacts": {
+    "coachReportGenerated": true,
+    "parentReportGenerated": true,
+    "kakaoAlimtalkSent": true,
+    "mobileViewerUsed": true,
+    "loginIssueObserved": true,
+    "operationalErrorsObserved": true
+  },
+  "betaIssues": {
+    "newIssues": [],
+    "linkedIssues": [
+      {
+        "issueId": "BETA-ISSUE-001",
+        "day04Observation": "reproduced",
+        "officialFact": "iPhone 14 Pro(iOS 17.5.1) + 카카오 인앱 브라우저 환경에서 알림톡 링크 진입 시 로그인 페이지로 리다이렉트되는 현상이 재현됨.",
+        "reproEnvironment": {
+          "device": "iPhone 14 Pro",
+          "os": "iOS 17.5.1",
+          "entry": "Kakao In-App Browser",
+          "trigger": "알림톡 링크 진입"
+        }
+      }
+    ]
+  },
+  "coachInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "usedInCoaching": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "usageQuoteVerbatim": "활동량 데이터를 보고 회복 훈련 강도를 조절하고 개인 세션을 따로 구성했습니다.",
+    "usageNote": "AI Report → 훈련 계획 변경 (회복 훈련·개인 세션)"
+  },
+  "parentInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "understoodChildBetter": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "N"
+    },
+    "operationalFrictionVerbatim": "이번에도 로그인 창이 또 떴어요.",
+    "frictionNote": "독립 사용 Gate N (BETA-ISSUE-001 연계)"
+  },
+  "vocDeltas": [
+    { "vocId": "VOC-011", "delta": 1, "source": "parent", "theme": "또래 평균 비교선" },
+    { "vocId": "VOC-016", "delta": 1, "source": "coach", "theme": "기간별 PDF 다운로드" }
+  ],
+  "daySummary": {
+    "coachGate": "4/4 Y",
+    "parentGate": "3/4 Y (독립사용 N — 로그인 재진입)",
+    "stability": "Report·알림톡·모바일 정상 · ISSUE-001 Day-04 재현(iOS 17.5.1)"
+  }
+}

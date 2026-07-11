@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "yago-vision-beta-ops-record-v1",
+  "recordId": "BETA-DAY-006",
+  "betaDay": 6,
+  "capturedAt": "2026-07-15",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "opsSoTReference": "data/vision/report/pilot1/bestone/YAGO_PILOT1_BESTONE_SOT_LOG.md",
+  "status": "OFFICIAL_FACT_RECORDED",
+  "ownerConfirmed": true,
+  "dataQuality": {
+    "note": "Official Fact와 devAnalysisMemo 분리. VOC-017 신규(VOC-014는 MVP/베스트11 사용 중)."
+  },
+  "session": {
+    "operatedAt": "2026-07-15",
+    "label": "Beta Day-06"
+  },
+  "operationalFacts": {
+    "coachReportGenerated": true,
+    "parentReportGenerated": true,
+    "kakaoAlimtalkSent": true,
+    "mobileViewerUsed": true,
+    "loginIssueObserved": true,
+    "operationalErrorsObserved": true
+  },
+  "betaIssues": {
+    "newIssues": [],
+    "linkedIssues": [
+      {
+        "issueId": "BETA-ISSUE-001",
+        "day06Observation": "reproduced",
+        "officialFact": "iPhone + 카카오 인앱 브라우저 환경에서 로그인 페이지로 리다이렉트되는 현상이 재현됨.",
+        "note": "Parent 독립사용 N · 로그인 재입력 지속"
+      }
+    ]
+  },
+  "coachInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "usedInCoaching": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "usageQuoteVerbatim": "특정 수비수 라인의 고강도 주행 거리가 이전 경기들 평균보다 올라간 것을 확인하고, 다음 주 리그 선발 명단에 배치하기로 결정했습니다.",
+    "usageNote": "AI Report → 선발 선수 선정 (리그 명단 결정)"
+  },
+  "parentInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "understoodChildBetter": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "N"
+    },
+    "childUnderstandingQuoteVerbatim": "전체 활동량을 보니 전반에 이미 엄청난 에너지를 사용했다는 걸 이해하게 되었고, 잔소리 대신 칭찬하게 되었습니다.",
+    "frictionNote": "독립 사용 Gate N (BETA-ISSUE-001 연계 · 로그인 재입력 지속)"
+  },
+  "vocDeltas": [
+    { "vocId": "VOC-011", "delta": 1, "source": "parent", "theme": "U-12 평균 기준선 제공" },
+    { "vocId": "VOC-017", "delta": 1, "source": "coach", "theme": "포지션별 데이터 필터링" }
+  ],
+  "daySummary": {
+    "coachGate": "4/4 Y",
+    "parentGate": "3/4 Y (독립사용 N — 로그인 재진입)",
+    "stability": "Report·알림톡·모바일 정상 · ISSUE-001 Day-06 재현"
+  }
+}
