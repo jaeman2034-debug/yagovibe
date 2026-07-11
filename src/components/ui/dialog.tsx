@@ -1,10 +1,11 @@
 /**
  * Dialog 컴포넌트 (shadcn/ui 스타일)
+ * Portal to document.body — avoids clipping by overflow/backdrop-filter ancestors
+ * (e.g. PlayLoungeSection details accordion).
  */
 
 import * as React from "react";
-import { X } from "lucide-react";
-import { Button } from "./button";
+import { createPortal } from "react-dom";
 import { clsx } from "clsx";
 
 interface DialogProps {
@@ -42,25 +43,30 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         onOpenChange?.(false);
       }
     };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open, onOpenChange]);
 
   if (!open) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100001] flex items-center justify-center"
+      className="fixed inset-0 z-[100001] flex items-center justify-center p-4"
+      role="presentation"
       onClick={() => onOpenChange?.(false)}
     >
-      {/* Backdrop — GlobalFAB(z-[99999]) 위로 올려 모달·신고 확인이 가려지지 않게 */}
-      <div className="fixed inset-0 bg-black/50" />
-      
-      {/* Dialog Content */}
-      <div onClick={(e) => e.stopPropagation()}>
+      <div className="absolute inset-0 bg-black/60" aria-hidden />
+      <div className="relative z-[1] w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -69,9 +75,11 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
     return (
       <div
         ref={ref}
+        role="dialog"
+        aria-modal="true"
         className={clsx(
-          "relative z-[100001] w-full max-w-lg bg-white rounded-lg shadow-lg p-6",
-          "max-h-[90vh] overflow-y-auto",
+          "relative w-full max-w-lg rounded-lg bg-white p-6 shadow-lg",
+          "max-h-[min(90vh,100dvh)] overflow-y-auto overscroll-contain",
           className
         )}
         {...props}
@@ -88,7 +96,7 @@ const DialogHeader = React.forwardRef<HTMLDivElement, DialogHeaderProps>(
     return (
       <div
         ref={ref}
-        className={clsx("flex flex-col space-y-1.5 text-center sm:text-left mb-4", className)}
+        className={clsx("mb-4 flex flex-col space-y-1.5 text-center sm:text-left", className)}
         {...props}
       >
         {children}
@@ -133,7 +141,10 @@ const DialogFooter = React.forwardRef<HTMLDivElement, DialogFooterProps>(
     return (
       <div
         ref={ref}
-        className={clsx("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-6", className)}
+        className={clsx(
+          "mt-6 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+          className
+        )}
         {...props}
       >
         {children}
@@ -151,4 +162,3 @@ export {
   DialogDescription,
   DialogFooter,
 };
-

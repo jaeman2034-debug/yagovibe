@@ -1,13 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { PlayPlayerStatsDoc } from "@/utils/playerStats";
 import type { ParticipationHint } from "@/lib/play/avatarDailyStatus";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import PlayerCard from "./PlayerCard";
 
 type Props = {
@@ -17,7 +12,7 @@ type Props = {
   ovrRankLine?: string | null;
 };
 
-/** 로비용 컴팩트 카드 — 상세는 모달 */
+/** 로비용 컴팩트 카드 — 상세는 body 포털 모달 (아코디언 overflow/backdrop 클리핑 회피) */
 export function PlayLobbyPlayerSummary({
   player,
   participationHint,
@@ -27,6 +22,20 @@ export function PlayLobbyPlayerSummary({
   const [open, setOpen] = useState(false);
   const pos = player.mainPosition ?? "MF";
   const { speed, pass, shoot } = player.stats;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   return (
     <>
@@ -58,20 +67,53 @@ export function PlayLobbyPlayerSummary({
         </Button>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto border-white/10 bg-[#0f1420] text-slate-100">
-          <DialogHeader>
-            <DialogTitle className="text-left text-base font-black text-white">내 선수 카드</DialogTitle>
-          </DialogHeader>
-          <PlayerCard
-            player={player}
-            highlight
-            hero
-            participationHint={participationHint}
-            superBadgeCount={superBadgeCount}
-          />
-        </DialogContent>
-      </Dialog>
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[100001] flex items-end justify-center p-0 sm:items-center sm:p-4"
+              role="presentation"
+              data-testid="play-lobby-player-detail-overlay"
+              onClick={() => setOpen(false)}
+            >
+              <div className="absolute inset-0 bg-black/70" aria-hidden />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="play-lobby-player-detail-title"
+                className="relative z-[1] flex max-h-[min(92dvh,920px)] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#0f1420] shadow-2xl sm:rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                  <h2
+                    id="play-lobby-player-detail-title"
+                    className="text-base font-black text-white"
+                  >
+                    내 선수 카드
+                  </h2>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white"
+                    onClick={() => setOpen(false)}
+                  >
+                    닫기
+                  </Button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+                  <PlayerCard
+                    player={player}
+                    highlight
+                    hero
+                    participationHint={participationHint}
+                    superBadgeCount={superBadgeCount}
+                  />
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </>
   );
 }
