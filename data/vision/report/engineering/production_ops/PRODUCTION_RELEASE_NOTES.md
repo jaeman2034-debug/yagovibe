@@ -12,8 +12,28 @@
 
 | Version / Tag | Date | Change (Fact) | Related Issue / VOC | Note |
 |---|---|---|---|---|
-| — | 2026-07-21 | Production 운영 체계 개시 (`production_ops/`) | GO with Open Issue | Docs only · 코드 변경 없음 |
-| — | — | **PAI-001 Fix 배포** | BETA-ISSUE-001 | ⏳ **Pending** · Fact 확보 전 기록 금지 |
+| Hosting `64270a3` | 2026-07-11 20:56 KST | PAI-011 VOC-011 peer benchmark · Vision Parent UI stack · kakaoShare build fix | VOC-011 · PAI-011 | Production Hosting · **Deploy complete** · COMPLETE/CLOSED 금지 · Smoke 대기 |
+| Hosting `4d508ac` | 2026-07-11 14:57 KST | PAI-001: Kakao iOS openExternal · persistence · next preserve · Safari CTA | BETA-ISSUE-001 · PAI-001 | Production Hosting · Verification PASS · ISSUE CLOSED (Verified) |
+| — | 2026-07-21 | Production 운영 체계 개시 (`production_ops/`) | GO with Open Issue | Docs only |
+
+### PAI-011 Deploy Fact (2026-07-11)
+
+```text
+배포 일시: 2026-07-11 20:56 KST
+프로젝트: yago-vibe-spt
+타깃: Firebase Hosting Production
+Hosting URL: https://yago-vibe-spt.web.app
+Feature commit: 07fb6895bdd03433a0913e9924151999d4ab2c4c
+Deployed HEAD: 64270a31918fc091f32c4996bd3ee0e782d28592
+Rollback: 4d508ac43b053a9f114f5ba32a99ba0d1eac27d7
+결과: Deploy complete · release complete · 456 files
+CF / Rules: N (hosting only)
+Scope: PAI-011 peer + Vision Parent/관련 UI 스택 (동일 feature 커밋)
+```
+
+> SoT: `PAI_011_DEPLOY_FACT.md`  
+> ❌ Deploy 성공 ≠ PAI-011 COMPLETE/CLOSED  
+> ❌ Day-03 DATE_GATE_PENDING 미변경
 
 ---
 
@@ -27,7 +47,3 @@ Official Fact of change:
 Known Issues remaining:
 Rollback note:
 ```
-
----
-
-**Updated:** 2026-07-21

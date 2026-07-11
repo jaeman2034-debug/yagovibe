@@ -307,8 +307,10 @@ On PM GO  → Vision v3 Gate (O4 only)
 [✅] ENG_VOC_011_IMPLEMENT                 date: 2026-07-11  peerBenchmark + ParentPeerBenchmarkCard · unit PASS
 [✅] ENG_VOC_011_MANUAL_QA_FACT            date: 2026-07-11  VOC_011_MANUAL_QA.md · FINAL PASS (PM)
 [✅] ENG_VOC_011_VISUAL_SPOTCHECK          date: 2026-07-11  ACCEPTED · Parent login · mobile · 8/8 Y
-[✅] ENG_VOC_011_PM_REVIEW                 date: 2026-07-11  PAI-011 **PASS** · COMPLETE/CLOSED 금지(Prod 배포 전) · Day-03 DATE_GATE_PENDING 유지
-[▶]  ENG_VOC_011_PRE_PROD_REVIEW           date: 2026-07-11  커밋/푸시 후 Production 배포 전 검토
+[✅] ENG_VOC_011_PM_REVIEW                 date: 2026-07-11  PAI-011 **PASS** · Day-03 DATE_GATE_PENDING 유지
+[🔒] ENG_VOC_011_PRE_DEPLOY_GO             date: 2026-07-11  Pre-Deploy GO · feature 07fb689 · rollback 4d508ac
+[✅] ENG_VOC_011_PROD_HOSTING_DEPLOY       date: 2026-07-11  20:56 KST · HEAD 64270a3 · yago-vibe-spt.web.app · PAI_011_DEPLOY_FACT.md
+[▶]  ENG_VOC_011_POST_DEPLOY_SMOKE         date: 2026-07-11  Production Parent Report Smoke 대기 · COMPLETE/CLOSED 금지
 [🔒] ENG_STRATEGY_FROZEN_EXEC_OPS          date: 2026-07-10  no more strategy churn · ops cycle · A>B
 [🔒] ENG_VOC_TRIGGER_LOG_LOCKED            date: 2026-07-10  baseline 111 · ≥3 VOC→Supplement · A grows B
 [🔒] PILOT1_OPS_FRAMEWORK_LOCKED          date: 2026-07-09  COMPLETE — Ops LOCKED · 듀얼트랙=Eng E1~E6

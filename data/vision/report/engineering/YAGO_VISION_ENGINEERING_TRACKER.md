@@ -833,6 +833,8 @@ SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 | 2026-07-11 | VOC-011 Manual QA | Fact 접수 · Harness 6+unit 3 = 9 PASS · `VOC_011_MANUAL_QA.md` · 모바일 실기기 PENDING · **PAI-011 PASS 미선언** |
 | 2026-07-11 | VOC-011 Visual Spot-check | Fact ✅ · Parent login · mobile 390×844 · checklist **8/8 Y** · 육안 Y · 오류 없음 · **PAI-011 PASS 미선언** |
 | 2026-07-11 | VOC-011 PAI-011 | ✅ **PM PASS** · Manual QA FINAL PASS · Visual ACCEPTED · 구현 검증 완료 · COMPLETE/CLOSED 금지 · Day-03 미변경 |
+| 2026-07-11 | VOC-011 Pre-Deploy | 🔒 **GO** · commit `07fb689` · rollback `4d508ac` · CF/Rules/root SoT N |
+| 2026-07-11 | VOC-011 Hosting Deploy | ✅ **Deploy complete** 20:56 KST · HEAD `64270a3` · URL https://yago-vibe-spt.web.app · `PAI_011_DEPLOY_FACT.md` · Smoke 대기 · COMPLETE 금지 |
 
 ---
 
