@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "yago-vision-rc5-pilot-academy-v1",
+  "phase": "rc5_4_pilot_beta",
+  "date": "2026-06-30",
+  "productionPreset": "rc3_1_phase_c",
+  "pilotMatchId": "vision-pilot-pass01-clip-002",
+  "pilotClipId": "pass01_clip_002",
+  "pilotName": "YAGO Vision Pilot #1",
+  "academy": {
+    "name": "테스트 아카데미",
+    "labelKo": "테스트 아카데미 · YAGO Vision Pilot #1"
+  },
+  "team": {
+    "teamId": "D7TUZaOtfxdBc4P0lQLx",
+    "label": "테스트 아카데미 (Pilot C)"
+  },
+  "roles": {
+    "coach": {
+      "label": "홍코치",
+      "uid": "jMLLIxyOVkN1HERAd2gz88uKj9e2",
+      "coachUid": "jMLLIxyOVkN1HERAd2gz88uKj9e2"
+    },
+    "parent": {
+      "label": "parent.test",
+      "uid": "wSlh4oDIqIP4GnV3Di1IeAQnFy13",
+      "parentUid": "wSlh4oDIqIP4GnV3Di1IeAQnFy13",
+      "playerId": "player-ap-63d56190"
+    }
+  },
+  "opsAliases": {
+    "teamId": "team.teamId",
+    "coachUid": "roles.coach.uid",
+    "parentUid": "roles.parent.uid",
+    "pilotName": "pilotName"
+  },
+  "routes": {
+    "uploadConsole": "/teams/{teamId}/validation-console?matchId={matchId}",
+    "coachDashboard": "/teams/{teamId}/play?matchId={matchId}",
+    "matchDetail": "/teams/{teamId}/vision/match/{matchId}",
+    "parentReport": "/home/parent/vision/report?teamId={teamId}&playerId={playerId}&matchId={matchId}",
+    "pilotBetaHub": "/teams/{teamId}/vision/pilot-beta"
+  },
+  "opsLogCollection": "visionPilotOpsLog",
+  "vocCollection": "visionPilotVoc",
+  "liveRunSheet": "docs/YAGO_VISION_RC5_4_LIVE_PILOT_RUN_SHEET.md",
+  "liveRunRecord": "data/vision/pilot/rc5_4_live_run_record.json",
+  "declaration": "RC5-4 Pilot Beta — real MP4 upload · ops log · Coach/Parent VOC."
+}

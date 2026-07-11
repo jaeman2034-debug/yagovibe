@@ -1,0 +1,575 @@
+{
+  "schemaVersion": "yago-vision-fii-summary-v1",
+  "phase": "RC4-2 M2",
+  "date": "2026-06-30",
+  "productionPreset": "rc3_1_phase_c",
+  "fiiMode": "gev_aggregate",
+  "gevInput": {
+    "path": "data\\vision\\pipeline\\runs\\rc4_m1_pass01_clip_002\\gev_rc3_1_phase_c\\gev_events.jsonl",
+    "summaryPath": "data\\vision\\pipeline\\runs\\rc4_m1_pass01_clip_002\\gev_rc3_1_phase_c\\gev_summary.json",
+    "eventCount": 85,
+    "eventCounts": {
+      "POSSESSION_START": 28,
+      "POSSESSION_END": 28,
+      "PASS": 13,
+      "RECEIVE": 13,
+      "TURNOVER": 3
+    }
+  },
+  "playerFii": [
+    {
+      "trackId": "P0095",
+      "name": "Player P0095",
+      "fii": 72,
+      "axes": {
+        "decision": 58,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 54,
+        "tactics": 52
+      },
+      "rank": 1
+    },
+    {
+      "trackId": "P0147",
+      "name": "Player P0147",
+      "fii": 71,
+      "axes": {
+        "decision": 58,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 54,
+        "tactics": 52
+      },
+      "rank": 2
+    },
+    {
+      "trackId": "P0212",
+      "name": "Player P0212",
+      "fii": 69,
+      "axes": {
+        "decision": 58,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 52
+      },
+      "rank": 3
+    },
+    {
+      "trackId": "P0030",
+      "name": "Player P0030",
+      "fii": 68,
+      "axes": {
+        "decision": 58,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 52
+      },
+      "rank": 4
+    },
+    {
+      "trackId": "P0129",
+      "name": "Player P0129",
+      "fii": 68,
+      "axes": {
+        "decision": 58,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 52
+      },
+      "rank": 5
+    },
+    {
+      "trackId": "P0230",
+      "name": "Player P0230",
+      "fii": 68,
+      "axes": {
+        "decision": 58,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 52
+      },
+      "rank": 6
+    },
+    {
+      "trackId": "P0089",
+      "name": "Player P0089",
+      "fii": 63,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 54,
+        "tactics": 52
+      },
+      "rank": 7
+    },
+    {
+      "trackId": "P0113",
+      "name": "Player P0113",
+      "fii": 62,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 8
+    },
+    {
+      "trackId": "P0124",
+      "name": "Player P0124",
+      "fii": 62,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 54,
+        "tactics": 52
+      },
+      "rank": 9
+    },
+    {
+      "trackId": "P0187",
+      "name": "Player P0187",
+      "fii": 62,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 10
+    },
+    {
+      "trackId": "P0054",
+      "name": "Player P0054",
+      "fii": 61,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 11
+    },
+    {
+      "trackId": "P0251",
+      "name": "Player P0251",
+      "fii": 61,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 12
+    },
+    {
+      "trackId": "P0204",
+      "name": "Player P0204",
+      "fii": 60,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 52,
+        "tactics": 52
+      },
+      "rank": 13
+    },
+    {
+      "trackId": "P0003",
+      "name": "Player P0003",
+      "fii": 59,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 52,
+        "tactics": 52
+      },
+      "rank": 14
+    },
+    {
+      "trackId": "P0261",
+      "name": "Player P0261",
+      "fii": 59,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 52,
+        "tactics": 52
+      },
+      "rank": 15
+    },
+    {
+      "trackId": "P0334",
+      "name": "Player P0334",
+      "fii": 59,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 52,
+        "tactics": 52
+      },
+      "rank": 16
+    },
+    {
+      "trackId": "P0414",
+      "name": "Player P0414",
+      "fii": 59,
+      "axes": {
+        "decision": 54,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 52,
+        "tactics": 52
+      },
+      "rank": 17
+    },
+    {
+      "trackId": "P0279",
+      "name": "Player P0279",
+      "fii": 53,
+      "axes": {
+        "decision": 54,
+        "pressure": 50,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 18
+    },
+    {
+      "trackId": "P0298",
+      "name": "Player P0298",
+      "fii": 53,
+      "axes": {
+        "decision": 50,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 19
+    },
+    {
+      "trackId": "P0352",
+      "name": "Player P0352",
+      "fii": 53,
+      "axes": {
+        "decision": 54,
+        "pressure": 50,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 20
+    },
+    {
+      "trackId": "P0377",
+      "name": "Player P0377",
+      "fii": 53,
+      "axes": {
+        "decision": 50,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 21
+    },
+    {
+      "trackId": "P0428",
+      "name": "Player P0428",
+      "fii": 53,
+      "axes": {
+        "decision": 54,
+        "pressure": 50,
+        "vision": 62,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 22
+    },
+    {
+      "trackId": "P0456",
+      "name": "Player P0456",
+      "fii": 53,
+      "axes": {
+        "decision": 50,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 23
+    },
+    {
+      "trackId": "P0465",
+      "name": "Player P0465",
+      "fii": 53,
+      "axes": {
+        "decision": 50,
+        "pressure": 58,
+        "vision": 52,
+        "spatial": 52,
+        "tactics": 50
+      },
+      "rank": 24
+    }
+  ],
+  "teamFii": {
+    "overall": 62,
+    "axes": {
+      "spatial": 52,
+      "vision": 57,
+      "decision": 54,
+      "pressure": 57,
+      "tactics": 51
+    },
+    "playerCount": 24,
+    "ballProgression": {
+      "forwardPassRate": 0.333,
+      "backwardPassRate": 0.233,
+      "lateralPassRate": 0.433,
+      "totalPasses": 39,
+      "progressivePasses": 13
+    },
+    "playmaker": {
+      "trackId": "P0095",
+      "name": "Player P0095",
+      "score": 0.57,
+      "keyPasses": 1
+    },
+    "participationWeight": "passes+receives+possession+transitions"
+  },
+  "matchSummary": {
+    "headline": "패스 13건 · 볼 수신 13건 · 턴오버 3건",
+    "summary": "GEV Production preset 기준 85개 이벤트 분석. 점유 체인 28회 활성 선수 24명. 팀 FII 62점. 주요 활약: Player P0095 (FII 72).",
+    "eventHighlights": {
+      "passes": 13,
+      "receives": 13,
+      "turnovers": 3,
+      "transitions": 0,
+      "totalEvents": 85
+    },
+    "possessionChain": {
+      "playerChains": [
+        {
+          "trackId": "P0089",
+          "possessionStarts": 2,
+          "possessionEnds": 2,
+          "completedChains": 2,
+          "avgDurationS": 0.93
+        },
+        {
+          "trackId": "P0095",
+          "possessionStarts": 2,
+          "possessionEnds": 2,
+          "completedChains": 2,
+          "avgDurationS": 0.52
+        },
+        {
+          "trackId": "P0124",
+          "possessionStarts": 2,
+          "possessionEnds": 2,
+          "completedChains": 2,
+          "avgDurationS": 0.35
+        },
+        {
+          "trackId": "P0147",
+          "possessionStarts": 2,
+          "possessionEnds": 2,
+          "completedChains": 2,
+          "avgDurationS": 0.68
+        },
+        {
+          "trackId": "P0003",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.0
+        },
+        {
+          "trackId": "P0030",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.5
+        },
+        {
+          "trackId": "P0054",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 0.93
+        },
+        {
+          "trackId": "P0113",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.33
+        },
+        {
+          "trackId": "P0129",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 0.6
+        },
+        {
+          "trackId": "P0187",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.2
+        },
+        {
+          "trackId": "P0204",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 0.27
+        },
+        {
+          "trackId": "P0212",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 0.8
+        },
+        {
+          "trackId": "P0230",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.23
+        },
+        {
+          "trackId": "P0251",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.2
+        },
+        {
+          "trackId": "P0261",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.03
+        },
+        {
+          "trackId": "P0279",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.13
+        },
+        {
+          "trackId": "P0298",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.23
+        },
+        {
+          "trackId": "P0334",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.23
+        },
+        {
+          "trackId": "P0352",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.1
+        },
+        {
+          "trackId": "P0377",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.13
+        },
+        {
+          "trackId": "P0414",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.07
+        },
+        {
+          "trackId": "P0428",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.3
+        },
+        {
+          "trackId": "P0456",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.13
+        },
+        {
+          "trackId": "P0465",
+          "possessionStarts": 1,
+          "possessionEnds": 1,
+          "completedChains": 1,
+          "avgDurationS": 1.43
+        }
+      ],
+      "totalCompletedChains": 28,
+      "totalPossessionDurationS": 26.79,
+      "activePlayers": 24
+    }
+  },
+  "coachInsights": {
+    "strengths": [
+      "Player P0095: 시야 62점 — 팀 내 상대 강점",
+      "패스 연결 13건 — 볼 순환 구간 확인됨"
+    ],
+    "improvementPoints": [
+      "턴오버 3건 — 압박 대응·지원 패스 훈련 포인트"
+    ],
+    "recommendations": [
+      "패스 연결 구간 영상 복기 → 코치 피드백",
+      "턴오버 직전 압박 상황 드릴 추가",
+      "Player P0095 활약 구간을 팀 미팅에서 공유"
+    ]
+  },
+  "parentInsights": {
+    "summaryKo": "GEV Production preset 기준 85개 이벤트 분석. 점유 체인 28회 활성 선수 24명. 팀 FII 62점. 주요 활약: Player P0095 (FII 72).",
+    "growthHighlight": "Player P0095 선수가 이번 경기에서 활발히 참여했습니다. 패스·볼 받기 등 팀 플레이에 기여한 구간이 확인됩니다.",
+    "encouragement": "꾸준한 참여와 팀 플레이가 성장의 기반입니다. 다음 경기에서도 자신감 있게 플레이해 주세요.",
+    "teamFiiScore": 62,
+    "passCount": 13,
+    "receiveCount": 13
+  },
+  "gates": {
+    "gevInput": true,
+    "playerFii": true,
+    "teamFii": true,
+    "matchSummary": true,
+    "jsonExport": true,
+    "pipelineIntegration": true,
+    "rc4_2_pass": true
+  }
+}

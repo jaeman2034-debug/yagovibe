@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "yago-vision-rc4-e2e-demo-v1",
+  "milestone": "RC4-6 M6",
+  "phase": "End-to-End Demo",
+  "date": "2026-06-30",
+  "verdict": "PASS",
+  "clipId": "pass01_clip_002",
+  "pilotMatchId": "vision-pilot-pass01-clip-002",
+  "productionPreset": "rc3_1_phase_c",
+  "runDir": "data/vision/pipeline/runs/rc4_m6_e2e_demo",
+  "source": "validate_only",
+  "envFlag": "VITE_VISION_FII_PILOT=1",
+  "gates": {
+    "upload": true,
+    "tracking": true,
+    "gev": true,
+    "fii": true,
+    "coachUi": true,
+    "parentUi": true,
+    "timeline": true,
+    "platformUi": true,
+    "rc4_6_pass": true
+  },
+  "steps": [
+    {
+      "id": "upload",
+      "label": "영상 업로드",
+      "status": "pass",
+      "detail": "D:\\YAGO_AI\\VIDEOS\\pilot\\pass01_clip_002.mp4",
+      "artifact": "data\\vision\\pipeline\\runs\\rc4_m6_e2e_demo\\tracks.jsonl"
+    },
+    {
+      "id": "tracking",
+      "label": "Tracking",
+      "status": "pass",
+      "detail": "person_rows=1814",
+      "artifact": "data\\vision\\pipeline\\runs\\rc4_m6_e2e_demo\\tracks.jsonl"
+    },
+    {
+      "id": "gev",
+      "label": "GEV (rc3_1_phase_c)",
+      "status": "pass",
+      "detail": "events=85",
+      "artifact": "data\\vision\\pipeline\\runs\\rc4_m6_e2e_demo\\gev_rc3_1_phase_c\\gev_events.jsonl"
+    },
+    {
+      "id": "fii",
+      "label": "FII 계산",
+      "status": "pass",
+      "detail": "teamFii=62",
+      "artifact": "data\\vision\\pipeline\\runs\\rc4_m6_e2e_demo\\fii\\fii_summary.json"
+    },
+    {
+      "id": "coachUi",
+      "label": "Coach Dashboard",
+      "status": "pass",
+      "detail": "PlayTab + fii_summary fixture",
+      "route": "/teams/:teamId/play?matchId=vision-pilot-pass01-clip-002"
+    },
+    {
+      "id": "parentUi",
+      "label": "Parent Report",
+      "status": "pass",
+      "detail": "ParentIntelligenceSection + fixture",
+      "route": "/home/parent/vision/report"
+    },
+    {
+      "id": "timeline",
+      "label": "Timeline",
+      "status": "pass",
+      "detail": "Match Detail #vision-timeline",
+      "route": "/teams/:teamId/vision/match/vision-pilot-pass01-clip-002#vision-timeline"
+    },
+    {
+      "id": "platformUi",
+      "label": "Platform UI",
+      "status": "pass",
+      "detail": "VisionPlatformNav integration (M5)",
+      "route": "/teams/:teamId/vision/demo"
+    }
+  ],
+  "metrics": {
+    "personRows": 1814,
+    "gevEvents": 85,
+    "teamFii": 62,
+    "playerCount": 24,
+    "latency": {
+      "total_s": 273.885,
+      "tracking_s": 271.538,
+      "gev_s": 2.347,
+      "tracking_engine_reported_s": 208.44,
+      "tracking_processed_fps": 8.27,
+      "pipeline_fps": 6.29,
+      "tracking_fps": 6.35,
+      "realtime_ratio": 0.21
+    }
+  },
+  "artifacts": {
+    "tracksJsonl": "C:\\Users\\samsung256g\\Desktop\\yago-vibe-spt\\data\\vision\\pipeline\\runs\\rc4_m6_e2e_demo\\tracks.jsonl",
+    "gevEventsJsonl": "C:\\Users\\samsung256g\\Desktop\\yago-vibe-spt\\data\\vision\\pipeline\\runs\\rc4_m6_e2e_demo\\gev_rc3_1_phase_c\\gev_events.jsonl",
+    "fiiSummaryJson": "C:\\Users\\samsung256g\\Desktop\\yago-vibe-spt\\data\\vision\\pipeline\\runs\\rc4_m6_e2e_demo\\fii\\fii_summary.json",
+    "fiiFixture": "C:\\Users\\samsung256g\\Desktop\\yago-vibe-spt\\public\\fixtures\\vision\\rc4_m2_fii_summary_clip_002.json"
+  },
+  "uiSurfaces": {
+    "teamHub": "/teams/:teamId/play?matchId=vision-pilot-pass01-clip-002",
+    "coachDashboard": "/teams/:teamId/play?matchId=vision-pilot-pass01-clip-002",
+    "matchDetail": "/teams/:teamId/vision/match/vision-pilot-pass01-clip-002",
+    "parentReport": "/home/parent/vision/report",
+    "timeline": "/teams/:teamId/vision/match/vision-pilot-pass01-clip-002#vision-timeline",
+    "e2eDemo": "/teams/:teamId/vision/demo"
+  }
+}
