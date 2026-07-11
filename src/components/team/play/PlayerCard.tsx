@@ -28,12 +28,12 @@ export default function PlayerCard({ player, highlight, hero, participationHint,
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm ${
+      className={`relative rounded-2xl border bg-white p-5 shadow-sm ${
         highlight
           ? hero
-            ? "border-indigo-500 shadow-xl shadow-indigo-500/25 ring-[3px] ring-indigo-300/70"
-            : "border-indigo-400 ring-2 ring-indigo-200/80"
-          : "border-gray-200"
+            ? "overflow-visible border-indigo-500 shadow-xl shadow-indigo-500/25 ring-[3px] ring-indigo-300/70"
+            : "overflow-hidden border-indigo-400 ring-2 ring-indigo-200/80"
+          : "overflow-hidden border-gray-200"
       }`}
     >
       <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br from-indigo-200/40 to-violet-200/30 blur-2xl" />

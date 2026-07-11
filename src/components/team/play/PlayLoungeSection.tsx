@@ -15,7 +15,9 @@ export function PlayLoungeSection({ title, summary, defaultOpen = false, childre
   return (
     <details
       className={cn(
-        "group overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm",
+        "group rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm",
+        /* overflow-hidden clips position:fixed dialogs when backdrop-filter creates a containing block */
+        "overflow-visible",
         className
       )}
       open={defaultOpen || undefined}
