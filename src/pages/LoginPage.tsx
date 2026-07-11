@@ -54,9 +54,9 @@ export default function LoginPage() {
     const inAppStrict = isRealInAppBrowser();
 
     /**
-     * 카카오톡 인앱 → 로그인 진입 시 외부 브라우저 자동 유도(세션당 1회).
-     * Android: Chrome intent + 1.2s 후 동일 URL fallback. iOS: 동일 URL 재진입.
-     * 보장 불가 — 실패 시「Chrome·Safari에서 열기」버튼으로 보완.
+     * P1 (E2 HOLD): 카카오 인앱에서 동일 URL 자동 리로드(bounce) 금지.
+     * Android: Intent 1회만 시도(실패 시 페이지 유지). iOS: 자동 이동 없음 — CTA 사용.
+     * 「Chrome·Safari에서 열기」버튼으로 보완.
      */
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -78,33 +78,18 @@ export default function LoginPage() {
             /* 비공개 모드 등 */
         }
 
+        if (!isAndroid) {
+            if (import.meta.env.DEV) {
+                console.log("[Kakao] iOS 인앱 — 자동 리로드 생략, CTA 대기");
+            }
+            return;
+        }
+
         if (import.meta.env.DEV) {
-            console.log("[Auto Redirect] 카카오 인앱 → 외부 브라우저 이동 시도");
+            console.log("[Kakao] Android 인앱 — Chrome Intent 1회 (no same-URL bounce)");
         }
-
-        const url = window.location.href;
-        const pathAndHost = url.replace(/^https?:\/\//, "");
-
-        if (isAndroid) {
-            const intentUrl = `intent://${pathAndHost}#Intent;scheme=https;package=com.android.chrome;end`;
-            const iframe = document.createElement("iframe");
-            iframe.style.display = "none";
-            iframe.src = intentUrl;
-            document.body.appendChild(iframe);
-
-            setTimeout(() => {
-                try {
-                    iframe.remove();
-                } catch {
-                    /* ignore */
-                }
-                window.location.href = url;
-            }, 1200);
-        } else {
-            window.location.href = url;
-        }
+        openExternalBrowser(window.location.href, { fallbackDelay: 1200 });
     }, []);
-
     useEffect(() => {
         targetFieldRef.current = targetField;
     }, [targetField]);
@@ -413,15 +398,30 @@ export default function LoginPage() {
                 {inAppStrict ? (
                     <div className="flex flex-col gap-2">
                         <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-center text-xs leading-relaxed text-amber-900">
-                            인앱 브라우저에서는 구글 로그인이 <strong>불안정하거나 차단</strong>될 수 있습니다.
-                            가능하면 <strong>Chrome·Safari</strong>에서 여세요.
+                            {/KAKAOTALK/i.test(
+                                typeof navigator !== "undefined" ? navigator.userAgent : ""
+                            ) ? (
+                                <>
+                                    카카오톡 인앱에서는 로그인 유지가 <strong>불안정</strong>할 수 있습니다.
+                                    알림톡·리포트는 <strong>Safari에서 열기</strong>를 권장합니다.
+                                </>
+                            ) : (
+                                <>
+                                    인앱 브라우저에서는 구글 로그인이 <strong>불안정하거나 차단</strong>될 수 있습니다.
+                                    가능하면 <strong>Chrome·Safari</strong>에서 여세요.
+                                </>
+                            )}
                         </p>
                         <button
                             type="button"
                             onClick={() => openExternalBrowser(window.location.href)}
                             className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:bg-blue-800"
                         >
-                            Chrome·Safari에서 열기
+                            {/KAKAOTALK/i.test(
+                                typeof navigator !== "undefined" ? navigator.userAgent : ""
+                            )
+                                ? "Safari에서 열기"
+                                : "Chrome·Safari에서 열기"}
                         </button>
                         <p className="text-center text-[11px] text-gray-500">
                             문제가 있으면 아래 <strong>이메일</strong>·

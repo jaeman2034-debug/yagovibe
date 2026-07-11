@@ -28,7 +28,9 @@ export function useSessionPersistenceInDev(): boolean {
 
 /**
  * 로그아웃 전까지 세션 유지(새로고침·브라우저 재실행).
- * `initializeAuth` persistence와 동일한 우선순위로, OAuth·이메일 등 로그인 직전에 한 번 더 맞춤.
+ * `initializeAuth` persistence와 동일한 우선순위:
+ * indexedDBLocalPersistence → browserLocalPersistence → session.
+ * (PAI-001: localStorage 우선은 iOS 인앱 ITP와 어긋날 수 있어 init과 정렬)
  */
 export async function ensureDurableAuthPersistence(auth: Auth): Promise<void> {
   if (useSessionPersistenceInDev()) {
@@ -36,16 +38,16 @@ export async function ensureDurableAuthPersistence(auth: Auth): Promise<void> {
     return;
   }
   try {
-    await setPersistence(auth, browserLocalPersistence);
-    return;
-  } catch (e1) {
-    console.warn("[auth] browserLocalPersistence 실패, indexedDBLocalPersistence 시도:", e1);
-  }
-  try {
     await setPersistence(auth, indexedDBLocalPersistence);
     return;
+  } catch (e1) {
+    console.warn("[auth] indexedDBLocalPersistence 실패, browserLocalPersistence 시도:", e1);
+  }
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+    return;
   } catch (e2) {
-    console.warn("[auth] indexedDBLocalPersistence 실패, browserSessionPersistence 시도:", e2);
+    console.warn("[auth] browserLocalPersistence 실패, browserSessionPersistence 시도:", e2);
   }
   try {
     await setPersistence(auth, browserSessionPersistence);

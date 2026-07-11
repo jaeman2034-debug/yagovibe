@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "yago-vision-beta-ops-record-v1",
+  "recordId": "BETA-DAY-003",
+  "betaDay": 3,
+  "capturedAt": "2026-07-12",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "opsSoTReference": "data/vision/report/pilot1/bestone/YAGO_PILOT1_BESTONE_SOT_LOG.md",
+  "status": "OFFICIAL_FACT_RECORDED",
+  "ownerConfirmed": true,
+  "dataQuality": {
+    "note": "Official Fact(관측·원문)와 해석/분류 분리. Ops SoT 미반영. BETA-ISSUE-001 Day-03 재현(기기·OS·진입환경 확보). 원인 단정 없음."
+  },
+  "session": {
+    "operatedAt": "2026-07-12",
+    "label": "Beta Day-03"
+  },
+  "operationalFacts": {
+    "coachReportGenerated": true,
+    "parentReportGenerated": true,
+    "kakaoAlimtalkSent": true,
+    "mobileViewerUsed": true,
+    "loginIssueObserved": true,
+    "operationalErrorsObserved": true
+  },
+  "betaIssues": {
+    "newIssues": [],
+    "linkedIssues": [
+      {
+        "issueId": "BETA-ISSUE-001",
+        "day03Observation": "reproduced",
+        "reproEnvironment": {
+          "device": "iPhone 14 Pro",
+          "os": "iOS 17.4",
+          "entry": "Kakao In-App Browser"
+        },
+        "note": "iPhone + 카카오 인앱 환경에서 반복 관측 · 원인 단정 없음"
+      }
+    ]
+  },
+  "coachInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "usedInCoaching": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "usageQuoteVerbatim": "하프타임 때 리포트를 확인하고 전술 변화와 교체 카드를 사용했고 승리했다.",
+    "usageNote": "AI Report → 하프타임 전술·교체 결정 → 경기 운영 (강한 활용 근거)"
+  },
+  "parentInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "understoodChildBetter": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "N"
+    },
+    "operationalFrictionVerbatim": "로그인 때문에 밖에서 급하게 볼 때 불편했다.",
+    "frictionNote": "사용 가능 · 독립 사용 Gate N (BETA-ISSUE-001 연계)"
+  },
+  "vocDeltas": [
+    { "vocId": "VOC-011", "delta": 1, "source": "parent", "theme": "U-12 평균선 (또래/포지션 평균 비교)" },
+    { "vocId": "VOC-015", "delta": 1, "source": "coach", "theme": "팀 대시보드 (Team Dashboard)" }
+  ],
+  "daySummary": {
+    "coachGate": "4/4 Y",
+    "parentGate": "3/4 Y (독립사용 N — 로그인 재입력)",
+    "stability": "Report·알림톡·모바일 정상 · ISSUE-001 Day-03 재현(iPhone 14 Pro/iOS 17.4/카카오 인앱)"
+  }
+}

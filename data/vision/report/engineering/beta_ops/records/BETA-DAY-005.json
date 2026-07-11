@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "yago-vision-beta-ops-record-v1",
+  "recordId": "BETA-DAY-005",
+  "betaDay": 5,
+  "capturedAt": "2026-07-14",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "opsSoTReference": "data/vision/report/pilot1/bestone/YAGO_PILOT1_BESTONE_SOT_LOG.md",
+  "status": "OFFICIAL_FACT_RECORDED",
+  "ownerConfirmed": true,
+  "dataQuality": {
+    "note": "Official Fact와 devAnalysisMemo 분리. 세션/쿠키 원인 단정 없음."
+  },
+  "session": {
+    "operatedAt": "2026-07-14",
+    "label": "Beta Day-05"
+  },
+  "operationalFacts": {
+    "coachReportGenerated": true,
+    "parentReportGenerated": true,
+    "kakaoAlimtalkSent": true,
+    "mobileViewerUsed": true,
+    "loginIssueObserved": true,
+    "operationalErrorsObserved": true
+  },
+  "betaIssues": {
+    "newIssues": [],
+    "linkedIssues": [
+      {
+        "issueId": "BETA-ISSUE-001",
+        "day05Observation": "reproduced",
+        "officialFact": "iPhone + 카카오 인앱 브라우저 환경에서 로그인 페이지로 리다이렉트되는 현상이 재현됨.",
+        "note": "Day-01·03·04·05 반복 관측 · OPEN 유지"
+      }
+    ]
+  },
+  "coachInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "usedInCoaching": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "usageQuoteVerbatim": "체력 저하가 확인된 두 명을 다음 주 초 전술 훈련에서 제외하고 개별 회복 훈련을 배정했습니다.",
+    "usageNote": "AI Report → 훈련 계획 조정 (회복 훈련·전술 훈련 제외)"
+  },
+  "parentInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "understoodChildBetter": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "N"
+    },
+    "operationalFrictionVerbatim": "이번에도 로그인 화면이 또 가로막아서 좀 헤맸어요.",
+    "frictionNote": "독립 사용 Gate N (BETA-ISSUE-001 연계)"
+  },
+  "vocDeltas": [
+    { "vocId": "VOC-011", "delta": 1, "source": "parent", "theme": "U-12 평균 기준선 제공" },
+    {
+      "vocId": "VOC-012",
+      "delta": 1,
+      "source": "coach",
+      "theme": "선수별 기간 데이터 누적 추이 그래프",
+      "backlogNote": "VOC-012 성장 추이 시각화 범주 · 코치용 선수 개인 추이 — Parent(지난주 대비)와 백로그에서 적용 범위 구분"
+    }
+  ],
+  "daySummary": {
+    "coachGate": "4/4 Y",
+    "parentGate": "3/4 Y (독립사용 N — 로그인 재진입)",
+    "stability": "Report·알림톡·모바일 정상 · ISSUE-001 Day-05 재현"
+  }
+}

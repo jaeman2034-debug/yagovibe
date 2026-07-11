@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "yago-vision-beta-ops-record-v1",
+  "recordId": "BETA-DAY-008",
+  "betaDay": 8,
+  "capturedAt": "2026-07-17",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "opsSoTReference": "data/vision/report/pilot1/bestone/YAGO_PILOT1_BESTONE_SOT_LOG.md",
+  "status": "OFFICIAL_FACT_LOCKED",
+  "ownerConfirmed": true,
+  "dataQuality": {
+    "note": "Official Fact와 devAnalysisMemo 분리. Beta Week-2 Day-08. PM LOCK."
+  },
+  "session": {
+    "operatedAt": "2026-07-17",
+    "label": "Beta Day-08",
+    "weekNote": "Beta Week-2"
+  },
+  "operationalFacts": {
+    "coachReportGenerated": true,
+    "parentReportGenerated": true,
+    "kakaoAlimtalkSent": true,
+    "mobileViewerUsed": true,
+    "loginIssueObserved": true,
+    "operationalErrorsObserved": false
+  },
+  "betaIssues": {
+    "newIssues": [],
+    "linkedIssues": [
+      {
+        "issueId": "BETA-ISSUE-001",
+        "day08Observation": "reproduced_iphone_not_android",
+        "officialFact": "iPhone + 카카오톡 인앱 브라우저 환경에서 자동 로그인이 유지되지 않고 /login 페이지가 다시 요구됨. Android 환경에서는 기존 세션이 유지되어 즉시 열람됨.",
+        "note": "iPhone 재현 · Android 미재현(세션 유지) · Parent 독립사용 N · OPEN 유지"
+      }
+    ]
+  },
+  "coachInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "usedInCoaching": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "usageQuoteVerbatim": "지난주 7일 차까지 쌓인 데이터 평균이랑 비교해 보니까 확실히 특정 애들 훈련 강도를 오늘 조절해 줄 필요가 있겠더라고요. 윙백 애들 주행 거리가 회복되는 게 눈으로 보였습니다.",
+    "usageNote": "7일 누적 평균 비교 → 훈련 강도 조절 (윙백 주행 거리 회복 확인)"
+  },
+  "parentInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "understoodChildBetter": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "N"
+    },
+    "childUnderstandingQuoteVerbatim": "일주일 넘게 계속 보니까 아이가 어느 부분이 좋아졌는지 숫자로 바로 나와서 축구알못인 제가 애한테 설명해 주기도 참 쉬웠어요.",
+    "operationalFrictionVerbatim": "다만 로그인 창이 오늘도 다시 뜬 건 여전히 귀찮네요.",
+    "frictionNote": "독립 사용 Gate N (BETA-ISSUE-001 · iPhone 카카오 인앱 로그인 페이지 재요구)"
+  },
+  "vocDeltas": [
+    { "vocId": "VOC-011", "delta": 1, "source": "parent", "theme": "또래 평균 기준선" },
+    { "vocId": "VOC-012", "delta": 1, "source": "coach", "theme": "기간 데이터 비교 활용" }
+  ],
+  "daySummary": {
+    "coachGate": "4/4 Y",
+    "parentGate": "3/4 Y (독립사용 N — 로그인 재요구)",
+    "stability": "Report·알림톡·모바일 정상 · 운영 오류 없음 · ISSUE-001 iPhone 재현/Android 미재현"
+  },
+  "pmReview": {
+    "decision": "OFFICIAL_FACT_LOCKED",
+    "productionReview": "PENDING",
+    "note": "Coach/Parent 활용 반복 확인 · 독립 사용은 로그인 이슈 영향 지속 · Quote·VOC-012 출처 확정"
+  }
+}

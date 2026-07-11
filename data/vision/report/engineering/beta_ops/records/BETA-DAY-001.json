@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "yago-vision-beta-ops-record-v1",
+  "recordId": "BETA-DAY-001",
+  "betaDay": 1,
+  "capturedAt": "2026-07-10",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "opsSoTReference": "data/vision/report/pilot1/bestone/YAGO_PILOT1_BESTONE_SOT_LOG.md",
+  "status": "OFFICIAL_FACT_RECORDED",
+  "ownerConfirmed": true,
+  "dataQuality": {
+    "note": "Official Fact(관측·원문)와 해석/분류 분리. Ops SoT 미반영. E2-PV-004 동일 원인 단정 없음."
+  },
+  "session": {
+    "operatedAt": "2026-07-10",
+    "label": "Beta Day-01",
+    "event": "노원구 야간 연합 자체 연습경기",
+    "ageGroup": "U-12"
+  },
+  "operationalFacts": {
+    "coachReportGenerated": true,
+    "parentReportGenerated": true,
+    "kakaoAlimtalkSent": true,
+    "mobileViewerUsed": true
+  },
+  "betaIssues": ["BETA-ISSUE-001"],
+  "coachInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "usedInCoaching": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "usageQuoteVerbatim": "활동량 처진 애들 후반전에 교체 타이밍 잡을 때 참고했습니다.",
+    "usageNote": "AI Report → 실제 경기 운영 의사결정 (활용 사례)"
+  },
+  "parentInterview": {
+    "gate": {
+      "understoodReport": "Y",
+      "understoodChildBetter": "Y",
+      "reuseIntent": "Y",
+      "usableWithoutExplanation": "Y"
+    },
+    "operationalFrictionVerbatim": "로그인 화면이 다시 떠서 비밀번호를 입력했다.",
+    "frictionNote": "독립 사용 가능 · 운영상 로그인 재입력 불편 관찰 (Beta Issue 연계)"
+  },
+  "vocDeltas": [
+    { "vocId": "VOC-012", "delta": 1, "source": "parent", "theme": "성장 추이 비교 시각화" },
+    { "vocId": "VOC-013", "delta": 1, "source": "coach", "theme": "리포트 히스토리 모아보기" }
+  ],
+  "daySummary": {
+    "coachGate": "4/4 Y",
+    "parentGate": "4/4 Y (로그인 재입력 불편 1건 관찰)",
+    "stability": "Report 생성/열람 정상 · Beta Issue 1건 관측"
+  }
+}

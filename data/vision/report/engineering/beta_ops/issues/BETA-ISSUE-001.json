@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "yago-vision-beta-issue-v1",
+  "issueId": "BETA-ISSUE-001",
+  "betaDay": 1,
+  "recordId": "BETA-DAY-001",
+  "capturedAt": "2026-07-10",
+  "updatedAt": "2026-07-21",
+  "layer": "engineering",
+  "notOpsSoT": true,
+  "status": "OPEN",
+  "severity": "medium",
+  "impact": "parent_login_friction",
+  "reproducibility": "repeat_observation_iphone_kakao_inapp",
+  "observedFact": "Beta 운영 기간 동안 iPhone + 카카오톡 인앱 브라우저 환경에서 로그인 페이지 재요구 현상이 반복 관측됨. Android 환경에서는 동일 현상이 관측되지 않음(기존 세션 유지·즉시 열람).",
+  "scopeNote": "Official Fact는 Beta 관측 범위에 한정. 원인·확률 단정은 devAnalysisMemo.",
+  "parentFrictionVerbatim": [
+    "로그인 화면이 다시 떠서 비밀번호를 입력했다.",
+    "로그인 때문에 밖에서 급하게 볼 때 불편했다.",
+    "이번에도 로그인 창이 또 떴어요.",
+    "이번에도 로그인 화면이 또 가로막아서 좀 헤맸어요.",
+    "다만 로그인 창이 오늘도 다시 뜬 건 여전히 귀찮네요.",
+    "근데 저번 주랑 똑같이 오늘도 로그인 창이 또 떠서 비번을 새로 쳐야 열렸어요.",
+    "근데 오늘도 카톡 링크 열 때 로그인 화면이 또 가로막아서 매번 비번 치는 건 정말 번거롭네요.",
+    "근데 저번 주부터 오늘도 똑같이 로그인 창이 또 떠서 매번 비밀번호를 새로 타이핑하고 들어가는 건 정말 귀찮고 번거롭긴 해요.",
+    "내용은 참 좋은데 들어갈 때 로그인 창 뜨는 건 오늘도 똑같네요. 매번 비밀번호를 새로 타이핑하고 들어가는 절차는 확실히 번거롭긴 합니다."
+  ],
+  "latestReproEnvironment": {
+    "device": "iPhone 14 Pro",
+    "os": "iOS 17.5.1",
+    "entry": "Kakao In-App Browser",
+    "trigger": "알림톡 링크 진입"
+  },
+  "devAnalysisMemo": {
+    "note": "Official Fact 아님 — 원인 조사 항목",
+    "hypothesisPending": "세션/쿠키/인증 흐름 등 원인 분석 필요. 쿠키·세션·인증 토큰 중 어느 계층인지 미확인."
+  },
+  "relatedHistorical": {
+    "note": "E2-PV-004·VOC-003과 유사 현상 가능성 — 동일 원인 단정 금지",
+    "e2Pv004": "로그인 화면·자동 로그인 불편 (P1 이전)",
+    "voc003Count": 2
+  },
+  "classification": "iPhone + 카카오 인앱 환경에서 반복 관측되는 Beta 이슈 · 원인 단정 없음",
+  "observations": [
+    {
+      "betaDay": 1,
+      "recordId": "BETA-DAY-001",
+      "date": "2026-07-10",
+      "result": "observed",
+      "note": "iPhone 카카오 인앱 · 로그인 화면 이동 1건"
+    },
+    {
+      "betaDay": 2,
+      "recordId": "BETA-DAY-002",
+      "date": "2026-07-11",
+      "result": "not_reproduced",
+      "note": "Day-02 운영 중 재현되지 않음 · 자동 로그인 정상"
+    },
+    {
+      "betaDay": 3,
+      "recordId": "BETA-DAY-003",
+      "date": "2026-07-12",
+      "result": "reproduced",
+      "reproEnvironment": {
+        "device": "iPhone 14 Pro",
+        "os": "iOS 17.4",
+        "entry": "Kakao In-App Browser"
+      },
+      "note": "로그인 재진입 재현"
+    },
+    {
+      "betaDay": 4,
+      "recordId": "BETA-DAY-004",
+      "date": "2026-07-13",
+      "result": "reproduced",
+      "officialFact": "iPhone 14 Pro(iOS 17.5.1) + 카카오 인앱 브라우저 환경에서 알림톡 링크 진입 시 로그인 페이지로 리다이렉트되는 현상이 재현됨.",
+      "reproEnvironment": {
+        "device": "iPhone 14 Pro",
+        "os": "iOS 17.5.1",
+        "entry": "Kakao In-App Browser",
+        "trigger": "알림톡 링크 진입"
+      }
+    },
+    {
+      "betaDay": 5,
+      "recordId": "BETA-DAY-005",
+      "date": "2026-07-14",
+      "result": "reproduced",
+      "officialFact": "iPhone + 카카오 인앱 브라우저 환경에서 로그인 페이지로 리다이렉트되는 현상이 재현됨.",
+      "note": "Parent 독립사용 N · 로그인 화면 재진입"
+    },
+    {
+      "betaDay": 6,
+      "recordId": "BETA-DAY-006",
+      "date": "2026-07-15",
+      "result": "reproduced",
+      "officialFact": "iPhone + 카카오 인앱 브라우저 환경에서 로그인 페이지로 리다이렉트되는 현상이 재현됨.",
+      "note": "Parent 독립사용 N · 로그인 재입력 지속"
+    },
+    {
+      "betaDay": 7,
+      "recordId": "BETA-DAY-007",
+      "date": "2026-07-16",
+      "result": "reproduced",
+      "officialFact": "Beta Week-1 운영 기간 동안 iPhone 14 Pro(iOS 17.5.1) + 카카오톡 인앱 브라우저 환경에서 로그인 페이지로 리다이렉트되는 현상이 반복 관측됨. Android 환경에서는 동일 현상이 관측되지 않음.",
+      "note": "Week-1 마무리 · Parent 독립사용 N · OPEN 유지"
+    },
+    {
+      "betaDay": 8,
+      "recordId": "BETA-DAY-008",
+      "date": "2026-07-17",
+      "result": "reproduced_iphone_not_android",
+      "officialFact": "iPhone + 카카오톡 인앱 브라우저 환경에서 자동 로그인이 유지되지 않고 /login 페이지가 다시 요구됨. Android 환경에서는 기존 세션이 유지되어 즉시 열람됨.",
+      "note": "Week-2 Day-08 · iPhone 재현 · Android 미재현 · Parent 독립사용 N"
+    },
+    {
+      "betaDay": 9,
+      "recordId": "BETA-DAY-009",
+      "date": "2026-07-18",
+      "result": "reproduced_iphone_not_android",
+      "officialFact": "iPhone + 카카오톡 인앱 브라우저 환경에서 로그인 페이지 재요구 현상이 재현됨. Android 환경에서는 동일 현상이 관측되지 않음.",
+      "note": "Week-2 Day-09 · Day-08과 동일 패턴 · Parent 독립사용 N"
+    },
+    {
+      "betaDay": 10,
+      "recordId": "BETA-DAY-010",
+      "date": "2026-07-19",
+      "result": "reproduced_iphone_not_android",
+      "officialFact": "iPhone 14 Pro(iOS 17.5.1) + 카카오 알림톡 인앱 브라우저에서 /login 페이지가 다시 요구됨. Android에서는 동일 현상이 관측되지 않음.",
+      "note": "Week-2 Day-10 · Parent 독립사용 N · OPEN 유지"
+    },
+    {
+      "betaDay": 11,
+      "recordId": "BETA-DAY-011",
+      "date": "2026-07-20",
+      "result": "reproduced_iphone_not_android",
+      "officialFact": "iPhone 14 Pro(iOS 17.5.1) + 카카오 알림톡 인앱 브라우저에서 /login 페이지가 다시 요구됨. Android에서는 동일 현상이 관측되지 않음.",
+      "note": "Week-2 Day-11 · Parent 독립사용 N · OPEN 유지"
+    },
+    {
+      "betaDay": 12,
+      "recordId": "BETA-DAY-012",
+      "date": "2026-07-21",
+      "result": "reproduced_iphone_not_android",
+      "officialFact": "iPhone 14 Pro(iOS 17.5.1) + 카카오 알림톡 인앱 브라우저에서 /login 페이지가 다시 요구됨. Android에서는 동일 현상이 관측되지 않음.",
+      "note": "Week-2 Day-12 · Week-2 마무리 · Parent 독립사용 N · OPEN 유지"
+    }
+  ],
+  "occurrenceSummary": {
+    "observed": ["Day-01", "Day-03", "Day-04", "Day-05", "Day-06", "Day-07", "Day-08", "Day-09", "Day-10", "Day-11", "Day-12"],
+    "notReproduced": ["Day-02"],
+    "androidNotObserved": "Beta Week-1~2 기간 Android 환경에서 동일 현상 미관측(Day-08: 세션 유지·즉시 열람 확인)"
+  },
+  "nextAction": "재현 조건 기반 원인 분석(devAnalysisMemo) · 수정 후 동일 환경 P1 Fix Verification"
+}
