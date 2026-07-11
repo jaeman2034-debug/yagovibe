@@ -1,0 +1,35 @@
+{
+  "at": "2026-07-11T11:35:09.767Z",
+  "base": "http://127.0.0.1:5174",
+  "reportPath": "/home/parent/vision/report?teamId=D7TUZaOtfxdBc4P0lQLx&playerId=player-ap-63d56190&matchId=vision-pilot-pass01-clip-002&playerName=Pilot%20Child",
+  "parentUid": "wSlh4oDIqIP4GnV3Di1IeAQnFy13",
+  "screenshot": "C:\\Users\\samsung256g\\Desktop\\yago-vibe-spt\\data\\vision\\report\\engineering\\production_ops\\voc011_spotcheck\\parent_report_mobile.png",
+  "facts": {
+    "url": "http://127.0.0.1:5174/home/parent/vision/report?teamId=D7TUZaOtfxdBc4P0lQLx&playerId=player-ap-63d56190&matchId=vision-pilot-pass01-clip-002&playerName=Pilot%20Child",
+    "title": "YAGO SPORTS - AI 기반 스마트 중고거래 플랫폼",
+    "hasReportPage": true,
+    "hasPeerCard": true,
+    "hasPeerBody": true,
+    "copyPrimary": false,
+    "copyFallback": true,
+    "childLabel": true,
+    "peerAvgLabel": true,
+    "hasNaN": false,
+    "hasSessionSummary": false,
+    "onLogin": false,
+    "bodySnippet": "YAGO SPORTS\n14\n로그아웃\n보호자 홈\nParent Vision Report\n\nfii_summary 기반 경기 성장 리포트 (RC4-4)\n\n팀 허브\nCoach\nMatch\nTimeline\nParent\nPlayer\n\nPARENT INTELLIGENCE\n\n경기 성장 리포트\n\n코치 분석을 학부모가 이해하기 쉬운 언어로 정리했습니다.\n\n팀 허브\nCoach\nMatch\nTimeline\nParent\nPlayer\n\n경기 성장 요약\n\nPilot Child 선수가 경기에 꾸준히 참여하며 성장하고 있습니다. GEV Production preset 기준 89개 이벤트 분석. 점유 체인 30회 활성 선수 24명. 팀 FII 62점. 주요 활약: Player P0100 (FII 72).\n\n코치 한마디\n\n이번 경기에서 Pilot Child의 자신감 있는 연결 플레이가 많이 보였습니다.\n\nGEV Production preset 기준 89개 이벤트 분석. 점유 체인 30회 활성 선수 24명. 팀 FII 62점. 주요 활약: Player P0100 (FII 72).\n\n또래 평균 비교\n\n팀 평균과 비교\n\n분석 참여 24명\n\n우리 아이\n\n72\n\n또래 평균\n\n60.8\n\n차이 +11.2 · FII 기준\n\n이번 경기에서 잘한 점\n\n쉽게 설명한 경기 포인트\n\n팀 공격 연결에 큰 기여를 했습니다.\nPlayer P0100: 시야 62점 — 팀 내 상대 강점었습니다.\n패스 연결 13건 — 볼 순환 구간 확인됨었습니다.\n\n이번 주 추천\n\n한 가지 실천해 보세요\n\nPlayer P0100 선수의 키 패스 연결을 다음 훈련에서 강화하세요. 전방 패스 비율이 낮습니다. 전진 패스 인식 훈련을 권장합니다. 패스 연결 구간 영상 복기 → 코치 피드백을(를) 조금 더 연습해 보세요.\n\n허브\n활동\n지도\n채팅\n마이"
+  },
+  "checklist": {
+    "1_parent_report_open": "Y",
+    "2_peer_card_visible": "Y",
+    "3_ui_copy_ok": "Y",
+    "4_child_fii_shown": "Y",
+    "5_peer_mean_shown": "Y",
+    "6_no_nan_empty_card": "Y",
+    "7_fii_summary_ok": "Y",
+    "8_mobile_layout_ok": "Y",
+    "screen_visual_done": "Y",
+    "observations": "없음",
+    "note": "ageGroup missing → fallback copy; childFii=72 peerMean=60.8 n=24 delta=+11.2"
+  }
+}

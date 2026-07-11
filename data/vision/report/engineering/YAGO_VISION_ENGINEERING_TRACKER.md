@@ -22,7 +22,7 @@
 | **AI Coach Brain v1** | Internal Ready ✅ · Wiring PASS ✅ · B=Maintenance · ❌ Production/제품완성 |
 | **Execution triage** | 코치 도움? · 학부모 도움? · Beta 품질? — 모두 YES만 진행 |
 | **제품 파이프라인** | Vision→GEV→FII→AI Coach→Coach Decision→**Parent**→Avatar→Game |
-| **배포 판정** | Beta/Pilot Ready ✅ · Production ▶ **GO with Open Issue** (PM 2026-07-21) · ISSUE-001 OPEN · SoT `production_ops/PRODUCTION_RUN_SHEET.md` |
+| **배포 판정** | Beta/Pilot Ready ✅ · Production ▶ **GO with Open Issue** (PM 2026-07-21) → **ISSUE-001 CLOSED (Verified)** 2026-07-11 · PAI-001 PASS · SoT `production_ops/` |
 | **FII 축 (구현 Fact)** | Vision/FII Engine = **5축만** · 「7축(팀기여·성장추이)」는 외부 문서 표현 — 코드 미구현 |
 | **미확인** | Production phase_d promotion · 특허 청구항 전문(로컬 미보관) · Beta ops Fact 누적 |
 
@@ -537,7 +537,7 @@ Lock tracks + phase_d re-run: **0.7887** (lock preds 0.7714 대비 개선, regre
 VOC 발생 → count +1 → ≥3 반복 → Product Backlog 우선 조정
 ```
 
-현재: **VOC-011** (또래/포지션 평균) count=**14** · Beta backlog P1
+현재: **VOC-011** count=**15** · **PAI-011 PASS** · COMPLETE/CLOSED 금지(Prod 배포 전) · Day-03 proposed 16은 Date Gate Pending
 
 SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 
@@ -821,6 +821,18 @@ SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 | 2026-07-21 | Production Ops | `production_ops/` 체계 · Run Sheet SoT · Action Items 이관 · KPI 누적 시작 |
 | 2026-07-21 | PAI-001 | Fix Verification Checklist READY · **Fix Pending** · Verification blocked · `PAI_001_FIX_VERIFICATION.md` |
 | 2026-07-11 | PAI-001 | Fix **코드** 반영 (openExternal·persistence·next 보존·CTA) · Prod 배포 Fact·Release Notes·PASS **미확정** |
+| 2026-07-11 | PAI-001 PASS | Verification PASS · `/login` 0/3 · ISSUE-001 **CLOSED (Verified)** · PAI-003 ACTIVE · Day-01 KPI START · 일반화 금지 |
+| 2026-07-11 | Day-01 · PAI-003 | KPI **ACCEPT** · PAI-003 **PASS/CLOSED** · Parent 독립사용 Y · Quote verbatim 적재 · Day-02 READY |
+| 2026-07-12 | Production Day-02 | KPI **ACCEPT/LOCK** · 로그인재요구 미관측(당일) · VOC-011 **15** · Quote verbatim 적재 · Day-03 READY |
+| 2026-07-11 | Production Day-03 | 📝 **PRE-STAGED / DATE_GATE_PENDING** · 예정 2026-07-12 16:00 KST · VOC-011 proposed 16 (원장 미반영) · ACCEPT 금지 |
+| 2026-07-11 | VOC-011 | Design Review ACTIVE · Parent peer/평균 기준선 Gap 확인 · `VOC_011_PEER_BENCHMARK_DESIGN_REVIEW.md` · Day-03 Gate와 분리 |
+| 2026-07-11 | VOC-011 PM LOCK | **team+ageGroup · n≥5 · Vision Parent Report** LOCK · position/Growth 2차 |
+| 2026-07-11 | VOC-011 Eng Spike | ✅ COMPLETE · playerFii 집계·Gate·payload 가능 · `VOC_011_ENG_SPIKE.md` · 구현 스펙 대기 |
+| 2026-07-11 | VOC-011 Impl Spec | 🔒 LOCK · `VOC_011_IMPLEMENTATION_SPEC.md` · PM 최종 3개 확정 |
+| 2026-07-11 | VOC-011 Implement | ▶ IN PROGRESS · peerBenchmark + ParentPeerBenchmarkCard · unit 3 PASS · **PAI-011 PASS 미선언** |
+| 2026-07-11 | VOC-011 Manual QA | Fact 접수 · Harness 6+unit 3 = 9 PASS · `VOC_011_MANUAL_QA.md` · 모바일 실기기 PENDING · **PAI-011 PASS 미선언** |
+| 2026-07-11 | VOC-011 Visual Spot-check | Fact ✅ · Parent login · mobile 390×844 · checklist **8/8 Y** · 육안 Y · 오류 없음 · **PAI-011 PASS 미선언** |
+| 2026-07-11 | VOC-011 PAI-011 | ✅ **PM PASS** · Manual QA FINAL PASS · Visual ACCEPTED · 구현 검증 완료 · COMPLETE/CLOSED 금지 · Day-03 미변경 |
 
 ---
 

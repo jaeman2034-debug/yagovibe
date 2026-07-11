@@ -296,6 +296,19 @@ On PM GO  → Vision v3 Gate (O4 only)
 [▶]  ENG_PRODUCTION_OPS_ACTIVE             date: 2026-07-21  production_ops/PRODUCTION_RUN_SHEET.md · SoT · Action/KPI/Incident 체계
 [▶]  ENG_PAI_001_FIX_PENDING               date: 2026-07-21  Checklist READY · Fix 미배포 · Verification 대기 · PAI_001_FIX_VERIFICATION.md
 [▶]  ENG_PAI_001_CODE_READY                date: 2026-07-11  Fix 코드 반영 · Prod 배포 Fact 대기 · Release Notes/PASS 미확정
+[🔒] ENG_PAI_001_PASS                      date: 2026-07-11  Verification PASS · 4d508ac · /login 0/3 · ISSUE-001 CLOSED_VERIFIED · 범위 일반화 금지
+[🔒] ENG_PAI_003_PASS                      date: 2026-07-11  Parent Gate PASS · 독립사용 Y · CLOSED · Quote verbatim 적재 · 일반화 금지
+[✅] ENG_PRODUCTION_DAY01_KPI_ACCEPT       date: 2026-07-11  Coach/Parent Report·알림톡·모바일 Y · 로그인재요구 N · 오류 N
+[🔒] ENG_PRODUCTION_DAY02_ACCEPT           date: 2026-07-12  Day-02 LOCK · Y/Y/Y/Y · 로그인재요구 미관측(당일) · VOC-011=15 · Quote verbatim 적재
+[📝] ENG_PRODUCTION_DAY03_PRE_STAGED       date: 2026-07-11  DATE_GATE_PENDING · 예정 2026-07-12 16:00 KST · VOC-011 proposedCount=16 (원장 15 유지) · ACCEPT 금지
+[🔒] ENG_VOC_011_PM_SCOPE_LOCK             date: 2026-07-11  team+ageGroup · n≥5 · Vision Parent Report · position/Growth=2차
+[✅] ENG_VOC_011_ENG_SPIKE                 date: 2026-07-11  playerFii 집계·n Gate·payload 가능 · VOC_011_ENG_SPIKE.md · 구현 스펙 대기
+[🔒] ENG_VOC_011_IMPL_SPEC_LOCK            date: 2026-07-11  VOC_011_IMPLEMENTATION_SPEC.md · ageGroup 폴백·findPlayerFiiEntry·카피 LOCK
+[✅] ENG_VOC_011_IMPLEMENT                 date: 2026-07-11  peerBenchmark + ParentPeerBenchmarkCard · unit PASS
+[✅] ENG_VOC_011_MANUAL_QA_FACT            date: 2026-07-11  VOC_011_MANUAL_QA.md · FINAL PASS (PM)
+[✅] ENG_VOC_011_VISUAL_SPOTCHECK          date: 2026-07-11  ACCEPTED · Parent login · mobile · 8/8 Y
+[✅] ENG_VOC_011_PM_REVIEW                 date: 2026-07-11  PAI-011 **PASS** · COMPLETE/CLOSED 금지(Prod 배포 전) · Day-03 DATE_GATE_PENDING 유지
+[▶]  ENG_VOC_011_PRE_PROD_REVIEW           date: 2026-07-11  커밋/푸시 후 Production 배포 전 검토
 [🔒] ENG_STRATEGY_FROZEN_EXEC_OPS          date: 2026-07-10  no more strategy churn · ops cycle · A>B
 [🔒] ENG_VOC_TRIGGER_LOG_LOCKED            date: 2026-07-10  baseline 111 · ≥3 VOC→Supplement · A grows B
 [🔒] PILOT1_OPS_FRAMEWORK_LOCKED          date: 2026-07-09  COMPLETE — Ops LOCKED · 듀얼트랙=Eng E1~E6

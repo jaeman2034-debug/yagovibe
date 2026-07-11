@@ -187,6 +187,7 @@ const VisionMatchDetailPage = lazy(() => import("@/pages/vision/VisionMatchDetai
 const ParentVisionReportPage = lazy(() => import("@/pages/vision/ParentVisionReportPage"));
 const VisionE2EDemoPage = lazy(() => import("@/pages/vision/VisionE2EDemoPage"));
 const VisionPilotBetaPage = lazy(() => import("@/pages/vision/VisionPilotBetaPage"));
+const VisionOpsDashboardPage = lazy(() => import("@/pages/vision/VisionOpsDashboardPage"));
 const PlayPage = lazy(() => import("@/pages/play/PlayPage"));
 const MatchmakingQueuePage = lazy(() => import("@/pages/play/MatchmakingQueuePage"));
 const QuickPlayPage = lazy(() => import("@/pages/play/QuickPlayPage"));
@@ -1407,6 +1408,22 @@ export default function App() {
                       }
                     >
                       <VisionPilotBetaPage />
+                    </Suspense>
+                  </ProtectedWithAvatar>
+                }
+              />
+              <Route
+                path="/teams/:teamId/vision/ops"
+                element={
+                  <ProtectedWithAvatar>
+                    <Suspense
+                      fallback={
+                        <div className="mx-auto max-w-lg p-8 text-center text-slate-500">
+                          Operations Dashboard 불러오는 중…
+                        </div>
+                      }
+                    >
+                      <VisionOpsDashboardPage />
                     </Suspense>
                   </ProtectedWithAvatar>
                 }
