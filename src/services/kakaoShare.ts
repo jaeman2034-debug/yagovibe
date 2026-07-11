@@ -295,3 +295,78 @@ export async function sharePublicTeamHubKakaoOrWebShare(input: {
       : "이 환경에서는 공유·복사를 모두 쓸 수 없었어요. 주소창 링크를 복사해 카카오톡으로 보내 주세요."
   );
 }
+
+export type ParentGrowthReportShareChannel = "kakao" | "web_share" | "clipboard" | "cancelled";
+
+/** 학부모 성장 리포트 공유 URL — 카카오 · Web Share · 클립보드 폴백 */
+export async function shareParentGrowthReportKakaoOrWebShare(input: {
+  shareUrl: string;
+  title: string;
+  description: string;
+  clipText: string;
+}): Promise<{ channel: ParentGrowthReportShareChannel }> {
+  const pageUrl = input.shareUrl.trim();
+  if (!pageUrl) throw new Error("공유 링크가 없습니다.");
+
+  const title = input.title.trim() || "성장 리포트";
+  const description = input.description.trim() || "코치가 확인한 이번 훈련 성장 리포트입니다.";
+  const imageUrl = teamInviteKakaoFeedImageUrl(null);
+
+  const ready = await getKakaoTeamShareReadiness();
+  if (ready.ok && typeof window !== "undefined" && window.Kakao?.Share?.sendDefault) {
+    try {
+      window.Kakao.Share.sendDefault({
+        objectType: "feed",
+        content: {
+          title,
+          description,
+          imageUrl,
+          link: {
+            mobileWebUrl: pageUrl,
+            webUrl: pageUrl,
+          },
+        },
+        buttons: [
+          {
+            title: "리포트 보기",
+            link: {
+              mobileWebUrl: pageUrl,
+              webUrl: pageUrl,
+            },
+          },
+        ],
+      });
+      return { channel: "kakao" };
+    } catch {
+      /* fall through */
+    }
+  }
+
+  if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+    try {
+      await navigator.share({
+        title,
+        text: input.clipText.trim() || `${title}\n\n${description}\n\n${pageUrl}`,
+        url: pageUrl,
+      });
+      return { channel: "web_share" };
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === "AbortError") {
+        return { channel: "cancelled" };
+      }
+    }
+  }
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(
+      input.clipText.trim() || `${title}\n\n${description}\n\n${pageUrl}`
+    );
+    return { channel: "clipboard" };
+  }
+
+  throw new Error(
+    !ready.ok
+      ? describeKakaoTeamShareBlock(ready.reason)
+      : "카카오톡 공유와 기기 공유를 모두 쓸 수 없었어요. 「전달 문구 복사」로 보내 주세요."
+  );
+}
