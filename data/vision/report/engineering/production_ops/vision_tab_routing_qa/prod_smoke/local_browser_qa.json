@@ -1,0 +1,32 @@
+{
+  "source": "/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+  "startUrl": "https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+  "base": "https://yago-vibe-spt.web.app",
+  "coachUid": "wSlh4oDIqIP4GnV3Di1IeAQnFy13",
+  "Coach": {
+    "urlAfterClick": "https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002#vision-coach",
+    "visionCoachExists": "Y",
+    "scrolledToCoachSection": "Y",
+    "enteredPlayLounge": "N"
+  },
+  "Match": {
+    "urlAfterClick": "https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+    "hashCleared": "Y",
+    "matchDetailOk": "Y"
+  },
+  "Timeline": {
+    "urlAfterClick": "https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002#vision-timeline",
+    "visionTimelineExists": "Y",
+    "scrolledToTimelineSection": "Y"
+  },
+  "Parent": {
+    "urlAfterClick": "https://yago-vibe-spt.web.app/home/parent/vision/report?teamId=D7TUZaOtfxdBc4P0lQLx&playerId=P0100&matchId=vision-pilot-pass01-clip-002",
+    "disabled": false,
+    "teamIdPreserved": "Y",
+    "playerIdPreserved": "Y",
+    "matchIdPreserved": "Y",
+    "parentReportOk": "Y",
+    "homeAdminRedirect": "N"
+  },
+  "pageErrors": []
+}
