@@ -29,27 +29,39 @@
 | Prod-W01 | **2026-07-13 ~ 2026-07-19** |
 | First regular Weekly Review | Prod-W01 종료 후 · PAI-022 별도 PM start GO 필요 |
 
-### Day-01 SoT pointer (파일 미생성)
+### Launch Partial Day-01 SoT pointer (파일 미생성)
 
-Production Day-01은 `PRODUCTION_DAY_01.md`를 **만들지 않는다**.  
+Launch Partial Day-01은 `PRODUCTION_DAY_01.md`를 **만들지 않는다**.  
 Canonical evidence: Tracker `2026-07-11 Day-01 · PAI-003` + `PAI_003_PARENT_GATE_REVALIDATION.md` (classification **b**).
+
+### Prod-W01 Day-01 SoT
+
+| 항목 | 값 |
+|---|---|
+| Identity | **Prod-W01 Day-01** (≠ Launch Partial Day-01) |
+| File | `PRODUCTION_PROD_W01_DAY_01.md` |
+| Status | 🔒 **ACCEPT / LOCK** |
+| 운영일 | **2026-07-13** |
 
 ---
 
 ## 1. Daily Log
 
-동일 운영일(`2026-07-12`)에 Day-02 / Day-03이 공존한다. **병합·평균·덮어쓰기 금지.** Note의 `Source:`로 식별.
+동일 운영일(`2026-07-12`)에 Day-02 / Day-03이 공존한다. **병합·평균·덮어쓰기 금지.** Note의 `Source:`로 식별.  
+**Prod-W01 Day-01**은 Launch Partial Day-* 와 **별행**으로 기록한다.
 
 | Date | Coach Report | Parent Report | 알림톡 | 모바일 | ISSUE-001 | 운영 오류 | Note |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|---|
 | 2026-07-12 | ✅ Y | ✅ Y | ✅ Y | ✅ Y | ✅ N | ✅ N | **Source: Day-02** · ACCEPT/LOCK · `PRODUCTION_DAY_02.md` |
 | 2026-07-12 | ✅ (AI 분석 Y) | ✅ (Quote) | ✅ (Quote) | ✅ (Quote) | ✅ N | ✅ N | **Source: Day-03** · ACCEPT/LOCK · upload Y · players 22 · VOC-011 **15** · `PRODUCTION_DAY_03.md` |
+| 2026-07-13 | ✅ Y | ✅ Y | ✅ Y | ✅ Y | ✅ N | ✅ N | **Source: Prod-W01 Day-01** · ACCEPT/LOCK · upload Y · AI Y · players 22 · VOC-011 **15** · `PRODUCTION_PROD_W01_DAY_01.md` |
 | _YYYY-MM-DD_ | | | | | | | |
 
 **기호:** ✅ 정상 · ⚠️ 이슈 · ❌ 실패 · — 해당 없음
 
 > Day-02 KPI 행 = `PRODUCTION_DAY_02.md` Official Fact 1:1 backfill (PM 2026-07-12).  
-> Day-03 KPI 행 = `PRODUCTION_DAY_03.md` 7항 Official Fact 근거 (기존 유지).
+> Day-03 KPI 행 = `PRODUCTION_DAY_03.md` 7항 Official Fact 근거 (기존 유지).  
+> Prod-W01 Day-01 KPI 행 = `PRODUCTION_PROD_W01_DAY_01.md` 13항 Official Fact (PM 2026-07-13 ACCEPT/LOCK).
 
 ---
 
@@ -78,4 +90,4 @@ Canonical evidence: Tracker `2026-07-11 Day-01 · PAI-003` + `PAI_003_PARENT_GAT
 
 ---
 
-**Updated:** 2026-07-12 · PAI-022 pre-start alignment · Day-02 KPI backfill · Week rule LOCK
+**Updated:** 2026-07-13 · Prod-W01 Day-01 ACCEPT/LOCK · Daily Log 행 추가 · PAI-022 PLANNED 유지
