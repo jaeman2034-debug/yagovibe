@@ -90,14 +90,14 @@ export default function FederationHomePage() {
   }, [federationSlug]);
 
   useEffect(() => {
-    // redirect 복구 중: 토큰·Auth 상태 정리 전 onSnapshot → permission-denied / 리스너 오류 방지
+    // Auth 초기화 완료 후 구독. 공개 federation 문서는 로그인 여부와 무관하게 읽는다 (rules: read = true).
     if (authLoading) return;
     if (!federationSlug) {
       setLoading(false);
       return;
     }
-    // authLoading=false 직후 user 없음(복구 레이스)에서 onSnapshot 금지 — 로그인 후 uid 생기면 이 effect 재실행
-    if (!user?.uid) {
+
+    const applyFallbackFederation = (message?: string) => {
       setFederationSource("fallback");
       setFederation({
         id: federationSlug,
@@ -107,10 +107,9 @@ export default function FederationHomePage() {
         description: "서울 노원구 지역 축구 리그 운영",
       });
       setStats({ teamCount: 24, playerCount: 320, leagueCount: 4, matchCount: 66 });
-      setError(null);
-      setLoading(false);
-      return;
-    }
+      setError(message ?? null);
+    };
+
     const unsubscribe = onSnapshot(
       doc(db, "federations", federationSlug),
       (fedDoc) => {
@@ -126,40 +125,22 @@ export default function FederationHomePage() {
           });
           setError(null);
         } else {
-          setFederationSource("fallback");
-          setFederation({
-            id: federationSlug,
-            name: "노원구 축구협회",
-            slug: federationSlug,
-            region: "서울 노원구",
-            description: "서울 노원구 지역 축구 리그 운영",
-          });
-          setStats({ teamCount: 24, playerCount: 320, leagueCount: 4, matchCount: 66 });
-          setError(null);
+          applyFallbackFederation();
         }
         setLoading(false);
       },
       (error: any) => {
         console.error("협회 정보 실시간 조회 실패:", error);
         if (error?.code === "permission-denied") {
-          setFederationSource("fallback");
-          setFederation({
-            id: federationSlug,
-            name: "노원구 축구협회",
-            slug: federationSlug,
-            region: "서울 노원구",
-            description: "서울 노원구 지역 축구 리그 운영",
-          });
-          setStats({ teamCount: 24, playerCount: 320, leagueCount: 4, matchCount: 66 });
-          setError("권한이 없어 일부 정보를 불러올 수 없습니다.");
+          applyFallbackFederation("권한이 없어 일부 정보를 불러올 수 없습니다.");
         } else {
-          setError("협회 정보를 불러오는 중 오류가 발생했습니다.");
+          applyFallbackFederation("협회 정보를 불러오는 중 오류가 발생했습니다.");
         }
         setLoading(false);
       }
     );
     return () => unsubscribe();
-  }, [federationSlug, authLoading, user?.uid]);
+  }, [federationSlug, authLoading]);
 
   const refreshFederation = useCallback(async () => {
     // onSnapshot 구독 중이라 별도 수동 새로고침은 필요하지 않음
