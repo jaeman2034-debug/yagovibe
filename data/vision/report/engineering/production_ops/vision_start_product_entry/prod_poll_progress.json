@@ -1,0 +1,98 @@
+[
+  {
+    "elapsedMin": 0,
+    "observedAtKst": "2026-07-12T18:29:12+09:00",
+    "runCount": 1,
+    "latestRunId": "d26e62d4d22745d3a696e329",
+    "indexStatus": "processing",
+    "runStatus": "processing",
+    "indexError": null,
+    "mediaVisionStatus": null,
+    "mediaLastError": null,
+    "gev": null
+  },
+  {
+    "elapsedMin": 0,
+    "observedAtKst": "2026-07-12T18:29:32+09:00",
+    "runCount": 1,
+    "latestRunId": "d26e62d4d22745d3a696e329",
+    "indexStatus": "processing",
+    "runStatus": "processing",
+    "indexError": null,
+    "mediaVisionStatus": null,
+    "mediaLastError": null,
+    "gev": null
+  },
+  {
+    "elapsedMin": 1,
+    "observedAtKst": "2026-07-12T18:29:52+09:00",
+    "runCount": 1,
+    "latestRunId": "d26e62d4d22745d3a696e329",
+    "indexStatus": "processing",
+    "runStatus": "processing",
+    "indexError": null,
+    "mediaVisionStatus": null,
+    "mediaLastError": null,
+    "gev": null
+  },
+  {
+    "elapsedMin": 1,
+    "observedAtKst": "2026-07-12T18:30:13+09:00",
+    "runCount": 1,
+    "latestRunId": "d26e62d4d22745d3a696e329",
+    "indexStatus": "processing",
+    "runStatus": "processing",
+    "indexError": null,
+    "mediaVisionStatus": null,
+    "mediaLastError": null,
+    "gev": null
+  },
+  {
+    "elapsedMin": 1,
+    "observedAtKst": "2026-07-12T18:30:33+09:00",
+    "runCount": 1,
+    "latestRunId": "d26e62d4d22745d3a696e329",
+    "indexStatus": "processing",
+    "runStatus": "processing",
+    "indexError": null,
+    "mediaVisionStatus": null,
+    "mediaLastError": null,
+    "gev": null
+  },
+  {
+    "elapsedMin": 2,
+    "observedAtKst": "2026-07-12T18:30:53+09:00",
+    "runCount": 1,
+    "latestRunId": "d26e62d4d22745d3a696e329",
+    "indexStatus": "processing",
+    "runStatus": "processing",
+    "indexError": null,
+    "mediaVisionStatus": null,
+    "mediaLastError": null,
+    "gev": null
+  },
+  {
+    "elapsedMin": 2,
+    "observedAtKst": "2026-07-12T18:31:13+09:00",
+    "runCount": 1,
+    "latestRunId": "d26e62d4d22745d3a696e329",
+    "indexStatus": "processing",
+    "runStatus": "processing",
+    "indexError": null,
+    "mediaVisionStatus": null,
+    "mediaLastError": null,
+    "gev": null
+  },
+  {
+    "elapsedMin": 2,
+    "observedAtKst": "2026-07-12T18:31:33+09:00",
+    "runCount": 1,
+    "latestRunId": "d26e62d4d22745d3a696e329",
+    "indexStatus": "completed",
+    "runStatus": "completed",
+    "indexError": null,
+    "mediaVisionStatus": "completed",
+    "mediaLastError": null,
+    "gev": 46
+  }
+]
