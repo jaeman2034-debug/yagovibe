@@ -39,7 +39,7 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 | **PAI-021** | Production Run Sheet 운영 정착 | ▶ ACTIVE | Ops | 본 체계 SoT |
 | **PAI-022** | Weekly Production Review 루틴 시작 | ▶ PLANNED | PM · Ops | `PRODUCTION_WEEKLY_REVIEW.md` |
 | **PAI-032** | Duplicate `VisionPlatformNav` on Parent Report | 🔒 **COMPLETE / CLOSED** | PM · Eng | Production Smoke **PASS** · feature `7562ccb` · HEAD `437fc8a` · section Nav 제거 · `VISION_PAI032_DUPLICATE_NAV_POST_DEPLOY_SMOKE.md` |
-| **PAI-031** | `PROD-OBS-012` — Job Monitor `VISION_ANALYSIS_FAILED` / no GEV events | ▶ OPEN (후보) | Ops · Eng | PAI-012 Smoke와 **분리** · S3 · Match Detail 빨간 문구 · Trend UX 비차단 · `PRODUCTION_INCIDENTS.md` |
+| **PAI-031** | `PROD-OBS-012` — Job Monitor stale `VISION_ANALYSIS_FAILED` | ▶ OPEN · Minimal Fix 구현 · **PM Review 대기** | Ops · Eng | FIX A/B/C done · Unit 8/8 · Local QA banner hidden · `PROD_OBS_012_PAI_031_MINIMAL_FIX_PM_REVIEW.md` · Commit/Deploy/CLOSED 금지 |
 
 ---
 
@@ -55,4 +55,4 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 
 ---
 
-**Updated:** 2026-07-12 · PAI-032 Duplicate Nav COMPLETE/CLOSED · PROD-OBS-012 OPEN
+**Updated:** 2026-07-12 · PAI-031 Minimal Fix 구현 · PM Review pending (no Deploy/CLOSED)
