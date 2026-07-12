@@ -91,7 +91,7 @@ export function visionOpsDashboardPath(teamId: string): string {
   return `/teams/${encodeURIComponent(teamId)}/vision/ops`;
 }
 
-/** Ranking/playerFii row → Parent Report playerId (playerId preferred, else trackId) */
+/** Ranking/playerFii row → Parent Report subject (playerId preferred, else trackId) */
 export function pickVisionNavPlayerId(
   ranking: Array<{ playerId?: string; trackId?: string }> | undefined | null
 ): string | undefined {
@@ -101,6 +101,27 @@ export function pickVisionNavPlayerId(
     if (id) return id;
   }
   return undefined;
+}
+
+/**
+ * Growth Profile / Player tab only — requires linked platform playerId.
+ * Never use Vision trackId (e.g. P0100) — that causes access-denied on /home/parent/child/...
+ */
+export function pickVisionNavLinkedPlayerId(
+  ranking: Array<{ playerId?: string; trackId?: string }> | undefined | null
+): string | undefined {
+  if (!ranking?.length) return undefined;
+  for (const row of ranking) {
+    const id = row.playerId?.trim();
+    if (id && !isLikelyVisionTrackId(id)) return id;
+  }
+  return undefined;
+}
+
+/** Vision FII track labels like P0100 — not Auth/academy playerIds */
+export function isLikelyVisionTrackId(id: string | undefined | null): boolean {
+  const v = id?.trim() ?? "";
+  return /^P\d{3,}$/i.test(v);
 }
 
 /** Resolve Match Detail nav surface from location.hash */

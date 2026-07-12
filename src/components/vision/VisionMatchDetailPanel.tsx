@@ -20,6 +20,7 @@ import { VisionMatchTimelinePanel } from "@/components/vision/VisionMatchTimelin
 import { VisionJobMonitorPanel } from "@/components/vision/VisionJobMonitorPanel";
 import {
   pickVisionNavPlayerId,
+  pickVisionNavLinkedPlayerId,
   scrollVisionSectionIntoView,
   visionSurfaceFromHash,
   visionTeamHubPath,
@@ -38,6 +39,7 @@ function VisionMatchDetailInner({ teamId, matchId, teamName }: Props) {
   const { loading, view, cardState, variant } = useVisionCoachDashboard();
   const top3 = view?.playerRanking.slice(0, 3) ?? [];
   const navPlayerId = pickVisionNavPlayerId(view?.playerRanking);
+  const linkedPlayerId = pickVisionNavLinkedPlayerId(view?.playerRanking);
   const hashSurface = visionSurfaceFromHash(location.hash);
   const navCurrent = hashSurface ?? "match-detail";
 
@@ -66,6 +68,7 @@ function VisionMatchDetailInner({ teamId, matchId, teamName }: Props) {
           teamId={teamId}
           matchId={matchId}
           playerId={navPlayerId}
+          linkedPlayerId={linkedPlayerId}
           current={navCurrent}
           variant="light"
         />
@@ -75,8 +78,7 @@ function VisionMatchDetailInner({ teamId, matchId, teamName }: Props) {
           playerId={navPlayerId}
           variant="light"
           compact
-        />
-      </header>
+        />      </header>
 
       {loading ? (
         <p className="text-sm text-violet-700">분석 데이터 불러오는 중…</p>
