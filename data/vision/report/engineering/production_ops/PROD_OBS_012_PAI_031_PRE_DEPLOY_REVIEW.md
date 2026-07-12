@@ -16,7 +16,8 @@
 |---|---|
 | Branch | `vision-v2-i13` |
 | Feature commit | `68f37ab` — `fix(vision): clear stale Job Monitor errors on success (PAI-031)` |
-| Pushed HEAD | `68f37ab` (`origin/vision-v2-i13`) |
+| Docs stamp | `45539aa` — Pre-Deploy SHA stamp |
+| Pushed HEAD | `45539aa` (`origin/vision-v2-i13`) |
 | Parent (Hosting/CF rollback baseline) | `9b1176a` |
 | Remote | `origin/vision-v2-i13` |
 
