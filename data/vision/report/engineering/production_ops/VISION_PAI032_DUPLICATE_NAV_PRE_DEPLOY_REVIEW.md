@@ -2,9 +2,10 @@
 
 **Document ID:** `VISION-PAI032-DUPLICATE-NAV-PRE-DEPLOY`  
 **Date:** 2026-07-12 (KST)  
-**Status:** ⏳ **AWAITING PM GO / NO-GO**  
+**Status:** 🔒 **GO** (PM APPROVED · Deploy 진행)  
 **Feature commit:** **`7562ccb`** · `fix(vision): remove duplicate parent intelligence nav`  
 **Full SHA:** `7562ccbec6c012181356c7456ee3e7731316c303`  
+**Docs stamp:** `437fc8a`  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **PAI-011 / 012 / 013 / 014:** 🔒 미변경  
 **PROD-OBS-012:** ▶ OPEN 미변경
@@ -35,18 +36,13 @@
 
 ## Pre-Deploy 판정
 
-# ⏳ **AWAITING PM GO / NO-GO**
+# 🔒 **GO** (PM APPROVED 2026-07-12)
 
-### Forbidden until PM GO
-- Production deploy
+### Forbidden until Post-Deploy Smoke + PM final
 - COMPLETE / CLOSED
 
 ```text
-Commit + Push ✅
-        ↓
-Pre-Deploy Review ⏳
-        ↓
-PM GO / NO-GO
+Pre-Deploy GO 🔒 → Hosting deploy → Smoke → PM Final Review
 ```
 
 **Reviewed by:** Engineering Track A · 2026-07-12  

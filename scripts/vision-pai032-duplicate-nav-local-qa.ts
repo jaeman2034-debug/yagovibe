@@ -19,7 +19,9 @@ const TRACK_ONLY = "P0100";
 
 const OUT_DIR = join(
   root,
-  "data/vision/report/engineering/production_ops/vision_pai032_nav_qa"
+  (process.env.VISION_QA_BASE_URL || "").includes("web.app")
+    ? "data/vision/report/engineering/production_ops/vision_pai032_nav_qa/prod_smoke"
+    : "data/vision/report/engineering/production_ops/vision_pai032_nav_qa"
 );
 
 function loadWebConfig(): Record<string, string> {
@@ -48,6 +50,8 @@ function loadWebConfig(): Record<string, string> {
 }
 
 async function resolveBaseUrl(): Promise<string> {
+  const override = (process.env.VISION_QA_BASE_URL || "").trim().replace(/\/$/, "");
+  if (override) return override;
   for (const port of [5173, 5174, 5175, 5176]) {
     try {
       const res = await fetch(`http://127.0.0.1:${port}/`, {
