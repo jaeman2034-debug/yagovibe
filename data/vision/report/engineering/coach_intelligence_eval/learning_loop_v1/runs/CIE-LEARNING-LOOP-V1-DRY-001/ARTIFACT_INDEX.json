@@ -1,0 +1,7 @@
+{
+  "runId": "CIE-LEARNING-LOOP-V1-DRY-001",
+  "manifest": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-DRY-001/_loop_manifest.json",
+  "pmChecklist": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-DRY-001/PM_REVIEW_CHECKLIST.md",
+  "failureRegistry": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-DRY-001/failure_registry.jsonl",
+  "reusedEvalRunId": "CIE-SHADOW-V022-RUN-002"
+}

@@ -22,6 +22,7 @@
 | **AI Coach Brain v1** | Internal Ready ✅ · Wiring PASS ✅ · B=Maintenance · ❌ Production/제품완성 |
 | **CIE v0.1** | 🔒 **PASS / COMPLETE / LOCK** (2026-07-13) · offline deterministic eval foundation · `coach_intelligence_eval/v0/CIE_V0_1_PM_FINAL_LOCK.md` · ≠ live Coach LLM · ≠ weight training · ≠ 4-Agent Production |
 | **CIE Shadow V022** | 🔒 **PASS / COMPLETE / LOCK** (2026-07-13) · offline shadow LLM rewrite + quality gate · `v0.2_shadow/CIE_SHADOW_V022_PM_FINAL_LOCK.md` · root cause `DATASET_HEADLINE_BIAS` corrected · RUN-001/002 · ≠ live Coach LLM · ≠ weight training |
+| **Learning Loop V1** | 🟢 **MANUAL LOOP GO** (2026-07-13) · `learning_loop_v1/INTELLIGENCE_AI_AGENT_LEARNING_LOOP_V1_RUNBOOK.md` · orchestrator `scripts/vision/cie_learning_loop_v1/` · DRY-001 PASS · ≠ Production Shadow · ≠ live LLM wire |
 | **Execution triage** | 코치 도움? · 학부모 도움? · Beta 품질? — 모두 YES만 진행 |
 | **제품 파이프라인** | Vision→GEV→FII→AI Coach→Coach Decision→**Parent**→Avatar→Game |
 | **배포 판정** | Beta/Pilot Ready ✅ · Production ▶ **GO with Open Issue** (PM 2026-07-21) → **ISSUE-001 CLOSED (Verified)** 2026-07-11 · PAI-001 PASS · SoT `production_ops/` |
