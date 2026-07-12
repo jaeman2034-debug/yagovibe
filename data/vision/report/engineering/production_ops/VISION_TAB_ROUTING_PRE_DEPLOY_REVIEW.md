@@ -2,9 +2,9 @@
 
 **Document ID:** `VISION-TAB-ROUTING-PRE-DEPLOY-REVIEW`  
 **Date:** 2026-07-12 (KST)  
-**Status:** ⏳ **AWAITING PM GO / NO-GO**  
+**Status:** 🔒 **GO** (PM APPROVED · Deploy 진행)  
 **Feature commit:** **`918208c`** · `fix(vision): repair match detail tab routing`  
-**Full SHA:** `918208c` (see `git log -1`)  
+**Docs stamp:** `a86d097`  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **PAI-011 / PAI-012:** 🔒 COMPLETE/CLOSED 미변경  
 **PROD-OBS-012:** ▶ OPEN 후보 미변경
@@ -42,31 +42,32 @@ Vision Match Detail 상단 탭 라우팅 회귀 수정 (Minimal Fix):
 
 ## Pre-Deploy 판정
 
-# ⏳ **AWAITING PM GO / NO-GO**
+# 🔒 **GO** (PM APPROVED 2026-07-12)
 
-### 근거 (Engineering)
-- Root Cause · Canonical mapping PM ACCEPT
-- Minimal Fix 적용 · Jest PASS
-- Local Browser QA 4-tab actual click **ALL PASS** · PM ACCEPTED
-- Hosting-only 프론트 변경 예상
+### 근거
+- Feature commit `918208c` 확정 · Push Sync 0/0
+- Local Browser QA 🔒 ACCEPTED · 4-tab actual click ALL PASS
+- Hosting-only · CF/Rules/Team Hub/Play Lounge 미변경
+- PAI-011/012 · Day-03 · PROD-OBS-012 분리 유지
 
-### Forbidden until PM GO
-- Production deploy
+### Forbidden until Post-Deploy Smoke + PM final
 - COMPLETE / CLOSED
-- Deploy 완료 선언
+- Deploy 완료를 Smoke 전 최종 PASS로 확장 선언
 
 ---
 
 ## Next Gate
 
 ```text
-Commit + Push ✅
+Pre-Deploy GO 🔒
         ↓
-Pre-Deploy Review ⏳ (본 문서)
+Firebase Hosting Production deploy
         ↓
-PM GO / NO-GO
+Deploy Fact
         ↓
-(GO 시) Firebase Hosting deploy → Deploy Fact → Post-Deploy Smoke
+Production 4-tab Post-Deploy Smoke
+        ↓
+PM Final Review (PASS / CLOSED 판정)
 ```
 
 **Reviewed by:** Engineering Track A · 2026-07-12  

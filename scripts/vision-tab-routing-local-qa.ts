@@ -16,9 +16,12 @@ const TEAM_ID = "D7TUZaOtfxdBc4P0lQLx";
 const MATCH_ID = "vision-pilot-pass01-clip-002";
 const MATCH_PATH = `/teams/${encodeURIComponent(TEAM_ID)}/vision/match/${encodeURIComponent(MATCH_ID)}`;
 
+const BASE_URL_OVERRIDE = (process.env.VISION_QA_BASE_URL || "").trim().replace(/\/$/, "");
 const OUT_DIR = join(
   root,
-  "data/vision/report/engineering/production_ops/vision_tab_routing_qa"
+  BASE_URL_OVERRIDE.includes("web.app")
+    ? "data/vision/report/engineering/production_ops/vision_tab_routing_qa/prod_smoke"
+    : "data/vision/report/engineering/production_ops/vision_tab_routing_qa"
 );
 
 function loadWebConfig(): Record<string, string> {
@@ -47,6 +50,7 @@ function loadWebConfig(): Record<string, string> {
 }
 
 async function resolveBaseUrl(): Promise<string> {
+  if (BASE_URL_OVERRIDE) return BASE_URL_OVERRIDE;
   for (const port of [5173, 5174, 5175, 5176]) {
     try {
       const res = await fetch(`http://127.0.0.1:${port}/`, {
