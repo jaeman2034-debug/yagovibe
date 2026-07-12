@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { useCoachVisionAccess } from "@/hooks/useCoachVisionAccess";
 import { useMatchVisionPipelineStatus } from "@/hooks/useMatchVisionPipelineStatus";
 import {
-  callProcessVisionUploadQueue,
   callRetryVisionAnalysis,
   callStartVisionAnalysis,
 } from "@/lib/academy/academyVisionCallables";
@@ -89,25 +88,15 @@ function VisionRunControl({
     }
     setRunning(true);
     try {
-      if (queue.doc?.status === "failed" || pipeline.uiStatus === "failed") {
-        const queueResult = await callProcessVisionUploadQueue({ teamId, mediaId });
-        if (queueResult.queueStatus === "completed" || queueResult.idempotent) {
-          toast.success("Vision 분석이 완료되었습니다.");
-        } else {
-          toast.error(queueResult.errorMessage ?? "Vision 분석에 실패했습니다.");
-        }
-        return;
-      }
-
-      const fn =
-        pipeline.uiStatus === "failed"
-          ? callRetryVisionAnalysis
-          : callStartVisionAnalysis;
+      /** Deployed Production backends only — processVisionUploadQueue is not exported/deployed. */
+      const useRetry =
+        pipeline.uiStatus === "failed" || queue.doc?.status === "failed";
+      const fn = useRetry ? callRetryVisionAnalysis : callStartVisionAnalysis;
       const result = await fn({
         teamId,
         mediaId,
         matchId,
-        startedFrom: pipeline.uiStatus === "failed" ? "retry" : "manual",
+        startedFrom: useRetry ? "retry" : "manual",
       });
       if (result.status === "completed" || result.status === "idempotent") {
         toast.success("Vision 분석이 완료되었습니다.");
