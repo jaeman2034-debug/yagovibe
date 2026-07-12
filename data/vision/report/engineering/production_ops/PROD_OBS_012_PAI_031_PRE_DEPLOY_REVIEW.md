@@ -15,8 +15,9 @@
 | Item | Value |
 |---|---|
 | Branch | `vision-v2-i13` |
-| Feature commit | _(filled after push)_ |
-| Pushed HEAD | _(filled after push)_ |
+| Feature commit | `68f37ab` — `fix(vision): clear stale Job Monitor errors on success (PAI-031)` |
+| Pushed HEAD | `68f37ab` (`origin/vision-v2-i13`) |
+| Parent (Hosting/CF rollback baseline) | `9b1176a` |
 | Remote | `origin/vision-v2-i13` |
 
 ---
@@ -77,7 +78,7 @@
 |---|---|
 | **Hosting** | 직전 Hosting release / parent commit로 재배포 (`firebase hosting:clone` 또는 이전 HEAD frontend) |
 | **CF / backend** | 직전 Functions revision으로 rollback · 또는 이전 feature commit에서 `functions` 재배포 |
-| Parent commit (pre-feature) | _(filled: parent of feature SHA)_ |
+| Parent commit (pre-feature) | `9b1176a` |
 
 Note: Hosting만 rollback하면 Fix C 배너 가드가 사라지고, CF만 rollback하면 이후 성공 write의 clear가 다시 빠질 수 있음. **표면별로 독립 rollback.**
 
