@@ -1,0 +1,21 @@
+{
+  "track": "TEAM_PLAY_WORDING_ALIGNMENT",
+  "expectedPath": "/teams/D7TUZaOtfxdBc4P0lQLx/play?matchId=vision-pilot-pass01-clip-002",
+  "detailFacts": {
+    "detailUrl": "https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+    "teamPlayNavVisible": true,
+    "staleHubNavCount": 0,
+    "navHref": "/teams/D7TUZaOtfxdBc4P0lQLx/play?matchId=vision-pilot-pass01-clip-002",
+    "routeTargetOk": true,
+    "backLinkOk": true
+  },
+  "playFacts": {
+    "finalUrl": "https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/play?matchId=vision-pilot-pass01-clip-002",
+    "playLoungeOk": true,
+    "matchIdPreserved": true,
+    "visionMountSlot": true,
+    "visionRunBtn": false,
+    "coachSection": true
+  },
+  "pass": true
+}

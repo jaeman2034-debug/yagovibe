@@ -23,8 +23,14 @@ for (const key of [
 const TEAM_ID = "D7TUZaOtfxdBc4P0lQLx";
 const MATCH_ID = "vision-pilot-pass01-clip-002";
 const ACTOR_UID = "iUZB8RjKlEhb3uotZ6yqtpWtUQE2";
-const BASE = "http://127.0.0.1:5173";
-const OUT = join(root, "data/vision/report/engineering/production_ops/vision_team_play_wording_qa");
+const BASE_OVERRIDE = (process.env.VISION_QA_BASE_URL || "").trim().replace(/\/$/, "");
+const BASE = BASE_OVERRIDE || "http://127.0.0.1:5173";
+const IS_PROD_SMOKE = BASE.includes("web.app") || BASE.includes("firebaseapp.com");
+const OUT = join(
+  root,
+  "data/vision/report/engineering/production_ops/vision_team_play_wording_qa",
+  IS_PROD_SMOKE ? "prod_smoke" : ""
+);
 
 function loadWebConfig() {
   const pick = (file: string) => {
