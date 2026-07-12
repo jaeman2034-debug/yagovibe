@@ -2,9 +2,25 @@
 
 **Document ID:** `PRODUCTION-WEEKLY-REVIEW-001`  
 **SoT:** `PRODUCTION_RUN_SHEET.md`  
-**Status:** ▶ ACTIVE (템플릿 · 주간 누적)
+**Status:** ▶ ACTIVE (템플릿 · 주간 누적)  
+**PAI-022:** ▶ **PLANNED** (미착수 · 별도 PM start GO 전 Review 작성 금지)
 
 > Official Fact만 근거. 분석은 별도 섹션.
+
+---
+
+## 0. Production Week rule (PM LOCK · 2026-07-12)
+
+| 항목 | 값 |
+|---|---|
+| Week boundary | **월요일 00:00 KST ~ 일요일 23:59 KST** |
+| Launch Partial Baseline Week | **2026-07-06 ~ 2026-07-12** · **NOT Prod-W01** · 정규 Weekly Review 승격 금지 |
+| Prod-W01 | **2026-07-13 00:00 KST ~ 2026-07-19 23:59 KST** |
+| First regular Weekly Review | Prod-W01 기간 **완료 후** · PAI-022 **별도 PM start GO** 필요 |
+
+### Day-01 SoT pointer
+
+`PRODUCTION_DAY_01.md` **미생성**. Day-01 ACCEPT evidence = Tracker `2026-07-11 Day-01 · PAI-003` + `PAI_003_PARENT_GATE_REVALIDATION.md`.
 
 ---
 
@@ -12,7 +28,8 @@
 
 | Week | Period | Status | File / Section |
 |---|---|---|---|
-| Prod-W01 | _TBD_ | ▶ PENDING | 아래 템플릿 복사하여 작성 |
+| Launch Partial Baseline | 2026-07-06 ~ 2026-07-12 | 📝 BASELINE ONLY · ≠ Prod-W01 | Daily Facts only · Review 승격 금지 |
+| Prod-W01 | 2026-07-13 ~ 2026-07-19 | ▶ PENDING (기간 미종료) | 주간 종료 + PAI-022 PM GO 후 템플릿 복사 |
 
 ---
 
@@ -23,7 +40,7 @@
 | 항목 | 값 |
 |---|---|
 | Week ID | Prod-W0N |
-| Period | YYYY-MM-DD ~ YYYY-MM-DD |
+| Period | YYYY-MM-DD ~ YYYY-MM-DD (Mon–Sun KST) |
 | Reviewer | |
 | Status | DRAFT / LOCK |
 
@@ -42,9 +59,13 @@
 
 ### 2. Known Issues
 
+Review 작성 시 **당시** Production Action Items / Incidents / Day Official Fact 근거로 Status를 기입한다.  
+템플릿은 ISSUE-001을 OPEN/CLOSED로 **사전 기입하지 않는다.**  
+(`beta_ops/issues/BETA-ISSUE-001.json`과 Production CLOSED Verified 기록의 충돌은 별도 PM SoT GO 전까지 강제 덮어쓰기 금지.)
+
 | Issue | Status | Week Fact |
 |---|---|---|
-| BETA-ISSUE-001 | OPEN | |
+| BETA-ISSUE-001 | _(fill at review time)_ | |
 
 ### 3. Coach / Parent 활용 (Quotes · verbatim)
 
@@ -82,4 +103,4 @@
 
 ---
 
-**Updated:** 2026-07-21
+**Updated:** 2026-07-12 · PAI-022 pre-start alignment · Week rule LOCK · ISSUE-001 hardcoded OPEN 제거

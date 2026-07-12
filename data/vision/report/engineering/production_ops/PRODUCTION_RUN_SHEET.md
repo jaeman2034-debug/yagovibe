@@ -149,11 +149,16 @@
 
 ## 8. Weekly Review 절차
 
-템플릿: `PRODUCTION_WEEKLY_REVIEW.md`
+템플릿: `PRODUCTION_WEEKLY_REVIEW.md`  
+Action Item: **PAI-022** ▶ **PLANNED** (별도 PM start GO 전 Review 작성 금지)
+
+**Production Week (PM LOCK):** 월요일 00:00 KST ~ 일요일 23:59 KST  
+- Launch Partial Baseline: **2026-07-06 ~ 2026-07-12** ≠ Prod-W01  
+- Prod-W01: **2026-07-13 ~ 2026-07-19** · 정규 Review는 주간 종료 후
 
 ```text
 1. 주간 KPI 집계
-2. Known Issue (BETA-ISSUE-001) 추이
+2. Known Issue (BETA-ISSUE-001) 추이 — review-time Evidence로 Status 기입 (템플릿 기본값 없음)
 3. Coach / Parent 활용 Official Fact
 4. Incident 요약
 5. Action Items 진행
