@@ -97,7 +97,7 @@ Track B `supplement/` 신규 생성 조건 — **모두** 충족:
 | VOC-004 | 훈련 가이드 / 드릴 영상 추천 요청 | **1** | PV-003 | product | ❌ |
 | VOC-005 | 하프타임 실시간 리포트 요약 → 후반 전술 | **1** | PV-004 | product | ❌ |
 | VOC-006 | 누적 데이터 활용 (라인업·체력 사이클) | **2** | PV-004·005 | product | ❌ |
-| VOC-007 | 연령별 기준값(심박수 등) 설명 | **1** | PV-005 | product | ❌ |
+| VOC-007 | 연령별 기준값(심박수 등) 설명 | **1** | PV-005 | product | ❌ · ⏸ **DEFERRED / DATA-DEPENDENT** (PM 2026-07-12) · HR surface·age-norm SoT 없음 · copy-only NO-GO · no PAI · `VOC_007_DEFER_DISPOSITION.md` |
 | VOC-008 | 모바일 버튼 터치 영역 | **1** | PV-005 | usability | ✅ **PAI-033 PASS/COMPLETE/CLOSED** (Production verified · A-set) · count **1** 유지 · eng backlog E2-BL-P2-01 CLOSED |
 | VOC-009 | 코치 승인 후 카카오 알림톡 자동 발송 | **1** | PV-005 | product / E3 | ❌ |
 | VOC-010 | GPS/웨어러블 원탭 연동 → 자동 리포트 | **1** | PV-006 | product / long-term | ❌ |
