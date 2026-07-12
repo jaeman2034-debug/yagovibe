@@ -91,18 +91,31 @@ export default defineConfig({
     ],
   },
   server: {
-    host: true,
+    // IPv4 loopback — Windows에서 host:true(::) 바인딩 시 127.0.0.1 요청이 먹통되는 케이스 회피
+    host: "127.0.0.1",
     port: 5173,
     // 5173 점유 시(이전 dev 프로세스 등) 다음 포트로 기동 — 고정 clientPort는 포트 불일치로 HMR 깨짐 유발
     strictPort: false,
     hmr: {
       overlay: false,
     },
+    // data/·artifact 대량 파일 워치가 이벤트 루프를 잡아 HTTP가 멈춘 것처럼 보이는 현상 완화
+    watch: {
+      ignored: [
+        "**/data/**",
+        "**/dist/**",
+        "**/coverage/**",
+        "**/.git/**",
+        "**/functions/lib/**",
+        "**/android/**",
+        "**/ios/**",
+      ],
+    },
     // 🔥 SPA 라우팅을 위한 historyApiFallback 설정
     // 모든 경로를 index.html로 리다이렉트하여 React Router가 처리하도록 함
     // Firebase Auth의 /__/auth/handler 경로도 처리됨
     fs: {
-      allow: [".."],
+      allow: [path.resolve(__dirname)],
     },
     proxy: {
       "/nlu": {

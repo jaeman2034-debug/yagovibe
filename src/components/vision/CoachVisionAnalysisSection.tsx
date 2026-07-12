@@ -35,6 +35,7 @@ import {
   VisionCoachDecisionBriefCard,
   VisionCoachInsightCard,
 } from "@/components/vision/VisionCoachInsightCards";
+import { CoachMatchFlowTrendCard } from "@/components/vision/CoachMatchFlowTrendCard";
 import { teamValidationConsolePath } from "@/lib/team/teamValidationConsoleRoutes";
 import { VisionPlatformNav } from "@/components/vision/VisionPlatformNav";
 import { VisionJobMonitorPanel } from "@/components/vision/VisionJobMonitorPanel";
@@ -236,6 +237,9 @@ function CoachVisionDashboardGrid({ teamId, matchId }: { teamId: string; matchId
       </div>
       <VisionTeamFiiCard />
       <VisionSummaryCard />
+      <div className="lg:col-span-2">
+        <CoachMatchFlowTrendCard />
+      </div>
       <div className="lg:col-span-2">
         <VisionCoachInsightCard />
       </div>

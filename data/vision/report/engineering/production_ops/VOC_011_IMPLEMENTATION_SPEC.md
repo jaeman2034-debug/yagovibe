@@ -1,8 +1,9 @@
 # VOC-011 Implementation Spec (1p) — LOCK
 
 **Document ID:** `VOC-011-IMPL-SPEC`  
-**Status:** 🔒 **SCOPE LOCK** · ✅ **구현 검증 PASS (PAI-011)** · ❌ COMPLETE/CLOSED 금지(Prod 배포 전)  
-**PAI:** PAI-011 ✅ PASS  
+**Status:** 🔒 **SCOPE LOCK** · ✅ **구현 검증 PASS** · 🔒 **PAI-011 COMPLETE / CLOSED** (Production Smoke PASS)  
+**PAI:** PAI-011 🔒 COMPLETE/CLOSED  
+**Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **Day-03:** 🛑 DATE_GATE_PENDING 분리 · Official Fact / VOC 15→16 금지
 
 > Manual QA: `VOC_011_MANUAL_QA.md` · **FINAL PASS**  
@@ -62,8 +63,9 @@ peerBenchmark: {
 
 ## Gate after code
 
-`Build/Test → PM Review → PAI-011 판정` (본 문서에서 PASS 미선언)
+`Build/Test → PM Review → PAI-011 PASS → Deploy → Post-Deploy Smoke PASS → COMPLETE/CLOSED` 🔒
 
 ---
 
-**Locked by:** PM 최종 3개 확정 · 2026-07-11
+**Locked by:** PM 최종 3개 확정 · 2026-07-11  
+**Closed:** 2026-07-11 · Production verified `64270a3`

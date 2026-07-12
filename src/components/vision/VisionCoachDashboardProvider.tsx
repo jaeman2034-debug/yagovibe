@@ -1,10 +1,15 @@
 /**
  * Vision v6-4 — shared coach dashboard state for Vision cards (reusable outside PlayTab)
+ * VOC-012 — merges matchFlowTrend into context
  */
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useCoachVisionAnalysis } from "@/hooks/useCoachVisionAnalysis";
-import type { CoachDashboardVisionProviderView } from "@/lib/vision/visionTypes";
+import { useCoachMatchFlowTrend } from "@/hooks/useCoachMatchFlowTrend";
+import type {
+  CoachDashboardVisionProviderView,
+  CoachMatchFlowTrendView,
+} from "@/lib/vision/visionTypes";
 
 export type VisionCoachSurfaceVariant = "light" | "dark";
 
@@ -19,6 +24,8 @@ type VisionCoachDashboardContextValue = {
   hasAnalysis: boolean;
   view: CoachDashboardVisionProviderView | null;
   cardState: VisionCardUiState;
+  matchFlowTrend: CoachMatchFlowTrendView | null;
+  matchFlowLoading: boolean;
 };
 
 const VisionCoachDashboardContext = createContext<VisionCoachDashboardContextValue | null>(
@@ -54,12 +61,27 @@ export function VisionCoachDashboardProvider({
     enabled
   );
 
+  const flow = useCoachMatchFlowTrend(
+    teamId,
+    matchId,
+    view,
+    enabled && hasAnalysis && Boolean(view)
+  );
+
   const cardState: VisionCardUiState = useMemo(() => {
     if (loading) return "loading";
     if (error) return "error";
     if (!hasAnalysis || !view) return "empty";
     return "ready";
   }, [loading, error, hasAnalysis, view]);
+
+  const viewWithTrend = useMemo(() => {
+    if (!view) return null;
+    return {
+      ...view,
+      matchFlowTrend: flow.trend ?? null,
+    };
+  }, [view, flow.trend]);
 
   const value = useMemo(
     () => ({
@@ -69,10 +91,23 @@ export function VisionCoachDashboardProvider({
       loading,
       error,
       hasAnalysis,
-      view,
+      view: viewWithTrend,
       cardState,
+      matchFlowTrend: flow.trend ?? null,
+      matchFlowLoading: flow.loading,
     }),
-    [teamId, matchId, variant, loading, error, hasAnalysis, view, cardState]
+    [
+      teamId,
+      matchId,
+      variant,
+      loading,
+      error,
+      hasAnalysis,
+      viewWithTrend,
+      cardState,
+      flow.trend,
+      flow.loading,
+    ]
   );
 
   return (

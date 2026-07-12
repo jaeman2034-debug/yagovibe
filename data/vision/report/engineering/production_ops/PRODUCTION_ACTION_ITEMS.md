@@ -23,8 +23,8 @@
 
 | ID | Item | Status | Owner | Note |
 |---|---|---|---|---|
-| **PAI-011** | VOC-011 — 또래(팀·연령) 평균 기준선 | ✅ **PASS** · ▶ **Post-Deploy Smoke 대기** | PM · Eng | Hosting **Deployed** `64270a3` · 20:56 KST · `PAI_011_DEPLOY_FACT.md` · **COMPLETE/CLOSED 금지** · Day-03 분리 |
-| **PAI-012** | VOC-012 — 기간 데이터 비교 시각화 | ▶ 관찰 | Product | Count **7** · Coach 출처 중심 · 적용 범위 구분 |
+| **PAI-011** | VOC-011 — 또래(팀·연령) 평균 기준선 | 🔒 **COMPLETE / CLOSED** | PM · Eng | Post-Deploy Smoke **PASS** · HEAD `64270a3` · feature `07fb689` · `PAI_011_POST_DEPLOY_SMOKE.md` · Day-03 DATE_GATE_PENDING 유지 |
+| **PAI-012** | VOC-012 — 기간 데이터 비교 시각화 | ✅ **PASS** · ▶ Pre-Deploy · ❌ COMPLETE/CLOSED 금지 | Product · Eng | Manual QA FINAL PASS · Visual ACCEPTED · `VOC_012_MANUAL_QA.md` · Day-03/PAI-011/VOC-011×15 미변경 |
 
 VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validation/E2_ENGINEERING_BACKLOG.md`
 
@@ -52,4 +52,4 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 
 ---
 
-**Updated:** 2026-07-11
+**Updated:** 2026-07-11 · PAI-011 COMPLETE/CLOSED

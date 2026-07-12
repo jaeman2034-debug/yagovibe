@@ -12,11 +12,11 @@
 
 | Version / Tag | Date | Change (Fact) | Related Issue / VOC | Note |
 |---|---|---|---|---|
-| Hosting `64270a3` | 2026-07-11 20:56 KST | PAI-011 VOC-011 peer benchmark · Vision Parent UI stack · kakaoShare build fix | VOC-011 · PAI-011 | Production Hosting · **Deploy complete** · COMPLETE/CLOSED 금지 · Smoke 대기 |
+| Hosting `64270a3` | 2026-07-11 20:56 KST | PAI-011 VOC-011 peer benchmark · Vision Parent UI stack · kakaoShare build fix | VOC-011 · PAI-011 | Production Hosting · **VERIFIED** · Post-Deploy Smoke PASS · PAI-011 **COMPLETE/CLOSED** |
 | Hosting `4d508ac` | 2026-07-11 14:57 KST | PAI-001: Kakao iOS openExternal · persistence · next preserve · Safari CTA | BETA-ISSUE-001 · PAI-001 | Production Hosting · Verification PASS · ISSUE CLOSED (Verified) |
 | — | 2026-07-21 | Production 운영 체계 개시 (`production_ops/`) | GO with Open Issue | Docs only |
 
-### PAI-011 Deploy Fact (2026-07-11)
+### PAI-011 Deploy Fact (2026-07-11) — VERIFIED
 
 ```text
 배포 일시: 2026-07-11 20:56 KST
@@ -29,11 +29,13 @@ Rollback: 4d508ac43b053a9f114f5ba32a99ba0d1eac27d7
 결과: Deploy complete · release complete · 456 files
 CF / Rules: N (hosting only)
 Scope: PAI-011 peer + Vision Parent/관련 UI 스택 (동일 feature 커밋)
+Post-Deploy Smoke: PASS (Parent Vision Report / peer benchmark card)
+PAI-011: COMPLETE / CLOSED
 ```
 
-> SoT: `PAI_011_DEPLOY_FACT.md`  
-> ❌ Deploy 성공 ≠ PAI-011 COMPLETE/CLOSED  
-> ❌ Day-03 DATE_GATE_PENDING 미변경
+> SoT: `PAI_011_DEPLOY_FACT.md` · Smoke: `PAI_011_POST_DEPLOY_SMOKE.md`  
+> ✅ Release **VERIFIED** · PAI-011 **COMPLETE/CLOSED**  
+> 🛑 Day-03 DATE_GATE_PENDING 미변경 (VOC-011 원장 15 유지)
 
 ---
 

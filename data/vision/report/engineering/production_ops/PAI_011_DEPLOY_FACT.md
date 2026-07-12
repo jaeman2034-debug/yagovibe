@@ -1,7 +1,7 @@
 # PAI-011 — Production Deploy Fact
 
 **Document ID:** `PAI-011-DEPLOY-FACT`  
-**Status:** ✅ **DEPLOYED** (Hosting) · ❌ COMPLETE/CLOSED 금지 · ❌ Post-Deploy Smoke 전 CLOSED 금지  
+**Status:** ✅ **DEPLOYED** (Hosting) · 🔒 **PAI-011 COMPLETE / CLOSED** (Post-Deploy Smoke PASS)  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경
 
 ---
@@ -51,18 +51,18 @@ Clean 07fb689 alone → FAIL (missing kakaoShare export) → fixed in 64270a3
 
 ---
 
-## Next Gate
+## Gate Chain (CLOSED)
 
 ```text
 Deploy Fact ✅
     ↓
-Production Parent Report Post-Deploy Smoke
+Production Post-Deploy Smoke ✅ PASS
     ↓
-Peer Benchmark 카드 · 값/카피/모바일
-    ↓
-PM 판정 → PAI-011 COMPLETE/CLOSED 또는 OPEN 유지
+PAI-011 COMPLETE / CLOSED 🔒
 ```
+
+SoT (Smoke): `PAI_011_POST_DEPLOY_SMOKE.md`
 
 ---
 
-**Recorded:** 2026-07-11 20:56 KST
+**Recorded:** 2026-07-11 20:56 KST · **Closed:** 2026-07-11 21:56 KST

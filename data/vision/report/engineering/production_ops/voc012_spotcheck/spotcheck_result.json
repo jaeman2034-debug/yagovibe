@@ -1,0 +1,47 @@
+{
+  "at": "2026-07-12T00:05:32.133Z",
+  "base": "http://127.0.0.1:5173",
+  "playPath": "/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+  "coachUid": "wSlh4oDIqIP4GnV3Di1IeAQnFy13",
+  "teamId": "D7TUZaOtfxdBc4P0lQLx",
+  "matchId": "vision-pilot-pass01-clip-002",
+  "previousSeeded": [
+    "voc012-spotcheck-prev-001",
+    "voc012-spotcheck-prev-002",
+    "voc012-spotcheck-prev-003"
+  ],
+  "screenshots": {
+    "mobile": "C:\\Users\\samsung256g\\Desktop\\yago-vibe-spt\\data\\vision\\report\\engineering\\production_ops\\voc012_spotcheck\\coach_play_mobile.png",
+    "desktop": "C:\\Users\\samsung256g\\Desktop\\yago-vibe-spt\\data\\vision\\report\\engineering\\production_ops\\voc012_spotcheck\\coach_play_desktop.png"
+  },
+  "facts": {
+    "url": "http://127.0.0.1:5173/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+    "onLogin": false,
+    "hasMatchDetail": true,
+    "hasCoachSection": false,
+    "hasTrendCard": true,
+    "hasTrendBody": true,
+    "hasRanking": true,
+    "copyHeadline": true,
+    "copyN3": true,
+    "copyN2": false,
+    "hasCurrentFiiLabel": true,
+    "hasDeltaMark": true,
+    "hasNaN": false,
+    "bodySnippet": "YAGO SPORTS\n14\nparent.test\n로그아웃\n팀 플레이로 돌아가기\n\nSmoke 10B-1c · Vision Match Detail\n\n패스 13건 · 볼 수신 13건 · 턴오버 3건\n\nFII Summary (RC4-2 M2) 연동\n\n팀 허브\nCoach\nMatch\nTimeline\nParent\n\nJOB MONITOR\n\n완료· 완료\n\n100%\n\n[VISION_ANALYSIS_FAILED] no GEV events: /tmp/yago-worker/vision-1783164468430-e246e63c/tracking/gev_rc3_1_phase_c/gev_events.jsonl\n\nMatch Detail →\nTimeline →\nParent Report →\n\n코치 훈련 브리프\n\n훈련 브리프가 아직 없습니다.\n\nTEAM FII\n\n62\n\nFootball Intelligence Index\n\n패스 13건 · 볼 수신 13건 · 턴오버 3건\n\nSource: fii_summary.json (RC4-2)\n\nMATCH SUMMARY\n\n패스 13건 · 볼 수신 13건 · 턴오버 3건\n\nGEV Production preset 기준 89개 이벤트 분석. 점유 체인 30회 활성 선수 24명. 팀 FII 62점. 주요 활약: Player P0100 (FII 72).\n\nTop 3 Players\n\n#1\n\nPlayer P0100\n\n72\n\n#2\n\nPlayer P0150\n\n71\n\n#3\n\nPlayer P0221\n\n69\n\nCOACH INSIGHTS\n\n강점\n\nPlayer P0100: 시야 62점 — 팀 내 상대 강점\n패스 연결 13건 — 볼 순환 구간 확인됨\n\n개선 포인트\n\n턴오버 3건 — 압박 대응·지원 패스 훈련 포인트\n\n추천 훈련\n\n패스 연결 구간 영상 복기 → 코치 피드백\n턴오버 직전 압박 상황 드릴 추가\nPlayer P0100 활약 구간을 팀 미팅에서 공유\n\n최근 경기 흐름 비교\n\n최근 3경기 평균과 비교\n\n비교 경기 수 N=3 · 흐름 표시 선수 48명\n\nPlayer P0289\n\n현재 FII 53 · 최근 3경기 평균 65 · -12\n\nΔ -12 · FII\n\nPlayer P0289\n\n현재 FII 53 · 최근 3경기 평균 65 · -12\n\nΔ -12 · FII\n\nPlayer P0309\n\n현재 FII 53 · 최근 3경기 평균 65 · -12\n\nΔ -12 · FII\n\nPlayer P0309\n\n현재 FII 53 · 최근 3경기 평균 65 · -12\n\nΔ -12 · FII\n\nPlayer P0361\n\n현재 FII 53 · 최근 3경기 평균 65 · -12\n\nΔ -12 · FII\n\nFII RANKING\n\nRANK\tPLAYER\tFII\tAVG\tΔ\n1\tPlayer P0100\t72\t65\t+7\n2\tPlayer P0150\t71\t65\t+6\n3\tPlayer P0221\t69\t65\t+4\n4\tPlayer P0032\t68\t65\t+3\n5\tPlayer P0133\t68\t65\t+3\n6\tPlayer P0239\t68\t65\t+3\n7\tPlayer P0118\t65\t65\t0\n8\tPlayer P0096\t63\t65\t-2\n9\tPlayer P0125\t62\t65\t-3\n10\tPlayer P0171\t62\t65\t-3\n11\tPlayer P0037\t61\t65\t-4\n12\tPlayer P0259\t61\t65\t-4\n13\tPlayer P0214\t60\t65\t-5\n14\tPlayer P0015\t59\t65\t-6\n15\tPlayer P0271\t59\t65\t-6\n16\tPlayer P0344\t59\t65\t-6\n17\tPlayer P0425\t59\t65\t-6\n18\tPlayer P0478\t55\t65\t-10\n19\tPlayer P0289\t53\t65\t-12\n20\tPlayer P0309\t53\t65\t-12\n21\tPlayer P0361\t53\t65\t-12\n22\tPlayer P0386\t53\t65\t-12\n23\tPlayer P0439\t53\t65\t-12\n24\tPlayer P0466\t53\t65\t-12\n\nTACTICAL REPORT\n\nGEV Production preset 기준 89개 이벤트 분석. 점유 체인 30회 활성 선수 24명. 팀 FII 62점. 주요 활약: Player P0100 (FII 72).\n\nSTRENGTHS\n\nPlayer P0100: 시야 62점 — 팀 내 상대 강점\n패스 연결 13건 — 볼 순환 구간 확인됨\n\nWEAKNESSES\n\n턴오버 3건 — 압박 대응·지원 패스 훈련 포인트\n\nRECOMMENDATIONS\n\n패스 연결 구간 영상 복기 → 코치 피드백\n턴오버 직전 압박 상황 드릴 추가\nPlayer P0100 활약 구간을 팀 미팅에서 공유\n\n경기 타임라인\n\nJOB MONITOR\n\n완료· 완료\n\n100%\n\n[VISION_ANALYSIS_FAILED] no GEV events: /tmp/yago-worker/vision-1783164468430-e246e63c/tracking/gev_rc3_1_phase_c/gev_events.jsonl\n\nMatch Detail →\nTimeline →\nParent Report →\n\nGEV Production · 총 85개 이벤트 · 점유 체인 28\n\n1\n\n패스\n\n13회\n\n2\n\n볼 받기\n\n1"
+  },
+  "checklist": {
+    "coach_report_open": "Y",
+    "trend_card_visible": "Y",
+    "current_fii_ok": "Y",
+    "recent_avg_ok": "Y",
+    "delta_ok": "Y",
+    "ui_copy_ok": "Y",
+    "ranking_ok": "Y",
+    "no_nan": "Y",
+    "mobile_layout_ok": "Y",
+    "screen_visual_done": "Y",
+    "observations": "없음"
+  },
+  "pai012_pass_forbidden": true
+}

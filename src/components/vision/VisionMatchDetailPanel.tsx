@@ -11,6 +11,7 @@ import {
   useVisionCoachDashboard,
 } from "@/components/vision/VisionCoachDashboardProvider";
 import { VisionTeamFiiCard, VisionMatchSummaryCard, VisionCoachDecisionBriefCard, VisionCoachInsightCard } from "@/components/vision/VisionCoachInsightCards";
+import { CoachMatchFlowTrendCard } from "@/components/vision/CoachMatchFlowTrendCard";
 import { VisionFiiRankingTable } from "@/components/vision/VisionFiiRankingTable";
 import { VisionTacticalReportCard } from "@/components/vision/VisionTacticalReportCard";
 import { VisionPlatformNav } from "@/components/vision/VisionPlatformNav";
@@ -80,6 +81,8 @@ function VisionMatchDetailInner({ teamId, matchId, teamName }: Props) {
           ) : null}
 
           <VisionCoachInsightCard />
+
+          <CoachMatchFlowTrendCard />
 
           <div className="space-y-3">
             <VisionFiiRankingTable teamId={teamId} matchId={matchId} />

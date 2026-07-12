@@ -3,8 +3,8 @@
 **Document ID:** `VOC-011-MANUAL-QA`  
 **Date:** 2026-07-11 (KST)  
 **Status:** 🔒 **FINAL PASS** (PM Review)  
-**PAI-011:** ✅ **PASS** · ❌ COMPLETE/CLOSED 금지 (Production 배포 전)  
-**Day-03:** 🛑 **DATE_GATE_PENDING 변경 없음**  
+**PAI-011:** 🔒 **COMPLETE / CLOSED** (Post-Deploy Smoke PASS)  
+**Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **판정 범위:** 현재 구현 · fixture · 확인된 Parent Report 경로 · Visual Spot-check 환경
 
 ---
@@ -36,17 +36,20 @@ Visual SoT: `VOC_011_VISUAL_SPOTCHECK.md` (ACCEPTED)
 
 ---
 
-## Next Gate
+## Gate Outcome
 
 ```text
 PAI-011 PASS ✅
     ↓
-커밋/푸시 · Commit ID 확인
+Production Deploy (`64270a3`) ✅
     ↓
-Production 배포 전 검토
+Post-Deploy Smoke PASS ✅
     ↓
-(배포 후) COMPLETE/CLOSED 검토 — 지금은 금지
+PAI-011 COMPLETE / CLOSED 🔒
 ```
+
+SoT: `PAI_011_POST_DEPLOY_SMOKE.md`  
+Day-03 DATE_GATE_PENDING: 🛑 유지
 
 Day-03 Date Gate **별도 동결** 유지.
 
