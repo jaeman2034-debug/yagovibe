@@ -24,9 +24,12 @@
 
 | Date | Coach Report | Parent Report | 알림톡 | 모바일 | ISSUE-001 | 운영 오류 | Note |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|---|
-| _YYYY-MM-DD_ | | | | | | | Production Day-01부터 기입 |
+| 2026-07-12 | ✅ (AI 분석 Y) | ✅ (Quote) | ✅ (Quote) | ✅ (Quote) | ✅ N | ✅ N | Day-03 **ACCEPT/LOCK** · upload Y · players 22 · VOC-011 **15** · `PRODUCTION_DAY_03.md` |
+| _YYYY-MM-DD_ | | | | | | | |
 
 **기호:** ✅ 정상 · ⚠️ 이슈 · ❌ 실패 · — 해당 없음
+
+> Day-03 Note: 7항 Official Fact SoT는 `PRODUCTION_DAY_03.md`. KPI 열은 운영 관측(업로드·AI·Quote·ISSUE 미관측)에 근거.
 
 ---
 
@@ -51,4 +54,4 @@
 
 ---
 
-**Updated:** 2026-07-21
+**Updated:** 2026-07-12 · Day-03 ACCEPT/LOCK 반영
