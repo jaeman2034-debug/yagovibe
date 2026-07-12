@@ -18,9 +18,17 @@
 | Prod-W01 | **2026-07-13 00:00 KST ~ 2026-07-19 23:59 KST** |
 | First regular Weekly Review | Prod-W01 기간 **완료 후** · PAI-022 **별도 PM start GO** 필요 |
 
-### Day-01 SoT pointer
+### Launch Partial Day-01 SoT pointer
 
-`PRODUCTION_DAY_01.md` **미생성**. Day-01 ACCEPT evidence = Tracker `2026-07-11 Day-01 · PAI-003` + `PAI_003_PARENT_GATE_REVALIDATION.md`.
+`PRODUCTION_DAY_01.md` **미생성**. Launch Partial Day-01 evidence = Tracker `2026-07-11 Day-01 · PAI-003` + `PAI_003_PARENT_GATE_REVALIDATION.md`.
+
+### Prod-W01 Day Facts (Daily only · ≠ Weekly Review)
+
+| Day | Status | File |
+|---|---|---|
+| **Prod-W01 Day-01** | 🔒 **ACCEPT / LOCK** | `PRODUCTION_PROD_W01_DAY_01.md` |
+
+> Daily Fact LOCK ≠ Weekly Review 착수. **PAI-022 PLANNED** 유지.
 
 ---
 
@@ -29,7 +37,7 @@
 | Week | Period | Status | File / Section |
 |---|---|---|---|
 | Launch Partial Baseline | 2026-07-06 ~ 2026-07-12 | 📝 BASELINE ONLY · ≠ Prod-W01 | Daily Facts only · Review 승격 금지 |
-| Prod-W01 | 2026-07-13 ~ 2026-07-19 | ▶ PENDING (기간 미종료) | 주간 종료 + PAI-022 PM GO 후 템플릿 복사 |
+| Prod-W01 | 2026-07-13 ~ 2026-07-19 | ▶ IN PROGRESS (기간 미종료) · Day-01 LOCK · **Weekly Review 미작성** | 주간 종료 + PAI-022 PM GO 후 템플릿 복사 |
 
 ---
 
@@ -103,4 +111,4 @@ Review 작성 시 **당시** Production Action Items / Incidents / Day Official 
 
 ---
 
-**Updated:** 2026-07-12 · PAI-022 pre-start alignment · Week rule LOCK · ISSUE-001 hardcoded OPEN 제거
+**Updated:** 2026-07-13 · Prod-W01 Day-01 ACCEPT/LOCK pointer · PAI-022 PLANNED · Weekly Review 미작성
