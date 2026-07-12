@@ -1,0 +1,222 @@
+{
+  "sampleId": "CIE-EVAL-V0-007",
+  "datasetClass": "EVALUATION",
+  "datasetVersion": "cie-evalset-v0.1.0",
+  "sourceType": "sanitized_fii_fixture",
+  "mediaId": null,
+  "matchId": "anon-match-007",
+  "playerId": null,
+  "playerAlias": "P3",
+  "fiiInput": {
+    "schemaVersion": "yago-vision-fii-summary-v1",
+    "teamFii": {
+      "overall": 54,
+      "axes": {
+        "spatial": 52,
+        "vision": 55,
+        "decision": 50,
+        "pressure": 48,
+        "tactics": 51
+      },
+      "playerCount": 3
+    },
+    "playerFii": [
+      {
+        "trackId": "t1",
+        "name": "P1",
+        "fii": 58,
+        "rank": 1,
+        "axes": {
+          "spatial": 60,
+          "vision": 55,
+          "decision": 52,
+          "pressure": 50,
+          "tactics": 54
+        }
+      },
+      {
+        "trackId": "t2",
+        "name": "P2",
+        "fii": 50,
+        "rank": 2,
+        "axes": {
+          "spatial": 48,
+          "vision": 52,
+          "decision": 48,
+          "pressure": 46,
+          "tactics": 50
+        }
+      },
+      {
+        "trackId": "t3",
+        "name": "P3",
+        "fii": 45,
+        "rank": 3,
+        "axes": {
+          "spatial": 40,
+          "vision": 48,
+          "decision": 44,
+          "pressure": 42,
+          "tactics": 46
+        }
+      }
+    ],
+    "gevInput": {
+      "eventCount": 25,
+      "eventCounts": {
+        "PASS": 12,
+        "RECEIVE": 10,
+        "TURNOVER": 3
+      }
+    },
+    "matchSummary": {
+      "headline": "세션 요약",
+      "summary": "GEV·FII 기반 코치 브리프입니다.",
+      "eventHighlights": {
+        "passes": 12,
+        "receives": 10,
+        "turnovers": 3,
+        "totalEvents": 25
+      }
+    }
+  },
+  "coachInsightsInput": {
+    "insightVersion": "e2-v1",
+    "coachDecisionBrief": {
+      "keyChangeToday": "패스 연결 12건이 확인되었습니다.",
+      "nextTrainingFocus": "압박 하 짧은 지원 패스",
+      "playersToCoach": [
+        {
+          "trackId": "t3",
+          "name": "P3",
+          "focus": "공간 이동",
+          "oneLiner": "볼 없을 때 한 칸 앞으로"
+        }
+      ]
+    },
+    "reviewHooks": [
+      {
+        "label": "턴오버 구간",
+        "headlineMetric": "턴오버 3건",
+        "suggestedAction": "위험 지역 안전 옵션 리허설"
+      }
+    ],
+    "strengths": [
+      "패스 연결 12건 — 볼 순환 구간 확인됨",
+      "P1: 공간 인식 60점 — 팀 내 상대 강점"
+    ],
+    "improvementPoints": [
+      "턴오버 3건 — 압박 대응·지원 패스 훈련 포인트"
+    ],
+    "recommendations": [
+      "턴오버 구간: 위험 지역 안전 옵션 리허설",
+      "동일 세션 추가 클립 수집 후 FII 추세 비교"
+    ]
+  },
+  "allowedFacts": [
+    {
+      "factId": "AF01",
+      "type": "number",
+      "path": "teamFii.overall",
+      "value": 54
+    },
+    {
+      "factId": "AF-PASS",
+      "type": "number",
+      "path": "gevInput.eventCounts.PASS",
+      "value": 12
+    },
+    {
+      "factId": "AF-RECEIVE",
+      "type": "number",
+      "path": "gevInput.eventCounts.RECEIVE",
+      "value": 10
+    },
+    {
+      "factId": "AF-TURNOVER",
+      "type": "number",
+      "path": "gevInput.eventCounts.TURNOVER",
+      "value": 3
+    },
+    {
+      "factId": "AF-P1",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P1"
+    },
+    {
+      "factId": "AF-P1-fii",
+      "type": "number",
+      "path": "playerFii.P1.fii",
+      "value": 58
+    },
+    {
+      "factId": "AF-P2",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P2"
+    },
+    {
+      "factId": "AF-P2-fii",
+      "type": "number",
+      "path": "playerFii.P2.fii",
+      "value": 50
+    },
+    {
+      "factId": "AF-P3",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P3"
+    },
+    {
+      "factId": "AF-P3-fii",
+      "type": "number",
+      "path": "playerFii.P3.fii",
+      "value": 45
+    },
+    {
+      "factId": "AF-S-10",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "패스 연결 12건 — 볼 순환 구간 확인됨"
+    },
+    {
+      "factId": "AF-S-11",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "P1: 공간 인식 60점 — 팀 내 상대 강점"
+    }
+  ],
+  "forbiddenClaims": [
+    "injury",
+    "medical",
+    "fatigue_diagnosis",
+    "psych_state",
+    "invented_intent",
+    "future_certainty",
+    "age_benchmark"
+  ],
+  "coachContext": {
+    "audience": "coach",
+    "task": "rewrite_brief",
+    "locale": "ko-KR",
+    "hitlRequired": true
+  },
+  "promptVersion": "cip-v0.1.0",
+  "candidateOutput": {
+    "rewriteText": "강점: 패스 연결 12건. 개선: 턴오버 3건. P3 공간 이동 포커스(볼 없을 때 한 칸 앞)를 짧게 리허설할 것을 제안합니다. 코치님이 최종 결정해 주세요.",
+    "modelId": "fixture-handauthored",
+    "generatedAt": null
+  },
+  "groundedClaims": [],
+  "unsupportedClaims": [],
+  "hallucinationFlags": [],
+  "evaluatorScores": {},
+  "finalVerdict": null,
+  "failureType": [],
+  "reviewerStatus": "unreviewed",
+  "evaluatorVersion": "cie-eval-v0.1.0",
+  "piiPolicy": "no_real_pii",
+  "expectedVerdict": "PASS",
+  "expectedFailureTypes": []
+}

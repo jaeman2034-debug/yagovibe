@@ -20,6 +20,7 @@
 | **Beta (종료)** | ✅ **COMPLETE** — Day-01~12 LOCK · PM **GO with Open Issue** (2026-07-21) |
 | **Track A/B** | A=Official Fact (Gate) · B=Synthetic→AI Coach v1 (Gate 금지) · **혼합 금지** |
 | **AI Coach Brain v1** | Internal Ready ✅ · Wiring PASS ✅ · B=Maintenance · ❌ Production/제품완성 |
+| **CIE v0.1** | 🔒 **PASS / COMPLETE / LOCK** (2026-07-13) · offline deterministic eval foundation · `coach_intelligence_eval/v0/CIE_V0_1_PM_FINAL_LOCK.md` · ≠ live Coach LLM · ≠ weight training · ≠ 4-Agent Production |
 | **Execution triage** | 코치 도움? · 학부모 도움? · Beta 품질? — 모두 YES만 진행 |
 | **제품 파이프라인** | Vision→GEV→FII→AI Coach→Coach Decision→**Parent**→Avatar→Game |
 | **배포 판정** | Beta/Pilot Ready ✅ · Production ▶ **GO with Open Issue** (PM 2026-07-21) → **ISSUE-001 CLOSED (Verified)** 2026-07-11 · PAI-001 PASS · SoT `production_ops/` |
