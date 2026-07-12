@@ -95,6 +95,37 @@ export function mapQueueStatusToUi(
   }
 }
 
+/**
+ * PAI-031 FIX C — Job Monitor error merge.
+ * Prefer latest-run errors. When uiStatus is completed and the run has no error,
+ * do not fall through to stale index/queue error fields.
+ * Actual failed / run-level errors remain visible.
+ */
+export function resolveVisionJobMonitorErrors(input: {
+  uiStatus: VisionPipelineUiStatus;
+  runErrorCode?: string | null;
+  runErrorMessage?: string | null;
+  indexErrorCode?: string | null;
+  indexErrorMessage?: string | null;
+  queueErrorCode?: string | null;
+  queueErrorMessage?: string | null;
+}): { errorCode: string | null; errorMessage: string | null } {
+  const runErrorCode = input.runErrorCode ?? null;
+  const runErrorMessage = input.runErrorMessage ?? null;
+  if (runErrorCode || runErrorMessage) {
+    return { errorCode: runErrorCode, errorMessage: runErrorMessage };
+  }
+
+  if (input.uiStatus === "completed") {
+    return { errorCode: null, errorMessage: null };
+  }
+
+  return {
+    errorCode: input.indexErrorCode ?? input.queueErrorCode ?? null,
+    errorMessage: input.indexErrorMessage ?? input.queueErrorMessage ?? null,
+  };
+}
+
 export function formatVisionTimestamp(value: unknown): string | null {
   if (!value) return null;
   if (typeof value === "object" && value !== null && "toDate" in value) {

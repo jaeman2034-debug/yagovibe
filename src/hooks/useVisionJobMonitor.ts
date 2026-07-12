@@ -9,6 +9,7 @@ import { useMatchVisionPipelineStatus } from "@/hooks/useMatchVisionPipelineStat
 import { useVisionUploadQueueStatus } from "@/hooks/useVisionUploadQueueStatus";
 import {
   mapQueueStatusToUi,
+  resolveVisionJobMonitorErrors,
   stepProgress,
   type VisionJobMonitorRunDoc,
   type VisionJobMonitorState,
@@ -133,9 +134,15 @@ export function useVisionJobMonitor(
       index?.progress ??
       (pipelineStep ? stepProgress(pipelineStep) : 0);
 
-    const errorCode = runDoc?.errorCode ?? index?.errorCode ?? queueDoc?.errorCode ?? null;
-    const errorMessage =
-      runDoc?.errorMessage ?? index?.errorMessage ?? queueDoc?.errorMessage ?? null;
+    const { errorCode, errorMessage } = resolveVisionJobMonitorErrors({
+      uiStatus,
+      runErrorCode: runDoc?.errorCode,
+      runErrorMessage: runDoc?.errorMessage,
+      indexErrorCode: index?.errorCode,
+      indexErrorMessage: index?.errorMessage,
+      queueErrorCode: queueDoc?.errorCode,
+      queueErrorMessage: queueDoc?.errorMessage,
+    });
 
     const active =
       uiStatus !== "none" ||

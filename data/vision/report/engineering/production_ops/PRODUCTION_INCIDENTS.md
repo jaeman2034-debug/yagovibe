@@ -22,7 +22,7 @@
 
 | ID | Date | Severity | Summary (Official Fact) | Linked Issue | Status |
 |---|---|---|---|---|---|
-| **PROD-OBS-012** | 2026-07-12 | S3 | Production Coach Match Detail Job Monitor에 `[VISION_ANALYSIS_FAILED] no GEV events ...` 빨간 문구 관측. PAI-012 Trend 카드·Avg/Δ는 정상. | PAI-012 Smoke 분리 | ▶ **OPEN (후보)** |
+| **PROD-OBS-012** | 2026-07-12 | S3 | Production Coach Match Detail Job Monitor에 `[VISION_ANALYSIS_FAILED] no GEV events ...` 빨간 문구 관측. PAI-012 Trend 카드·Avg/Δ는 정상. | PAI-031 | ▶ **OPEN** · Minimal Fix ready · PM Review 대기 |
 
 ### PROD-OBS-012 Detail
 
@@ -36,13 +36,13 @@ Environment: Production Hosting · Coach Vision Match Detail
 Official Fact:
   Job Monitor에 VISION_ANALYSIS_FAILED / no GEV events 문구 표시됨.
   동일 화면에서 「최근 3경기 평균과 비교」·Ranking Avg/Δ 정상.
-Analysis (not Official Fact):
-  GEV pipeline / worker artifact 경로 이슈 후보.
-  PAI-012 match-flow rollup 실패로 단정하지 않음.
+Analysis (Minimal Fix implemented — not CLOSED):
+  FIX A/B write clear + FIX C UI guard. Local Vite QA: banner hidden.
+  Detail: PROD_OBS_012_PAI_031_MINIMAL_FIX_PM_REVIEW.md
+  Production Hosting still may show stale banner until Deploy (no data scrub).
 Action / Link:
-  원인 분리 점검 (visionRuns / GEV events / Job Monitor 카피)
-  PAI-012 COMPLETE/CLOSED와 독립
-Status: OPEN (후보)
+  PAI-031 · PM Review STOP · Commit/Deploy는 PM GO 후
+Status: OPEN · Minimal Fix ready · PM Review pending
 ```
 
 ### Template
@@ -65,8 +65,8 @@ Status: OPEN | MITIGATED | CLOSED
 | Issue | Priority | Status | Detail |
 |---|---|---|---|
 | BETA-ISSUE-001 | P1 | CLOSED (Verified) | `../beta_ops/issues/BETA-ISSUE-001.json` · PAI-001 |
-| PROD-OBS-012 | S3 | OPEN (후보) | GEV events missing · Job Monitor · PAI-012 분리 |
+| PROD-OBS-012 | S3 | OPEN · Root Cause Review | Job Monitor stale FAILED · PAI-031 · `PROD_OBS_012_PAI_031_ROOT_CAUSE_REVIEW.md` |
 
 ---
 
-**Updated:** 2026-07-12
+**Updated:** 2026-07-12 · PAI-031 Root Cause Review (PM Review pending)
