@@ -537,7 +537,7 @@ Lock tracks + phase_d re-run: **0.7887** (lock preds 0.7714 대비 개선, regre
 VOC 발생 → count +1 → ≥3 반복 → Product Backlog 우선 조정
 ```
 
-현재: **VOC-011** count=**15** · **PAI-011 PASS** · COMPLETE/CLOSED 금지(Prod 배포 전) · Day-03 proposed 16은 Date Gate Pending
+현재: **VOC-011** count=**15** · **PAI-011 COMPLETE/CLOSED** · Production verified (`64270a3`) · Day-03 proposed 16은 Date Gate Pending
 
 SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 
@@ -835,6 +835,13 @@ SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 | 2026-07-11 | VOC-011 PAI-011 | ✅ **PM PASS** · Manual QA FINAL PASS · Visual ACCEPTED · 구현 검증 완료 · COMPLETE/CLOSED 금지 · Day-03 미변경 |
 | 2026-07-11 | VOC-011 Pre-Deploy | 🔒 **GO** · commit `07fb689` · rollback `4d508ac` · CF/Rules/root SoT N |
 | 2026-07-11 | VOC-011 Hosting Deploy | ✅ **Deploy complete** 20:56 KST · HEAD `64270a3` · URL https://yago-vibe-spt.web.app · `PAI_011_DEPLOY_FACT.md` · Smoke 대기 · COMPLETE 금지 |
+| 2026-07-11 | PAI-011 CLOSED | 🔒 **COMPLETE/CLOSED** · Post-Deploy Smoke **PASS** · Production Parent Vision peer card verified · HEAD `64270a3` · feature `07fb689` · `PAI_011_POST_DEPLOY_SMOKE.md` · Day-03 DATE_GATE_PENDING 유지 |
+| 2026-07-12 | VOC-012 Design Review | ▶ **DESIGN REVIEW** · Coach Vision 기간/누적 UI **Gap** · MVP=`visionAnalysis` client rollup · CF/root SoT N · `VOC_012_CUMULATIVE_TREND_DESIGN_REVIEW.md` · **구현 금지** · PM Scope 대기 · Day-03/PAI-011 미변경 |
+| 2026-07-12 | VOC-012 Scope+Spike | 🔒 **SCOPE LOCK** · Coach · K=3 · n≥2 · FII · Spike ✅ · path=`visionMatchIndex`+`visionAnalysis` · index/CF N · `VOC_012_ENG_SPIKE.md` · Impl Spec 대기 · Day-03/PAI-011 미변경 |
+| 2026-07-12 | VOC-012 Impl Spec+Code | 🔒 Spec LOCK · ▶ IMPLEMENT · `matchFlowTrendFromPlayerFii` · `CoachMatchFlowTrendCard` · Ranking Δ · ❌ PAI-012 PASS 금지 · Day-03/PAI-011 미변경 |
+| 2026-07-12 | VOC-012 Manual QA | ✅ Fact 적재 · Harness PASS · `VOC_012_MANUAL_QA.md` · Visual ⏳ PENDING · ❌ PASS 금지 · Day-03/PAI-011/VOC-011×15 미변경 |
+| 2026-07-12 | VOC-012 Visual Spot-check | ✅ **ACCEPTED** · Match Detail · card+Ranking Δ · `VOC_012_VISUAL_SPOTCHECK.md` · ❌ PASS 금지 · PM Final Review 대기 · Day-03 분리 |
+| 2026-07-12 | VOC-012 PAI-012 | ✅ **PM PASS** · Unit 8 · Harness 6 · Visual ACCEPTED · Manual QA FINAL PASS · ❌ COMPLETE/CLOSED 금지 · Day-03/VOC-011×15 미변경 |
 
 ---
 

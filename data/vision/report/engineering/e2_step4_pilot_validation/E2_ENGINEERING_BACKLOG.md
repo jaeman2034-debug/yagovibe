@@ -36,8 +36,8 @@ Beta 중: 신규 기능 즉시 착수 ❌ · VOC ≥3 → backlog 우선만 · O
 | E2-BL-P3-01 | 심박수 등 연령별 기준값 설명 | VOC-007 | P3 |
 | E2-BL-P3-02 | 연령대 적정 수치 가이드 | VOC-007 | P3 |
 | VOC-010 | GPS/웨어러블 원탭 연동 → 자동 리포트 | VOC-010 | 장기 |
-| **VOC-011** | **또래(팀·연령) 평균 비교 (Benchmark)** | VOC-011 | **P1** · count=**15** · **PAI-011 PASS** · COMPLETE 금지(Prod 전) · `../production_ops/VOC_011_MANUAL_QA.md` |
-| VOC-012 | 성장·기간 추이 시각화 (Parent·Coach 범위 구분) | VOC-012 | 관찰 · count=7 |
+| **VOC-011** | **또래(팀·연령) 평균 비교 (Benchmark)** | VOC-011 | **P1** · count=**15** · **PAI-011 COMPLETE/CLOSED** · Production verified `64270a3` · Day-03 gate 분리 · `../production_ops/PAI_011_POST_DEPLOY_SMOKE.md` |
+| VOC-012 | 성장·기간 추이 시각화 (Parent·Coach 범위 구분) | VOC-012 | ✅ **PAI-012 PASS** · Coach · K=3 · n≥2 · Pre-Deploy 대기 · ❌ COMPLETE 금지 · `../production_ops/VOC_012_MANUAL_QA.md` |
 | VOC-013 | 코치 리포트 히스토리 모아보기 | VOC-013 | 관찰 · count=1 |
 | VOC-014 | 오늘의 MVP · 베스트11 추천 | VOC-014 | 관찰 · count=1 |
 | VOC-015 | 팀 대시보드 (Team Dashboard) | VOC-015 | 관찰 · count=1 |

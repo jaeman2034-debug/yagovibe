@@ -115,6 +115,31 @@ export type CoachVisionSummary = {
   recommendation: string;
 };
 
+/** VOC-012 — attached by VisionCoachDashboardProvider (not from single-match builders) */
+export type CoachMatchFlowTrendView = {
+  headlineCopy: "최근 경기 흐름 비교";
+  windowCopy: "최근 3경기 평균과 비교" | "최근 2경기 평균과 비교";
+  windowN: 2 | 3;
+  previousMatchIds: string[];
+  byPlayer: Record<
+    string,
+    {
+      n: number;
+      minN: 2;
+      maxK: 3;
+      visible: true;
+      metric: "fii";
+      currentFii: number;
+      previousMean: number;
+      delta: number;
+      previousMatchIds: string[];
+      playerId?: string;
+      trackId?: string;
+      name?: string;
+    }
+  >;
+};
+
 export type CoachDashboardVisionProviderView = {
   playerRanking: Array<{
     rank: number;
@@ -139,6 +164,8 @@ export type CoachDashboardVisionProviderView = {
   coachDecisionBrief?: FiiSummaryCoachDecisionBrief;
   reviewHooks?: FiiSummaryReviewHook[];
   fiiDataSource?: "vision_result" | "fii_summary";
+  /** VOC-012 — null/omit when gate fails */
+  matchFlowTrend?: CoachMatchFlowTrendView | null;
 };
 
 export type ParentReportVisionProviderView = {

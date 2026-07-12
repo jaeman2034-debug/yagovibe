@@ -20,4 +20,6 @@ export * from "@/lib/vision/coachToParentTranslation";
 export * from "@/lib/vision/parentExplainableFii";
 export * from "@/lib/vision/buildParentIntelligenceView";
 export * from "@/lib/vision/peerBenchmarkFromPlayerFii";
+export * from "@/lib/vision/matchFlowTrendFromPlayerFii";
+export * from "@/lib/vision/loadPreviousVisionAnalysesForTrend";
 export * from "@/lib/vision/visionRunTypes";
