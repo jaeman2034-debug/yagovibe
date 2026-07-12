@@ -22,7 +22,7 @@
 
 | ID | Date | Severity | Summary (Official Fact) | Linked Issue | Status |
 |---|---|---|---|---|---|
-| **PROD-OBS-012** | 2026-07-12 | S3 | Production Coach Match Detail Job Monitor에 `[VISION_ANALYSIS_FAILED] no GEV events ...` 빨간 문구 관측. PAI-012 Trend 카드·Avg/Δ는 정상. | PAI-031 | ▶ **OPEN** · Minimal Fix ready · PM Review 대기 |
+| **PROD-OBS-012** | 2026-07-12 | S3 | Production Coach Match Detail Job Monitor에 `[VISION_ANALYSIS_FAILED] no GEV events ...` 빨간 문구 관측. PAI-012 Trend 카드·Avg/Δ는 정상. | PAI-031 | ▶ **OPEN** · PAI-031 **DEPLOYED / VERIFICATION PENDING** |
 
 ### PROD-OBS-012 Detail
 
@@ -42,7 +42,8 @@ Analysis (Minimal Fix implemented — not CLOSED):
   Production Hosting still may show stale banner until Deploy (no data scrub).
 Action / Link:
   PAI-031 · PM Review STOP · Commit/Deploy는 PM GO 후
-Status: OPEN · Minimal Fix ready · PM Review pending
+Status: OPEN · PAI-031 DEPLOYED / VERIFICATION PENDING
+  (Hosting Fix C Smoke PASS · CF Fix A/B live · natural success write clear 대기)
 ```
 
 ### Template

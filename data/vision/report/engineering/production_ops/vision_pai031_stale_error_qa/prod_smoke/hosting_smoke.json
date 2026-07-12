@@ -1,0 +1,28 @@
+{
+  "base": "https://yago-vibe-spt.web.app",
+  "matchUrl": "https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+  "matchId": "vision-pilot-pass01-clip-002",
+  "LogicFixture": {
+    "completedStaleIndexBannerSuppressed": "Y",
+    "failedRunBannerKept": "Y"
+  },
+  "MatchDetail": {
+    "jobMonitorPanel": "Y",
+    "jobMonitorPanelCount": 2,
+    "completedVisible": "Y",
+    "errorBannerCount": 0,
+    "staleErrorBannerHidden": "Y",
+    "panelDebug": [
+      {
+        "textSnippet": "JOB MONITOR 완료· 완료 100% Match Detail → Timeline → Parent Report →"
+      },
+      {
+        "textSnippet": "JOB MONITOR 완료· 완료 100% Match Detail → Timeline → Parent Report →"
+      }
+    ],
+    "teamFii": "Y",
+    "ranking": "Y",
+    "trend": "Y"
+  },
+  "pageErrors": []
+}

@@ -39,7 +39,7 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 | **PAI-021** | Production Run Sheet 운영 정착 | ▶ ACTIVE | Ops | 본 체계 SoT |
 | **PAI-022** | Weekly Production Review 루틴 시작 | ▶ PLANNED | PM · Ops | `PRODUCTION_WEEKLY_REVIEW.md` |
 | **PAI-032** | Duplicate `VisionPlatformNav` on Parent Report | 🔒 **COMPLETE / CLOSED** | PM · Eng | Production Smoke **PASS** · feature `7562ccb` · HEAD `437fc8a` · section Nav 제거 · `VISION_PAI032_DUPLICATE_NAV_POST_DEPLOY_SMOKE.md` |
-| **PAI-031** | `PROD-OBS-012` — Job Monitor stale `VISION_ANALYSIS_FAILED` | ▶ OPEN · Commit `68f37ab` · **Pre-Deploy Review / Deploy GO 대기** | Ops · Eng | Fix A/B/C · Hosting≠CF split · `PROD_OBS_012_PAI_031_PRE_DEPLOY_REVIEW.md` · Deploy/CLOSED 금지 |
+| **PAI-031** | `PROD-OBS-012` — Job Monitor stale `VISION_ANALYSIS_FAILED` | ▶ **DEPLOYED / VERIFICATION PENDING** | Ops · Eng | Hosting Smoke PASS · CF start/retry deployed · natural success write clear 대기 · `PROD_OBS_012_PAI_031_DEPLOY_SUMMARY.md` · CLOSED 금지 |
 
 ---
 
@@ -55,4 +55,4 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 
 ---
 
-**Updated:** 2026-07-12 · PAI-031 feature `68f37ab` pushed · Pre-Deploy Review pending
+**Updated:** 2026-07-12 · PAI-031 DEPLOYED / VERIFICATION PENDING (natural write clear 대기)
