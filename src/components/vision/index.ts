@@ -1,5 +1,7 @@
 export { CoachVisionAnalysisSection } from "@/components/vision/CoachVisionAnalysisSection";
 export type { CoachVisionAnalysisSectionProps } from "@/components/vision/CoachVisionAnalysisSection";
+export { PlayTabVisionMount } from "@/components/vision/PlayTabVisionMount";
+export type { PlayTabVisionMountProps } from "@/components/vision/PlayTabVisionMount";
 export {
   VisionCoachDashboardProvider,
   useVisionCoachDashboard,

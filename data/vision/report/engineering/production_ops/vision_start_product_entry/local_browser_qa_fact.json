@@ -1,0 +1,37 @@
+{
+  "track": "VISION_START_PRODUCT_ENTRY",
+  "notPai031Fix": true,
+  "localQa": {
+    "observedAtKst": "2026-07-12T18:19:54+09:00",
+    "playUrl": "http://127.0.0.1:5173/teams/D7TUZaOtfxdBc4P0lQLx/play?matchId=vision-pilot-pass01-clip-002",
+    "finalUrl": "http://127.0.0.1:5173/teams/D7TUZaOtfxdBc4P0lQLx/play?matchId=vision-pilot-pass01-clip-002",
+    "matchIdPreserved": true,
+    "slotCount": 1,
+    "slotVisible": true,
+    "coachSectionVisible": true,
+    "runButtonCount": 1,
+    "runButtonVisible": true,
+    "runButtonAttached": true,
+    "runButtonText": "Vision 분석 실행",
+    "playLoungeStillPresent": true,
+    "clickWiring": {
+      "callableHits": [
+        "startVisionAnalysis"
+      ],
+      "calledStartVisionAnalysis": true,
+      "calledRetryVisionAnalysis": false,
+      "calledProcessVisionUploadQueue": false,
+      "note": "CF responses stubbed — no Production analysis executed"
+    },
+    "runCountBefore": 0,
+    "runCountAfter": 0,
+    "visionRunsUnchanged": true,
+    "detailFacts": {
+      "detailUrl": "http://127.0.0.1:5173/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+      "matchDetailPanel": true,
+      "jobMonitorPresent": true,
+      "unintendedPlayRedirect": false
+    },
+    "matchDetailLinkProbe": true
+  }
+}

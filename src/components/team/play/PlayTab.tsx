@@ -66,6 +66,8 @@ import WeeklySeasonRewardBanner from "@/components/team/play/WeeklySeasonRewardB
 import { buildTeamPlayHudRevealFromMiniShot } from "@/lib/team/buildTeamPlayHudRevealFromMiniShot";
 import { dispatchTeamPlayHudReveal } from "@/lib/team/teamPlayHudEvents";
 import { useMiniShotSuperBadge } from "@/hooks/useMiniShotSuperBadge";
+import { PlayTabVisionMount } from "@/components/vision/PlayTabVisionMount";
+import { VISION_PILOT_MATCH_ID } from "@/lib/vision/fiiSummaryLoader";
 
 type Props = {
   teamId: string;
@@ -325,12 +327,19 @@ export default function PlayTab({
     [myPlayer]
   );
 
+  /** Vision product matchIds (pilot / vision-*) are not teamGames — do not rewrite URL. */
+  const isVisionScopedMatchId = useCallback((matchId: string) => {
+    const m = matchId.trim();
+    return m === VISION_PILOT_MATCH_ID || m.startsWith("vision-");
+  }, []);
+
   /** 종료 경기 선택: URL 미지정 또는 잘못된 matchId 시 최신 완료 경기로 교정 */
   useEffect(() => {
     if (completedLoading || completedGames.length === 0) return;
     const urlMatch = searchParams.get("matchId")?.trim() ?? "";
     const validUrl = urlMatch && completedGames.some((g) => g.id === urlMatch);
     if (validUrl) return;
+    if (urlMatch && isVisionScopedMatchId(urlMatch)) return;
     const firstId = completedGames[0]?.id ?? "";
     if (!firstId) return;
     navigate(playTabHref(firstId), {
@@ -339,6 +348,7 @@ export default function PlayTab({
   }, [
     completedGames,
     completedLoading,
+    isVisionScopedMatchId,
     navigate,
     playTabHref,
     searchParams,
@@ -350,6 +360,13 @@ export default function PlayTab({
     if (url && completedGames.some((g) => g.id === url)) return url;
     return completedGames[0]?.id ?? "";
   }, [completedGames, searchParams]);
+
+  /** Vision Coach mount context — prefer explicit URL matchId (incl. vision-pilot). */
+  const visionMatchId = useMemo(() => {
+    const url = searchParams.get("matchId")?.trim() ?? "";
+    if (url) return url;
+    return effectiveMatchId;
+  }, [effectiveMatchId, searchParams]);
 
   /** MVP 확인 직후 → 경기 선택·피드백으로 시선·포커스 이동 (상단 CTA와 동일 이벤트) */
   const goToNextMatchFeedbackFromMvp = useCallback(() => {
@@ -818,6 +835,24 @@ export default function PlayTab({
           </div>
         </PlayLoungeSection>
 
+        {authUid?.trim() ? (
+          <PlayLoungeSection
+            title="Vision Coach"
+            summary={visionMatchId ? "경기 영상 분석" : "matchId 선택"}
+            defaultOpen={Boolean(visionMatchId)}
+          >
+            <div className={LOUNGE_INNER} data-testid="play-tab-vision-mount-slot">
+              <PlayTabVisionMount
+                teamId={teamId}
+                matchId={visionMatchId}
+                authUid={authUid}
+                variant="dark"
+                enabled={Boolean(authUid?.trim())}
+              />
+            </div>
+          </PlayLoungeSection>
+        ) : null}
+
         {mvpDisplayBundle && mvpMetricsCompare ? (
           <PlayLoungeSection title="MVP · 응원" summary="후순위" defaultOpen={false}>
             <PlayTabMvpPanel
@@ -1162,6 +1197,22 @@ export default function PlayTab({
           )}
         </div>
       )}
+
+      {authUid?.trim() ? (
+        <section
+          className="rounded-2xl border border-violet-200 bg-violet-50/40 p-4 shadow-sm"
+          data-testid="play-tab-vision-mount-slot"
+          aria-label="Vision Coach"
+        >
+          <PlayTabVisionMount
+            teamId={teamId}
+            matchId={visionMatchId}
+            authUid={authUid}
+            variant="light"
+            enabled={Boolean(authUid?.trim())}
+          />
+        </section>
+      ) : null}
 
       {mvpDisplayBundle && mvpMetricsCompare ? (
         <div id="yago-play-mvp-panel" className="scroll-mt-28">
