@@ -20,16 +20,36 @@
 
 ---
 
+## 0.1 Production Week rule (PM LOCK · 2026-07-12)
+
+| 항목 | 값 |
+|---|---|
+| Week boundary | **월요일 00:00 KST ~ 일요일 23:59 KST** |
+| Launch Partial Baseline Week | **2026-07-06 ~ 2026-07-12** · **≠ Prod-W01** · 정규 Weekly Review 승격 금지 |
+| Prod-W01 | **2026-07-13 ~ 2026-07-19** |
+| First regular Weekly Review | Prod-W01 종료 후 · PAI-022 별도 PM start GO 필요 |
+
+### Day-01 SoT pointer (파일 미생성)
+
+Production Day-01은 `PRODUCTION_DAY_01.md`를 **만들지 않는다**.  
+Canonical evidence: Tracker `2026-07-11 Day-01 · PAI-003` + `PAI_003_PARENT_GATE_REVALIDATION.md` (classification **b**).
+
+---
+
 ## 1. Daily Log
+
+동일 운영일(`2026-07-12`)에 Day-02 / Day-03이 공존한다. **병합·평균·덮어쓰기 금지.** Note의 `Source:`로 식별.
 
 | Date | Coach Report | Parent Report | 알림톡 | 모바일 | ISSUE-001 | 운영 오류 | Note |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|---|
-| 2026-07-12 | ✅ (AI 분석 Y) | ✅ (Quote) | ✅ (Quote) | ✅ (Quote) | ✅ N | ✅ N | Day-03 **ACCEPT/LOCK** · upload Y · players 22 · VOC-011 **15** · `PRODUCTION_DAY_03.md` |
+| 2026-07-12 | ✅ Y | ✅ Y | ✅ Y | ✅ Y | ✅ N | ✅ N | **Source: Day-02** · ACCEPT/LOCK · `PRODUCTION_DAY_02.md` |
+| 2026-07-12 | ✅ (AI 분석 Y) | ✅ (Quote) | ✅ (Quote) | ✅ (Quote) | ✅ N | ✅ N | **Source: Day-03** · ACCEPT/LOCK · upload Y · players 22 · VOC-011 **15** · `PRODUCTION_DAY_03.md` |
 | _YYYY-MM-DD_ | | | | | | | |
 
 **기호:** ✅ 정상 · ⚠️ 이슈 · ❌ 실패 · — 해당 없음
 
-> Day-03 Note: 7항 Official Fact SoT는 `PRODUCTION_DAY_03.md`. KPI 열은 운영 관측(업로드·AI·Quote·ISSUE 미관측)에 근거.
+> Day-02 KPI 행 = `PRODUCTION_DAY_02.md` Official Fact 1:1 backfill (PM 2026-07-12).  
+> Day-03 KPI 행 = `PRODUCTION_DAY_03.md` 7항 Official Fact 근거 (기존 유지).
 
 ---
 
@@ -37,7 +57,11 @@
 
 | Week | 기간 | 가동률 | Report 성공 | 알림톡 성공 | ISSUE-001 재현일 | Coach 활성 | Parent 활성 | Parent 독립사용 Y |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| Prod-W01 | _TBD_ | | | | | | | |
+| Launch Partial Baseline | 2026-07-06 ~ 2026-07-12 | — | — | — | — | — | — | — |
+| Prod-W01 | 2026-07-13 ~ 2026-07-19 | | | | | | | |
+
+> Launch Partial = baseline 분류만 · **정규 completed Weekly Review로 승격 금지**.  
+> Prod-W01 KPI 집계·Review = 주간 종료 + PAI-022 PM start GO 후.
 
 ---
 
@@ -54,4 +78,4 @@
 
 ---
 
-**Updated:** 2026-07-12 · Day-03 ACCEPT/LOCK 반영
+**Updated:** 2026-07-12 · PAI-022 pre-start alignment · Day-02 KPI backfill · Week rule LOCK
