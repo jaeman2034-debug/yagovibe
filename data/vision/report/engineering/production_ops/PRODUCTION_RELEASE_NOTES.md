@@ -12,12 +12,28 @@
 
 | Version / Tag | Date | Change (Fact) | Related Issue / VOC | Note |
 |---|---|---|---|---|
+| Hosting `437fc8a` | 2026-07-12 11:17 KST | PAI-032 remove duplicate ParentIntelligence VisionPlatformNav | PAI-032 | Production Hosting · **VERIFIED** · Smoke PASS · **COMPLETE/CLOSED** · feature `7562ccb` |
 | Hosting `0520cf4` | 2026-07-12 11:01 KST | Player Tab ID Guard — hide Growth Profile for Vision trackId-only | PAI-014 | Production Hosting · **VERIFIED** · Case A/B Smoke PASS · **COMPLETE/CLOSED** · feature `a3a0b25` |
 | Hosting `a86d097` | 2026-07-12 10:03 KST | Vision Match Detail tab routing fix (Coach/Timeline/Parent) | PAI-013 | Production Hosting · **VERIFIED** · 4-tab Smoke PASS · **COMPLETE/CLOSED** · feature `918208c` |
 | Hosting `30170a1` | 2026-07-12 09:18 KST | PAI-012 VOC-012 coach match-flow FII trend · Match Detail Ranking Avg/Δ | VOC-012 · PAI-012 | Production Hosting · **VERIFIED** · Post-Deploy Smoke PASS · PAI-012 **COMPLETE/CLOSED** · PROD-OBS-012 분리 |
 | Hosting `64270a3` | 2026-07-11 20:56 KST | PAI-011 VOC-011 peer benchmark · Vision Parent UI stack · kakaoShare build fix | VOC-011 · PAI-011 | Production Hosting · **VERIFIED** · Post-Deploy Smoke PASS · PAI-011 **COMPLETE/CLOSED** |
 | Hosting `4d508ac` | 2026-07-11 14:57 KST | PAI-001: Kakao iOS openExternal · persistence · next preserve · Safari CTA | BETA-ISSUE-001 · PAI-001 | Production Hosting · Verification PASS · ISSUE CLOSED (Verified) |
 | — | 2026-07-21 | Production 운영 체계 개시 (`production_ops/`) | GO with Open Issue | Docs only |
+
+### PAI-032 Duplicate Nav Deploy Fact (2026-07-12)
+
+```text
+배포 일시: 2026-07-12 11:17 KST
+Feature: 7562ccb
+Deployed HEAD: 437fc8a
+Rollback: 0520cf4
+Post-Deploy Smoke: PASS (Nav count=1)
+Status: COMPLETE / CLOSED
+```
+
+> SoT: `VISION_PAI032_DUPLICATE_NAV_DEPLOY_FACT.md` · Smoke: `VISION_PAI032_DUPLICATE_NAV_POST_DEPLOY_SMOKE.md`  
+> ✅ Release **VERIFIED** · PAI-032 **COMPLETE/CLOSED**  
+> ▶ PROD-OBS-012 OPEN · Day-03 DATE_GATE_PENDING · VOC-011×15 유지
 
 ### Player Tab ID Guard Deploy Fact (2026-07-12)
 
