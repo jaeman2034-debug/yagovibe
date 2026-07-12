@@ -302,6 +302,12 @@ function FederationLegacySingularRedirect() {
   return <Navigate to={`/federations/${federationSlug}${suffix}${location.search}`} replace />;
 }
 
+/** 노원구축구협회 홍보 단축 URL `/nowon-football` → canonical `/federations/nowon-football` (쿼리·해시 유지) */
+function NowonFootballPromoRedirect() {
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: "/federations/nowon-football", search, hash }} replace />;
+}
+
 /** `/tournaments/:id` 등 레거시·알림 링크 → `ActivityRouter` 리그 리졸버 */
 function TournamentsLeagueCanonicalRedirect() {
   const { tournamentId } = useParams<{ tournamentId: string }>();
@@ -611,6 +617,8 @@ export default function App() {
               element={<FederationActivityPrefixRedirect />}
             />
             <Route path="/federation/:federationSlug/*" element={<FederationLegacySingularRedirect />} />
+            {/* PM/architect exception: Nowon promo short entry only — not a generic federation alias pattern */}
+            <Route path="/nowon-football" element={<NowonFootballPromoRedirect />} />
             <Route path="/federations/:federationSlug" element={<FederationShell />}>
               <Route index element={<FederationHomePage />} />
               <Route path="leagues" element={<FederationLeaguesListRedirect />} />
