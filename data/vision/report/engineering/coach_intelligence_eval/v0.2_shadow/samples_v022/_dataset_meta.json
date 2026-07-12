@@ -1,0 +1,21 @@
+{
+  "datasetVersion": "cie-shadowset-v0.2.2",
+  "derivedFrom": "cie-shadowset-v0.2.1",
+  "createdAt": "2026-07-12T23:39:58.931101+00:00",
+  "sampleCount": 20,
+  "headlineArchitectureCorrection": {
+    "storage": "matchSummary.headline set to null (schema slot preserved)",
+    "storageSummary": "matchSummary.summary set to null (generic metadata removed)",
+    "rewritePayload": "headline and generic summary OMIT via rewrite_payload.py",
+    "preserved": "matchSummary.eventHighlights, teamFii, playerFii, gevInput, timeWindow"
+  },
+  "primaryEvidenceTypeDistribution": {
+    "AXIS": 4,
+    "NUMERIC": 4,
+    "PLAYER": 5,
+    "SEQUENCE": 3,
+    "TIME_WINDOW": 2,
+    "COACH_INSIGHT": 2
+  },
+  "note": "Generic matchSummary headline/summary nulled; rewrite payload omits non-evidence fields."
+}

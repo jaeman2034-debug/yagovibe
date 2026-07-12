@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-012",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:40:49.485331+00:00",
+  "rewriteText": "P1은 FII 60점으로 4인 중 1위이며, P4는 40점으로 4위입니다. 다음 훈련에서는 P1과 P4의 상하위 비교 리뷰에 집중할 필요가 있습니다. \n\n현재 팀의 강점으로는 패스 19건과 활성 선수 4명이 있습니다. 그러나 턴오버 4건과 P3·P4 간격 점검이 개선이 필요한 포인트입니다. \n\n라인업 상하위 관측 리뷰와 추가 클립으로 FII 추세 비교를 제안합니다. 최종 적용 여부는 코치 판단 후 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3914,
+    "completion_tokens": 137
+  }
+}

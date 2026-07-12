@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-007",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:58:08.721434+00:00",
+  "rewriteText": "패스 연결 13건이 확인되었습니다. P1의 FII는 57점으로, 팀의 패스 연결 능력이 좋음을 보여줍니다. 그러나 턴오버가 4건 발생하여 압박 대응이 필요합니다. P2는 지원 패스에 집중하여 훈련할 필요가 있습니다. 코치가 검토 후 최종 적용 여부를 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2931,
+    "completion_tokens": 85
+  }
+}

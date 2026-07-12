@@ -1,0 +1,339 @@
+{
+  "sampleId": "CIE-SHADOW-V02-008",
+  "datasetClass": "EVALUATION_SHADOW",
+  "datasetVersion": "cie-shadowset-v0.2.1",
+  "sourceType": "sanitized_fii_fixture",
+  "compositionTag": "sanitized_fixture",
+  "primaryEvidenceType": "SEQUENCE",
+  "mediaId": null,
+  "matchId": "shadow-v021-match-008",
+  "playerId": null,
+  "playerAlias": "P1",
+  "fiiInput": {
+    "schemaVersion": "yago-vision-fii-summary-v1",
+    "teamFii": {
+      "overall": 51,
+      "axes": {
+        "spatial": 50,
+        "vision": 53,
+        "decision": 49,
+        "pressure": 47,
+        "tactics": 51
+      },
+      "playerCount": 2
+    },
+    "playerFii": [
+      {
+        "trackId": "t1",
+        "name": "P1",
+        "fii": 53,
+        "rank": 1,
+        "axes": {
+          "spatial": 52,
+          "vision": 51,
+          "decision": 49,
+          "pressure": 48,
+          "tactics": 50
+        }
+      },
+      {
+        "trackId": "t2",
+        "name": "P2",
+        "fii": 47,
+        "rank": 2,
+        "axes": {
+          "spatial": 46,
+          "vision": 45,
+          "decision": 43,
+          "pressure": 42,
+          "tactics": 44
+        }
+      }
+    ],
+    "gevInput": {
+      "eventCount": 19,
+      "eventCounts": {
+        "PASS": 9,
+        "RECEIVE": 7,
+        "TURNOVER": 3
+      }
+    },
+    "matchSummary": {
+      "headline": "섀도 세션 요약",
+      "summary": "GEV·FII 기반 코치 브리프(섀도).",
+      "eventHighlights": {
+        "passes": 9,
+        "receives": 7,
+        "turnovers": 3,
+        "totalEvents": 19
+      }
+    }
+  },
+  "coachInsightsInput": {
+    "primaryEvidenceType": "SEQUENCE",
+    "insightVersion": "e2-v1",
+    "coachDecisionBrief": {
+      "keyChangeToday": "턴오버 3건이 패스 9건 구간에서 반복 관측되었습니다.",
+      "nextTrainingFocus": "턴오버 구간 시퀀스 리뷰",
+      "playersToCoach": [
+        {
+          "trackId": "t2",
+          "name": "P2",
+          "focus": "역할 점검",
+          "oneLiner": "한 가지 큐만"
+        }
+      ]
+    },
+    "reviewHooks": [
+      {
+        "label": "턴오버 구간",
+        "headlineMetric": "턴오버 3건",
+        "suggestedAction": "턴오버 구간 클립 리뷰"
+      }
+    ],
+    "strengths": [
+      "P1: FII 53점",
+      "팀 overall 51점"
+    ],
+    "improvementPoints": [
+      "턴오버 3건 포인트",
+      "SEQUENCE 근거 확인"
+    ],
+    "recommendations": [
+      "턴오버 구간: 턴오버 구간 클립 리뷰",
+      "추가 클립으로 FII 추세 비교"
+    ]
+  },
+  "allowedFacts": [
+    {
+      "factId": "AF01",
+      "type": "number",
+      "path": "teamFii.overall",
+      "value": 51
+    },
+    {
+      "factId": "AF-team-spatial",
+      "type": "number",
+      "path": "teamFii.axes.spatial",
+      "value": 50
+    },
+    {
+      "factId": "AF-team-vision",
+      "type": "number",
+      "path": "teamFii.axes.vision",
+      "value": 53
+    },
+    {
+      "factId": "AF-team-decision",
+      "type": "number",
+      "path": "teamFii.axes.decision",
+      "value": 49
+    },
+    {
+      "factId": "AF-team-pressure",
+      "type": "number",
+      "path": "teamFii.axes.pressure",
+      "value": 47
+    },
+    {
+      "factId": "AF-team-tactics",
+      "type": "number",
+      "path": "teamFii.axes.tactics",
+      "value": 51
+    },
+    {
+      "factId": "AF-PASS",
+      "type": "number",
+      "path": "gevInput.eventCounts.PASS",
+      "value": 9
+    },
+    {
+      "factId": "AF-RECEIVE",
+      "type": "number",
+      "path": "gevInput.eventCounts.RECEIVE",
+      "value": 7
+    },
+    {
+      "factId": "AF-TURNOVER",
+      "type": "number",
+      "path": "gevInput.eventCounts.TURNOVER",
+      "value": 3
+    },
+    {
+      "factId": "AF-brief-keyChangeToday",
+      "type": "string",
+      "path": "coachInsights.coachDecisionBrief.keyChangeToday",
+      "value": "턴오버 3건이 패스 9건 구간에서 반복 관측되었습니다."
+    },
+    {
+      "factId": "AF-brief-nextTrainingFocus",
+      "type": "string",
+      "path": "coachInsights.coachDecisionBrief.nextTrainingFocus",
+      "value": "턴오버 구간 시퀀스 리뷰"
+    },
+    {
+      "factId": "AF-hook0-label",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].label",
+      "value": "턴오버 구간"
+    },
+    {
+      "factId": "AF-hook0-headlineMetric",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].headlineMetric",
+      "value": "턴오버 3건"
+    },
+    {
+      "factId": "AF-hook0-suggestedAction",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].suggestedAction",
+      "value": "턴오버 구간 클립 리뷰"
+    },
+    {
+      "factId": "AF-P1",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P1"
+    },
+    {
+      "factId": "AF-P1-fii",
+      "type": "number",
+      "path": "playerFii.P1.fii",
+      "value": 53
+    },
+    {
+      "factId": "AF-P1-spatial",
+      "type": "number",
+      "path": "playerFii.P1.axes.spatial",
+      "value": 52
+    },
+    {
+      "factId": "AF-P1-vision",
+      "type": "number",
+      "path": "playerFii.P1.axes.vision",
+      "value": 51
+    },
+    {
+      "factId": "AF-P1-decision",
+      "type": "number",
+      "path": "playerFii.P1.axes.decision",
+      "value": 49
+    },
+    {
+      "factId": "AF-P1-pressure",
+      "type": "number",
+      "path": "playerFii.P1.axes.pressure",
+      "value": 48
+    },
+    {
+      "factId": "AF-P1-tactics",
+      "type": "number",
+      "path": "playerFii.P1.axes.tactics",
+      "value": 50
+    },
+    {
+      "factId": "AF-P2",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P2"
+    },
+    {
+      "factId": "AF-P2-fii",
+      "type": "number",
+      "path": "playerFii.P2.fii",
+      "value": 47
+    },
+    {
+      "factId": "AF-P2-spatial",
+      "type": "number",
+      "path": "playerFii.P2.axes.spatial",
+      "value": 46
+    },
+    {
+      "factId": "AF-P2-vision",
+      "type": "number",
+      "path": "playerFii.P2.axes.vision",
+      "value": 45
+    },
+    {
+      "factId": "AF-P2-decision",
+      "type": "number",
+      "path": "playerFii.P2.axes.decision",
+      "value": 43
+    },
+    {
+      "factId": "AF-P2-pressure",
+      "type": "number",
+      "path": "playerFii.P2.axes.pressure",
+      "value": 42
+    },
+    {
+      "factId": "AF-P2-tactics",
+      "type": "number",
+      "path": "playerFii.P2.axes.tactics",
+      "value": 44
+    },
+    {
+      "factId": "AF-S0",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "P1: FII 53점"
+    },
+    {
+      "factId": "AF-S1",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "팀 overall 51점"
+    },
+    {
+      "factId": "AF-IP0",
+      "type": "string",
+      "path": "coachInsights.improvementPoints",
+      "value": "턴오버 3건 포인트"
+    },
+    {
+      "factId": "AF-IP1",
+      "type": "string",
+      "path": "coachInsights.improvementPoints",
+      "value": "SEQUENCE 근거 확인"
+    },
+    {
+      "factId": "AF-PET",
+      "type": "string",
+      "path": "coachInsights.primaryEvidenceType",
+      "value": "SEQUENCE"
+    }
+  ],
+  "forbiddenClaims": [
+    "injury",
+    "medical",
+    "fatigue_diagnosis",
+    "psych_state",
+    "invented_intent",
+    "future_certainty",
+    "age_benchmark"
+  ],
+  "coachContext": {
+    "audience": "coach",
+    "task": "rewrite_brief",
+    "locale": "ko-KR",
+    "hitlRequired": true
+  },
+  "promptVersion": "cip-v0.2.2",
+  "candidateOutput": {
+    "rewriteText": "",
+    "modelId": null,
+    "generatedAt": null
+  },
+  "groundedClaims": [],
+  "unsupportedClaims": [],
+  "hallucinationFlags": [],
+  "evaluatorScores": {},
+  "finalVerdict": null,
+  "failureType": [],
+  "reviewerStatus": "unreviewed",
+  "evaluatorVersion": "cie-eval-v0.1.1",
+  "piiPolicy": "no_real_pii",
+  "expectedVerdict": null,
+  "expectedFailureTypes": []
+}

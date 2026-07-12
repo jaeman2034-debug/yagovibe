@@ -1,0 +1,159 @@
+{
+  "reportType": "SHADOW_GENERATION_PATH_INSTRUMENTATION",
+  "createdAt": "2026-07-12T23:13:54.365372+00:00",
+  "runReference": "CIE-SHADOW-V021-RUN-001",
+  "generationRunnerPath": "scripts/vision/cie_shadow_v02/run_lab_rewrite.py",
+  "captureSampleIds": [
+    "CIE-SHADOW-V02-002",
+    "CIE-SHADOW-V02-001",
+    "CIE-SHADOW-V02-003",
+    "CIE-SHADOW-V02-016"
+  ],
+  "compare": {
+    "compareQuestions": {
+      "A_cip_v021_actually_loaded": false,
+      "B_prompt_sha_differs_from_v020": true,
+      "C_sample_context_materially_different": true,
+      "D_pass_count_first_or_emphasized_identically": false,
+      "E_hidden_hardcoded_pass_opening_in_runner": false,
+      "F_candidate_or_prior_generation_reused": false,
+      "G_promptVersion_metadata_matches_content": false,
+      "H_user_serializer_fixed_evidence_order": true,
+      "I_distinctive_evidence_present_per_sample": {
+        "CIE-SHADOW-V02-002": {
+          "axisPresent": true,
+          "playerAliasesPresent": true,
+          "sequenceEventCountsPresent": true,
+          "coachInsightFocusPresent": true,
+          "multiPlayerDistinct": false,
+          "adversarialBaitPresent": false
+        },
+        "CIE-SHADOW-V02-001": {
+          "axisPresent": true,
+          "playerAliasesPresent": true,
+          "sequenceEventCountsPresent": true,
+          "coachInsightFocusPresent": true,
+          "multiPlayerDistinct": false,
+          "adversarialBaitPresent": false
+        },
+        "CIE-SHADOW-V02-003": {
+          "axisPresent": true,
+          "playerAliasesPresent": true,
+          "sequenceEventCountsPresent": true,
+          "coachInsightFocusPresent": true,
+          "multiPlayerDistinct": false,
+          "adversarialBaitPresent": false
+        },
+        "CIE-SHADOW-V02-016": {
+          "axisPresent": true,
+          "playerAliasesPresent": true,
+          "sequenceEventCountsPresent": true,
+          "coachInsightFocusPresent": true,
+          "multiPlayerDistinct": false,
+          "adversarialBaitPresent": false
+        }
+      },
+      "J_expected_gpt_4o_mini_path": true
+    },
+    "promptShaByVersion": {
+      "cip-v0.1.0": "132ecee730ece50c45c86d65d28b4a89f79ce1f978abe005e23a83c1d0c1d892",
+      "cip-v0.2.0": "983d61a2ae6ff647c1f4894066855110e6e9a51508c00b2dce9a051fb04834a1",
+      "cip-v0.2.1": "c09685f6e61721d2e60496facfa0575eafea2675f952bbc2bc69ba2f8458aa6d"
+    },
+    "userMessageShaBySample": {
+      "CIE-SHADOW-V02-002": "56995d9098d3050e0d0362ed68c81b594173e838dc6078301338ad15753acfc0",
+      "CIE-SHADOW-V02-001": "918314a862b7c8b232cea47c4ea011f6c46abd3cf7fcd3842211624f0aed8d89",
+      "CIE-SHADOW-V02-003": "ed9480b22b2c235b26f72466ee7018be0ede592a47400bb37f260f4394eba05a",
+      "CIE-SHADOW-V02-016": "b8488c01d13560c88b9fc9ba741e487680b7a0790b50109001ed9d58fe566959"
+    },
+    "fixedSerializerNotes": {
+      "payloadKeyOrderIdenticalAcrossSamples": true,
+      "sharedPayloadKeyOrder": [
+        "sampleId",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "forbiddenClaims",
+        "coachContext",
+        "baitNote"
+      ],
+      "coachInsights_keyChangeToday_passOpenFamily_allCapturedSamples": false,
+      "coachInsights_nextTrainingFocus_identical_allCaptured": false,
+      "reviewHooks_suggestedAction_identical_allCaptured": false
+    },
+    "datasetBuilderSignal": {
+      "note": "build_shadowset_v02.py insights() sets keyChangeToday to pass-open template for all samples",
+      "path": "scripts/vision/cie_shadow_v02/build_shadowset_v02.py",
+      "line": "keyChangeToday = f'패스 연결 {passes}건이 확인되었습니다.'"
+    }
+  },
+  "rootCause": {
+    "classification": "G. MIXED",
+    "primary": [
+      "INPUT_SERIALIZATION_BIAS (dataset builder + coachInsights lead field)",
+      "prompt/evaluator HITL contract mismatch (F12×5)"
+    ],
+    "secondary": [
+      "MODEL may still copy salient coachInsights.keyChangeToday despite prompt prohibition"
+    ],
+    "causes": [
+      "PROMPT_NOT_LOADED: possible",
+      "STALE_PROMPT_OR_CACHE: excluded (no reuse path in runner)",
+      "HARDCODED_GENERATION_TEMPLATE: excluded in runner (see dataset builder)",
+      "INPUT_SERIALIZATION_BIAS: fixed payload key order in build_user_message",
+      "DISTINCTIVE_EVIDENCE_PRESENT_BUT_DOMINATED: FII/player/axis facts exist but coachInsights lead field is homogenous"
+    ],
+    "doNotAssumeYet": [
+      "MODEL_INSTRUCTION_FOLLOWING_LIMIT as sole root cause — excluded until A/B/C/E/F cleared"
+    ]
+  },
+  "hitlContractReview": {
+    "promptArtifact": "scripts/vision/cie_eval_v0/prompts/cip_v0_2_1.md",
+    "evaluatorArtifact": "scripts/vision/cie_eval_v0/run_deterministic_eval.py",
+    "promptExplicitlyAllows": [
+      "코치가 확인",
+      "코치가 검토",
+      "코치가 결정",
+      "코치 판단",
+      "코치 승인",
+      "최종 적용 여부는 코치가 검토해 결정합니다",
+      "이 포인트는 코치 판단 후 훈련에 반영하세요"
+    ],
+    "evaluatorHITL_OK_pattern": "제안|판단|결정해\\s*주세요|결정입니다|적용해\\s*주세요|코치(?:님)?(?:\\s*판단|\\s*승인\\s*후|\\s*결정)",
+    "evaluatorAlsoAccepts": [
+      "코치(?:님)? + (결정|판단|제안|승인)",
+      "제안입니다 / 제안하며 / 제안합니다"
+    ],
+    "evaluatorDoesNotAcceptStandalone": [
+      "검토 (without 결정|판단|제안|승인 pairing)"
+    ],
+    "examplePhraseAcceptance": {
+      "코치 판단 후 훈련에 반영하세요": true,
+      "최종 적용 여부는 코치가 검토해 결정합니다": true,
+      "코치가 검토 후 다음 훈련에 반영해 주세요": false,
+      "코치가 검토 후 훈련에 반영하세요": false
+    },
+    "contractMismatchSummary": "cip-v0.2.1 lists '코치가 검토' as sufficient HITL concept, but cie-eval-v0.1.1 requires 제안|판단|결정|승인 tokens; bare '검토' closings fail F12.",
+    "run003_f12_classification": "prompt/evaluator contract mismatch (not generation-path failure)",
+    "run003_f12_fail_samples": [
+      "CIE-SHADOW-V02-004",
+      "CIE-SHADOW-V02-006",
+      "CIE-SHADOW-V02-008",
+      "CIE-SHADOW-V02-011",
+      "CIE-SHADOW-V02-019"
+    ],
+    "sharedFailurePattern": "closing uses '코치가 검토 후 ...' without 결정|판단|제안|승인"
+  },
+  "run003OutputInputAlignment": [],
+  "recommendedArchitectureCorrection": [
+    "Stop prompt-only diversity tuning until dataset coachInsights lead fields are de-homogenized.",
+    "Rebuild or patch cie-shadowset-v0.2.0 coachDecisionBrief.keyChangeToday to vary by compositionTag/evidence type (AXIS/PLAYER/SEQUENCE/COACH_INSIGHT), not pass-count template.",
+    "Vary nextTrainingFocus and reviewHooks.suggestedAction per sample category; current builder hardcodes both.",
+    "Align cip HITL guidance with locked cie-eval-v0.1.1 accepted tokens OR document evaluator extension separately — do not teach '코치가 검토' alone as PASS-safe.",
+    "Optional runner enhancement: emit request capture per run for audit; no change to locked evaluator in this phase."
+  ],
+  "productionWrites": false,
+  "liveCoachChanged": false,
+  "modelWeightTraining": false,
+  "llmCalled": false
+}

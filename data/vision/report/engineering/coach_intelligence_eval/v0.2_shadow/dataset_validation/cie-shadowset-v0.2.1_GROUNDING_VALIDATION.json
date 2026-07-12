@@ -1,0 +1,33 @@
+{
+  "datasetVersion": "cie-shadowset-v0.2.1",
+  "validatedAt": "2026-07-12T23:13:37.831335+00:00",
+  "sampleCount": 20,
+  "perSamplePass": 20,
+  "perSampleFail": 0,
+  "corpusChecks": {
+    "passOpenFamilyCount": 0,
+    "passOpenFamilyMax": 5,
+    "nextTrainingFocusTopPhrase": "동일 수치 지표 구분 리뷰",
+    "nextTrainingFocusTopCount": 2,
+    "nextTrainingFocusTopPct": 0.1,
+    "suggestedActionTopPhrase": "수치 맥락 구분 관측 리뷰",
+    "suggestedActionTopCount": 2,
+    "suggestedActionTopPct": 0.1,
+    "primaryEvidenceTypeDistribution": {
+      "AXIS": 4,
+      "NUMERIC": 4,
+      "PLAYER": 5,
+      "SEQUENCE": 3,
+      "TIME_WINDOW": 2,
+      "COACH_INSIGHT": 2
+    },
+    "maxPrimaryEvidenceTypePct": 0.25,
+    "keyChangeTodayUnique": 20,
+    "corpusPass": true,
+    "corpusFailures": []
+  },
+  "overallPass": true,
+  "failures": [],
+  "warnings": [],
+  "productionWrites": false
+}

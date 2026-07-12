@@ -1,0 +1,526 @@
+{
+  "reportType": "CIE_SHADOW_V021_LOW_QUALITY_SIX_ROOT_CAUSE_REVIEW",
+  "createdAt": "2026-07-12T23:36:13.533333+00:00",
+  "runId": "CIE-SHADOW-V021-RUN-001",
+  "qualityGateVerdict": "FAIL",
+  "lowQualitySampleIds": [
+    "CIE-SHADOW-V02-003",
+    "CIE-SHADOW-V02-004",
+    "CIE-SHADOW-V02-005",
+    "CIE-SHADOW-V02-006",
+    "CIE-SHADOW-V02-009",
+    "CIE-SHADOW-V02-015"
+  ],
+  "sixSampleFindings": [
+    {
+      "sampleId": "CIE-SHADOW-V02-003",
+      "primaryEvidenceType": "PLAYER",
+      "compositionTag": "sanitized_fixture",
+      "matchSummaryHeadline": "섀도 세션 요약",
+      "keyChangeToday": "P1 FII 66점으로 P2(58점) 대비 8점 차이가 있습니다.",
+      "nextTrainingFocus": "P1·P2 비교 클립 리뷰",
+      "suggestedAction": "선수별 FII 차이 관측 리뷰",
+      "allowedFactsSummary": [
+        "teamFii.overall: 63",
+        "teamFii.axes.spatial: 50",
+        "teamFii.axes.vision: 53",
+        "teamFii.axes.decision: 49",
+        "teamFii.axes.pressure: 47",
+        "teamFii.axes.tactics: 51",
+        "gevInput.eventCounts.PASS: 20",
+        "gevInput.eventCounts.RECEIVE: 16"
+      ],
+      "generatedOpening": "P1의 FII는 66점으로 P2(58점)보다 8점 차이가 있습니다.",
+      "generatedRecommendation": "다음 훈련에서는 P1과 P2의 비교 클립을 리뷰하는 것이 좋습니다. P2에게는 지원 패스에 집중하도록 지도할 필요가 있습니다.",
+      "generatedClosing": "위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+      "scores": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "totalQ01Q04": 4,
+      "judgeRationale": "The rewrite provides a general overview of player performance and training focus but lacks specific actionable insights and detailed evidence from the FII data.",
+      "judgeByDimension": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "evidenceUsed": [
+        "player:P1",
+        "player:P2",
+        "eventCounts.TURNOVER"
+      ],
+      "ignoredDistinctive": [],
+      "headlineDominatedOpening": false,
+      "keyChangeTodayDominatedOpening": false,
+      "recommendationCopiedNextFocus": false,
+      "recommendationCopiedSuggestedAction": false,
+      "openingSource": "PLAYER_CONTEXT",
+      "recommendationSource": "OTHER",
+      "likelyQualityBottleneck": "judge perceived generic overview despite partial evidence use",
+      "isLowQuality": true
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-004",
+      "primaryEvidenceType": "SEQUENCE",
+      "compositionTag": "sanitized_fixture",
+      "matchSummaryHeadline": "섀도 세션 요약",
+      "keyChangeToday": "패스 11건·리시브 9건·턴오버 3건의 이벤트 흐름이 기록되었습니다.",
+      "nextTrainingFocus": "이벤트 시퀀스 클립 리뷰",
+      "suggestedAction": "PASS-RECEIVE-TURNOVER 시퀀스 리뷰",
+      "allowedFactsSummary": [
+        "teamFii.overall: 52",
+        "teamFii.axes.spatial: 50",
+        "teamFii.axes.vision: 53",
+        "teamFii.axes.decision: 49",
+        "teamFii.axes.pressure: 47",
+        "teamFii.axes.tactics: 51",
+        "gevInput.eventCounts.PASS: 11",
+        "gevInput.eventCounts.RECEIVE: 9"
+      ],
+      "generatedOpening": "섀도 세션 요약입니다.",
+      "generatedRecommendation": "오늘은 패스 11건, 리시브 9건, 턴오버 3건의 이벤트 흐름이 기록되었습니다. 다음 훈련에서는 이벤트 시퀀스 클립 리뷰에 집중할 예정입니다.",
+      "generatedClosing": "이 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+      "scores": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "totalQ01Q04": 4,
+      "judgeRationale": "The rewrite provides a general overview of the session and mentions the focus for the next training, but lacks specific actionable insights and detailed evidence from the FII/coachInsights.",
+      "judgeByDimension": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "evidenceUsed": [
+        "player:P2",
+        "eventCounts.PASS",
+        "eventCounts.RECEIVE",
+        "eventCounts.TURNOVER"
+      ],
+      "ignoredDistinctive": [
+        "primary SEQUENCE keyChangeToday: 패스 11건·리시브 9건·턴오버 3건의 이벤트 흐름이 기록되었습니다."
+      ],
+      "headlineDominatedOpening": true,
+      "keyChangeTodayDominatedOpening": false,
+      "recommendationCopiedNextFocus": false,
+      "recommendationCopiedSuggestedAction": false,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "recommendationSource": "ALLOWED_FACT_DERIVED",
+      "likelyQualityBottleneck": "generic session-summary lead diluted evidence specificity (headline salience)",
+      "isLowQuality": true
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-005",
+      "primaryEvidenceType": "AXIS",
+      "compositionTag": "sanitized_fixture",
+      "matchSummaryHeadline": "섀도 세션 요약",
+      "keyChangeToday": "압박(pressure) 축 47점이 팀 축 중 가장 낮습니다.",
+      "nextTrainingFocus": "pressure 축 훈련 제약 점검",
+      "suggestedAction": "pressure 축 관측 포커스",
+      "allowedFactsSummary": [
+        "teamFii.overall: 46",
+        "teamFii.axes.spatial: 50",
+        "teamFii.axes.vision: 53",
+        "teamFii.axes.decision: 49",
+        "teamFii.axes.pressure: 47",
+        "teamFii.axes.tactics: 51",
+        "gevInput.eventCounts.PASS: 4",
+        "gevInput.eventCounts.RECEIVE: 5"
+      ],
+      "generatedOpening": "섀도 세션 요약입니다.",
+      "generatedRecommendation": "팀의 전체 FII는 46점이며, 압박(pressure) 축이 47점으로 가장 낮습니다. 다음 훈련에서는 압박 축 훈련 제약 점검에 집중해야 합니다.",
+      "generatedClosing": "위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+      "scores": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "totalQ01Q04": 4,
+      "judgeRationale": "The rewrite provides a general overview of the team's performance and areas for improvement but lacks specific actionable insights and detailed evidence from the FII/coachInsights.",
+      "judgeByDimension": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "evidenceUsed": [
+        "player:P2",
+        "eventCounts.PASS",
+        "eventCounts.RECEIVE",
+        "eventCounts.TURNOVER"
+      ],
+      "ignoredDistinctive": [
+        "primary AXIS keyChangeToday: 압박(pressure) 축 47점이 팀 축 중 가장 낮습니다."
+      ],
+      "headlineDominatedOpening": true,
+      "keyChangeTodayDominatedOpening": false,
+      "recommendationCopiedNextFocus": false,
+      "recommendationCopiedSuggestedAction": false,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "recommendationSource": "OTHER",
+      "likelyQualityBottleneck": "generic session-summary lead diluted evidence specificity (headline salience)",
+      "isLowQuality": true
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-006",
+      "primaryEvidenceType": "NUMERIC",
+      "compositionTag": "sanitized_fixture",
+      "matchSummaryHeadline": "섀도 세션 요약",
+      "keyChangeToday": "리시브 12건이 패스 15건 대비 낮게 관측되었습니다.",
+      "nextTrainingFocus": "리시브·패스 균형 카운트 리뷰",
+      "suggestedAction": "받기 전환율 관측 리뷰",
+      "allowedFactsSummary": [
+        "teamFii.overall: 59",
+        "teamFii.axes.spatial: 50",
+        "teamFii.axes.vision: 53",
+        "teamFii.axes.decision: 49",
+        "teamFii.axes.pressure: 47",
+        "teamFii.axes.tactics: 51",
+        "gevInput.eventCounts.PASS: 15",
+        "gevInput.eventCounts.RECEIVE: 12"
+      ],
+      "generatedOpening": "섀도 세션 요약입니다.",
+      "generatedRecommendation": "GEV·FII 기반 코치 브리프입니다. 리시브 12건이 패스 15건 대비 낮게 관측되었습니다.",
+      "generatedClosing": "위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+      "scores": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "totalQ01Q04": 4,
+      "judgeRationale": "The rewrite provides a general overview of the session and highlights the need for improvement in receiving compared to passing, but lacks specific actionable insights and detailed evidence from the FII/coachInsights.",
+      "judgeByDimension": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "evidenceUsed": [
+        "player:P1",
+        "player:P2",
+        "eventCounts.PASS",
+        "eventCounts.RECEIVE",
+        "eventCounts.TURNOVER"
+      ],
+      "ignoredDistinctive": [
+        "primary NUMERIC keyChangeToday: 리시브 12건이 패스 15건 대비 낮게 관측되었습니다."
+      ],
+      "headlineDominatedOpening": true,
+      "keyChangeTodayDominatedOpening": false,
+      "recommendationCopiedNextFocus": false,
+      "recommendationCopiedSuggestedAction": false,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "recommendationSource": "ALLOWED_FACT_DERIVED",
+      "likelyQualityBottleneck": "generic session-summary lead diluted evidence specificity (headline salience)",
+      "isLowQuality": true
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-009",
+      "primaryEvidenceType": "PLAYER",
+      "compositionTag": "multi_player",
+      "matchSummaryHeadline": "섀도 세션 요약",
+      "keyChangeToday": "P3·P4 FII 격차(45·40점)가 4인 라인업에서 두드러집니다.",
+      "nextTrainingFocus": "4인 라인업 선수 비교 리뷰",
+      "suggestedAction": "P3·P4 간격 관측 리뷰",
+      "allowedFactsSummary": [
+        "teamFii.overall: 54",
+        "teamFii.axes.spatial: 50",
+        "teamFii.axes.vision: 53",
+        "teamFii.axes.decision: 49",
+        "teamFii.axes.pressure: 47",
+        "teamFii.axes.tactics: 51",
+        "gevInput.eventCounts.PASS: 16",
+        "gevInput.eventCounts.RECEIVE: 12"
+      ],
+      "generatedOpening": "섀도 세션 요약입니다.",
+      "generatedRecommendation": "GEV·FII 기반 코치 브리프입니다. 현재 P3와 P4의 FII 격차(45·40점)가 4인 라인업에서 두드러집니다.",
+      "generatedClosing": "이 포인트는 코치님이 결정 후 훈련에 적용해 주세요.",
+      "scores": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "totalQ01Q04": 4,
+      "judgeRationale": "The rewrite provides a general overview of the session and highlights some strengths and improvement points, but lacks specific actionable insights and detailed evidence from the FII/coachInsights.",
+      "judgeByDimension": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "evidenceUsed": [
+        "player:P3",
+        "player:P4",
+        "eventCounts.PASS",
+        "eventCounts.TURNOVER"
+      ],
+      "ignoredDistinctive": [],
+      "headlineDominatedOpening": true,
+      "keyChangeTodayDominatedOpening": false,
+      "recommendationCopiedNextFocus": false,
+      "recommendationCopiedSuggestedAction": false,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "recommendationSource": "OTHER",
+      "likelyQualityBottleneck": "generic session-summary lead diluted evidence specificity (headline salience)",
+      "isLowQuality": true
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-015",
+      "primaryEvidenceType": "AXIS",
+      "compositionTag": "numeric_ambiguity",
+      "matchSummaryHeadline": "섀도 세션 요약",
+      "keyChangeToday": "비전(vision) 축 51점이 팀 축 중 상대적으로 낮습니다.",
+      "nextTrainingFocus": "vision 축 훈련 제약 점검",
+      "suggestedAction": "vision 축 클립 리뷰",
+      "allowedFactsSummary": [
+        "teamFii.overall: 14.0",
+        "teamFii.axes.spatial: 50",
+        "teamFii.axes.vision: 53",
+        "teamFii.axes.decision: 49",
+        "teamFii.axes.pressure: 47",
+        "teamFii.axes.tactics: 51",
+        "gevInput.eventCounts.PASS: 14",
+        "gevInput.eventCounts.RECEIVE: 12"
+      ],
+      "generatedOpening": "섀도 세션 요약입니다.",
+      "generatedRecommendation": "팀의 전체 FII는 14점이며, 패스는 14건, 수신은 12건, 턴오버는 2건 발생했습니다. 현재 비전(vision) 축이 51점으로 팀 축 중 상대적으로 낮은 상태입니다.",
+      "generatedClosing": "위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+      "scores": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "totalQ01Q04": 4,
+      "judgeRationale": "The rewrite provides a general overview of the team's performance and identifies a focus area (vision) but lacks specific actionable insights and detailed evidence from the FII/coachInsights.",
+      "judgeByDimension": {
+        "Q01": 1,
+        "Q02": 1,
+        "Q03": 1,
+        "Q04": 1
+      },
+      "evidenceUsed": [
+        "player:P1",
+        "eventCounts.PASS",
+        "eventCounts.RECEIVE",
+        "eventCounts.TURNOVER"
+      ],
+      "ignoredDistinctive": [
+        "primary AXIS keyChangeToday: 비전(vision) 축 51점이 팀 축 중 상대적으로 낮습니다."
+      ],
+      "headlineDominatedOpening": true,
+      "keyChangeTodayDominatedOpening": false,
+      "recommendationCopiedNextFocus": false,
+      "recommendationCopiedSuggestedAction": false,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "recommendationSource": "OTHER",
+      "likelyQualityBottleneck": "generic session-summary lead diluted evidence specificity (headline salience)",
+      "isLowQuality": true
+    }
+  ],
+  "headlineSalience": {
+    "normalizedHeadlineDistribution": {
+      "섀도 세션 요약": 20
+    },
+    "shadowSessionHeadlineFamilyCount": 20,
+    "generatedOpeningFollowsHeadlineFamily": 10,
+    "lowQualityRateSharedHeadlineSamples": 0.3,
+    "lowQualityRateNonSharedHeadlineSamples": 0.0,
+    "lowQualityAmongHeadlineFollowingOpenings": 0.5,
+    "correlationNote": "Association only — identical headline across all samples limits causal inference"
+  },
+  "openingSourceDistribution": {
+    "MATCH_SUMMARY_HEADLINE": 9,
+    "PLAYER_CONTEXT": 6,
+    "KEY_CHANGE_TODAY": 5
+  },
+  "recommendationSourceDistribution": {
+    "OTHER": 13,
+    "ALLOWED_FACT_DERIVED": 7
+  },
+  "ignoredDistinctivePatterns": [
+    [
+      "primary SEQUENCE keyChangeToday: 패스 11건·리시브 9건·턴오버 3건의 이벤트 흐름이 기록되었습니다.",
+      1
+    ],
+    [
+      "primary AXIS keyChangeToday: 압박(pressure) 축 47점이 팀 축 중 가장 낮습니다.",
+      1
+    ],
+    [
+      "primary NUMERIC keyChangeToday: 리시브 12건이 패스 15건 대비 낮게 관측되었습니다.",
+      1
+    ],
+    [
+      "primary AXIS keyChangeToday: 비전(vision) 축 51점이 팀 축 중 상대적으로 낮습니다.",
+      1
+    ]
+  ],
+  "remainingBottleneckClassification": "F. MIXED",
+  "remainingBottleneckDetail": [
+    "DATASET_HEADLINE_BIAS: identical matchSummary.headline across 20/20 samples",
+    "FIELD_ORDER / SALIENCE BIAS: headline appears early in fiiInput + model copies in 9/20 openings",
+    "QUALITY JUDGE / RUBRIC ISSUE: deterministic proxy scored higher than lab judge on same outputs"
+  ],
+  "architectureCorrectionJustified": {
+    "dataset": true,
+    "prompt": false,
+    "qualityRubric": false
+  },
+  "recommendedNextAction": "PM GO for dataset architecture v0.2.2: de-homogenize or demote matchSummary.headline/summary (neutral labels, move below coachInsights, or omit from user payload); re-run ONE shadow validation only after structural fix is proven in request capture. Do NOT tune cip-v0.2.2.",
+  "allCasesSummary": [
+    {
+      "sampleId": "CIE-SHADOW-V02-001",
+      "isLowQuality": false,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 5
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-002",
+      "isLowQuality": false,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 5
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-003",
+      "isLowQuality": true,
+      "openingSource": "PLAYER_CONTEXT",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 4
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-004",
+      "isLowQuality": true,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 4
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-005",
+      "isLowQuality": true,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 4
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-006",
+      "isLowQuality": true,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 4
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-007",
+      "isLowQuality": false,
+      "openingSource": "KEY_CHANGE_TODAY",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 8
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-008",
+      "isLowQuality": false,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 8
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-009",
+      "isLowQuality": true,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 4
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-010",
+      "isLowQuality": false,
+      "openingSource": "PLAYER_CONTEXT",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 8
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-011",
+      "isLowQuality": false,
+      "openingSource": "KEY_CHANGE_TODAY",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 8
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-012",
+      "isLowQuality": false,
+      "openingSource": "PLAYER_CONTEXT",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 8
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-013",
+      "isLowQuality": false,
+      "openingSource": "PLAYER_CONTEXT",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 5
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-014",
+      "isLowQuality": false,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 5
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-015",
+      "isLowQuality": true,
+      "openingSource": "MATCH_SUMMARY_HEADLINE",
+      "headlineDominatedOpening": true,
+      "totalQ01Q04": 4
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-016",
+      "isLowQuality": false,
+      "openingSource": "KEY_CHANGE_TODAY",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 8
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-017",
+      "isLowQuality": false,
+      "openingSource": "KEY_CHANGE_TODAY",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 8
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-018",
+      "isLowQuality": false,
+      "openingSource": "PLAYER_CONTEXT",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 8
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-019",
+      "isLowQuality": false,
+      "openingSource": "PLAYER_CONTEXT",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 8
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-020",
+      "isLowQuality": false,
+      "openingSource": "KEY_CHANGE_TODAY",
+      "headlineDominatedOpening": false,
+      "totalQ01Q04": 8
+    }
+  ],
+  "productionWrites": false,
+  "liveCoachChanged": false,
+  "modelWeightTraining": false,
+  "llmCalled": false
+}

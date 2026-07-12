@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-014",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:46:10.420464+00:00",
+  "rewriteText": "오늘의 주요 변화는 패스 13건, 팀 overall 13점, P1 FII 13점이 동일 수치로 겹친다는 점입니다. 다음 훈련에서는 동일 수치 지표 구분 리뷰에 집중할 필요가 있습니다. \n\nP1은 볼 순환에 중점을 두고 짧은 패스를 유지하는 훈련이 필요합니다. \n\n현재 팀의 강점으로는 패스 13건, 팀 overall 13점, P1 FII 13점이 있습니다. 반면, 개선할 점으로는 턴오버 2건과 NUMERIC 근거 확인이 있습니다. \n\n수치 맥락 구분 관측 리뷰를 통해 더 나은 성과를 도모할 수 있습니다. 최종 적용 여부는 코치 판단 후 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3165,
+    "completion_tokens": 174
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-013",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:15:22.582680+00:00",
+  "rewriteText": "이번 섀도 세션 요약에서는 패스 12건, 팀 overall 12점, P1 FII 12점이 동일 수치로 겹치는 점이 주요 변화입니다. 다음 훈련에서는 동일 수치 지표 구분 리뷰에 집중할 필요가 있습니다. \n\nP1은 볼 순환에 중점을 두고 짧은 패스를 유지하는 훈련이 필요합니다. 현재 팀의 강점으로는 패스 12건, 팀 overall 12점, P1 FII 12점이 있습니다. 반면, 턴오버 2건과 NUMERIC 근거 확인이 개선 포인트로 지적됩니다. \n\n수치 맥락 구분 관측 리뷰를 통해 더 나은 성과를 도출할 수 있을 것입니다. 최종 적용 여부는 코치님 판단 후 반영해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3247,
+    "completion_tokens": 183
+  }
+}

@@ -1,0 +1,265 @@
+{
+  "sampleId": "CIE-SHADOW-V02-014",
+  "datasetClass": "EVALUATION_SHADOW",
+  "datasetVersion": "cie-shadowset-v0.2.0",
+  "sourceType": "sanitized_fii_fixture",
+  "compositionTag": "numeric_ambiguity",
+  "mediaId": null,
+  "matchId": "shadow-num-014",
+  "playerId": null,
+  "playerAlias": "P1",
+  "fiiInput": {
+    "schemaVersion": "yago-vision-fii-summary-v1",
+    "teamFii": {
+      "overall": 13.0,
+      "axes": {
+        "spatial": 50,
+        "vision": 53,
+        "decision": 49,
+        "pressure": 47,
+        "tactics": 51
+      },
+      "playerCount": 2
+    },
+    "playerFii": [
+      {
+        "trackId": "t1",
+        "name": "P1",
+        "fii": 13.0,
+        "rank": 1,
+        "axes": {
+          "spatial": 13.0,
+          "vision": 11.0,
+          "decision": 9.0,
+          "pressure": 8.0,
+          "tactics": 10.0
+        }
+      },
+      {
+        "trackId": "t2",
+        "name": "P2",
+        "fii": 48.0,
+        "rank": 2,
+        "axes": {
+          "spatial": 47,
+          "vision": 46.0,
+          "decision": 44.0,
+          "pressure": 43.0,
+          "tactics": 45.0
+        }
+      }
+    ],
+    "gevInput": {
+      "eventCount": 26,
+      "eventCounts": {
+        "PASS": 13,
+        "RECEIVE": 11,
+        "TURNOVER": 2
+      }
+    },
+    "matchSummary": {
+      "headline": "섀도 세션 요약",
+      "summary": "GEV·FII 기반 코치 브리프(섀도).",
+      "eventHighlights": {
+        "passes": 13,
+        "receives": 11,
+        "turnovers": 2,
+        "totalEvents": 26
+      }
+    }
+  },
+  "coachInsightsInput": {
+    "insightVersion": "e2-v1",
+    "coachDecisionBrief": {
+      "keyChangeToday": "패스 연결 13건이 확인되었습니다.",
+      "nextTrainingFocus": "압박 하 짧은 지원 패스",
+      "playersToCoach": [
+        {
+          "trackId": "t1",
+          "name": "P1",
+          "focus": "볼 순환",
+          "oneLiner": "짧은 패스 유지"
+        }
+      ]
+    },
+    "reviewHooks": [
+      {
+        "label": "턴오버 구간",
+        "headlineMetric": "턴오버 2건",
+        "suggestedAction": "위험 지역 안전 옵션 리허설"
+      }
+    ],
+    "strengths": [
+      "패스 연결 13건",
+      "팀 overall 13점",
+      "P1 FII 13점"
+    ],
+    "improvementPoints": [
+      "턴오버 2건"
+    ],
+    "recommendations": [
+      "턴오버 구간: 위험 지역 안전 옵션 리허설",
+      "추가 클립으로 FII 추세 비교"
+    ]
+  },
+  "allowedFacts": [
+    {
+      "factId": "AF01",
+      "type": "number",
+      "path": "teamFii.overall",
+      "value": 13.0
+    },
+    {
+      "factId": "AF-PASS",
+      "type": "number",
+      "path": "gevInput.eventCounts.PASS",
+      "value": 13
+    },
+    {
+      "factId": "AF-RECEIVE",
+      "type": "number",
+      "path": "gevInput.eventCounts.RECEIVE",
+      "value": 11
+    },
+    {
+      "factId": "AF-TURNOVER",
+      "type": "number",
+      "path": "gevInput.eventCounts.TURNOVER",
+      "value": 2
+    },
+    {
+      "factId": "AF-P1",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P1"
+    },
+    {
+      "factId": "AF-P1-fii",
+      "type": "number",
+      "path": "playerFii.P1.fii",
+      "value": 13.0
+    },
+    {
+      "factId": "AF-P1-spatial",
+      "type": "number",
+      "path": "playerFii.P1.axes.spatial",
+      "value": 13.0
+    },
+    {
+      "factId": "AF-P1-vision",
+      "type": "number",
+      "path": "playerFii.P1.axes.vision",
+      "value": 11.0
+    },
+    {
+      "factId": "AF-P1-decision",
+      "type": "number",
+      "path": "playerFii.P1.axes.decision",
+      "value": 9.0
+    },
+    {
+      "factId": "AF-P1-pressure",
+      "type": "number",
+      "path": "playerFii.P1.axes.pressure",
+      "value": 8.0
+    },
+    {
+      "factId": "AF-P1-tactics",
+      "type": "number",
+      "path": "playerFii.P1.axes.tactics",
+      "value": 10.0
+    },
+    {
+      "factId": "AF-P2",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P2"
+    },
+    {
+      "factId": "AF-P2-fii",
+      "type": "number",
+      "path": "playerFii.P2.fii",
+      "value": 48.0
+    },
+    {
+      "factId": "AF-P2-spatial",
+      "type": "number",
+      "path": "playerFii.P2.axes.spatial",
+      "value": 47
+    },
+    {
+      "factId": "AF-P2-vision",
+      "type": "number",
+      "path": "playerFii.P2.axes.vision",
+      "value": 46.0
+    },
+    {
+      "factId": "AF-P2-decision",
+      "type": "number",
+      "path": "playerFii.P2.axes.decision",
+      "value": 44.0
+    },
+    {
+      "factId": "AF-P2-pressure",
+      "type": "number",
+      "path": "playerFii.P2.axes.pressure",
+      "value": 43.0
+    },
+    {
+      "factId": "AF-P2-tactics",
+      "type": "number",
+      "path": "playerFii.P2.axes.tactics",
+      "value": 45.0
+    },
+    {
+      "factId": "AF-S0",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "패스 연결 13건"
+    },
+    {
+      "factId": "AF-S1",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "팀 overall 13점"
+    },
+    {
+      "factId": "AF-S2",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "P1 FII 13점"
+    }
+  ],
+  "forbiddenClaims": [
+    "injury",
+    "medical",
+    "fatigue_diagnosis",
+    "psych_state",
+    "invented_intent",
+    "future_certainty",
+    "age_benchmark"
+  ],
+  "coachContext": {
+    "audience": "coach",
+    "task": "rewrite_brief",
+    "locale": "ko-KR",
+    "hitlRequired": true
+  },
+  "promptVersion": "cip-v0.1.0",
+  "candidateOutput": {
+    "rewriteText": "",
+    "modelId": null,
+    "generatedAt": null
+  },
+  "groundedClaims": [],
+  "unsupportedClaims": [],
+  "hallucinationFlags": [],
+  "evaluatorScores": {},
+  "finalVerdict": null,
+  "failureType": [],
+  "reviewerStatus": "unreviewed",
+  "evaluatorVersion": "cie-eval-v0.1.1",
+  "piiPolicy": "no_real_pii",
+  "expectedVerdict": null,
+  "expectedFailureTypes": []
+}

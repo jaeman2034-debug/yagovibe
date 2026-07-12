@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-014",
+  "promptVersion": "cip-v0.2.0",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:51:44.827441+00:00",
+  "rewriteText": "패스 연결 13건이 확인되었습니다. 팀의 overall 점수는 13점이며, P1의 FII는 13점입니다. 턴오버가 2건 발생했으므로, 위험 지역 안전 옵션 리허설을 진행하는 것이 좋습니다. P1은 볼 순환에 집중하여 짧은 패스를 유지하는 훈련이 필요합니다. 코치님, 이 사항에 대해 어떻게 판단하시겠습니까?",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2576,
+    "completion_tokens": 96
+  }
+}

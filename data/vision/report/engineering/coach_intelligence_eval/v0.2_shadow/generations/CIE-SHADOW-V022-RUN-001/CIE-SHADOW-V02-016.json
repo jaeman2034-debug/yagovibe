@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-016",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:40:57.775793+00:00",
+  "rewriteText": "2쿼터 구간에서 턴오버 2건이 집중되었습니다. 이 구간 동안 패스는 15건, 수신은 13건이 이루어졌습니다. P1의 FII는 15점으로, 볼 순환에 대한 집중이 필요합니다. 다음 훈련에서는 2쿼터 타임윈도우 리뷰를 진행하는 것이 좋습니다. 이 포인트는 코치님이 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3297,
+    "completion_tokens": 97
+  }
+}

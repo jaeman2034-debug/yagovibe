@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-003",
+  "promptVersion": "cip-v0.2.0",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:51:24.829765+00:00",
+  "rewriteText": "패스 연결 20건이 확인되었습니다. P1은 FII 66점으로 좋은 성과를 보였으며, 볼 순환이 원활하게 이루어졌습니다. 그러나 턴오버 1건이 발생하여 압박 대응이 필요합니다. P2는 지원 패스에 집중하여 압박 시 가까운 옵션을 활용할 수 있도록 훈련해 주세요. 코치님, 다음 리뷰 포커스는 턴오버 구간에 대한 안전 옵션 리허설입니다. 확인해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2495,
+    "completion_tokens": 112
+  }
+}

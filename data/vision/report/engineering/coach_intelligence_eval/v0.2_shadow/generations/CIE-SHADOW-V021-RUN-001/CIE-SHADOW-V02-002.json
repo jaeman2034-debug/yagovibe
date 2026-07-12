@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-002",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:14:50.757249+00:00",
+  "rewriteText": "섀도 세션 요약입니다. GEV·FII 기반으로 코치 브리프를 작성했습니다. \n\n턴오버 5건이 패스 7건 대비 높게 관측되었습니다. 다음 훈련에서는 턴오버·패스 비율 임계값 관측 리뷰에 집중할 필요가 있습니다. \n\nP2는 역할 점검을 위해 한 가지 큐에 집중해야 합니다. \n\n턴오버 비율(턴오버 5건 / 패스 7건)에 대한 이벤트 카운트 임계값 리뷰를 제안합니다. \n\n최종 적용 여부는 코치 판단 후 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3162,
+    "completion_tokens": 138
+  }
+}

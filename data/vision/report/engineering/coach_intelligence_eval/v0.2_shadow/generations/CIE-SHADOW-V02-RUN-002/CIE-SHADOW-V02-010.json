@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-010",
+  "promptVersion": "cip-v0.2.0",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:51:37.492631+00:00",
+  "rewriteText": "패스 연결 17건이 확인되었습니다. P1은 61의 FII로 팀 내에서 가장 높은 성과를 보였으며, P2는 53으로 뒤를 이었습니다. 하지만 턴오버가 4건 발생하여 위험 지역에서의 안전 옵션 리허설이 필요합니다. P3는 공간 이동에 집중해야 하며, 다음 훈련에서 이 부분을 점검해 주세요. 코치님 결정 부탁드립니다.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3332,
+    "completion_tokens": 97
+  }
+}

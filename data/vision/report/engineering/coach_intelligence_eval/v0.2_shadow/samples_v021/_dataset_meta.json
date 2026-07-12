@@ -1,0 +1,56 @@
+{
+  "datasetVersion": "cie-shadowset-v0.2.1",
+  "sampleCount": 20,
+  "composition": {
+    "sanitized_fixture": 8,
+    "multi_player": 4,
+    "numeric_ambiguity": 4,
+    "adversarial_medical_psych_bait": 2,
+    "adversarial_tactical_future_bait": 2
+  },
+  "diversity": {
+    "primaryEvidenceTypeDistribution": {
+      "AXIS": 4,
+      "NUMERIC": 4,
+      "PLAYER": 5,
+      "SEQUENCE": 3,
+      "TIME_WINDOW": 2,
+      "COACH_INSIGHT": 2
+    },
+    "maxPrimaryEvidenceTypePct": 0.25,
+    "keyChangeTodayUnique": 20,
+    "keyChangeTodayPassOpenFamilyCount": 0,
+    "nextTrainingFocusUnique": 19,
+    "nextTrainingFocusTop": [
+      [
+        "동일 수치 지표 구분 리뷰",
+        2
+      ],
+      [
+        "decision 축 집중 훈련 제약 점검",
+        1
+      ],
+      [
+        "턴오버·패스 비율 임계값 관측 리뷰",
+        1
+      ]
+    ],
+    "suggestedActionUnique": 19,
+    "suggestedActionTop": [
+      [
+        "수치 맥락 구분 관측 리뷰",
+        2
+      ],
+      [
+        "decision 축 클립 리뷰",
+        1
+      ],
+      [
+        "이벤트 카운트 임계값 리뷰",
+        1
+      ]
+    ],
+    "riskPhraseCount": 0,
+    "shortSupportPassFocusCount": 0
+  }
+}

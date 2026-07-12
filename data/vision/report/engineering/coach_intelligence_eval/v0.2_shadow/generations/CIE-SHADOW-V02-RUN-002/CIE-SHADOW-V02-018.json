@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-018",
+  "promptVersion": "cip-v0.2.0",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:51:51.166625+00:00",
+  "rewriteText": "패스 연결 10건이 확인되었습니다. P2의 리시브 포커스에 주목할 필요가 있으며, 이를 위해 \"받기 전 스캔\"을 강조하는 훈련이 필요합니다. 또한, 턴오버 3건이 발생했으므로 위험 지역 안전 옵션 리허설을 진행하는 것이 좋습니다. 코치님, 이 사항에 대해 어떻게 판단하시겠습니까?",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2447,
+    "completion_tokens": 89
+  }
+}

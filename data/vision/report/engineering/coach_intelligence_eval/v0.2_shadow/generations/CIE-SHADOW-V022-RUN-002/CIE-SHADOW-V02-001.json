@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-001",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:45:31.839353+00:00",
+  "rewriteText": "의사결정(decision) 축이 49점으로 팀 축 중 가장 낮습니다. 다음 훈련에서는 decision 축에 집중하여 훈련 제약을 점검할 필요가 있습니다. P2는 역할 점검을 위해 한 가지 큐에 집중해야 합니다. \n\n현재 팀의 전체 FII는 57점이며, P1은 62점으로 가장 높은 점수를 기록했습니다. 하지만 턴오버가 2건 발생한 점은 개선이 필요합니다. \n\ndecision 축 클립 리뷰를 통해 의사결정 능력을 향상시키는 것이 중요합니다. 최종 적용 여부는 코치님 판단 후 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3036,
+    "completion_tokens": 141
+  }
+}

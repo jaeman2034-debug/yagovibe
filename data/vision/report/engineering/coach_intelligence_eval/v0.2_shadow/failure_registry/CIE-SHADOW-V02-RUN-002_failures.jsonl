@@ -1,0 +1,1 @@
+{"runId": "CIE-SHADOW-V02-RUN-002", "evaluatedAt": "2026-07-12T22:52:11.152334+00:00", "sampleId": "CIE-SHADOW-V02-003", "promptVersion": "cip-v0.2.0", "evaluatorVersion": "cie-eval-v0.1.1", "datasetVersion": "cie-shadowset-v0.2.0", "actualVerdict": "FAIL", "failureTypes": ["F12_FORMAT_CONTRACT_FAIL"], "candidateOutputHash": "61aea9bc9b1d4b51", "modelId": "gpt-4o-mini"}

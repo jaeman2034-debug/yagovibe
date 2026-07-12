@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-003",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:57:56.947564+00:00",
+  "rewriteText": "패스 연결 20건이 확인되었습니다. P1의 FII 점수는 66점으로, 팀의 전체 FII는 63점입니다. P2는 지원 패스에 집중할 필요가 있으며, 압박 상황에서 가까운 옵션을 활용하는 것이 중요합니다. 코치가 검토 후 다음 훈련에 반영할 수 있도록 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2931,
+    "completion_tokens": 81
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-014",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:15:26.970952+00:00",
+  "rewriteText": "섀도 세션 요약입니다. 이번 세션에서 패스는 13건, 수신은 11건, 턴오버는 2건 발생했습니다. 팀의 overall FII는 13점으로, P1의 FII도 13점으로 동일한 수치가 나타났습니다. \n\n다음 훈련에서는 동일 수치 지표 구분 리뷰에 집중할 필요가 있습니다. P1에게는 볼 순환을 강조하며 짧은 패스를 유지하는 훈련을 제안합니다. \n\n수치 맥락 구분 관측 리뷰를 통해 턴오버 2건의 개선점을 확인하고, NUMERIC 근거를 검토해 주세요. 최종 적용 여부는 코치님 판단 후 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3247,
+    "completion_tokens": 165
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-019",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:58:33.232060+00:00",
+  "rewriteText": "패스 연결 12건이 확인되었습니다. P1은 56의 FII 점수로 팀 내에서 가장 높은 성과를 보였으며, 공간 축에서 55의 점수를 기록했습니다. 반면 P2는 49의 FII 점수로 두 번째 순위를 차지하고 있습니다. 턴오버가 4건 발생한 점은 개선이 필요합니다. 코치가 검토 후 다음 훈련에 반영할 사항입니다.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2864,
+    "completion_tokens": 100
+  }
+}

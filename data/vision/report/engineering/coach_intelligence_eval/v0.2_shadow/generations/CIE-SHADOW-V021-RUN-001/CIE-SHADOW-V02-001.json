@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-001",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:14:46.981349+00:00",
+  "rewriteText": "섀도 세션 요약입니다. 팀의 전체 FII는 57점이며, P1은 62점으로 가장 높은 점수를 기록했습니다. 그러나 의사결정(decision) 축은 49점으로 팀 축 중 가장 낮습니다. 이 부분에 대한 집중 훈련이 필요합니다. \n\n다음 훈련에서는 decision 축에 대한 클립 리뷰를 진행하고, P2의 역할 점검을 통해 한 가지 큐에 집중할 수 있도록 하세요. 턴오버가 2건 발생했으니 이 부분도 개선이 필요합니다. \n\n위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3118,
+    "completion_tokens": 144
+  }
+}

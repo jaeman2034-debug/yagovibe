@@ -1,0 +1,160 @@
+{
+  "runId": "CIE-SHADOW-V02-RUN-003",
+  "layer": "SHADOW_QUALITY_ADVISORY_NON_GATING",
+  "evaluatedAt": "2026-07-12T22:59:24.526111+00:00",
+  "outputsEvaluated": 20,
+  "judgeUsed": true,
+  "judgeModel": "gpt-4o-mini",
+  "scoringMethod": "lab_judge_Q01_Q04+deterministic_Q05",
+  "meanScores": {
+    "Q01": 0.9,
+    "Q02": 1.0,
+    "Q03": 1.0,
+    "Q04": 1.0
+  },
+  "diversity": {
+    "uniqueOpeningRatio": 0.1,
+    "uniqueClosingRatio": 0.65,
+    "repeatedSentenceRatio": 0.2292,
+    "meanPairwiseJaccard": 0.2451,
+    "topOpeningPatterns": [
+      [
+        "패스 연결 <NUM>건이 확인되었습니다. p<NUM",
+        19
+      ],
+      [
+        "패스 연결 <NUM>건이 확인되었습니다. 팀의 전체",
+        1
+      ]
+    ],
+    "topClosingPatterns": [
+      [
+        "하는 것이 좋습니다. 최종 적용 여부는 코치가 검토해 결정합니다.",
+        5
+      ],
+      [
+        "훈련이 필요합니다. 이 포인트는 코치 판단 후 훈련에 반영하세요.",
+        2
+      ],
+      [
+        "개선이 필요합니다. 이 포인트는 코치 판단 후 훈련에 반영하세요.",
+        2
+      ]
+    ],
+    "topRecommendationPatterns": [
+      [
+        "위험 지역 안전 옵션 리허설",
+        6
+      ],
+      [
+        "볼 순환",
+        3
+      ],
+      [
+        "받기 전 스캔",
+        2
+      ]
+    ],
+    "highestSimilarityPairs": [
+      {
+        "a": "CIE-SHADOW-V02-014",
+        "b": "CIE-SHADOW-V02-016",
+        "jaccard": 0.9032
+      },
+      {
+        "a": "CIE-SHADOW-V02-015",
+        "b": "CIE-SHADOW-V02-016",
+        "jaccard": 0.9
+      },
+      {
+        "a": "CIE-SHADOW-V02-014",
+        "b": "CIE-SHADOW-V02-015",
+        "jaccard": 0.8125
+      },
+      {
+        "a": "CIE-SHADOW-V02-017",
+        "b": "CIE-SHADOW-V02-018",
+        "jaccard": 0.8
+      },
+      {
+        "a": "CIE-SHADOW-V02-006",
+        "b": "CIE-SHADOW-V02-007",
+        "jaccard": 0.7368
+      }
+    ]
+  },
+  "zeroOnAnyQ01Q04": [
+    "CIE-SHADOW-V02-007",
+    "CIE-SHADOW-V02-013"
+  ],
+  "lowTotalQ01Q04_le4": [
+    "CIE-SHADOW-V02-001",
+    "CIE-SHADOW-V02-002",
+    "CIE-SHADOW-V02-003",
+    "CIE-SHADOW-V02-004",
+    "CIE-SHADOW-V02-005",
+    "CIE-SHADOW-V02-006",
+    "CIE-SHADOW-V02-007",
+    "CIE-SHADOW-V02-008",
+    "CIE-SHADOW-V02-009",
+    "CIE-SHADOW-V02-010",
+    "CIE-SHADOW-V02-011",
+    "CIE-SHADOW-V02-012",
+    "CIE-SHADOW-V02-013",
+    "CIE-SHADOW-V02-014",
+    "CIE-SHADOW-V02-015",
+    "CIE-SHADOW-V02-016",
+    "CIE-SHADOW-V02-017",
+    "CIE-SHADOW-V02-018",
+    "CIE-SHADOW-V02-019",
+    "CIE-SHADOW-V02-020"
+  ],
+  "lowQualitySampleCount": 20,
+  "top3MeasurablePromptWeaknesses": [
+    {
+      "id": "W1",
+      "weakness": "excessive_fixed_opening",
+      "evidence": {
+        "uniqueOpeningRatio": 0.1,
+        "topOpening": [
+          "패스 연결 <NUM>건이 확인되었습니다. p<NUM",
+          19
+        ]
+      }
+    },
+    {
+      "id": "W3",
+      "weakness": "generic_or_repeated_recommendation_phrase",
+      "evidence": {
+        "meanQ04": 1.0,
+        "topRecommendation": [
+          [
+            "위험 지역 안전 옵션 리허설",
+            6
+          ],
+          [
+            "볼 순환",
+            3
+          ],
+          [
+            "받기 전 스캔",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "W4",
+      "weakness": "low_input_differentiation_high_pairwise_similarity",
+      "evidence": {
+        "meanQ03": 1.0,
+        "meanPairwiseJaccard": 0.2451
+      }
+    }
+  ],
+  "cieHardGateStatus": "RUN-001 hard FAIL incidence 0 — safety gate unchanged / not replaced",
+  "productionWrites": false,
+  "liveCoachChanged": false,
+  "promptChanged": false,
+  "note": "Advisory quality only. Not accuracy. Not Shadow PASS/COMPLETE/LOCK."
+}

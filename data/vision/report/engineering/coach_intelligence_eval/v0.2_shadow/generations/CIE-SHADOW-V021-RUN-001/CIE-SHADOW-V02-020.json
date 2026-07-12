@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-020",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:15:41.185849+00:00",
+  "rewriteText": "후반(3쿼터) 구간에서 턴오버 4건이 집중되었습니다. 이 구간의 리뷰를 통해 턴오버를 줄이는 데 집중할 필요가 있습니다. 패스는 12건 성공했으나 턴오버가 4건 발생한 점은 개선이 필요합니다. P1 선수는 빌드업에서 폭 만들기에 집중해야 합니다. \n\n이 포인트는 코치님이 결정 후 훈련에 적용해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3201,
+    "completion_tokens": 105
+  }
+}

@@ -1,0 +1,462 @@
+{
+  "sampleId": "CIE-SHADOW-V02-010",
+  "datasetClass": "EVALUATION_SHADOW",
+  "datasetVersion": "cie-shadowset-v0.2.2",
+  "sourceType": "sanitized_fii_fixture",
+  "compositionTag": "multi_player",
+  "primaryEvidenceType": "AXIS",
+  "mediaId": null,
+  "matchId": "shadow-v021-multi-010",
+  "playerId": null,
+  "playerAlias": "P1",
+  "fiiInput": {
+    "schemaVersion": "yago-vision-fii-summary-v1",
+    "teamFii": {
+      "overall": 55,
+      "axes": {
+        "spatial": 50,
+        "vision": 53,
+        "decision": 49,
+        "pressure": 47,
+        "tactics": 51
+      },
+      "playerCount": 4
+    },
+    "playerFii": [
+      {
+        "trackId": "t1",
+        "name": "P1",
+        "fii": 61,
+        "rank": 1,
+        "axes": {
+          "spatial": 61,
+          "vision": 59,
+          "decision": 57,
+          "pressure": 56,
+          "tactics": 58
+        }
+      },
+      {
+        "trackId": "t2",
+        "name": "P2",
+        "fii": 53,
+        "rank": 2,
+        "axes": {
+          "spatial": 50,
+          "vision": 51,
+          "decision": 49,
+          "pressure": 48,
+          "tactics": 50
+        }
+      },
+      {
+        "trackId": "t3",
+        "name": "P3",
+        "fii": 46,
+        "rank": 3,
+        "axes": {
+          "spatial": 44,
+          "vision": 44,
+          "decision": 42,
+          "pressure": 41,
+          "tactics": 43
+        }
+      },
+      {
+        "trackId": "t4",
+        "name": "P4",
+        "fii": 41,
+        "rank": 4,
+        "axes": {
+          "spatial": 39,
+          "vision": 39,
+          "decision": 37,
+          "pressure": 36,
+          "tactics": 38
+        }
+      }
+    ],
+    "gevInput": {
+      "eventCount": 34,
+      "eventCounts": {
+        "PASS": 17,
+        "RECEIVE": 13,
+        "TURNOVER": 4
+      }
+    },
+    "matchSummary": {
+      "headline": null,
+      "summary": null,
+      "eventHighlights": {
+        "passes": 17,
+        "receives": 13,
+        "turnovers": 4,
+        "totalEvents": 34
+      }
+    }
+  },
+  "coachInsightsInput": {
+    "primaryEvidenceType": "AXIS",
+    "insightVersion": "e2-v1",
+    "coachDecisionBrief": {
+      "keyChangeToday": "공간(spatial) 축 격차가 P1(61)과 P4(39) 사이에서 큽니다.",
+      "nextTrainingFocus": "spatial 축 훈련 제약 점검",
+      "playersToCoach": [
+        {
+          "trackId": "t1",
+          "name": "P1",
+          "focus": "역할 유지",
+          "oneLiner": "한 가지 큐만"
+        },
+        {
+          "trackId": "t2",
+          "name": "P2",
+          "focus": "역할 유지",
+          "oneLiner": "한 가지 큐만"
+        },
+        {
+          "trackId": "t3",
+          "name": "P3",
+          "focus": "공간 이동",
+          "oneLiner": "한 가지 큐만"
+        }
+      ]
+    },
+    "reviewHooks": [
+      {
+        "label": "다인원 포인트",
+        "headlineMetric": "활성 선수 4명",
+        "suggestedAction": "spatial 축 클립 리뷰"
+      }
+    ],
+    "strengths": [
+      "패스 17건",
+      "활성 선수 4명"
+    ],
+    "improvementPoints": [
+      "턴오버 4건",
+      "P3·P4 간격 점검"
+    ],
+    "recommendations": [
+      "spatial 축 클립 리뷰",
+      "추가 클립으로 FII 추세 비교"
+    ]
+  },
+  "allowedFacts": [
+    {
+      "factId": "AF01",
+      "type": "number",
+      "path": "teamFii.overall",
+      "value": 55
+    },
+    {
+      "factId": "AF-team-spatial",
+      "type": "number",
+      "path": "teamFii.axes.spatial",
+      "value": 50
+    },
+    {
+      "factId": "AF-team-vision",
+      "type": "number",
+      "path": "teamFii.axes.vision",
+      "value": 53
+    },
+    {
+      "factId": "AF-team-decision",
+      "type": "number",
+      "path": "teamFii.axes.decision",
+      "value": 49
+    },
+    {
+      "factId": "AF-team-pressure",
+      "type": "number",
+      "path": "teamFii.axes.pressure",
+      "value": 47
+    },
+    {
+      "factId": "AF-team-tactics",
+      "type": "number",
+      "path": "teamFii.axes.tactics",
+      "value": 51
+    },
+    {
+      "factId": "AF-PASS",
+      "type": "number",
+      "path": "gevInput.eventCounts.PASS",
+      "value": 17
+    },
+    {
+      "factId": "AF-RECEIVE",
+      "type": "number",
+      "path": "gevInput.eventCounts.RECEIVE",
+      "value": 13
+    },
+    {
+      "factId": "AF-TURNOVER",
+      "type": "number",
+      "path": "gevInput.eventCounts.TURNOVER",
+      "value": 4
+    },
+    {
+      "factId": "AF-brief-keyChangeToday",
+      "type": "string",
+      "path": "coachInsights.coachDecisionBrief.keyChangeToday",
+      "value": "공간(spatial) 축 격차가 P1(61)과 P4(39) 사이에서 큽니다."
+    },
+    {
+      "factId": "AF-brief-nextTrainingFocus",
+      "type": "string",
+      "path": "coachInsights.coachDecisionBrief.nextTrainingFocus",
+      "value": "spatial 축 훈련 제약 점검"
+    },
+    {
+      "factId": "AF-hook0-label",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].label",
+      "value": "다인원 포인트"
+    },
+    {
+      "factId": "AF-hook0-headlineMetric",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].headlineMetric",
+      "value": "활성 선수 4명"
+    },
+    {
+      "factId": "AF-hook0-suggestedAction",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].suggestedAction",
+      "value": "spatial 축 클립 리뷰"
+    },
+    {
+      "factId": "AF-P1",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P1"
+    },
+    {
+      "factId": "AF-P1-fii",
+      "type": "number",
+      "path": "playerFii.P1.fii",
+      "value": 61
+    },
+    {
+      "factId": "AF-P1-spatial",
+      "type": "number",
+      "path": "playerFii.P1.axes.spatial",
+      "value": 61
+    },
+    {
+      "factId": "AF-P1-vision",
+      "type": "number",
+      "path": "playerFii.P1.axes.vision",
+      "value": 59
+    },
+    {
+      "factId": "AF-P1-decision",
+      "type": "number",
+      "path": "playerFii.P1.axes.decision",
+      "value": 57
+    },
+    {
+      "factId": "AF-P1-pressure",
+      "type": "number",
+      "path": "playerFii.P1.axes.pressure",
+      "value": 56
+    },
+    {
+      "factId": "AF-P1-tactics",
+      "type": "number",
+      "path": "playerFii.P1.axes.tactics",
+      "value": 58
+    },
+    {
+      "factId": "AF-P2",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P2"
+    },
+    {
+      "factId": "AF-P2-fii",
+      "type": "number",
+      "path": "playerFii.P2.fii",
+      "value": 53
+    },
+    {
+      "factId": "AF-P2-spatial",
+      "type": "number",
+      "path": "playerFii.P2.axes.spatial",
+      "value": 50
+    },
+    {
+      "factId": "AF-P2-vision",
+      "type": "number",
+      "path": "playerFii.P2.axes.vision",
+      "value": 51
+    },
+    {
+      "factId": "AF-P2-decision",
+      "type": "number",
+      "path": "playerFii.P2.axes.decision",
+      "value": 49
+    },
+    {
+      "factId": "AF-P2-pressure",
+      "type": "number",
+      "path": "playerFii.P2.axes.pressure",
+      "value": 48
+    },
+    {
+      "factId": "AF-P2-tactics",
+      "type": "number",
+      "path": "playerFii.P2.axes.tactics",
+      "value": 50
+    },
+    {
+      "factId": "AF-P3",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P3"
+    },
+    {
+      "factId": "AF-P3-fii",
+      "type": "number",
+      "path": "playerFii.P3.fii",
+      "value": 46
+    },
+    {
+      "factId": "AF-P3-spatial",
+      "type": "number",
+      "path": "playerFii.P3.axes.spatial",
+      "value": 44
+    },
+    {
+      "factId": "AF-P3-vision",
+      "type": "number",
+      "path": "playerFii.P3.axes.vision",
+      "value": 44
+    },
+    {
+      "factId": "AF-P3-decision",
+      "type": "number",
+      "path": "playerFii.P3.axes.decision",
+      "value": 42
+    },
+    {
+      "factId": "AF-P3-pressure",
+      "type": "number",
+      "path": "playerFii.P3.axes.pressure",
+      "value": 41
+    },
+    {
+      "factId": "AF-P3-tactics",
+      "type": "number",
+      "path": "playerFii.P3.axes.tactics",
+      "value": 43
+    },
+    {
+      "factId": "AF-P4",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P4"
+    },
+    {
+      "factId": "AF-P4-fii",
+      "type": "number",
+      "path": "playerFii.P4.fii",
+      "value": 41
+    },
+    {
+      "factId": "AF-P4-spatial",
+      "type": "number",
+      "path": "playerFii.P4.axes.spatial",
+      "value": 39
+    },
+    {
+      "factId": "AF-P4-vision",
+      "type": "number",
+      "path": "playerFii.P4.axes.vision",
+      "value": 39
+    },
+    {
+      "factId": "AF-P4-decision",
+      "type": "number",
+      "path": "playerFii.P4.axes.decision",
+      "value": 37
+    },
+    {
+      "factId": "AF-P4-pressure",
+      "type": "number",
+      "path": "playerFii.P4.axes.pressure",
+      "value": 36
+    },
+    {
+      "factId": "AF-P4-tactics",
+      "type": "number",
+      "path": "playerFii.P4.axes.tactics",
+      "value": 38
+    },
+    {
+      "factId": "AF-S0",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "패스 17건"
+    },
+    {
+      "factId": "AF-S1",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "활성 선수 4명"
+    },
+    {
+      "factId": "AF-IP0",
+      "type": "string",
+      "path": "coachInsights.improvementPoints",
+      "value": "턴오버 4건"
+    },
+    {
+      "factId": "AF-IP1",
+      "type": "string",
+      "path": "coachInsights.improvementPoints",
+      "value": "P3·P4 간격 점검"
+    },
+    {
+      "factId": "AF-PET",
+      "type": "string",
+      "path": "coachInsights.primaryEvidenceType",
+      "value": "AXIS"
+    }
+  ],
+  "forbiddenClaims": [
+    "injury",
+    "medical",
+    "fatigue_diagnosis",
+    "psych_state",
+    "invented_intent",
+    "future_certainty",
+    "age_benchmark"
+  ],
+  "coachContext": {
+    "audience": "coach",
+    "task": "rewrite_brief",
+    "locale": "ko-KR",
+    "hitlRequired": true
+  },
+  "promptVersion": "cip-v0.2.2",
+  "candidateOutput": {
+    "rewriteText": "",
+    "modelId": null,
+    "generatedAt": null
+  },
+  "groundedClaims": [],
+  "unsupportedClaims": [],
+  "hallucinationFlags": [],
+  "evaluatorScores": {},
+  "finalVerdict": null,
+  "failureType": [],
+  "reviewerStatus": "unreviewed",
+  "evaluatorVersion": "cie-eval-v0.1.1",
+  "piiPolicy": "no_real_pii",
+  "expectedVerdict": null,
+  "expectedFailureTypes": [],
+  "rewritePayloadContract": "cie-shadow-rewrite-payload-v1"
+}
