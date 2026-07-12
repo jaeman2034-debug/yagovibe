@@ -2,8 +2,8 @@
 
 **Document ID:** `VOC-012-VISUAL-SPOTCHECK`  
 **Date:** 2026-07-12 (KST)  
-**Status:** ✅ **ACCEPTED** (PM Review)  
-**PAI-012:** ✅ **PASS** (연계) · ❌ COMPLETE/CLOSED 금지  
+**Status:** ✅ **ACCEPTED** (PM Review) · Production verified  
+**PAI-012:** 🔒 **COMPLETE / CLOSED** (연계)  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경 (VOC-012와 분리)  
 **PAI-011 / VOC-011 원장 15:** 🔒 유지  
 **Upstream Manual QA:** `VOC_012_MANUAL_QA.md` 🔒 FINAL PASS

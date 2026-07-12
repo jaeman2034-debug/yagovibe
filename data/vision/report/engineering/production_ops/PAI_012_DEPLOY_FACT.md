@@ -1,7 +1,7 @@
 # PAI-012 — Production Deploy Fact
 
 **Document ID:** `PAI-012-DEPLOY-FACT`  
-**Status:** ✅ **DEPLOYED** (Hosting) · ❌ COMPLETE/CLOSED 금지 · ❌ Post-Deploy Smoke 전 CLOSED 금지  
+**Status:** ✅ **DEPLOYED** (Hosting) · 🔒 **PAI-012 COMPLETE / CLOSED** (Post-Deploy Smoke PASS)  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **PAI-011 / VOC-011 원장 15:** 🔒 유지
 
@@ -23,10 +23,10 @@ Hosting URL: https://yago-vibe-spt.web.app
 | Role | SHA | Note |
 |---|---|---|
 | Feature (PAI-012) | `61cf9ac` | VOC-012 coach match-flow FII trend |
-| Pre-Deploy + Action Items (deployed HEAD) | `30170a18a7838ffcc33e4b99de3a3014228157db` | Pre-Deploy GO · action items |
+| Deployed HEAD | `30170a18a7838ffcc33e4b99de3a3014228157db` | Pre-Deploy GO · action items |
 | Rollback parent | `64270a31918fc091f32c4996bd3ee0e782d28592` | PAI-011 Hosting HEAD |
 
-> **Deployed tree = `30170a1`** (= feature `61cf9ac` + Pre-Deploy docs).  
+> **Deployed tree = `30170a1`**.  
 > CF / Firestore Rules: **미배포** (`firebase deploy --only hosting`).
 
 ---
@@ -53,17 +53,19 @@ BUILD_END:   2026-07-12 09:16 KST (~1m 33s)
 
 ---
 
-## Next Gate
+## Gate Chain (CLOSED)
 
 ```text
 Deploy Fact ✅
-        ↓
-Production Coach Report Post-Deploy Smoke
-  (Match Detail · Trend 카드 · N=3 · Avg/Δ · 모바일)
-        ↓
-PM 판정 → PAI-012 COMPLETE/CLOSED 또는 OPEN 유지
+    ↓
+Production Post-Deploy Smoke ✅ PASS
+    ↓
+PAI-012 COMPLETE / CLOSED 🔒
 ```
+
+SoT (Smoke): `PAI_012_POST_DEPLOY_SMOKE.md`  
+Separated obs: `PROD-OBS-012` (`PRODUCTION_INCIDENTS.md`)
 
 ---
 
-**Recorded:** 2026-07-12 09:18 KST
+**Recorded:** 2026-07-12 09:18 KST · **Closed:** 2026-07-12 09:28 KST

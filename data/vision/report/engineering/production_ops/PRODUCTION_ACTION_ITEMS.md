@@ -24,7 +24,7 @@
 | ID | Item | Status | Owner | Note |
 |---|---|---|---|---|
 | **PAI-011** | VOC-011 — 또래(팀·연령) 평균 기준선 | 🔒 **COMPLETE / CLOSED** | PM · Eng | Post-Deploy Smoke **PASS** · HEAD `64270a3` · feature `07fb689` · `PAI_011_POST_DEPLOY_SMOKE.md` · Day-03 DATE_GATE_PENDING 유지 |
-| **PAI-012** | VOC-012 — 기간 데이터 비교 시각화 | ✅ **PASS** · ✅ **Deployed** · ▶ Post-Deploy Smoke · ❌ COMPLETE/CLOSED 금지 | Product · Eng | HEAD `30170a1` · feature `61cf9ac` · `PAI_012_DEPLOY_FACT.md` · Day-03/VOC-011×15 미변경 |
+| **PAI-012** | VOC-012 — 기간 데이터 비교 시각화 | 🔒 **COMPLETE / CLOSED** | PM · Eng | Post-Deploy Smoke **PASS** · HEAD `30170a1` · feature `61cf9ac` · `PAI_012_POST_DEPLOY_SMOKE.md` · **PROD-OBS-012** 분리 OPEN · Day-03 DATE_GATE_PENDING 유지 |
 
 VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validation/E2_ENGINEERING_BACKLOG.md`
 
@@ -36,7 +36,7 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 |---|---|---|---|---|
 | **PAI-021** | Production Run Sheet 운영 정착 | ▶ ACTIVE | Ops | 본 체계 SoT |
 | **PAI-022** | Weekly Production Review 루틴 시작 | ▶ PLANNED | PM · Ops | `PRODUCTION_WEEKLY_REVIEW.md` |
-| **PAI-023** | Production KPI 일/주 누적 시작 | ▶ **ACTIVE** | Ops | Day-01 **ACCEPT** · Day-02 진행 |
+| **PAI-031** | `PROD-OBS-012` — Job Monitor `VISION_ANALYSIS_FAILED` / no GEV events | ▶ OPEN (후보) | Ops · Eng | PAI-012 Smoke와 **분리** · S3 · Match Detail 빨간 문구 · Trend UX 비차단 · `PRODUCTION_INCIDENTS.md` |
 
 ---
 
@@ -52,4 +52,4 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 
 ---
 
-**Updated:** 2026-07-11 · PAI-011 COMPLETE/CLOSED
+**Updated:** 2026-07-12 · PAI-012 COMPLETE/CLOSED · PROD-OBS-012 OPEN
