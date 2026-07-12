@@ -78,7 +78,7 @@ export function VisionPlatformNav({
   const items: NavItem[] = [
     {
       id: "team-hub",
-      label: "팀 허브",
+      label: "팀 플레이",
       href: visionTeamHubPath(teamId, mid),
     },
     {
