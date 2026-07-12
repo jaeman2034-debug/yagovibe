@@ -37,7 +37,7 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 | ID | Item | Status | Owner | Note |
 |---|---|---|---|---|
 | **PAI-021** | Production Run Sheet 운영 정착 | ▶ ACTIVE | Ops | 본 체계 SoT |
-| **PAI-022** | Weekly Production Review 루틴 시작 | ▶ PLANNED | PM · Ops | `PRODUCTION_WEEKLY_REVIEW.md` · Week=Mon–Sun KST · Prod-W01=2026-07-13~19 · **Day-01 ACCEPT/LOCK** · Review=주간 종료 후 별도 PM GO · Launch Partial≠W01 |
+| **PAI-022** | Weekly Production Review 루틴 시작 | ▶ PLANNED | PM · Ops | `PRODUCTION_WEEKLY_REVIEW.md` · Week=Mon–Sun KST · Prod-W01=2026-07-13~19 · **Day-01 DATE_GATE_PENDING** · Review=주간 종료 후 별도 PM GO · Launch Partial≠W01 |
 | **PAI-032** | Duplicate `VisionPlatformNav` on Parent Report | 🔒 **COMPLETE / CLOSED** | PM · Eng | Production Smoke **PASS** · feature `7562ccb` · HEAD `437fc8a` · section Nav 제거 · `VISION_PAI032_DUPLICATE_NAV_POST_DEPLOY_SMOKE.md` |
 | **PAI-031** | `PROD-OBS-012` — Job Monitor stale `VISION_ANALYSIS_FAILED` | 🔒 **PASS / COMPLETE / CLOSED** | Ops · Eng · PM | Controlled Production write **10/10 Y** · run `d26e62d4…` · GEV 46 · PM Sign-off 2026-07-12 · `PROD_OBS_012_PAI_031_PM_FINAL_SIGNOFF.md` |
 
@@ -55,4 +55,4 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 
 ---
 
-**Updated:** 2026-07-13 · Prod-W01 Day-01 ACCEPT/LOCK · PAI-022 **PLANNED** 유지 · VOC-011 **15** · Incident OPEN **0**
+**Updated:** 2026-07-12 · Prod-W01 Day-01 DATE_GATE_PENDING · PAI-022 **PLANNED** 유지 · VOC-011 **15** · Incident OPEN **0**

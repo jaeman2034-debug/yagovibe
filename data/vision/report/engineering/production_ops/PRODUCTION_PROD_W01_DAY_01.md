@@ -3,18 +3,35 @@
 **Document ID:** `PRODUCTION-PROD-W01-DAY-01`  
 **Identity:** **Prod-W01 Day-01** (≠ Launch Partial Baseline Day-01 · `PRODUCTION_DAY_01.md` 미생성 유지)  
 **Week:** Prod-W01 · **2026-07-13 00:00 KST ~ 2026-07-19 23:59 KST**  
-**Date:** 2026-07-13 (운영일)  
-**Status:** 🔒 **ACCEPT / LOCK** (PM 2026-07-13 판정)  
+**Target operation:** 2026-07-13 16:00 KST (예정 · **미확정**)  
+**Status:** 📝 **DRAFT / PRE-STAGED** · 🛑 **DATE_GATE_PENDING**  
 **SoT:** `PRODUCTION_KPI.md` · `PRODUCTION_RUN_SHEET.md` · `PRODUCTION_PROD_W01_DAY_01_INTAKE.md`
 
-> Official Fact만 기록. Quote 수정·요약 금지.  
-> Launch Partial `2026-07-11 Day-01 · PAI-003` 과 **별개** 신원.
+> PRE-STAGED 제출값은 **Official Fact가 아니다**.  
+> Launch Partial `2026-07-11 Day-01 · PAI-003` 과 **별개** 신원.  
+> Quote·13항 원문 보존 · 수정·요약·삭제 금지.
 
 ---
 
-## 1. Official Fact — Accepted 13-item set (verbatim)
+## 0. Date Gate trail (감사 · 변경 금지 이력)
 
-| # | 항목 | Official Fact |
+| 항목 | 값 |
+|---|---|
+| Canonical review date (교정 시점) | **2026-07-12** |
+| Recorded / target operation | **2026-07-13 16:00 KST** |
+| Premature PM ACCEPT / LOCK | **2026-07-12** · commit `5ef6764` (보존 · 삭제·force revert 금지) |
+| Calendar gate error | review date **2026-07-12** < operation **2026-07-13** → 미래 Fact |
+| Correction | **2026-07-12** · premature ACCEPT / LOCK **철회** · status → DRAFT / PRE-STAGED · DATE_GATE_PENDING |
+| 미래 운영 종료 확인 | **불가** until after `2026-07-13 16:00 KST` |
+| Re-confirmation rule | 실제 운영 종료 후 **재접수** → PRE-STAGED와 동일값 비교 → **별도 PM ACCEPT/LOCK** (자동 승격 금지) |
+
+> §1·§2 값은 PRE-STAGED intake 보존용이다. **관측 Official Fact로 취급하지 않는다.**
+
+---
+
+## 1. PRE-STAGED 13-item set (verbatim · not Official Fact)
+
+| # | 항목 | Submitted (PRE-STAGED) |
 |---|---|---|
 | 1 | 실제 운영 일시 | **2026-07-13 16:00 KST 운영 종료 확인** |
 | 2 | 참여 선수 수 | **22명 (11v11 매치 완료)** |
@@ -30,16 +47,14 @@
 | 12 | Parent 발언 원문 | 아래 §2 Parent Quote |
 | 13 | 신규 VOC 관측 | **N** (VOC-011 상태 유지 · 자동 카운트 증가 없음) |
 
-**ISSUE-001 (범위 한정 Official Fact):**
+**ISSUE-001 (baseline · Day-01 미관측 Fact 아님):**
 
-> Prod-W01 Day-01 운영에서 로그인 재요구 현상은 관측되지 않음.
-
-- `BETA-ISSUE-001` / ISSUE-001 상태: **CLOSED (Verified)** 유지  
-- ❌ 재오픈 금지 · 영구 미재발 · 전체 환경 해결 일반화 금지
+- `BETA-ISSUE-001` / ISSUE-001 상태: **CLOSED (Verified)** — Day-03 / PAI-001 근거 유지  
+- Prod-W01 Day-01 재발 N은 **DATE_GATE_PENDING** · Official Fact 아님
 
 ---
 
-## 2. Quotes (verbatim · 수정·요약 없음)
+## 2. Quotes (verbatim · PRE-STAGED · 수정·요약·삭제 없음)
 
 ### Coach Quote
 
@@ -51,34 +66,36 @@
 
 ---
 
-## 3. VOC / Incident
+## 3. VOC / Incident (baseline guards · unchanged)
 
 | 항목 | 값 |
 |---|---|
-| VOC-011 | **15** 🔒 **LOCKED** · delta **0** · `proposedCount` 증가 **없음** |
-| 신규 VOC | **N** |
+| VOC-011 | **15** 🔒 **LOCKED** · delta **0** |
+| 신규 VOC (submitted PRE-STAGED) | **N** · Official Fact 아님 |
 | Incident OPEN | **0** |
 
 ---
 
-## 4. PM 판정
+## 4. PM 판정 (현재)
 
 ```text
-[x] ACCEPT / LOCK
-[x] ISSUE-001 CLOSED (Verified) 유지
-[x] VOC-011 15 LOCKED 유지 (NO delta)
+[ ] ACCEPT / LOCK          ← 2026-07-12 premature 철회됨
+[x] DRAFT / PRE-STAGED
+[x] DATE_GATE_PENDING
+[x] ISSUE-001 CLOSED (Verified) 유지 (Day-03 / PAI-001)
+[x] VOC-011 15 LOCKED 유지
 [x] Incident OPEN 0 유지
-[x] PAI-022 PLANNED 유지 (Weekly Review 미착수)
+[x] PAI-022 PLANNED 유지
 ```
 
 | 필드 | 값 |
 |---|---|
-| 판정 | **ACCEPT / LOCK** |
-| 판정일 | **2026-07-13** |
-| Week | **Prod-W01** |
-| Next | Prod-W01 Day-02는 **별도 PM GO** 전 프리스테이지 금지 |
+| 판정 | **DATE_GATE_PENDING** |
+| 교정일 | **2026-07-12** |
+| Week | **Prod-W01** (기간 메타 · Day Fact 미LOCK) |
+| Next | `2026-07-13` 실제 운영 종료 후 재접수 · 동일값 비교 · **별도 PM GO** |
 
 ---
 
-**Updated:** 2026-07-13  
-**END · Prod-W01 Day-01 Official Fact LOCK**
+**Updated:** 2026-07-12 · premature ACCEPT/LOCK withdrawn · DATE_GATE_PENDING  
+**END · Prod-W01 Day-01 PRE-STAGED (not Official Fact)**

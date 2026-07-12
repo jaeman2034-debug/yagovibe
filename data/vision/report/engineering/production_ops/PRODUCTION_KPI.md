@@ -40,28 +40,29 @@ Canonical evidence: Tracker `2026-07-11 Day-01 · PAI-003` + `PAI_003_PARENT_GAT
 |---|---|
 | Identity | **Prod-W01 Day-01** (≠ Launch Partial Day-01) |
 | File | `PRODUCTION_PROD_W01_DAY_01.md` |
-| Status | 🔒 **ACCEPT / LOCK** |
-| 운영일 | **2026-07-13** |
+| Status | 📝 **DRAFT / PRE-STAGED** · 🛑 **DATE_GATE_PENDING** |
+| Target operation | **2026-07-13 16:00 KST** (미확정 · Official Fact 아님) |
+| Audit | 2026-07-12 premature ACCEPT/LOCK (`5ef6764`) **철회** |
 
 ---
 
 ## 1. Daily Log
 
 동일 운영일(`2026-07-12`)에 Day-02 / Day-03이 공존한다. **병합·평균·덮어쓰기 금지.** Note의 `Source:`로 식별.  
-**Prod-W01 Day-01**은 Launch Partial Day-* 와 **별행**으로 기록한다.
+**Prod-W01 Day-01**은 Launch Partial Day-* 와 **별행**으로 기록한다. DATE_GATE_PENDING 행은 **Official KPI로 집계하지 않는다.**
 
 | Date | Coach Report | Parent Report | 알림톡 | 모바일 | ISSUE-001 | 운영 오류 | Note |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|---|
 | 2026-07-12 | ✅ Y | ✅ Y | ✅ Y | ✅ Y | ✅ N | ✅ N | **Source: Day-02** · ACCEPT/LOCK · `PRODUCTION_DAY_02.md` |
 | 2026-07-12 | ✅ (AI 분석 Y) | ✅ (Quote) | ✅ (Quote) | ✅ (Quote) | ✅ N | ✅ N | **Source: Day-03** · ACCEPT/LOCK · upload Y · players 22 · VOC-011 **15** · `PRODUCTION_DAY_03.md` |
-| 2026-07-13 | ✅ Y | ✅ Y | ✅ Y | ✅ Y | ✅ N | ✅ N | **Source: Prod-W01 Day-01** · ACCEPT/LOCK · upload Y · AI Y · players 22 · VOC-011 **15** · `PRODUCTION_PROD_W01_DAY_01.md` |
+| 2026-07-13 | — | — | — | — | — | — | 🛑 **DATE_GATE_PENDING** · Prod-W01 Day-01 PRE-STAGED · **not Official KPI** · `PRODUCTION_PROD_W01_DAY_01.md` · premature ACCEPT `5ef6764` withdrawn 2026-07-12 |
 | _YYYY-MM-DD_ | | | | | | | |
 
-**기호:** ✅ 정상 · ⚠️ 이슈 · ❌ 실패 · — 해당 없음
+**기호:** ✅ 정상 · ⚠️ 이슈 · ❌ 실패 · — 해당 없음 / Official 미확정
 
 > Day-02 KPI 행 = `PRODUCTION_DAY_02.md` Official Fact 1:1 backfill (PM 2026-07-12).  
 > Day-03 KPI 행 = `PRODUCTION_DAY_03.md` 7항 Official Fact 근거 (기존 유지).  
-> Prod-W01 Day-01 KPI 행 = `PRODUCTION_PROD_W01_DAY_01.md` 13항 Official Fact (PM 2026-07-13 ACCEPT/LOCK).
+> Prod-W01 Day-01 = PRE-STAGED only · Official Daily KPI **미집계** until post-operation re-confirmation + PM ACCEPT/LOCK.
 
 ---
 
@@ -90,4 +91,4 @@ Canonical evidence: Tracker `2026-07-11 Day-01 · PAI-003` + `PAI_003_PARENT_GAT
 
 ---
 
-**Updated:** 2026-07-13 · Prod-W01 Day-01 ACCEPT/LOCK · Daily Log 행 추가 · PAI-022 PLANNED 유지
+**Updated:** 2026-07-12 · Prod-W01 Day-01 DATE_GATE_PENDING · Official KPI 행 철회 · Day-02/03 LOCK 유지

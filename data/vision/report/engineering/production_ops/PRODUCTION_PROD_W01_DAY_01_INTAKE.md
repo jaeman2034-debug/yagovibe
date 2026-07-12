@@ -1,15 +1,27 @@
-# Prod-W01 Day-01 — Official Fact 수집 양식 (COMPLETED)
+# Prod-W01 Day-01 — Official Fact 수집 양식 (PRE-STAGED)
 
-**Status:** 🔒 **ACCEPTED / LOCKED** (intake complete · SoT = `PRODUCTION_PROD_W01_DAY_01.md`)  
+**Status:** 📝 **PRE-STAGED / DATE_GATE_PENDING** (≠ ACCEPTED / LOCKED)  
 **Identity:** **Prod-W01 Day-01** (≠ Launch Partial Day-01)  
 **Date target:** 2026-07-13 16:00 KST  
+**Canonical review date:** 2026-07-12  
 **SoT:** `PRODUCTION_PROD_W01_DAY_01.md` · `PRODUCTION_RUN_SHEET.md` · `PRODUCTION_KPI.md`
 
-> Intake는 수집 기록용. Official Fact 단일 SoT는 `PRODUCTION_PROD_W01_DAY_01.md`.
+> Intake 제출값은 보존한다. **Official Fact가 아니다.**  
+> Date Gate 해제 전 KPI Official 행으로 승격 금지.
 
 ---
 
-## 접수 Fact (PM ACCEPT · verbatim)
+## Date Gate audit
+
+| 항목 | 값 |
+|---|---|
+| Premature ACCEPT / LOCK | 2026-07-12 · `5ef6764` (audit 보존) |
+| Withdrawal | 2026-07-12 · calendar gate error · ACCEPTED/LOCKED 철회 |
+| Re-confirmation | 실제 `2026-07-13` 운영 종료 후 재접수만 · 자동 승격 금지 |
+
+---
+
+## 제출 Fact (PRE-STAGED · verbatim · not Official)
 
 ```text
 [Prod-W01 Day-01 Official Fact]
@@ -36,20 +48,20 @@ PAI-022: PLANNED 유지
 
 ---
 
-## 반영 순서 (완료)
+## 반영 순서 (Date Gate 해제 후)
 
 ```text
-Prod-W01 Day-01 Official Fact 접수
+2026-07-13 실제 운영 종료
         ↓
-PRODUCTION_PROD_W01_DAY_01.md ACCEPT / LOCK
+13항 재접수 (동일값이어도 자동 승격 금지)
         ↓
-PRODUCTION_KPI.md Daily Log 행 확정
+PRE-STAGED와 비교
         ↓
-Tracker / Ledger (ENG_PRODUCTION_PROD_W01_DAY01)
+별도 PM ACCEPT / LOCK GO
         ↓
-VOC / Incident 변경 없음
+PRODUCTION_KPI.md Official Daily Log 확정
 ```
 
 ---
 
-**Updated:** 2026-07-13
+**Updated:** 2026-07-12 · PRE-STAGED / DATE_GATE_PENDING

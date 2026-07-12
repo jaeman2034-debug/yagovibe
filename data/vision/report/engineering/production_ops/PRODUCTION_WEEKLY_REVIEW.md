@@ -26,9 +26,9 @@
 
 | Day | Status | File |
 |---|---|---|
-| **Prod-W01 Day-01** | 🔒 **ACCEPT / LOCK** | `PRODUCTION_PROD_W01_DAY_01.md` |
+| **Prod-W01 Day-01** | 📝 **DRAFT / PRE-STAGED** · 🛑 **DATE_GATE_PENDING** | `PRODUCTION_PROD_W01_DAY_01.md` |
 
-> Daily Fact LOCK ≠ Weekly Review 착수. **PAI-022 PLANNED** 유지.
+> PRE-STAGED ≠ LOCK. **PAI-022 PLANNED** 유지. Weekly Review 미작성.
 
 ---
 
@@ -37,7 +37,7 @@
 | Week | Period | Status | File / Section |
 |---|---|---|---|
 | Launch Partial Baseline | 2026-07-06 ~ 2026-07-12 | 📝 BASELINE ONLY · ≠ Prod-W01 | Daily Facts only · Review 승격 금지 |
-| Prod-W01 | 2026-07-13 ~ 2026-07-19 | ▶ IN PROGRESS (기간 미종료) · Day-01 LOCK · **Weekly Review 미작성** | 주간 종료 + PAI-022 PM GO 후 템플릿 복사 |
+| Prod-W01 | 2026-07-13 ~ 2026-07-19 | ▶ PENDING (기간 미종료) · Day-01 **DATE_GATE_PENDING** · **Weekly Review 미작성** | 주간 종료 + PAI-022 PM GO 후 템플릿 복사 |
 
 ---
 
@@ -111,4 +111,4 @@ Review 작성 시 **당시** Production Action Items / Incidents / Day Official 
 
 ---
 
-**Updated:** 2026-07-13 · Prod-W01 Day-01 ACCEPT/LOCK pointer · PAI-022 PLANNED · Weekly Review 미작성
+**Updated:** 2026-07-12 · Prod-W01 Day-01 DATE_GATE_PENDING · PAI-022 PLANNED · Weekly Review 미작성
