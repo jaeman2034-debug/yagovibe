@@ -1,0 +1,134 @@
+{
+  "track": "PAI-033",
+  "base": "https://yago-vibe-spt.web.app",
+  "viewportMobile": "390x844",
+  "sourceClassOk": true,
+  "jmState": {
+    "loading": false,
+    "empty": false,
+    "completion": true
+  },
+  "jmRuntimeOk": true,
+  "jmHeightOk": true,
+  "jmClassOk": true,
+  "coachDetail": {
+    "testId": "vision-match-detail-link",
+    "visible": true,
+    "height": 44,
+    "width": 161.90625,
+    "fontSize": "12px",
+    "label": "Match Detail 전체 보기 →",
+    "href": "/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+    "className": "inline-flex items-center min-h-[44px] px-2 text-xs font-bold underline-offset-2 hover:underline text-violet-200",
+    "minH44": true
+  },
+  "jobMonitor": {
+    "jmMatch": {
+      "testId": "vision-job-monitor-match-detail-link",
+      "visible": true,
+      "height": 44,
+      "width": 98.015625,
+      "fontSize": "11px",
+      "label": "Match Detail →",
+      "href": "/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+      "className": "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline text-violet-700",
+      "minH44": true
+    },
+    "jmTimeline": {
+      "testId": "vision-job-monitor-timeline-link",
+      "visible": true,
+      "height": 44,
+      "width": 75.28125,
+      "fontSize": "11px",
+      "label": "Timeline →",
+      "href": "/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002#vision-timeline",
+      "className": "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline text-cyan-700",
+      "minH44": true
+    },
+    "jmParent": {
+      "testId": "vision-job-monitor-parent-report-link",
+      "visible": true,
+      "height": 44,
+      "width": 103.953125,
+      "fontSize": "11px",
+      "label": "Parent Report →",
+      "href": "/home/parent/vision/report?teamId=D7TUZaOtfxdBc4P0lQLx&playerId=P0101&matchId=vision-pilot-pass01-clip-002",
+      "className": "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline text-emerald-700",
+      "minH44": true
+    }
+  },
+  "desktop": {
+    "coachDesktop": {
+      "testId": "vision-match-detail-link",
+      "visible": true,
+      "height": 44,
+      "width": 161.90625,
+      "fontSize": "12px",
+      "label": "Match Detail 전체 보기 →",
+      "href": "/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+      "className": "inline-flex items-center min-h-[44px] px-2 text-xs font-bold underline-offset-2 hover:underline text-violet-200",
+      "minH44": true
+    },
+    "jmDesktop": {
+      "match": {
+        "testId": "vision-job-monitor-match-detail-link",
+        "visible": true,
+        "height": 44,
+        "width": 98.015625,
+        "fontSize": "11px",
+        "label": "Match Detail →",
+        "href": "/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002",
+        "className": "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline text-violet-700",
+        "minH44": true
+      },
+      "timeline": {
+        "testId": "vision-job-monitor-timeline-link",
+        "visible": true,
+        "height": 44,
+        "width": 75.28125,
+        "fontSize": "11px",
+        "label": "Timeline →",
+        "href": "/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pilot-pass01-clip-002#vision-timeline",
+        "className": "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline text-cyan-700",
+        "minH44": true
+      },
+      "parent": {
+        "testId": "vision-job-monitor-parent-report-link",
+        "visible": true,
+        "height": 44,
+        "width": 103.953125,
+        "fontSize": "11px",
+        "label": "Parent Report →",
+        "href": "/home/parent/vision/report?teamId=D7TUZaOtfxdBc4P0lQLx&playerId=P0101&matchId=vision-pilot-pass01-clip-002",
+        "className": "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline text-emerald-700",
+        "minH44": true
+      }
+    }
+  },
+  "checks": {
+    "1_source_4cta_min_h_class": true,
+    "1b_coach_runtime_min_h_class": true,
+    "2_coach_h_ge_44": true,
+    "3_jm_match_h_ge_44": true,
+    "4_jm_timeline_h_ge_44": true,
+    "5_jm_parent_h_ge_44": true,
+    "6_text_size_coach_xs": true,
+    "6b_text_size_jm_11": true,
+    "7_labels_coach": true,
+    "7b_labels_jm": true,
+    "8_routes_coach": true,
+    "8b_routes_jm": true,
+    "9_underline_preserved": true,
+    "10_link_semantics": true,
+    "11_mobile_wrapping_acceptable": true,
+    "12_desktop_coach_h": true,
+    "13_play_coach_visible": true,
+    "14_jm_completion_or_source": true,
+    "15_pilot_shared_component": true
+  },
+  "pass": true,
+  "failKeys": [],
+  "voc008Count": 1,
+  "pai033Status": "ACTIVE",
+  "note": "Job Monitor completion links measured at runtime"
+}
