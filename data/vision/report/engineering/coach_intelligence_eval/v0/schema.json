@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CIE Eval Sample v0",
+  "type": "object",
+  "required": [
+    "sampleId",
+    "datasetClass",
+    "sourceType",
+    "mediaId",
+    "matchId",
+    "playerId",
+    "playerAlias",
+    "fiiInput",
+    "coachInsightsInput",
+    "allowedFacts",
+    "forbiddenClaims",
+    "coachContext",
+    "promptVersion",
+    "candidateOutput",
+    "groundedClaims",
+    "unsupportedClaims",
+    "hallucinationFlags",
+    "evaluatorScores",
+    "finalVerdict",
+    "failureType",
+    "reviewerStatus",
+    "evaluatorVersion",
+    "piiPolicy",
+    "expectedVerdict",
+    "expectedFailureTypes"
+  ],
+  "properties": {
+    "sampleId": { "type": "string", "pattern": "^CIE-EVAL-V0-\\d{3}$" },
+    "datasetClass": { "const": "EVALUATION" },
+    "datasetVersion": { "const": "cie-evalset-v0.1.0" },
+    "sourceType": {
+      "enum": ["synthetic_adapted", "sanitized_fii_fixture", "adversarial"]
+    },
+    "mediaId": { "type": ["string", "null"] },
+    "matchId": { "type": "string" },
+    "playerId": { "type": ["string", "null"] },
+    "playerAlias": { "type": ["string", "null"] },
+    "fiiInput": { "type": "object" },
+    "coachInsightsInput": { "type": "object" },
+    "allowedFacts": { "type": "array" },
+    "forbiddenClaims": { "type": "array" },
+    "coachContext": { "type": "object" },
+    "promptVersion": { "const": "cip-v0.1.0" },
+    "candidateOutput": {
+      "type": "object",
+      "required": ["rewriteText"],
+      "properties": {
+        "rewriteText": { "type": "string" },
+        "modelId": { "type": ["string", "null"] },
+        "generatedAt": { "type": ["string", "null"] }
+      }
+    },
+    "groundedClaims": { "type": "array" },
+    "unsupportedClaims": { "type": "array" },
+    "hallucinationFlags": { "type": "array" },
+    "evaluatorScores": { "type": "object" },
+    "finalVerdict": { "enum": ["PASS", "FAIL", "ABSTAIN", null] },
+    "failureType": { "type": "array" },
+    "reviewerStatus": { "enum": ["unreviewed", "approved", "rejected"] },
+    "evaluatorVersion": { "const": "cie-eval-v0.1.0" },
+    "piiPolicy": { "const": "no_real_pii" },
+    "expectedVerdict": { "enum": ["PASS", "FAIL"] },
+    "expectedFailureTypes": { "type": "array" }
+  }
+}

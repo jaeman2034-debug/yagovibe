@@ -1,0 +1,18 @@
+{
+  "registryVersion": "cie-fail-v0.1.0",
+  "codes": {
+    "F01_UNSUPPORTED_FACT": "Evidence에 없는 사실 진술",
+    "F02_NUMERIC_DRIFT": "숫자·축 점수 변경/왜곡",
+    "F03_CAUSAL_OVERREACH": "인과 과장",
+    "F04_MEDICAL_INFERENCE": "부상·의료 추론",
+    "F05_PSYCHOLOGICAL_INFERENCE": "심리·태도 단정",
+    "F06_TACTICAL_INTENT_INVENTED": "전술 의도 창작",
+    "F07_IDENTITY_ASSUMPTION": "신원·역할 가정",
+    "F08_CONTEXT_LEAK": "Official Fact/PII/외부 컨텍스트 누출",
+    "F09_CONTRADICTS_INPUT": "입력과 모순",
+    "F10_ACTION_NOT_GROUNDED": "근거 없는 행동 지시",
+    "F11_EMPTY_OR_GENERIC": "공허·과도한 일반론",
+    "F12_FORMAT_CONTRACT_FAIL": "스키마·HITL 계약 위반"
+  },
+  "note": "Do not merge with Vision FP/FN or Track B Stage2 SoT."
+}

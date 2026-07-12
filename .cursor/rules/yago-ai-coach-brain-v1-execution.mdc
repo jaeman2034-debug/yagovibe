@@ -1,0 +1,113 @@
+---
+description: YAGO AI Coach Brain v1 Execution LOCK — Synthetic Stage1–3 · Dual Track · HITL
+globs: data/vision/report/engineering/synthetic_training/**,yago-worker/lib/vision/**,data/vision/report/engineering/**
+alwaysApply: false
+---
+
+# AI Coach Brain v1 Execution (LOCK)
+
+## 목적
+
+Synthetic Training으로 **AI Coach Brain v1**을 구축한 뒤, Beta에서 실제 Pilot으로 지속 개선한다.
+
+**AI Coach는 Vision AI를 대체하지 않는다.**  
+Vision → GEV → FII 결과를 해석하고, 코치·학부모가 이해하고 행동하도록 돕는 **AI Sports Intelligence Brain**이다.
+
+관련: `yago-vision-dual-track-execution-strategy.mdc`
+
+---
+
+## Architecture (LOCK)
+
+```text
+Vision AI → GEV → FII → AI Coach Brain
+         → Coach Decision → Parent Report → Avatar → Game
+```
+
+**Human-in-the-Loop:** AI는 제안 · 최종 판단은 Coach.
+
+---
+
+## Dual Track (LOCK)
+
+| | Track A | Track B |
+|---|---|---|
+| 이름 | Official Pilot | AI Coach Brain |
+| 데이터 | 실제 Pilot / Coach·Parent VOC | Synthetic* only |
+| Gate | ✅ 유일한 근거 | ❌ 금지 |
+| Ops SoT | Ops 프로세스만 | ❌ 금지 |
+
+\* 모든 Track B 샘플: `"dataLabel": "Synthetic Training Data"`
+
+---
+
+## Track B Stages (LOCK)
+
+### Stage 1 — Synthetic Dataset v1 ✅ COMPLETE
+
+- **Canonical path:** `data/vision/report/engineering/synthetic_training/v1/`
+- **Files:** `schema.json` · `categories.json` · `synthetic_ai_coach_seed_v1.jsonl` · `validation_report.json` · `README.md`
+- **Label:** `Synthetic Training Data — 실제 발언/운영 아님`
+- **Seed 50** (10 categories × 5) — **학습용 데이터셋 준비 완료** (Brain 제품 완성 ≠)
+
+### Stage 2 — Internal Validation ✅ PASS (internal)
+
+- Runner: `scripts/vision/run_ai_coach_stage2_internal_validation.py`
+- Report: `v1/stage2/internal_validation_report.json`
+- 6 dims: Report 설명 · Coach Q&A · Parent Q&A · Training · Reasoning · HITL
+- **`aiCoachBrainV1Ready: true`** = seed baseline 내부 품질 통과  
+  **≠ E2 PASS · ≠ Ops · ≠ Beta complete · ≠ 제품 “Brain 완성” 과장**
+
+### Stage 3 — Beta Prep / Brain Wiring ✅ WIRING PASS
+
+**질문:** AI가 똑똑한가? ❌ → **플랫폼 안에서 자연스럽게 동작하는가?** ✅
+
+Pipeline: Vision → GEV → FII → rule-based `coachInsights` → Coach Decision → `VisionCoachDecisionBriefCard`  
+Checklist: `synthetic_training/v1/beta/brain_wiring_checklist.json` (**WIRING_PASS**)  
+Bridge: `src/lib/vision/visionAnalysisCoachBridge.ts` (Firestore `coachInsights` → UI)
+
+- Live brief = **fii_engine rule-based** (Synthetic LLM Brain ≠ live service yet)
+- Synthetic 대량 확장 금지 · VOC 선순환 우선
+- Beta 시작: tech wiring ✅ · ops(E2-PV-003+ / E2 PASS / E3) ⏳ Track A
+- **CIE v0.1** 🔒 (`coach_intelligence_eval/v0/`) — deterministic offline eval foundation LOCKED · ≠ live Coach LLM · next Shadow Learning v0.2 requires PM GO
+
+### Readiness language (LOCK)
+
+| 표현 | 허용 |
+|---|---|
+| Internal Ready | ✅ |
+| Production Ready | ❌ |
+| 제품 완성 | ❌ |
+| E2 PASS 대체 | ❌ |
+
+---
+
+## Priority (LOCK)
+
+1. **Track A** — E2-PV-003 · Official Fact · E2 Gate · E3  
+2. **Track B** — **Maintenance** · 기준선 **111** · Supplement는 실 VOC **≥3회**만 · A 지연 금지  
+
+VOC Trigger: `data/vision/report/engineering/YAGO_VOC_Trigger_로그.md`  
+관련: `yago-execution-phase-operating-principle.mdc`
+
+---
+
+## Forbidden
+
+- Official Fact ↔ Synthetic 혼합  
+- Synthetic → Gate  
+- Ops SoT 수정  
+- 실제 발언 추정 기록  
+- Stage 1에서 대량 저품질 데이터셋 선제 생성  
+
+---
+
+## Current status
+
+| Item | Status |
+|---|---|
+| Ops | 🔒 LOCK |
+| E1 | ✅ PASS |
+| E2 | ▶ ACTIVE (Track A) |
+| Track B | ✅ Wiring PASS · ▶ Maintenance / Beta ops 대기 · A=E2-PV-003 최우선 |
+---
