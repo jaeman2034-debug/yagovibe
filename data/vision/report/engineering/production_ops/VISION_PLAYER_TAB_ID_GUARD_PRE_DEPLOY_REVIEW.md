@@ -3,7 +3,8 @@
 **Document ID:** `VISION-PLAYER-TAB-ID-GUARD-PRE-DEPLOY`  
 **Date:** 2026-07-12 (KST)  
 **Status:** ⏳ **AWAITING PM GO / NO-GO**  
-**Feature commit:** push 후 SHA 기입  
+**Feature commit:** **`a3a0b25`** · `fix(vision): guard player tab against track ids`  
+**Full SHA:** `a3a0b25a47486a3be204182b65c8f8fec832fe89`  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **PAI-011 / PAI-012 / PAI-013:** 🔒 미변경 (본 건은 Player ID Guard)  
 **PROD-OBS-012:** ▶ OPEN 미변경
