@@ -537,7 +537,7 @@ Lock tracks + phase_d re-run: **0.7887** (lock preds 0.7714 대비 개선, regre
 VOC 발생 → count +1 → ≥3 반복 → Product Backlog 우선 조정
 ```
 
-현재: **VOC-011** count=**15** · **PAI-011 COMPLETE/CLOSED** · Production verified (`64270a3`) · Day-03 proposed 16은 Date Gate Pending
+현재: **VOC-011** count=**15** 🔒 **LOCKED** · **PAI-011 COMPLETE/CLOSED** · Production verified (`64270a3`) · Day-03 proposed 16 **REJECTED** (PM 2026-07-12)
 
 SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 
@@ -824,7 +824,8 @@ SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 | 2026-07-11 | PAI-001 PASS | Verification PASS · `/login` 0/3 · ISSUE-001 **CLOSED (Verified)** · PAI-003 ACTIVE · Day-01 KPI START · 일반화 금지 |
 | 2026-07-11 | Day-01 · PAI-003 | KPI **ACCEPT** · PAI-003 **PASS/CLOSED** · Parent 독립사용 Y · Quote verbatim 적재 · Day-02 READY |
 | 2026-07-12 | Production Day-02 | KPI **ACCEPT/LOCK** · 로그인재요구 미관측(당일) · VOC-011 **15** · Quote verbatim 적재 · Day-03 READY |
-| 2026-07-11 | Production Day-03 | 📝 **PRE-STAGED / DATE_GATE_PENDING** · 예정 2026-07-12 16:00 KST · VOC-011 proposed 16 (원장 미반영) · ACCEPT 금지 |
+| 2026-07-12 | Production Day-03 | 🔒 **ACCEPT / LOCK** · Date Gate 해제 · 7항 Official Fact · players 22 · upload Y · AI Y · Quotes verbatim · VOC-011 **15 LOCKED** · proposed 16 REJECTED · `PRODUCTION_DAY_03.md` |
+| 2026-07-11 | Production Day-03 (trail) | 📝 PRE-STAGED / DATE_GATE_PENDING (당시) · proposed 16 draft · 이후 2026-07-12 LOCK로 승격 |
 | 2026-07-11 | VOC-011 | Design Review ACTIVE · Parent peer/평균 기준선 Gap 확인 · `VOC_011_PEER_BENCHMARK_DESIGN_REVIEW.md` · Day-03 Gate와 분리 |
 | 2026-07-11 | VOC-011 PM LOCK | **team+ageGroup · n≥5 · Vision Parent Report** LOCK · position/Growth 2차 |
 | 2026-07-11 | VOC-011 Eng Spike | ✅ COMPLETE · playerFii 집계·Gate·payload 가능 · `VOC_011_ENG_SPIKE.md` · 구현 스펙 대기 |
