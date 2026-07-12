@@ -1,0 +1,22 @@
+{
+  "entry": {
+    "playUrl": "https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/play?matchId=vision-pilot-pass01-clip-002",
+    "finalUrl": "https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/play?matchId=vision-pilot-pass01-clip-002",
+    "matchIdPreserved": true,
+    "slotVisible": true,
+    "coachVisible": true,
+    "runBtnCount": 1,
+    "runBtnText": "Vision 분석 실행",
+    "runCountBeforeClick": 0
+  },
+  "clickFact": {
+    "clickedAtKst": "2026-07-12T18:28:58+09:00",
+    "clickedAction": "Vision 분석 실행",
+    "backendHitsObserved": [
+      "startVisionAnalysis"
+    ],
+    "calledStartVisionAnalysis": true,
+    "calledRetryVisionAnalysis": false,
+    "calledProcessVisionUploadQueue": false
+  }
+}

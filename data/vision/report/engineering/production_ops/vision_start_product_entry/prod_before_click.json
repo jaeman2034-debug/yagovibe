@@ -1,0 +1,22 @@
+{
+  "observedAtKst": "2026-07-12T18:28:44+09:00",
+  "index": {
+    "status": "queued",
+    "mediaId": "21c9234af1f843d3aa0b73b0",
+    "latestRunId": "3e3daf4ba52c49b89b18ea44",
+    "errorCode": "VISION_ANALYSIS_FAILED",
+    "errorMessage": "no GEV events: /tmp/yago-worker/vision-1783164468430-e246e63c/tracking/gev_rc3_1_phase_c/gev_events.jsonl",
+    "progress": 100,
+    "pipelineStep": "done",
+    "updatedAt": "2026-07-12T08:50:30.273Z"
+  },
+  "media": {
+    "status": "uploaded",
+    "visionStatus": null,
+    "visionLastError": null,
+    "matchId": "vision-pilot-pass01-clip-002"
+  },
+  "runCount": 0,
+  "runs": [],
+  "latestRun": null
+}

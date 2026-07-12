@@ -1,0 +1,191 @@
+{
+  "track": "VISION_START_PRODUCT_ENTRY",
+  "notPai031Fix": true,
+  "commitHash": "605ff549de0c7b4c3881535b3950166d7abd00e9",
+  "pushBranch": "vision-v2-i13",
+  "deployTarget": "Firebase Hosting / yago-vibe-spt → https://yago-vibe-spt.web.app",
+  "mediaId": "21c9234af1f843d3aa0b73b0",
+  "matchId": "vision-pilot-pass01-clip-002",
+  "teamId": "D7TUZaOtfxdBc4P0lQLx",
+  "observedAtKst": "2026-07-12T18:31:41+09:00",
+  "productionUiEntry": "PASS",
+  "clickedAction": "Vision 분석 실행",
+  "backendAction": "startVisionAnalysis",
+  "clickFact": {
+    "clickedAtKst": "2026-07-12T18:28:58+09:00",
+    "clickedAction": "Vision 분석 실행",
+    "backendHitsObserved": [
+      "startVisionAnalysis"
+    ],
+    "calledStartVisionAnalysis": true,
+    "calledRetryVisionAnalysis": false,
+    "calledProcessVisionUploadQueue": false
+  },
+  "visionRunId": "d26e62d4d22745d3a696e329",
+  "runProgression": [
+    {
+      "elapsedMin": 0,
+      "observedAtKst": "2026-07-12T18:29:12+09:00",
+      "runCount": 1,
+      "latestRunId": "d26e62d4d22745d3a696e329",
+      "indexStatus": "processing",
+      "runStatus": "processing",
+      "indexError": null,
+      "mediaVisionStatus": null,
+      "mediaLastError": null,
+      "gev": null
+    },
+    {
+      "elapsedMin": 0,
+      "observedAtKst": "2026-07-12T18:29:32+09:00",
+      "runCount": 1,
+      "latestRunId": "d26e62d4d22745d3a696e329",
+      "indexStatus": "processing",
+      "runStatus": "processing",
+      "indexError": null,
+      "mediaVisionStatus": null,
+      "mediaLastError": null,
+      "gev": null
+    },
+    {
+      "elapsedMin": 1,
+      "observedAtKst": "2026-07-12T18:29:52+09:00",
+      "runCount": 1,
+      "latestRunId": "d26e62d4d22745d3a696e329",
+      "indexStatus": "processing",
+      "runStatus": "processing",
+      "indexError": null,
+      "mediaVisionStatus": null,
+      "mediaLastError": null,
+      "gev": null
+    },
+    {
+      "elapsedMin": 1,
+      "observedAtKst": "2026-07-12T18:30:13+09:00",
+      "runCount": 1,
+      "latestRunId": "d26e62d4d22745d3a696e329",
+      "indexStatus": "processing",
+      "runStatus": "processing",
+      "indexError": null,
+      "mediaVisionStatus": null,
+      "mediaLastError": null,
+      "gev": null
+    },
+    {
+      "elapsedMin": 1,
+      "observedAtKst": "2026-07-12T18:30:33+09:00",
+      "runCount": 1,
+      "latestRunId": "d26e62d4d22745d3a696e329",
+      "indexStatus": "processing",
+      "runStatus": "processing",
+      "indexError": null,
+      "mediaVisionStatus": null,
+      "mediaLastError": null,
+      "gev": null
+    },
+    {
+      "elapsedMin": 2,
+      "observedAtKst": "2026-07-12T18:30:53+09:00",
+      "runCount": 1,
+      "latestRunId": "d26e62d4d22745d3a696e329",
+      "indexStatus": "processing",
+      "runStatus": "processing",
+      "indexError": null,
+      "mediaVisionStatus": null,
+      "mediaLastError": null,
+      "gev": null
+    },
+    {
+      "elapsedMin": 2,
+      "observedAtKst": "2026-07-12T18:31:13+09:00",
+      "runCount": 1,
+      "latestRunId": "d26e62d4d22745d3a696e329",
+      "indexStatus": "processing",
+      "runStatus": "processing",
+      "indexError": null,
+      "mediaVisionStatus": null,
+      "mediaLastError": null,
+      "gev": null
+    },
+    {
+      "elapsedMin": 2,
+      "observedAtKst": "2026-07-12T18:31:33+09:00",
+      "runCount": 1,
+      "latestRunId": "d26e62d4d22745d3a696e329",
+      "indexStatus": "completed",
+      "runStatus": "completed",
+      "indexError": null,
+      "mediaVisionStatus": "completed",
+      "mediaLastError": null,
+      "gev": 46
+    }
+  ],
+  "successfulWrite": true,
+  "productionSnapshot": {
+    "index": {
+      "status": "completed",
+      "mediaId": "21c9234af1f843d3aa0b73b0",
+      "latestRunId": "d26e62d4d22745d3a696e329",
+      "errorCode": null,
+      "errorMessage": null,
+      "progress": 100,
+      "pipelineStep": "done",
+      "updatedAt": "2026-07-12T09:31:17.581Z"
+    },
+    "media": {
+      "status": "uploaded",
+      "visionStatus": "completed",
+      "visionLastError": null,
+      "matchId": "vision-pilot-pass01-clip-002"
+    },
+    "runCount": 1,
+    "runs": [
+      {
+        "runId": "d26e62d4d22745d3a696e329",
+        "status": "completed",
+        "errorCode": null,
+        "errorMessage": null,
+        "gevEventCount": 46,
+        "pipelineStep": "done",
+        "createdAt": "2026-07-12T09:29:01.170Z",
+        "completedAt": "2026-07-12T09:31:17.549Z"
+      }
+    ],
+    "latestRun": {
+      "runId": "d26e62d4d22745d3a696e329",
+      "status": "completed",
+      "errorCode": null,
+      "errorMessage": null,
+      "gevEventCount": 46,
+      "pipelineStep": "done",
+      "createdAt": "2026-07-12T09:29:01.170Z",
+      "completedAt": "2026-07-12T09:31:17.549Z"
+    }
+  },
+  "pai031TenItem": {
+    "1_latest_run_status_completed": true,
+    "2_latest_run_error_absent": true,
+    "3_gev_count": 46,
+    "4_index_status_completed": true,
+    "5_index_errorCode_absent": true,
+    "6_index_errorMessage_absent": true,
+    "7_media_status_completed": true,
+    "8_media_visionLastError_absent": true,
+    "9_job_monitor_stale_red_banner_absent": true,
+    "10_fii_ranking_trend_ok": true,
+    "notes": {
+      "staleBannerHeuristic": false,
+      "hasFii": true,
+      "hasRanking": true,
+      "hasTrend": true,
+      "validationType": "CONTROLLED_PRODUCTION_SUCCESS_WRITE",
+      "productionManualPatch": "N",
+      "forcedReanalysis": "N",
+      "directFirestoreWrite": "N"
+    }
+  },
+  "pai031Gate": "PASS / COMPLETE / CLOSED",
+  "passCompleteClosedDeclared": true,
+  "pmFinalSignOffDate": "2026-07-12",
+  "pmFinalSignOffDoc": "PROD_OBS_012_PAI_031_PM_FINAL_SIGNOFF.md"
+}

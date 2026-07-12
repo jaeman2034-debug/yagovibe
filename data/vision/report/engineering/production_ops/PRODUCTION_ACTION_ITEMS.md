@@ -24,7 +24,7 @@
 | ID | Item | Status | Owner | Note |
 |---|---|---|---|---|
 | **PAI-011** | VOC-011 — 또래(팀·연령) 평균 기준선 | 🔒 **COMPLETE / CLOSED** | PM · Eng | Post-Deploy Smoke **PASS** · HEAD `64270a3` · feature `07fb689` · `PAI_011_POST_DEPLOY_SMOKE.md` · Day-03 DATE_GATE_PENDING 유지 |
-| **PAI-012** | VOC-012 — 기간 데이터 비교 시각화 | 🔒 **COMPLETE / CLOSED** | PM · Eng | Post-Deploy Smoke **PASS** · HEAD `30170a1` · feature `61cf9ac` · `PAI_012_POST_DEPLOY_SMOKE.md` · **PROD-OBS-012** 분리 OPEN · Day-03 DATE_GATE_PENDING 유지 |
+| **PAI-012** | VOC-012 — 기간 데이터 비교 시각화 | 🔒 **COMPLETE / CLOSED** | PM · Eng | Post-Deploy Smoke **PASS** · HEAD `30170a1` · feature `61cf9ac` · `PAI_012_POST_DEPLOY_SMOKE.md` · **PROD-OBS-012** → PAI-031 CLOSED · Day-03 DATE_GATE_PENDING 유지 |
 | **PAI-013** | Vision Match Detail 탭 라우팅 회귀 | 🔒 **COMPLETE / CLOSED** | PM · Eng | Production 4-tab Smoke **PASS** · feature `918208c` · HEAD `a86d097` · `VISION_TAB_ROUTING_POST_DEPLOY_SMOKE.md` · Team Hub Observation 유지 |
 | **PAI-014** | Player Tab ID Guard (trackId ≠ Growth Profile) | 🔒 **COMPLETE / CLOSED** | PM · Eng | Production Case A/B Smoke **PASS** · feature `a3a0b25` · HEAD `0520cf4` · `VISION_PLAYER_TAB_ID_GUARD_POST_DEPLOY_SMOKE.md` · Duplicate Nav Observation OPEN |
 
@@ -39,7 +39,7 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 | **PAI-021** | Production Run Sheet 운영 정착 | ▶ ACTIVE | Ops | 본 체계 SoT |
 | **PAI-022** | Weekly Production Review 루틴 시작 | ▶ PLANNED | PM · Ops | `PRODUCTION_WEEKLY_REVIEW.md` |
 | **PAI-032** | Duplicate `VisionPlatformNav` on Parent Report | 🔒 **COMPLETE / CLOSED** | PM · Eng | Production Smoke **PASS** · feature `7562ccb` · HEAD `437fc8a` · section Nav 제거 · `VISION_PAI032_DUPLICATE_NAV_POST_DEPLOY_SMOKE.md` |
-| **PAI-031** | `PROD-OBS-012` — Job Monitor stale `VISION_ANALYSIS_FAILED` | ▶ **DEPLOYED / VERIFICATION PENDING** | Ops · Eng | Hosting Smoke PASS · CF start/retry deployed · natural success write clear 대기 · `PROD_OBS_012_PAI_031_DEPLOY_SUMMARY.md` · CLOSED 금지 |
+| **PAI-031** | `PROD-OBS-012` — Job Monitor stale `VISION_ANALYSIS_FAILED` | 🔒 **PASS / COMPLETE / CLOSED** | Ops · Eng · PM | Controlled Production write **10/10 Y** · run `d26e62d4…` · GEV 46 · PM Sign-off 2026-07-12 · `PROD_OBS_012_PAI_031_PM_FINAL_SIGNOFF.md` |
 
 ---
 
@@ -55,4 +55,4 @@ VOC SoT: `../YAGO_VOC_Trigger_로그.md` · Backlog: `../e2_step4_pilot_validati
 
 ---
 
-**Updated:** 2026-07-12 · PAI-031 DEPLOYED / VERIFICATION PENDING (natural write clear 대기)
+**Updated:** 2026-07-12 · PAI-031 PASS / COMPLETE / CLOSED 🔒 (PM Final Sign-off)
