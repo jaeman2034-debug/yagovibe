@@ -12,10 +12,30 @@
 
 | Version / Tag | Date | Change (Fact) | Related Issue / VOC | Note |
 |---|---|---|---|---|
+| Hosting `a86d097` | 2026-07-12 10:03 KST | Vision Match Detail tab routing fix (Coach/Timeline/Parent) | PAI-013 | Production Hosting · **VERIFIED** · 4-tab Smoke PASS · **COMPLETE/CLOSED** · feature `918208c` |
 | Hosting `30170a1` | 2026-07-12 09:18 KST | PAI-012 VOC-012 coach match-flow FII trend · Match Detail Ranking Avg/Δ | VOC-012 · PAI-012 | Production Hosting · **VERIFIED** · Post-Deploy Smoke PASS · PAI-012 **COMPLETE/CLOSED** · PROD-OBS-012 분리 |
 | Hosting `64270a3` | 2026-07-11 20:56 KST | PAI-011 VOC-011 peer benchmark · Vision Parent UI stack · kakaoShare build fix | VOC-011 · PAI-011 | Production Hosting · **VERIFIED** · Post-Deploy Smoke PASS · PAI-011 **COMPLETE/CLOSED** |
 | Hosting `4d508ac` | 2026-07-11 14:57 KST | PAI-001: Kakao iOS openExternal · persistence · next preserve · Safari CTA | BETA-ISSUE-001 · PAI-001 | Production Hosting · Verification PASS · ISSUE CLOSED (Verified) |
 | — | 2026-07-21 | Production 운영 체계 개시 (`production_ops/`) | GO with Open Issue | Docs only |
+
+### Tab Routing Deploy Fact (2026-07-12)
+
+```text
+배포 일시: 2026-07-12 10:03 KST
+프로젝트: yago-vibe-spt
+타깃: Firebase Hosting Production
+Hosting URL: https://yago-vibe-spt.web.app
+Feature commit: 918208c82d4435610614d898e4b1dad1d9983228
+Deployed HEAD: a86d097
+Rollback: 30170a1
+결과: Deploy complete · 456 files · hosting only
+Post-Deploy Smoke: PASS (Coach/Match/Timeline/Parent)
+Status: COMPLETE / CLOSED
+```
+
+> SoT: `VISION_TAB_ROUTING_DEPLOY_FACT.md` · Smoke: `VISION_TAB_ROUTING_POST_DEPLOY_SMOKE.md`  
+> ✅ Release **VERIFIED** · Tab Routing **COMPLETE/CLOSED**  
+> 🛑 Day-03 DATE_GATE_PENDING · VOC-011×15 · PROD-OBS-012 OPEN 유지
 
 ### PAI-012 Deploy Fact (2026-07-12)
 
