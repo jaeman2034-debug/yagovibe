@@ -39,7 +39,7 @@ import { CoachMatchFlowTrendCard } from "@/components/vision/CoachMatchFlowTrend
 import { teamValidationConsolePath } from "@/lib/team/teamValidationConsoleRoutes";
 import { VisionPlatformNav } from "@/components/vision/VisionPlatformNav";
 import { VisionJobMonitorPanel } from "@/components/vision/VisionJobMonitorPanel";
-import { pickVisionNavPlayerId } from "@/lib/vision/visionPlatformRoutes";
+import { pickVisionNavPlayerId, pickVisionNavLinkedPlayerId } from "@/lib/vision/visionPlatformRoutes";
 
 export type CoachVisionAnalysisSectionProps = {
   teamId: string;
@@ -341,6 +341,7 @@ function CoachVisionAnalysisSectionBody({
 }: Omit<CoachVisionAnalysisSectionProps, "authUid">) {
   const { view } = useVisionCoachDashboard();
   const navPlayerId = pickVisionNavPlayerId(view?.playerRanking);
+  const linkedPlayerId = pickVisionNavLinkedPlayerId(view?.playerRanking);
 
   return (
     <section
@@ -373,6 +374,7 @@ function CoachVisionAnalysisSectionBody({
         teamId={teamId}
         matchId={matchId}
         playerId={navPlayerId}
+        linkedPlayerId={linkedPlayerId}
         current="coach"
         variant={variant}
         compact

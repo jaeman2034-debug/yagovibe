@@ -5,6 +5,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
+  isLikelyVisionTrackId,
   scrollVisionSectionIntoView,
   VISION_COACH_SECTION_ID,
   VISION_TIMELINE_SECTION_ID,
@@ -21,7 +22,13 @@ export type VisionPlatformNavProps = {
   teamId: string;
   matchId: string;
   current: VisionPlatformSurface;
+  /** Parent Report subject — may be platform playerId or Vision trackId */
   playerId?: string;
+  /**
+   * Player Growth Profile only — platform-linked playerId.
+   * If omitted, derived from playerId only when it is not a Vision trackId (P####).
+   */
+  linkedPlayerId?: string;
   variant?: "light" | "dark";
   compact?: boolean;
   className?: string;
@@ -54,6 +61,7 @@ export function VisionPlatformNav({
   matchId,
   current,
   playerId,
+  linkedPlayerId,
   variant = "light",
   compact = false,
   className,
@@ -62,6 +70,9 @@ export function VisionPlatformNav({
   const navigate = useNavigate();
   const mid = matchId.trim();
   const pid = playerId?.trim() ?? "";
+  const profilePid =
+    linkedPlayerId?.trim() ||
+    (pid && !isLikelyVisionTrackId(pid) ? pid : "");
   if (!teamId.trim() || !mid) return null;
 
   const items: NavItem[] = [
@@ -94,10 +105,11 @@ export function VisionPlatformNav({
     {
       id: "player-profile",
       label: "Player",
-      href: pid
-        ? visionPlayerProfilePath(teamId, pid, { matchId: mid })
+      href: profilePid
+        ? visionPlayerProfilePath(teamId, profilePid, { matchId: mid })
         : "#",
-      hidden: !pid,
+      // Hide when only Vision trackId (P0100) — growth profile would 403
+      hidden: !profilePid,
     },
   ].filter((item) => !item.hidden);
 

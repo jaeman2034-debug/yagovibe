@@ -8,6 +8,8 @@ jest.mock("@/lib/vision/fiiSummaryLoader", () => ({
 
 import {
   pickVisionNavPlayerId,
+  pickVisionNavLinkedPlayerId,
+  isLikelyVisionTrackId,
   visionCoachDashboardPath,
   visionMatchDetailPath,
   visionParentHomePath,
@@ -62,6 +64,15 @@ describe("visionPlatformRoutes — Match Detail tab mapping", () => {
     expect(pickVisionNavPlayerId([{ trackId: "P0100" }])).toBe("P0100");
     expect(pickVisionNavPlayerId([])).toBeUndefined();
     expect(pickVisionNavPlayerId(null)).toBeUndefined();
+  });
+
+  it("pickVisionNavLinkedPlayerId never uses Vision trackId alone", () => {
+    expect(pickVisionNavLinkedPlayerId([{ trackId: "P0100" }])).toBeUndefined();
+    expect(
+      pickVisionNavLinkedPlayerId([{ trackId: "P0100", playerId: "player-ap-63d56190" }])
+    ).toBe("player-ap-63d56190");
+    expect(isLikelyVisionTrackId("P0100")).toBe(true);
+    expect(isLikelyVisionTrackId("player-ap-63d56190")).toBe(false);
   });
 
   it("visionSurfaceFromHash resolves coach/timeline", () => {
