@@ -68,7 +68,7 @@
     "step3_trackingEngineImprove": "DONE (code+offline eval)",
     "step4_gtEvalRerun": "DONE — E1 PASS❌",
     "step4_abExperiment": "DONE",
-    "step4_rootCause": "GT_alignment + GEV_preds_drift — tracker_tune_no_gev_lift"
+    "step4_rootCause": "GT_alignment + GEV_preds_drift — tracker_tune_no_gev_lift",
     "step5_pilotValidation": "WAIT"
   }
 }
