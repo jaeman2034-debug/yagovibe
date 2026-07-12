@@ -2,7 +2,8 @@
  * RC4-3 M3 — Match Detail vision panel (fii_summary binding)
  */
 
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,13 @@ import { VisionTacticalReportCard } from "@/components/vision/VisionTacticalRepo
 import { VisionPlatformNav } from "@/components/vision/VisionPlatformNav";
 import { VisionMatchTimelinePanel } from "@/components/vision/VisionMatchTimelinePanel";
 import { VisionJobMonitorPanel } from "@/components/vision/VisionJobMonitorPanel";
-import { visionTeamHubPath } from "@/lib/vision/visionPlatformRoutes";
+import {
+  pickVisionNavPlayerId,
+  scrollVisionSectionIntoView,
+  visionSurfaceFromHash,
+  visionTeamHubPath,
+  VISION_COACH_SECTION_ID,
+} from "@/lib/vision/visionPlatformRoutes";
 
 type Props = {
   teamId: string;
@@ -27,8 +34,23 @@ type Props = {
 };
 
 function VisionMatchDetailInner({ teamId, matchId, teamName }: Props) {
+  const location = useLocation();
   const { loading, view, cardState, variant } = useVisionCoachDashboard();
   const top3 = view?.playerRanking.slice(0, 3) ?? [];
+  const navPlayerId = pickVisionNavPlayerId(view?.playerRanking);
+  const hashSurface = visionSurfaceFromHash(location.hash);
+  const navCurrent = hashSurface ?? "match-detail";
+
+  useEffect(() => {
+    const id = location.hash.replace(/^#/, "").trim();
+    if (!id) return;
+    const tryScroll = (attempt: number) => {
+      if (scrollVisionSectionIntoView(id)) return;
+      if (attempt >= 12) return;
+      window.setTimeout(() => tryScroll(attempt + 1), 50);
+    };
+    requestAnimationFrame(() => tryScroll(0));
+  }, [location.hash, loading, cardState]);
 
   return (
     <div className="space-y-6" data-testid="vision-match-detail-panel">
@@ -43,53 +65,89 @@ function VisionMatchDetailInner({ teamId, matchId, teamName }: Props) {
         <VisionPlatformNav
           teamId={teamId}
           matchId={matchId}
-          current="match-detail"
+          playerId={navPlayerId}
+          current={navCurrent}
           variant="light"
         />
-        <VisionJobMonitorPanel teamId={teamId} matchId={matchId} variant="light" compact />
+        <VisionJobMonitorPanel
+          teamId={teamId}
+          matchId={matchId}
+          playerId={navPlayerId}
+          variant="light"
+          compact
+        />
       </header>
 
       {loading ? (
         <p className="text-sm text-violet-700">분석 데이터 불러오는 중…</p>
       ) : cardState === "empty" ? (
-        <p className="text-sm text-violet-800">이 경기에 대한 Vision/FII 데이터가 없습니다.</p>
+        <>
+          <section
+            id={VISION_COACH_SECTION_ID}
+            className="scroll-mt-20"
+            data-testid="vision-coach-section"
+          >
+            <p className="text-sm text-violet-800">이 경기에 대한 Vision/FII 데이터가 없습니다.</p>
+          </section>
+          <VisionMatchTimelinePanel
+            teamId={teamId}
+            matchId={matchId}
+            variant="light"
+            className={hashSurface === "timeline" ? "rounded-2xl ring-2 ring-violet-500 ring-offset-2" : undefined}
+          />
+        </>
       ) : (
         <>
-          <VisionCoachDecisionBriefCard />
+          <section
+            id={VISION_COACH_SECTION_ID}
+            className={cn(
+              "scroll-mt-20 space-y-3 rounded-2xl",
+              hashSurface === "coach" && "ring-2 ring-violet-500 ring-offset-2"
+            )}
+            data-testid="vision-coach-section"
+            aria-label="Coach Vision"
+          >
+            <VisionCoachDecisionBriefCard />
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <VisionTeamFiiCard />
-            <VisionMatchSummaryCard />
-          </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <VisionTeamFiiCard />
+              <VisionMatchSummaryCard />
+            </div>
 
-          {top3.length > 0 ? (
-            <section data-testid="vision-match-top-players">
-              <h2 className="mb-2 text-sm font-black text-violet-950">Top 3 Players</h2>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {top3.map((p) => (
-                  <div
-                    key={p.trackId ?? p.rank}
-                    className="rounded-2xl border border-violet-200 bg-white p-3 text-center shadow-sm"
-                  >
-                    <p className="text-[10px] font-bold text-violet-600">#{p.rank}</p>
-                    <p className="mt-1 truncate text-sm font-semibold text-violet-950">{p.name}</p>
-                    <p className="text-2xl font-black tabular-nums text-violet-800">{p.fii}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
+            {top3.length > 0 ? (
+              <section data-testid="vision-match-top-players">
+                <h2 className="mb-2 text-sm font-black text-violet-950">Top 3 Players</h2>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {top3.map((p) => (
+                    <div
+                      key={p.trackId ?? p.rank}
+                      className="rounded-2xl border border-violet-200 bg-white p-3 text-center shadow-sm"
+                    >
+                      <p className="text-[10px] font-bold text-violet-600">#{p.rank}</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-violet-950">{p.name}</p>
+                      <p className="text-2xl font-black tabular-nums text-violet-800">{p.fii}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
-          <VisionCoachInsightCard />
+            <VisionCoachInsightCard />
 
-          <CoachMatchFlowTrendCard />
+            <CoachMatchFlowTrendCard />
 
-          <div className="space-y-3">
-            <VisionFiiRankingTable teamId={teamId} matchId={matchId} />
-            <VisionTacticalReportCard />
-          </div>
+            <div className="space-y-3">
+              <VisionFiiRankingTable teamId={teamId} matchId={matchId} />
+              <VisionTacticalReportCard />
+            </div>
+          </section>
 
-          <VisionMatchTimelinePanel teamId={teamId} matchId={matchId} variant="light" />
+          <VisionMatchTimelinePanel
+            teamId={teamId}
+            matchId={matchId}
+            variant="light"
+            className={hashSurface === "timeline" ? "rounded-2xl ring-2 ring-violet-500 ring-offset-2" : undefined}
+          />
         </>
       )}
     </div>
