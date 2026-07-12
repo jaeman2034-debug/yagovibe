@@ -39,6 +39,7 @@ import { CoachMatchFlowTrendCard } from "@/components/vision/CoachMatchFlowTrend
 import { teamValidationConsolePath } from "@/lib/team/teamValidationConsoleRoutes";
 import { VisionPlatformNav } from "@/components/vision/VisionPlatformNav";
 import { VisionJobMonitorPanel } from "@/components/vision/VisionJobMonitorPanel";
+import { pickVisionNavPlayerId } from "@/lib/vision/visionPlatformRoutes";
 
 export type CoachVisionAnalysisSectionProps = {
   teamId: string;
@@ -332,6 +333,61 @@ function CoachVisionMatchPickPrompt({
   );
 }
 
+function CoachVisionAnalysisSectionBody({
+  teamId,
+  matchId,
+  variant = "light",
+  className,
+}: Omit<CoachVisionAnalysisSectionProps, "authUid">) {
+  const { view } = useVisionCoachDashboard();
+  const navPlayerId = pickVisionNavPlayerId(view?.playerRanking);
+
+  return (
+    <section
+      className={cn("space-y-3", className)}
+      data-testid="coach-vision-analysis-section"
+      aria-label="Vision Coach Dashboard"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p
+            className={cn(
+              "text-[10px] font-bold uppercase tracking-wide",
+              variant === "dark" ? "text-violet-300" : "text-violet-700"
+            )}
+          >
+            Vision Coach
+          </p>
+          <h3
+            className={cn(
+              "text-sm font-black",
+              variant === "dark" ? "text-white" : "text-violet-950"
+            )}
+          >
+            경기 영상 분석
+          </h3>
+        </div>
+        <VisionRunControl teamId={teamId} matchId={matchId} variant={variant} />
+      </div>
+      <VisionPlatformNav
+        teamId={teamId}
+        matchId={matchId}
+        playerId={navPlayerId}
+        current="coach"
+        variant={variant}
+        compact
+      />
+      <VisionJobMonitorPanel
+        teamId={teamId}
+        matchId={matchId}
+        playerId={navPlayerId}
+        variant={variant}
+      />
+      <CoachVisionDashboardGrid teamId={teamId} matchId={matchId} />
+    </section>
+  );
+}
+
 function CoachVisionAnalysisSectionInner({
   teamId,
   matchId,
@@ -340,42 +396,12 @@ function CoachVisionAnalysisSectionInner({
 }: Omit<CoachVisionAnalysisSectionProps, "authUid">) {
   return (
     <VisionCoachDashboardProvider teamId={teamId} matchId={matchId} variant={variant}>
-      <section
-        className={cn("space-y-3", className)}
-        data-testid="coach-vision-analysis-section"
-        aria-label="Vision Coach Dashboard"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p
-              className={cn(
-                "text-[10px] font-bold uppercase tracking-wide",
-                variant === "dark" ? "text-violet-300" : "text-violet-700"
-              )}
-            >
-              Vision Coach
-            </p>
-            <h3
-              className={cn(
-                "text-sm font-black",
-                variant === "dark" ? "text-white" : "text-violet-950"
-              )}
-            >
-              경기 영상 분석
-            </h3>
-          </div>
-          <VisionRunControl teamId={teamId} matchId={matchId} variant={variant} />
-        </div>
-        <VisionPlatformNav
-          teamId={teamId}
-          matchId={matchId}
-          current="coach"
-          variant={variant}
-          compact
-        />
-        <VisionJobMonitorPanel teamId={teamId} matchId={matchId} variant={variant} />
-        <CoachVisionDashboardGrid teamId={teamId} matchId={matchId} />
-      </section>
+      <CoachVisionAnalysisSectionBody
+        teamId={teamId}
+        matchId={matchId}
+        variant={variant}
+        className={className}
+      />
     </VisionCoachDashboardProvider>
   );
 }

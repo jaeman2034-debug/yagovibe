@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useVisionPlatformMatchMeta } from "@/hooks/useVisionPlatformMatchMeta";
 import { VisionCardFrame } from "@/components/vision/VisionCardFrame";
 import { VisionJobMonitorPanel } from "@/components/vision/VisionJobMonitorPanel";
+import { VISION_TIMELINE_SECTION_ID } from "@/lib/vision/visionPlatformRoutes";
 
 type Props = {
   teamId: string;
@@ -27,13 +28,18 @@ export function VisionMatchTimelinePanel({ teamId, matchId, className, variant =
 
   if (!isPilot) {
     return (
-      <VisionCardFrame
-        title="경기 타임라인"
-        testId="vision-match-timeline-empty"
-        empty
-        emptyMessage="이 경기의 Vision 타임라인이 아직 없습니다."
-        className={className}
-      />
+      <section
+        id={VISION_TIMELINE_SECTION_ID}
+        className={cn("scroll-mt-20", className)}
+        data-testid="vision-match-timeline-panel"
+      >
+        <VisionCardFrame
+          title="경기 타임라인"
+          testId="vision-match-timeline-empty"
+          empty
+          emptyMessage="이 경기의 Vision 타임라인이 아직 없습니다."
+        />
+      </section>
     );
   }
 
@@ -48,7 +54,7 @@ export function VisionMatchTimelinePanel({ teamId, matchId, className, variant =
 
   return (
     <section
-      id="vision-timeline"
+      id={VISION_TIMELINE_SECTION_ID}
       className={cn("scroll-mt-20", className)}
       data-testid="vision-match-timeline-panel"
     >

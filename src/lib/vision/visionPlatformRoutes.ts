@@ -15,14 +15,26 @@ export type VisionPlatformSurface =
   | "timeline"
   | "ops-dashboard";
 
-/** Team Play 라운지 — Coach Dashboard 진입 */
+/** Match Detail in-page Coach section (Decision Brief / FII) */
+export const VISION_COACH_SECTION_ID = "vision-coach" as const;
+
+/** Match Detail in-page Timeline section */
+export const VISION_TIMELINE_SECTION_ID = "vision-timeline" as const;
+
+/**
+ * OBSERVATION (non-scope 2026-07-12): still uses Play Lounge via teamPlayEntryPath.
+ * Separate navigation semantics review — do not change in Vision tab routing fix.
+ */
 export function visionTeamHubPath(teamId: string, matchId?: string): string {
   return teamPlayEntryPath(teamId, matchId ? { matchId } : undefined);
 }
 
-/** Coach Dashboard (Play 탭 + matchId) */
+/**
+ * Coach Vision Report — Production SoT = Match Detail + Coach section hash.
+ * Play Lounge (`/play`) is not a Coach Vision route.
+ */
 export function visionCoachDashboardPath(teamId: string, matchId: string): string {
-  return teamPlayEntryPath(teamId, { matchId });
+  return `${visionMatchDetailPath(teamId, matchId)}#${VISION_COACH_SECTION_ID}`;
 }
 
 /** Match Detail (FII · tactical) */
@@ -32,10 +44,10 @@ export function visionMatchDetailPath(teamId: string, matchId: string): string {
 
 /** Match Detail — Timeline 섹션 앵커 */
 export function visionTimelinePath(teamId: string, matchId: string): string {
-  return `${visionMatchDetailPath(teamId, matchId)}#vision-timeline`;
+  return `${visionMatchDetailPath(teamId, matchId)}#${VISION_TIMELINE_SECTION_ID}`;
 }
 
-/** Parent Report (전용 페이지) */
+/** Parent Report (전용 페이지) — no /home/parent or /home/admin fallback */
 export function visionParentReportPath(
   teamId: string,
   playerId: string,
@@ -66,7 +78,10 @@ export function visionPlayerProfilePath(
   return qs ? `${base}?${qs}` : base;
 }
 
-/** Parent Home */
+/**
+ * Parent role home — not a Parent Vision Report route.
+ * Do not use as VisionPlatformNav Parent fallback.
+ */
 export function visionParentHomePath(): string {
   return "/home/parent";
 }
@@ -74,4 +89,32 @@ export function visionParentHomePath(): string {
 /** Pilot Operations Dashboard (read-only) */
 export function visionOpsDashboardPath(teamId: string): string {
   return `/teams/${encodeURIComponent(teamId)}/vision/ops`;
+}
+
+/** Ranking/playerFii row → Parent Report playerId (playerId preferred, else trackId) */
+export function pickVisionNavPlayerId(
+  ranking: Array<{ playerId?: string; trackId?: string }> | undefined | null
+): string | undefined {
+  if (!ranking?.length) return undefined;
+  for (const row of ranking) {
+    const id = row.playerId?.trim() || row.trackId?.trim();
+    if (id) return id;
+  }
+  return undefined;
+}
+
+/** Resolve Match Detail nav surface from location.hash */
+export function visionSurfaceFromHash(hash: string | undefined | null): VisionPlatformSurface | null {
+  const h = (hash ?? "").replace(/^#/, "").trim();
+  if (h === VISION_COACH_SECTION_ID) return "coach";
+  if (h === VISION_TIMELINE_SECTION_ID) return "timeline";
+  return null;
+}
+
+/** Scroll to in-page Vision section; returns true if element found */
+export function scrollVisionSectionIntoView(sectionId: string, behavior: ScrollBehavior = "smooth"): boolean {
+  const el = document.getElementById(sectionId);
+  if (!el) return false;
+  el.scrollIntoView({ behavior, block: "start" });
+  return true;
 }
