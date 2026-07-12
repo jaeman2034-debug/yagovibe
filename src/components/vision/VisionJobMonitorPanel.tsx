@@ -305,18 +305,20 @@ export function VisionJobMonitorPanel({
           <Link
             to={visionMatchDetailPath(teamId, matchId)}
             className={cn(
-              "text-[11px] font-bold underline-offset-2 hover:underline",
+              "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline",
               isDark ? "text-violet-200" : "text-violet-700"
             )}
+            data-testid="vision-job-monitor-match-detail-link"
           >
             Match Detail →
           </Link>
           <Link
             to={visionTimelinePath(teamId, matchId)}
             className={cn(
-              "text-[11px] font-bold underline-offset-2 hover:underline",
+              "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline",
               isDark ? "text-cyan-300" : "text-cyan-700"
             )}
+            data-testid="vision-job-monitor-timeline-link"
           >
             Timeline →
           </Link>
@@ -324,9 +326,10 @@ export function VisionJobMonitorPanel({
             <Link
               to={visionParentReportPath(teamId, playerId, matchId)}
               className={cn(
-                "text-[11px] font-bold underline-offset-2 hover:underline",
+                "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline",
                 isDark ? "text-emerald-300" : "text-emerald-700"
               )}
+              data-testid="vision-job-monitor-parent-report-link"
             >
               Parent Report →
             </Link>
@@ -334,9 +337,10 @@ export function VisionJobMonitorPanel({
             <Link
               to={visionParentReportPath(teamId, "pilot-player", matchId || VISION_PILOT_MATCH_ID)}
               className={cn(
-                "text-[11px] font-bold underline-offset-2 hover:underline",
+                "inline-flex items-center min-h-[44px] px-2 text-[11px] font-bold underline-offset-2 hover:underline",
                 isDark ? "text-emerald-300" : "text-emerald-700"
               )}
+              data-testid="vision-job-monitor-parent-report-link"
             >
               Parent Report →
             </Link>
