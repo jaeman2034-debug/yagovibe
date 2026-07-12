@@ -32,7 +32,7 @@ Beta 중: 신규 기능 즉시 착수 ❌ · VOC ≥3 → backlog 우선만 · O
 
 | ID | 항목 | VOC | 우선 |
 |---|---|---|---|
-| E2-BL-P2-01 | 모바일 버튼 터치 영역 확대 | VOC-008 | P2 |
+| E2-BL-P2-01 | 모바일 버튼 터치 영역 확대 | VOC-008 | 🔒 **PAI-033 PASS / COMPLETE / CLOSED** · Production verified `7f2c0d0` · A-set Vision Coach only · VOC count **1** · `../production_ops/PAI_033_PM_FINAL_SIGNOFF.md` |
 | E2-BL-P3-01 | 심박수 등 연령별 기준값 설명 | VOC-007 | P3 |
 | E2-BL-P3-02 | 연령대 적정 수치 가이드 | VOC-007 | P3 |
 | VOC-010 | GPS/웨어러블 원탭 연동 → 자동 리포트 | VOC-010 | 장기 |
