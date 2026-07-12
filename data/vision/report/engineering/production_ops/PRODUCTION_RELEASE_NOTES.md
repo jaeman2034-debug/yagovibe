@@ -12,6 +12,7 @@
 
 | Version / Tag | Date | Change (Fact) | Related Issue / VOC | Note |
 |---|---|---|---|---|
+| Hosting `30170a1` | 2026-07-12 09:18 KST | PAI-012 VOC-012 coach match-flow FII trend · Match Detail Ranking Avg/Δ | VOC-012 · PAI-012 | Production Hosting · **Deploy complete** · COMPLETE/CLOSED 금지 · Smoke 대기 |
 | Hosting `64270a3` | 2026-07-11 20:56 KST | PAI-011 VOC-011 peer benchmark · Vision Parent UI stack · kakaoShare build fix | VOC-011 · PAI-011 | Production Hosting · **VERIFIED** · Post-Deploy Smoke PASS · PAI-011 **COMPLETE/CLOSED** |
 | Hosting `4d508ac` | 2026-07-11 14:57 KST | PAI-001: Kakao iOS openExternal · persistence · next preserve · Safari CTA | BETA-ISSUE-001 · PAI-001 | Production Hosting · Verification PASS · ISSUE CLOSED (Verified) |
 | — | 2026-07-21 | Production 운영 체계 개시 (`production_ops/`) | GO with Open Issue | Docs only |
