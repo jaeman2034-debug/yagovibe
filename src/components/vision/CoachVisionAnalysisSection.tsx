@@ -247,7 +247,7 @@ function CoachVisionDashboardGrid({ teamId, matchId }: { teamId: string; matchId
         <Link
           to={`/teams/${encodeURIComponent(teamId)}/vision/match/${encodeURIComponent(matchId)}`}
           className={cn(
-            "text-xs font-bold underline-offset-2 hover:underline",
+            "inline-flex items-center min-h-[44px] px-2 text-xs font-bold underline-offset-2 hover:underline",
             variant === "dark" ? "text-violet-200" : "text-violet-800"
           )}
           data-testid="vision-match-detail-link"
