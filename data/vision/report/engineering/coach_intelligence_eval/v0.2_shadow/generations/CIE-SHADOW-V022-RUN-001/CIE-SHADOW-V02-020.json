@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-020",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:41:07.877892+00:00",
+  "rewriteText": "후반(3쿼터) 구간에서 턴오버 4건이 집중되었습니다. 이 구간 동안 패스는 12건, 수신은 9건이 이루어졌습니다. 다음 훈련에서는 3쿼터 타임윈도우를 리뷰하는 데 집중해 주세요. 특히 P1은 빌드업에서 폭 만들기에 주의가 필요합니다. 이 포인트는 코치님이 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3126,
+    "completion_tokens": 98
+  }
+}

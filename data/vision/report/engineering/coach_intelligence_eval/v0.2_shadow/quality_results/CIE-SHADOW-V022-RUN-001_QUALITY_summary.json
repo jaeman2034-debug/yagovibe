@@ -1,0 +1,99 @@
+{
+  "runId": "CIE-SHADOW-V022-RUN-001",
+  "layer": "SHADOW_QUALITY_ADVISORY_NON_GATING",
+  "evaluatedAt": "2026-07-12T23:42:03.984490+00:00",
+  "outputsEvaluated": 20,
+  "judgeUsed": true,
+  "judgeModel": "gpt-4o-mini",
+  "scoringMethod": "lab_judge_Q01_Q04+deterministic_Q05",
+  "meanScores": {
+    "Q01": 1.9,
+    "Q02": 2.0,
+    "Q03": 1.9,
+    "Q04": 1.9
+  },
+  "diversity": {
+    "uniqueOpeningRatio": 1.0,
+    "uniqueClosingRatio": 0.95,
+    "repeatedSentenceRatio": 0.066,
+    "meanPairwiseJaccard": 0.1503,
+    "topOpeningPatterns": [
+      [
+        "의사결정(decision) 축이 <NUM>점으로 팀",
+        1
+      ],
+      [
+        "턴오버 <NUM>건이 패스 <NUM>건 대비 높게 ",
+        1
+      ],
+      [
+        "p<NUM>의 fii는 <NUM>점으로 p<NUM>",
+        1
+      ]
+    ],
+    "topClosingPatterns": [
+      [
+        "추세를 비교하는 것을 추천합니다. 위 내용은 제안이며 <HITL>",
+        2
+      ],
+      [
+        " 이 부분을 보완할 수 있습니다. 위 내용은 제안이며 <HITL>",
+        1
+      ],
+      [
+        "카운트 임계값 리뷰를 제안합니다. 이 내용은 제안이며 <HITL>",
+        1
+      ]
+    ],
+    "topRecommendationPatterns": [
+      [
+        "볼 순환",
+        4
+      ],
+      [
+        "폭 만들",
+        3
+      ],
+      [
+        "받기 전 스캔",
+        1
+      ]
+    ],
+    "highestSimilarityPairs": [
+      {
+        "a": "CIE-SHADOW-V02-009",
+        "b": "CIE-SHADOW-V02-012",
+        "jaccard": 0.5417
+      },
+      {
+        "a": "CIE-SHADOW-V02-001",
+        "b": "CIE-SHADOW-V02-005",
+        "jaccard": 0.4595
+      },
+      {
+        "a": "CIE-SHADOW-V02-016",
+        "b": "CIE-SHADOW-V02-020",
+        "jaccard": 0.4524
+      },
+      {
+        "a": "CIE-SHADOW-V02-013",
+        "b": "CIE-SHADOW-V02-014",
+        "jaccard": 0.4265
+      },
+      {
+        "a": "CIE-SHADOW-V02-009",
+        "b": "CIE-SHADOW-V02-011",
+        "jaccard": 0.3936
+      }
+    ]
+  },
+  "zeroOnAnyQ01Q04": [],
+  "lowTotalQ01Q04_le4": [],
+  "lowQualitySampleCount": 0,
+  "top3MeasurablePromptWeaknesses": [],
+  "cieHardGateStatus": "RUN-001 hard FAIL incidence 0 — safety gate unchanged / not replaced",
+  "productionWrites": false,
+  "liveCoachChanged": false,
+  "promptChanged": false,
+  "note": "Advisory quality only. Not accuracy. Not Shadow PASS/COMPLETE/LOCK."
+}

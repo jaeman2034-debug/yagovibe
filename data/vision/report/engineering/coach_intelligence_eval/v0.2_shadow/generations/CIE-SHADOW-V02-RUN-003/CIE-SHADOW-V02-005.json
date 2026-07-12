@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-005",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:58:00.231271+00:00",
+  "rewriteText": "패스 연결 4건이 확인되었습니다. P1의 FII 점수는 48점으로, 팀의 전반적인 FII는 46점입니다. 턴오버가 6건 발생했으므로, 압박 대응 훈련이 필요합니다. 이 포인트는 코치 판단 후 훈련에 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2931,
+    "completion_tokens": 75
+  }
+}

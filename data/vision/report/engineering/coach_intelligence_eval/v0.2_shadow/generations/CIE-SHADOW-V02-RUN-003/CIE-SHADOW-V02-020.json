@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-020",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:58:34.824384+00:00",
+  "rewriteText": "패스 연결 12건이 확인되었습니다. P1은 빌드업에서 좋은 성과를 보였으며, 공간 활용과 시각적 인식에서 각각 55와 54의 점수를 기록했습니다. 반면 P2는 턴오버가 4건 발생하여 개선이 필요합니다. 이 포인트는 코치 판단 후 훈련에 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2869,
+    "completion_tokens": 83
+  }
+}

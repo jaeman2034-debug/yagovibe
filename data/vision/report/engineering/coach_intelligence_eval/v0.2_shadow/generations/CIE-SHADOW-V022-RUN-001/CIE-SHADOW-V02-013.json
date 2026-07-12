@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-013",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:40:51.357374+00:00",
+  "rewriteText": "패스 12건·팀 overall 12점·P1 FII 12점이 동일 수치로 겹칩니다. 이러한 수치의 맥락을 구분하여 리뷰하는 것이 필요합니다. 다음 훈련에서는 동일 수치 지표 구분에 집중해 주세요. \n\nP1은 볼 순환을 개선하기 위해 짧은 패스를 유지하는 데 중점을 두어야 합니다. 턴오버 2건이 발생했으므로 이 부분도 개선이 필요합니다. \n\n최종 적용 여부는 코치 판단 후 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3165,
+    "completion_tokens": 123
+  }
+}

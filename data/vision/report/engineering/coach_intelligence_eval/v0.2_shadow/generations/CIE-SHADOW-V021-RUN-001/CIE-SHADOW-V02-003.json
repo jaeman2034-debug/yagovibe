@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-003",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:14:53.827944+00:00",
+  "rewriteText": "P1의 FII는 66점으로 P2(58점)보다 8점 차이가 있습니다. 다음 훈련에서는 P1과 P2의 비교 클립을 리뷰하는 것이 좋습니다. P2에게는 지원 패스에 집중하도록 지도할 필요가 있습니다. \n\nP1과 P2의 FII 차이를 관측하는 리뷰를 진행하는 것이 좋습니다. 현재 팀의 전체 FII는 63점이며, P1의 강점은 66점입니다. 턴오버가 1건 발생했으니 이 부분도 확인해 주세요. \n\n위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3153,
+    "completion_tokens": 144
+  }
+}

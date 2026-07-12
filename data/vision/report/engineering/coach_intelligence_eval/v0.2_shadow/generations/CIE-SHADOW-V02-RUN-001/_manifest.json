@@ -1,0 +1,112 @@
+{
+  "runId": "CIE-SHADOW-V02-RUN-001",
+  "labOnly": true,
+  "promptVersion": "cip-v0.1.0",
+  "modelId": "gpt-4o-mini",
+  "requested": 20,
+  "generated": 20,
+  "generationRate": 1.0,
+  "results": [
+    {
+      "sampleId": "CIE-SHADOW-V02-001",
+      "status": "ok",
+      "chars": 165
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-002",
+      "status": "ok",
+      "chars": 162
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-003",
+      "status": "ok",
+      "chars": 164
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-004",
+      "status": "ok",
+      "chars": 157
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-005",
+      "status": "ok",
+      "chars": 154
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-006",
+      "status": "ok",
+      "chars": 163
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-007",
+      "status": "ok",
+      "chars": 163
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-008",
+      "status": "ok",
+      "chars": 161
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-009",
+      "status": "ok",
+      "chars": 169
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-010",
+      "status": "ok",
+      "chars": 164
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-011",
+      "status": "ok",
+      "chars": 161
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-012",
+      "status": "ok",
+      "chars": 164
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-013",
+      "status": "ok",
+      "chars": 155
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-014",
+      "status": "ok",
+      "chars": 155
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-015",
+      "status": "ok",
+      "chars": 159
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-016",
+      "status": "ok",
+      "chars": 162
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-017",
+      "status": "ok",
+      "chars": 154
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-018",
+      "status": "ok",
+      "chars": 155
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-019",
+      "status": "ok",
+      "chars": 154
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-020",
+      "status": "ok",
+      "chars": 155
+    }
+  ],
+  "productionWrites": false
+}

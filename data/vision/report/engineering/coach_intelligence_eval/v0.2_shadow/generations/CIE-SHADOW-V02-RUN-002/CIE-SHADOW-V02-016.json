@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-016",
+  "promptVersion": "cip-v0.2.0",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:51:47.760514+00:00",
+  "rewriteText": "패스 연결 15건이 확인되었습니다. P1의 FII는 15점으로, 볼 순환에 집중할 필요가 있습니다. 턴오버가 2건 발생했으므로, 위험 지역 안전 옵션 리허설을 진행하는 것이 좋습니다. 코치님, 이 사항에 대해 어떻게 판단하시겠습니까?",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2576,
+    "completion_tokens": 72
+  }
+}

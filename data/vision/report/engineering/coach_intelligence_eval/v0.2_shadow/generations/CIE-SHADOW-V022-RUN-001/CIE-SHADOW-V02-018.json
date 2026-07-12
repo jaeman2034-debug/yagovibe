@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-018",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:41:02.258989+00:00",
+  "rewriteText": "P2의 FII가 46점으로 리시브 포커스가 기록되었습니다. 다음 훈련에서는 P2의 리시브 역할에 대한 관측 리뷰가 필요합니다. \n\n현재 팀의 패스는 10건으로 강점을 보였지만, P2는 3건의 턴오버가 발생했습니다. 이 부분에 대한 개선이 필요합니다. P2의 리시브 클립을 리뷰하여 문제를 분석하는 것이 좋습니다. \n\n위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3023,
+    "completion_tokens": 120
+  }
+}

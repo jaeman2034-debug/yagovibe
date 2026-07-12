@@ -1,0 +1,9 @@
+{
+  "runId": "CIE-SHADOW-V022-RUN-001",
+  "createdAt": "2026-07-12T23:41:22.514510+00:00",
+  "failCount": 0,
+  "top3PromptWeaknesses": [],
+  "rootCauseGroups": {},
+  "failures": [],
+  "note": "PM must approve prompt correction before cip-v0.2.0"
+}

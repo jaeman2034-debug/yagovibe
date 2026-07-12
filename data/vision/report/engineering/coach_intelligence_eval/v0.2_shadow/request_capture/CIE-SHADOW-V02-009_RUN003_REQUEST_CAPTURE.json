@@ -1,0 +1,442 @@
+{
+  "capturedAt": "2026-07-12T23:03:43.131788+00:00",
+  "instrumentation": "SHADOW_GENERATION_PATH_CAPTURE_NO_LLM",
+  "sampleId": "CIE-SHADOW-V02-009",
+  "sourceSamplePath": "data/vision/report/engineering/coach_intelligence_eval/v0.2_shadow/samples/CIE-SHADOW-V02-009.json",
+  "resolvedPromptPath": "scripts/vision/cie_eval_v0/prompts/cip_v0_2_1.md",
+  "resolvedPromptVersion": "cip-v0.2.1",
+  "promptSha256": "c09685f6e61721d2e60496facfa0575eafea2675f952bbc2bc69ba2f8458aa6d",
+  "promptCharLength": 5269,
+  "systemMessage": "# cip-v0.2.1 — Coach Intelligence Prompt (offline draft)\n\n**Version:** cip-v0.2.1  \n**Use:** Offline rewrite lab only. Do not wire to Production Coach.  \n**Parent:** cip-v0.2.0 (immutable). Grounding / safety contract preserved.  \n**Scope:** Targeted correction only — opening selection contract · recommendation evidence contract · HITL contract.\n\n## Role\n\nYou rewrite coach-facing brief text using **only** supplied FII / coachInsights / allowedFacts.\n\n## Grounding & safety (unchanged contract)\n\n1. Preserve all numbers that appear in the evidence. Do not invent new numbers.\n2. Use only player aliases present in the evidence (P1, P2, …).\n3. Do not invent injury, medical, fatigue diagnosis, psychological state, or tactical intent absent from evidence.\n4. Do not claim future certainty (\"반드시\", \"확실히 성장\").\n5. Do not leak Official Fact IDs, real names, or external context.\n6. The coach must review / decide — include an explicit HITL cue (see Correction 3). Never bypass coach review.\n7. Every recommendation must map to at least one supplied evidence fact (path or value).\n\n---\n\n## Correction 1 — Opening selection contract (mandatory)\n\nBefore drafting, choose exactly one **PRIMARY EVIDENCE TYPE** for this sample:\n\n| Type | Opening rule |\n|---|---|\n| **NUMERIC** | May open with a supported number — only if that number is the most sample-distinctive lead |\n| **AXIS** | Must open with the named supported axis or axis relationship |\n| **PLAYER** | Must open with the supplied player alias + player-specific supported observation |\n| **SEQUENCE** | Must open with the supplied event / sequence pattern |\n| **COACH_INSIGHT** | Must open with the supplied coachInsights focus (`nextTrainingFocus`, improvementPoints, playersToCoach, etc.) |\n\n**Do NOT default to pass-count evidence merely because pass count exists.**  \nIf another evidence type is more sample-distinctive, use that type.\n\n### Explicitly prohibited universal opening skeletons\n\nUnless pass count is truly the strongest distinctive evidence for **this** sample, do **not** open with patterns equivalent to:\n\n- \"패스 연결 N건이 확인되었습니다\"\n- \"N건이 확인되었습니다\"\n- \"데이터를 보면 N건...\"\n\n### Opening self-check (required)\n\nAsk: *\"이 첫 문장을 다른 샘플에 그대로 숫자만 바꿔 재사용할 수 있는가?\"*  \nIf **YES** → rewrite the opening before continuing.\n\n---\n\n## Correction 2 — Recommendation evidence contract (mandatory)\n\nEvery recommendation must satisfy:\n\n**SUPPORTED PROBLEM → DISTINCT EVIDENCE → MATCHED COACH ACTION**\n\nDo not choose a recommendation from generic habit.\n\n### Explicitly prohibited unconditional reuse\n\n**\"위험 지역 안전 옵션 리허설\"** (and near-identical paraphrases) may be used **ONLY IF** supplied evidence explicitly supports at least one of:\n\n- dangerous-area event\n- loss / risk / turnover context tied to safety options\n- safety-option context\n- or an equivalent allowed fact / coachInsights path\n\nOtherwise select an action from the actual primary evidence category:\n\n| Primary evidence | Action mapping (examples — not fixed templates) |\n|---|---|\n| NUMERIC / count imbalance | observation count review / threshold review |\n| AXIS weakness | axis-specific training constraint or review focus |\n| PLAYER difference | player comparison / player-specific review |\n| SEQUENCE pattern | clip / event sequence review |\n| TIME / quarter pattern | time-window or quarter review |\n| COACH_INSIGHT | refine the supplied recommendation wording |\n\nAlso: do not unconditionally reuse “압박 하 짧은 지원 패스” unless this sample’s evidence supports it.\n\nDo **not** provide fixed Korean answer templates.\n\n### Recommendation self-check (required)\n\nAsk: *\"이 훈련 제안의 직접 근거 path/fact를 하나 지목할 수 있는가?\"*  \nIf **NO** → remove or replace the recommendation.\n\n---\n\n## Correction 3 — HITL contract (mandatory)\n\nPreserve closing diversity. Do **not** force one identical closing sentence.\n\nHowever, the final answer **must** contain at least one explicit coach review/decision responsibility cue equivalent to:\n\n- 코치가 확인\n- 코치가 검토\n- 코치가 결정\n- 코치 판단\n- 코치 승인\n\n### Insufficient alone\n\nA polite phrase such as **\"코치님 확인해 주세요\"** alone is **NOT** sufficient unless the sentence explicitly frames review/decision responsibility (e.g. 최종 적용 / 검토 후 결정 / 코치 판단 후 반영).\n\n### Allowed diverse closing meanings (examples — vary wording; do not copy identically every time)\n\n- 최종 적용 여부는 코치가 검토해 결정합니다.\n- 이 포인트는 코치 판단 후 훈련에 반영하세요.\n- 다음 세션 적용 전 코치가 확인하는 것이 좋습니다.\n- 선수별 적용 범위는 코치가 결정합니다.\n\n### HITL self-check (required)\n\nBefore output: verify explicit coach review/decision responsibility exists.\n\n---\n\n## Action diversity (from v0.2.0, retained)\n\nPrefer action categories matched to evidence (observation focus, clip/event review, training constraint, player comparison, quarter/time-window review, decision timing, communication/review question).  \nDo **not** force “다음 훈련에서는…” in every answer.\n\n## Evidence specificity\n\nWhen numeric or axis evidence exists, use at least one specific supported value or named supported axis when useful. Never invent numbers or aliases.\n\n## Output structure\n\n- Plain Korean coach brief only. No JSON. No chain-of-thought dump.\n- **2–5 concise sentences.** Not a rigid universal 3-sentence template.\n- Keep it coach-usable and concise — diversity ≠ verbosity.\n- Do not print the internal PRIMARY EVIDENCE TYPE label or the self-check Q&A in the output.\n",
+  "userMessagePrefix": "Rewrite a coach brief from the JSON evidence only.\nFollow the system prompt grounding rules.\nReturn plain Korean text only (no markdown fences, no JSON).",
+  "userMessage": "Rewrite a coach brief from the JSON evidence only.\nFollow the system prompt grounding rules.\nReturn plain Korean text only (no markdown fences, no JSON).\n\n{\n  \"sampleId\": \"CIE-SHADOW-V02-009\",\n  \"fiiInput\": {\n    \"schemaVersion\": \"yago-vision-fii-summary-v1\",\n    \"teamFii\": {\n      \"overall\": 54,\n      \"axes\": {\n        \"spatial\": 50,\n        \"vision\": 53,\n        \"decision\": 49,\n        \"pressure\": 47,\n        \"tactics\": 51\n      },\n      \"playerCount\": 4\n    },\n    \"playerFii\": [\n      {\n        \"trackId\": \"t1\",\n        \"name\": \"P1\",\n        \"fii\": 60,\n        \"rank\": 1,\n        \"axes\": {\n          \"spatial\": 61,\n          \"vision\": 58,\n          \"decision\": 56,\n          \"pressure\": 55,\n          \"tactics\": 57\n        }\n      },\n      {\n        \"trackId\": \"t2\",\n        \"name\": \"P2\",\n        \"fii\": 52,\n        \"rank\": 2,\n        \"axes\": {\n          \"spatial\": 50,\n          \"vision\": 50,\n          \"decision\": 48,\n          \"pressure\": 47,\n          \"tactics\": 49\n        }\n      },\n      {\n        \"trackId\": \"t3\",\n        \"name\": \"P3\",\n        \"fii\": 45,\n        \"rank\": 3,\n        \"axes\": {\n          \"spatial\": 44,\n          \"vision\": 43,\n          \"decision\": 41,\n          \"pressure\": 40,\n          \"tactics\": 42\n        }\n      },\n      {\n        \"trackId\": \"t4\",\n        \"name\": \"P4\",\n        \"fii\": 40,\n        \"rank\": 4,\n        \"axes\": {\n          \"spatial\": 39,\n          \"vision\": 38,\n          \"decision\": 36,\n          \"pressure\": 35,\n          \"tactics\": 37\n        }\n      }\n    ],\n    \"gevInput\": {\n      \"eventCount\": 31,\n      \"eventCounts\": {\n        \"PASS\": 16,\n        \"RECEIVE\": 12,\n        \"TURNOVER\": 3\n      }\n    },\n    \"matchSummary\": {\n      \"headline\": \"섀도 세션 요약\",\n      \"summary\": \"GEV·FII 기반 코치 브리프(섀도).\",\n      \"eventHighlights\": {\n        \"passes\": 16,\n        \"receives\": 12,\n        \"turnovers\": 3,\n        \"totalEvents\": 31\n      }\n    }\n  },\n  \"coachInsightsInput\": {\n    \"insightVersion\": \"e2-v1\",\n    \"coachDecisionBrief\": {\n      \"keyChangeToday\": \"패스 연결 16건이 확인되었습니다.\",\n      \"nextTrainingFocus\": \"압박 하 짧은 지원 패스\",\n      \"playersToCoach\": [\n        {\n          \"trackId\": \"t1\",\n          \"name\": \"P1\",\n          \"focus\": \"역할 유지\",\n          \"oneLiner\": \"한 가지 큐만\"\n        },\n        {\n          \"trackId\": \"t2\",\n          \"name\": \"P2\",\n          \"focus\": \"역할 유지\",\n          \"oneLiner\": \"한 가지 큐만\"\n        },\n        {\n          \"trackId\": \"t3\",\n          \"name\": \"P3\",\n          \"focus\": \"공간 이동\",\n          \"oneLiner\": \"한 가지 큐만\"\n        }\n      ]\n    },\n    \"reviewHooks\": [\n      {\n        \"label\": \"턴오버 구간\",\n        \"headlineMetric\": \"턴오버 3건\",\n        \"suggestedAction\": \"위험 지역 안전 옵션 리허설\"\n      }\n    ],\n    \"strengths\": [\n      \"패스 16건\",\n      \"활성 선수 4명\"\n    ],\n    \"improvementPoints\": [\n      \"턴오버 3건\",\n      \"P3·P4 간격 점검\"\n    ],\n    \"recommendations\": [\n      \"턴오버 구간: 위험 지역 안전 옵션 리허설\",\n      \"추가 클립으로 FII 추세 비교\"\n    ]\n  },\n  \"allowedFacts\": [\n    {\n      \"factId\": \"AF01\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.overall\",\n      \"value\": 54\n    },\n    {\n      \"factId\": \"AF-PASS\",\n      \"type\": \"number\",\n      \"path\": \"gevInput.eventCounts.PASS\",\n      \"value\": 16\n    },\n    {\n      \"factId\": \"AF-RECEIVE\",\n      \"type\": \"number\",\n      \"path\": \"gevInput.eventCounts.RECEIVE\",\n      \"value\": 12\n    },\n    {\n      \"factId\": \"AF-TURNOVER\",\n      \"type\": \"number\",\n      \"path\": \"gevInput.eventCounts.TURNOVER\",\n      \"value\": 3\n    },\n    {\n      \"factId\": \"AF-P1\",\n      \"type\": \"string\",\n      \"path\": \"playerFii.name\",\n      \"value\": \"P1\"\n    },\n    {\n      \"factId\": \"AF-P1-fii\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.fii\",\n      \"value\": 60\n    },\n    {\n      \"factId\": \"AF-P1-spatial\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.spatial\",\n      \"value\": 61\n    },\n    {\n      \"factId\": \"AF-P1-vision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.vision\",\n      \"value\": 58\n    },\n    {\n      \"factId\": \"AF-P1-decision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.decision\",\n      \"value\": 56\n    },\n    {\n      \"factId\": \"AF-P1-pressure\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.pressure\",\n      \"value\": 55\n    },\n    {\n      \"factId\": \"AF-P1-tactics\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.tactics\",\n      \"value\": 57\n    },\n    {\n      \"factId\": \"AF-P2\",\n      \"type\": \"string\",\n      \"path\": \"playerFii.name\",\n      \"value\": \"P2\"\n    },\n    {\n      \"factId\": \"AF-P2-fii\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.fii\",\n      \"value\": 52\n    },\n    {\n      \"factId\": \"AF-P2-spatial\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.spatial\",\n      \"value\": 50\n    },\n    {\n      \"factId\": \"AF-P2-vision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.vision\",\n      \"value\": 50\n    },\n    {\n      \"factId\": \"AF-P2-decision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.decision\",\n      \"value\": 48\n    },\n    {\n      \"factId\": \"AF-P2-pressure\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.pressure\",\n      \"value\": 47\n    },\n    {\n      \"factId\": \"AF-P2-tactics\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.tactics\",\n      \"value\": 49\n    },\n    {\n      \"factId\": \"AF-P3\",\n      \"type\": \"string\",\n      \"path\": \"playerFii.name\",\n      \"value\": \"P3\"\n    },\n    {\n      \"factId\": \"AF-P3-fii\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P3.fii\",\n      \"value\": 45\n    },\n    {\n      \"factId\": \"AF-P3-spatial\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P3.axes.spatial\",\n      \"value\": 44\n    },\n    {\n      \"factId\": \"AF-P3-vision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P3.axes.vision\",\n      \"value\": 43\n    },\n    {\n      \"factId\": \"AF-P3-decision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P3.axes.decision\",\n      \"value\": 41\n    },\n    {\n      \"factId\": \"AF-P3-pressure\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P3.axes.pressure\",\n      \"value\": 40\n    },\n    {\n      \"factId\": \"AF-P3-tactics\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P3.axes.tactics\",\n      \"value\": 42\n    },\n    {\n      \"factId\": \"AF-P4\",\n      \"type\": \"string\",\n      \"path\": \"playerFii.name\",\n      \"value\": \"P4\"\n    },\n    {\n      \"factId\": \"AF-P4-fii\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P4.fii\",\n      \"value\": 40\n    },\n    {\n      \"factId\": \"AF-P4-spatial\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P4.axes.spatial\",\n      \"value\": 39\n    },\n    {\n      \"factId\": \"AF-P4-vision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P4.axes.vision\",\n      \"value\": 38\n    },\n    {\n      \"factId\": \"AF-P4-decision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P4.axes.decision\",\n      \"value\": 36\n    },\n    {\n      \"factId\": \"AF-P4-pressure\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P4.axes.pressure\",\n      \"value\": 35\n    },\n    {\n      \"factId\": \"AF-P4-tactics\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P4.axes.tactics\",\n      \"value\": 37\n    },\n    {\n      \"factId\": \"AF-S0\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.strengths\",\n      \"value\": \"패스 16건\"\n    },\n    {\n      \"factId\": \"AF-S1\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.strengths\",\n      \"value\": \"활성 선수 4명\"\n    }\n  ],\n  \"forbiddenClaims\": [\n    \"injury\",\n    \"medical\",\n    \"fatigue_diagnosis\",\n    \"psych_state\",\n    \"invented_intent\",\n    \"future_certainty\",\n    \"age_benchmark\"\n  ],\n  \"coachContext\": {\n    \"audience\": \"coach\",\n    \"task\": \"rewrite_brief\",\n    \"locale\": \"ko-KR\",\n    \"hitlRequired\": true\n  },\n  \"baitNote\": null\n}",
+  "serializedContext": {
+    "sampleId": "CIE-SHADOW-V02-009",
+    "fiiInput": {
+      "schemaVersion": "yago-vision-fii-summary-v1",
+      "teamFii": {
+        "overall": 54,
+        "axes": {
+          "spatial": 50,
+          "vision": 53,
+          "decision": 49,
+          "pressure": 47,
+          "tactics": 51
+        },
+        "playerCount": 4
+      },
+      "playerFii": [
+        {
+          "trackId": "t1",
+          "name": "P1",
+          "fii": 60,
+          "rank": 1,
+          "axes": {
+            "spatial": 61,
+            "vision": 58,
+            "decision": 56,
+            "pressure": 55,
+            "tactics": 57
+          }
+        },
+        {
+          "trackId": "t2",
+          "name": "P2",
+          "fii": 52,
+          "rank": 2,
+          "axes": {
+            "spatial": 50,
+            "vision": 50,
+            "decision": 48,
+            "pressure": 47,
+            "tactics": 49
+          }
+        },
+        {
+          "trackId": "t3",
+          "name": "P3",
+          "fii": 45,
+          "rank": 3,
+          "axes": {
+            "spatial": 44,
+            "vision": 43,
+            "decision": 41,
+            "pressure": 40,
+            "tactics": 42
+          }
+        },
+        {
+          "trackId": "t4",
+          "name": "P4",
+          "fii": 40,
+          "rank": 4,
+          "axes": {
+            "spatial": 39,
+            "vision": 38,
+            "decision": 36,
+            "pressure": 35,
+            "tactics": 37
+          }
+        }
+      ],
+      "gevInput": {
+        "eventCount": 31,
+        "eventCounts": {
+          "PASS": 16,
+          "RECEIVE": 12,
+          "TURNOVER": 3
+        }
+      },
+      "matchSummary": {
+        "headline": "섀도 세션 요약",
+        "summary": "GEV·FII 기반 코치 브리프(섀도).",
+        "eventHighlights": {
+          "passes": 16,
+          "receives": 12,
+          "turnovers": 3,
+          "totalEvents": 31
+        }
+      }
+    },
+    "coachInsightsInput": {
+      "insightVersion": "e2-v1",
+      "coachDecisionBrief": {
+        "keyChangeToday": "패스 연결 16건이 확인되었습니다.",
+        "nextTrainingFocus": "압박 하 짧은 지원 패스",
+        "playersToCoach": [
+          {
+            "trackId": "t1",
+            "name": "P1",
+            "focus": "역할 유지",
+            "oneLiner": "한 가지 큐만"
+          },
+          {
+            "trackId": "t2",
+            "name": "P2",
+            "focus": "역할 유지",
+            "oneLiner": "한 가지 큐만"
+          },
+          {
+            "trackId": "t3",
+            "name": "P3",
+            "focus": "공간 이동",
+            "oneLiner": "한 가지 큐만"
+          }
+        ]
+      },
+      "reviewHooks": [
+        {
+          "label": "턴오버 구간",
+          "headlineMetric": "턴오버 3건",
+          "suggestedAction": "위험 지역 안전 옵션 리허설"
+        }
+      ],
+      "strengths": [
+        "패스 16건",
+        "활성 선수 4명"
+      ],
+      "improvementPoints": [
+        "턴오버 3건",
+        "P3·P4 간격 점검"
+      ],
+      "recommendations": [
+        "턴오버 구간: 위험 지역 안전 옵션 리허설",
+        "추가 클립으로 FII 추세 비교"
+      ]
+    },
+    "allowedFacts": [
+      {
+        "factId": "AF01",
+        "type": "number",
+        "path": "teamFii.overall",
+        "value": 54
+      },
+      {
+        "factId": "AF-PASS",
+        "type": "number",
+        "path": "gevInput.eventCounts.PASS",
+        "value": 16
+      },
+      {
+        "factId": "AF-RECEIVE",
+        "type": "number",
+        "path": "gevInput.eventCounts.RECEIVE",
+        "value": 12
+      },
+      {
+        "factId": "AF-TURNOVER",
+        "type": "number",
+        "path": "gevInput.eventCounts.TURNOVER",
+        "value": 3
+      },
+      {
+        "factId": "AF-P1",
+        "type": "string",
+        "path": "playerFii.name",
+        "value": "P1"
+      },
+      {
+        "factId": "AF-P1-fii",
+        "type": "number",
+        "path": "playerFii.P1.fii",
+        "value": 60
+      },
+      {
+        "factId": "AF-P1-spatial",
+        "type": "number",
+        "path": "playerFii.P1.axes.spatial",
+        "value": 61
+      },
+      {
+        "factId": "AF-P1-vision",
+        "type": "number",
+        "path": "playerFii.P1.axes.vision",
+        "value": 58
+      },
+      {
+        "factId": "AF-P1-decision",
+        "type": "number",
+        "path": "playerFii.P1.axes.decision",
+        "value": 56
+      },
+      {
+        "factId": "AF-P1-pressure",
+        "type": "number",
+        "path": "playerFii.P1.axes.pressure",
+        "value": 55
+      },
+      {
+        "factId": "AF-P1-tactics",
+        "type": "number",
+        "path": "playerFii.P1.axes.tactics",
+        "value": 57
+      },
+      {
+        "factId": "AF-P2",
+        "type": "string",
+        "path": "playerFii.name",
+        "value": "P2"
+      },
+      {
+        "factId": "AF-P2-fii",
+        "type": "number",
+        "path": "playerFii.P2.fii",
+        "value": 52
+      },
+      {
+        "factId": "AF-P2-spatial",
+        "type": "number",
+        "path": "playerFii.P2.axes.spatial",
+        "value": 50
+      },
+      {
+        "factId": "AF-P2-vision",
+        "type": "number",
+        "path": "playerFii.P2.axes.vision",
+        "value": 50
+      },
+      {
+        "factId": "AF-P2-decision",
+        "type": "number",
+        "path": "playerFii.P2.axes.decision",
+        "value": 48
+      },
+      {
+        "factId": "AF-P2-pressure",
+        "type": "number",
+        "path": "playerFii.P2.axes.pressure",
+        "value": 47
+      },
+      {
+        "factId": "AF-P2-tactics",
+        "type": "number",
+        "path": "playerFii.P2.axes.tactics",
+        "value": 49
+      },
+      {
+        "factId": "AF-P3",
+        "type": "string",
+        "path": "playerFii.name",
+        "value": "P3"
+      },
+      {
+        "factId": "AF-P3-fii",
+        "type": "number",
+        "path": "playerFii.P3.fii",
+        "value": 45
+      },
+      {
+        "factId": "AF-P3-spatial",
+        "type": "number",
+        "path": "playerFii.P3.axes.spatial",
+        "value": 44
+      },
+      {
+        "factId": "AF-P3-vision",
+        "type": "number",
+        "path": "playerFii.P3.axes.vision",
+        "value": 43
+      },
+      {
+        "factId": "AF-P3-decision",
+        "type": "number",
+        "path": "playerFii.P3.axes.decision",
+        "value": 41
+      },
+      {
+        "factId": "AF-P3-pressure",
+        "type": "number",
+        "path": "playerFii.P3.axes.pressure",
+        "value": 40
+      },
+      {
+        "factId": "AF-P3-tactics",
+        "type": "number",
+        "path": "playerFii.P3.axes.tactics",
+        "value": 42
+      },
+      {
+        "factId": "AF-P4",
+        "type": "string",
+        "path": "playerFii.name",
+        "value": "P4"
+      },
+      {
+        "factId": "AF-P4-fii",
+        "type": "number",
+        "path": "playerFii.P4.fii",
+        "value": 40
+      },
+      {
+        "factId": "AF-P4-spatial",
+        "type": "number",
+        "path": "playerFii.P4.axes.spatial",
+        "value": 39
+      },
+      {
+        "factId": "AF-P4-vision",
+        "type": "number",
+        "path": "playerFii.P4.axes.vision",
+        "value": 38
+      },
+      {
+        "factId": "AF-P4-decision",
+        "type": "number",
+        "path": "playerFii.P4.axes.decision",
+        "value": 36
+      },
+      {
+        "factId": "AF-P4-pressure",
+        "type": "number",
+        "path": "playerFii.P4.axes.pressure",
+        "value": 35
+      },
+      {
+        "factId": "AF-P4-tactics",
+        "type": "number",
+        "path": "playerFii.P4.axes.tactics",
+        "value": 37
+      },
+      {
+        "factId": "AF-S0",
+        "type": "string",
+        "path": "coachInsights.strengths",
+        "value": "패스 16건"
+      },
+      {
+        "factId": "AF-S1",
+        "type": "string",
+        "path": "coachInsights.strengths",
+        "value": "활성 선수 4명"
+      }
+    ],
+    "forbiddenClaims": [
+      "injury",
+      "medical",
+      "fatigue_diagnosis",
+      "psych_state",
+      "invented_intent",
+      "future_certainty",
+      "age_benchmark"
+    ],
+    "coachContext": {
+      "audience": "coach",
+      "task": "rewrite_brief",
+      "locale": "ko-KR",
+      "hitlRequired": true
+    },
+    "baitNote": null
+  },
+  "payloadKeyOrder": [
+    "sampleId",
+    "fiiInput",
+    "coachInsightsInput",
+    "allowedFacts",
+    "forbiddenClaims",
+    "coachContext",
+    "baitNote"
+  ],
+  "userMessageFieldPositions": {
+    "\"sampleId\"": 159,
+    "\"fiiInput\"": 195,
+    "\"coachInsightsInput\"": 1897,
+    "\"allowedFacts\"": 2885,
+    "\"keyChangeToday\"": 1986,
+    "\"eventCounts\"": 1561,
+    "\"playerFii\"": 472,
+    "\"nextTrainingFocus\"": 2033
+  },
+  "modelId": "gpt-4o-mini",
+  "generationParameters": {
+    "temperature": 0.2
+  },
+  "openaiRequestShape": {
+    "model": "gpt-4o-mini",
+    "temperature": 0.2,
+    "messageRoles": [
+      "system",
+      "user"
+    ],
+    "systemMessageSha256": "c09685f6e61721d2e60496facfa0575eafea2675f952bbc2bc69ba2f8458aa6d",
+    "userMessageSha256": "8d6c95dca417dad2bb3421cec31f112654454529eabfe7b29ac3de79ccedeea3"
+  },
+  "evidenceAudit": {
+    "keyChangeToday": "패스 연결 16건이 확인되었습니다.",
+    "keyChangeTodayMatchesPassOpenFamily": true,
+    "nextTrainingFocus": "압박 하 짧은 지원 패스",
+    "reviewHookSuggestedAction": [
+      "위험 지역 안전 옵션 리허설"
+    ],
+    "playerAliases": [
+      "P1",
+      "P2",
+      "P3",
+      "P4"
+    ],
+    "playerCount": 4,
+    "teamOverall": 54,
+    "eventCounts": {
+      "PASS": 16,
+      "RECEIVE": 12,
+      "TURNOVER": 3
+    },
+    "teamAxes": {
+      "spatial": 50,
+      "vision": 53,
+      "decision": 49,
+      "pressure": 47,
+      "tactics": 51
+    },
+    "strengthsCount": 2,
+    "improvementPointsCount": 2,
+    "compositionTag": "multi_player",
+    "baitNote": null
+  },
+  "runnerChecks": {
+    "hardcodedPassOpeningInUserPrefix": false,
+    "hardcodedPassOpeningInSystemPrompt": false,
+    "coachInsightsIncluded": true,
+    "fiiInputIncluded": true,
+    "allowedFactsIncluded": true
+  }
+}

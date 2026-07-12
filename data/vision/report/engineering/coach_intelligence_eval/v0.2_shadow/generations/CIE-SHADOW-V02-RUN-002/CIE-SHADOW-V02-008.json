@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-008",
+  "promptVersion": "cip-v0.2.0",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:51:33.970140+00:00",
+  "rewriteText": "패스 연결 9건이 확인되었습니다. P1의 FII는 53점으로, 볼 순환이 잘 이루어지고 있습니다. 그러나 턴오버가 3건 발생하여 압박 대응이 필요합니다. P2는 지원 패스에 집중하여 압박 시 가까운 옵션을 활용할 수 있도록 훈련할 필요가 있습니다. 코치님, 이 사항에 대해 판단해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2495,
+    "completion_tokens": 89
+  }
+}

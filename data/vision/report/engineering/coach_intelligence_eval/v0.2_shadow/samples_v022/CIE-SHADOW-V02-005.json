@@ -1,0 +1,340 @@
+{
+  "sampleId": "CIE-SHADOW-V02-005",
+  "datasetClass": "EVALUATION_SHADOW",
+  "datasetVersion": "cie-shadowset-v0.2.2",
+  "sourceType": "sanitized_fii_fixture",
+  "compositionTag": "sanitized_fixture",
+  "primaryEvidenceType": "AXIS",
+  "mediaId": null,
+  "matchId": "shadow-v021-match-005",
+  "playerId": null,
+  "playerAlias": "P1",
+  "fiiInput": {
+    "schemaVersion": "yago-vision-fii-summary-v1",
+    "teamFii": {
+      "overall": 46,
+      "axes": {
+        "spatial": 50,
+        "vision": 53,
+        "decision": 49,
+        "pressure": 47,
+        "tactics": 51
+      },
+      "playerCount": 2
+    },
+    "playerFii": [
+      {
+        "trackId": "t1",
+        "name": "P1",
+        "fii": 48,
+        "rank": 1,
+        "axes": {
+          "spatial": 45,
+          "vision": 46,
+          "decision": 44,
+          "pressure": 43,
+          "tactics": 45
+        }
+      },
+      {
+        "trackId": "t2",
+        "name": "P2",
+        "fii": 42,
+        "rank": 2,
+        "axes": {
+          "spatial": 40,
+          "vision": 40,
+          "decision": 38,
+          "pressure": 37,
+          "tactics": 39
+        }
+      }
+    ],
+    "gevInput": {
+      "eventCount": 15,
+      "eventCounts": {
+        "PASS": 4,
+        "RECEIVE": 5,
+        "TURNOVER": 6
+      }
+    },
+    "matchSummary": {
+      "headline": null,
+      "summary": null,
+      "eventHighlights": {
+        "passes": 4,
+        "receives": 5,
+        "turnovers": 6,
+        "totalEvents": 15
+      }
+    }
+  },
+  "coachInsightsInput": {
+    "primaryEvidenceType": "AXIS",
+    "insightVersion": "e2-v1",
+    "coachDecisionBrief": {
+      "keyChangeToday": "압박(pressure) 축 47점이 팀 축 중 가장 낮습니다.",
+      "nextTrainingFocus": "pressure 축 훈련 제약 점검",
+      "playersToCoach": [
+        {
+          "trackId": "t2",
+          "name": "P2",
+          "focus": "역할 점검",
+          "oneLiner": "한 가지 큐만"
+        }
+      ]
+    },
+    "reviewHooks": [
+      {
+        "label": "pressure 축",
+        "headlineMetric": "pressure 47점",
+        "suggestedAction": "pressure 축 관측 포커스"
+      }
+    ],
+    "strengths": [
+      "P1: FII 48점",
+      "팀 overall 46점"
+    ],
+    "improvementPoints": [
+      "턴오버 6건 포인트",
+      "AXIS 근거 확인"
+    ],
+    "recommendations": [
+      "pressure 축: pressure 축 관측 포커스",
+      "추가 클립으로 FII 추세 비교"
+    ]
+  },
+  "allowedFacts": [
+    {
+      "factId": "AF01",
+      "type": "number",
+      "path": "teamFii.overall",
+      "value": 46
+    },
+    {
+      "factId": "AF-team-spatial",
+      "type": "number",
+      "path": "teamFii.axes.spatial",
+      "value": 50
+    },
+    {
+      "factId": "AF-team-vision",
+      "type": "number",
+      "path": "teamFii.axes.vision",
+      "value": 53
+    },
+    {
+      "factId": "AF-team-decision",
+      "type": "number",
+      "path": "teamFii.axes.decision",
+      "value": 49
+    },
+    {
+      "factId": "AF-team-pressure",
+      "type": "number",
+      "path": "teamFii.axes.pressure",
+      "value": 47
+    },
+    {
+      "factId": "AF-team-tactics",
+      "type": "number",
+      "path": "teamFii.axes.tactics",
+      "value": 51
+    },
+    {
+      "factId": "AF-PASS",
+      "type": "number",
+      "path": "gevInput.eventCounts.PASS",
+      "value": 4
+    },
+    {
+      "factId": "AF-RECEIVE",
+      "type": "number",
+      "path": "gevInput.eventCounts.RECEIVE",
+      "value": 5
+    },
+    {
+      "factId": "AF-TURNOVER",
+      "type": "number",
+      "path": "gevInput.eventCounts.TURNOVER",
+      "value": 6
+    },
+    {
+      "factId": "AF-brief-keyChangeToday",
+      "type": "string",
+      "path": "coachInsights.coachDecisionBrief.keyChangeToday",
+      "value": "압박(pressure) 축 47점이 팀 축 중 가장 낮습니다."
+    },
+    {
+      "factId": "AF-brief-nextTrainingFocus",
+      "type": "string",
+      "path": "coachInsights.coachDecisionBrief.nextTrainingFocus",
+      "value": "pressure 축 훈련 제약 점검"
+    },
+    {
+      "factId": "AF-hook0-label",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].label",
+      "value": "pressure 축"
+    },
+    {
+      "factId": "AF-hook0-headlineMetric",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].headlineMetric",
+      "value": "pressure 47점"
+    },
+    {
+      "factId": "AF-hook0-suggestedAction",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].suggestedAction",
+      "value": "pressure 축 관측 포커스"
+    },
+    {
+      "factId": "AF-P1",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P1"
+    },
+    {
+      "factId": "AF-P1-fii",
+      "type": "number",
+      "path": "playerFii.P1.fii",
+      "value": 48
+    },
+    {
+      "factId": "AF-P1-spatial",
+      "type": "number",
+      "path": "playerFii.P1.axes.spatial",
+      "value": 45
+    },
+    {
+      "factId": "AF-P1-vision",
+      "type": "number",
+      "path": "playerFii.P1.axes.vision",
+      "value": 46
+    },
+    {
+      "factId": "AF-P1-decision",
+      "type": "number",
+      "path": "playerFii.P1.axes.decision",
+      "value": 44
+    },
+    {
+      "factId": "AF-P1-pressure",
+      "type": "number",
+      "path": "playerFii.P1.axes.pressure",
+      "value": 43
+    },
+    {
+      "factId": "AF-P1-tactics",
+      "type": "number",
+      "path": "playerFii.P1.axes.tactics",
+      "value": 45
+    },
+    {
+      "factId": "AF-P2",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P2"
+    },
+    {
+      "factId": "AF-P2-fii",
+      "type": "number",
+      "path": "playerFii.P2.fii",
+      "value": 42
+    },
+    {
+      "factId": "AF-P2-spatial",
+      "type": "number",
+      "path": "playerFii.P2.axes.spatial",
+      "value": 40
+    },
+    {
+      "factId": "AF-P2-vision",
+      "type": "number",
+      "path": "playerFii.P2.axes.vision",
+      "value": 40
+    },
+    {
+      "factId": "AF-P2-decision",
+      "type": "number",
+      "path": "playerFii.P2.axes.decision",
+      "value": 38
+    },
+    {
+      "factId": "AF-P2-pressure",
+      "type": "number",
+      "path": "playerFii.P2.axes.pressure",
+      "value": 37
+    },
+    {
+      "factId": "AF-P2-tactics",
+      "type": "number",
+      "path": "playerFii.P2.axes.tactics",
+      "value": 39
+    },
+    {
+      "factId": "AF-S0",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "P1: FII 48점"
+    },
+    {
+      "factId": "AF-S1",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "팀 overall 46점"
+    },
+    {
+      "factId": "AF-IP0",
+      "type": "string",
+      "path": "coachInsights.improvementPoints",
+      "value": "턴오버 6건 포인트"
+    },
+    {
+      "factId": "AF-IP1",
+      "type": "string",
+      "path": "coachInsights.improvementPoints",
+      "value": "AXIS 근거 확인"
+    },
+    {
+      "factId": "AF-PET",
+      "type": "string",
+      "path": "coachInsights.primaryEvidenceType",
+      "value": "AXIS"
+    }
+  ],
+  "forbiddenClaims": [
+    "injury",
+    "medical",
+    "fatigue_diagnosis",
+    "psych_state",
+    "invented_intent",
+    "future_certainty",
+    "age_benchmark"
+  ],
+  "coachContext": {
+    "audience": "coach",
+    "task": "rewrite_brief",
+    "locale": "ko-KR",
+    "hitlRequired": true
+  },
+  "promptVersion": "cip-v0.2.2",
+  "candidateOutput": {
+    "rewriteText": "",
+    "modelId": null,
+    "generatedAt": null
+  },
+  "groundedClaims": [],
+  "unsupportedClaims": [],
+  "hallucinationFlags": [],
+  "evaluatorScores": {},
+  "finalVerdict": null,
+  "failureType": [],
+  "reviewerStatus": "unreviewed",
+  "evaluatorVersion": "cie-eval-v0.1.1",
+  "piiPolicy": "no_real_pii",
+  "expectedVerdict": null,
+  "expectedFailureTypes": [],
+  "rewritePayloadContract": "cie-shadow-rewrite-payload-v1"
+}

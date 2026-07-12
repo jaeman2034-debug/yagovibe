@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-008",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:58:10.267776+00:00",
+  "rewriteText": "패스 연결 9건이 확인되었습니다. P1은 FII 53점으로 팀 내에서 가장 높은 점수를 기록했습니다. P2는 지원 패스에 대한 집중이 필요하며, 압박 상황에서 가까운 옵션을 활용하는 훈련이 권장됩니다. 코치가 검토 후 다음 훈련에 반영하는 것이 좋습니다.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2931,
+    "completion_tokens": 78
+  }
+}

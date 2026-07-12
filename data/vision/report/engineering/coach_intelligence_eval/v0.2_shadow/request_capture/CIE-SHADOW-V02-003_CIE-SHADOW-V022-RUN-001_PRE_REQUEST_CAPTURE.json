@@ -1,0 +1,338 @@
+{
+  "sampleId": "CIE-SHADOW-V02-003",
+  "primaryEvidenceType": "PLAYER",
+  "resolvedPromptPath": "scripts/vision/cie_eval_v0/prompts/cip_v0_2_2.md",
+  "resolvedPromptVersion": "cip-v0.2.2",
+  "promptSha256": "30c5f98b01843c77003282ebb231c453f7d19e2c502fe4ea49e5fbcac69d64dc",
+  "serializedContext": {
+    "sampleId": "CIE-SHADOW-V02-003",
+    "primaryEvidenceType": "PLAYER",
+    "fiiInput": {
+      "schemaVersion": "yago-vision-fii-summary-v1",
+      "teamFii": {
+        "overall": 63,
+        "axes": {
+          "spatial": 50,
+          "vision": 53,
+          "decision": 49,
+          "pressure": 47,
+          "tactics": 51
+        },
+        "playerCount": 2
+      },
+      "playerFii": [
+        {
+          "trackId": "t1",
+          "name": "P1",
+          "fii": 66,
+          "rank": 1,
+          "axes": {
+            "spatial": 68,
+            "vision": 64,
+            "decision": 62,
+            "pressure": 61,
+            "tactics": 63
+          }
+        },
+        {
+          "trackId": "t2",
+          "name": "P2",
+          "fii": 58,
+          "rank": 2,
+          "axes": {
+            "spatial": 55,
+            "vision": 56,
+            "decision": 54,
+            "pressure": 53,
+            "tactics": 55
+          }
+        }
+      ],
+      "gevInput": {
+        "eventCount": 37,
+        "eventCounts": {
+          "PASS": 20,
+          "RECEIVE": 16,
+          "TURNOVER": 1
+        }
+      },
+      "matchSummary": {
+        "eventHighlights": {
+          "passes": 20,
+          "receives": 16,
+          "turnovers": 1,
+          "totalEvents": 37
+        }
+      }
+    },
+    "coachInsightsInput": {
+      "primaryEvidenceType": "PLAYER",
+      "insightVersion": "e2-v1",
+      "coachDecisionBrief": {
+        "keyChangeToday": "P1 FII 66점으로 P2(58점) 대비 8점 차이가 있습니다.",
+        "nextTrainingFocus": "P1·P2 비교 클립 리뷰",
+        "playersToCoach": [
+          {
+            "trackId": "t2",
+            "name": "P2",
+            "focus": "지원 패스",
+            "oneLiner": "한 가지 큐만"
+          }
+        ]
+      },
+      "reviewHooks": [
+        {
+          "label": "P1·P2 격차",
+          "headlineMetric": "FII 8점 차",
+          "suggestedAction": "선수별 FII 차이 관측 리뷰"
+        }
+      ],
+      "strengths": [
+        "P1: FII 66점",
+        "팀 overall 63점"
+      ],
+      "improvementPoints": [
+        "턴오버 1건 포인트",
+        "PLAYER 근거 확인"
+      ],
+      "recommendations": [
+        "P1·P2 격차: 선수별 FII 차이 관측 리뷰",
+        "추가 클립으로 FII 추세 비교"
+      ]
+    },
+    "allowedFacts": [
+      {
+        "factId": "AF01",
+        "type": "number",
+        "path": "teamFii.overall",
+        "value": 63
+      },
+      {
+        "factId": "AF-team-spatial",
+        "type": "number",
+        "path": "teamFii.axes.spatial",
+        "value": 50
+      },
+      {
+        "factId": "AF-team-vision",
+        "type": "number",
+        "path": "teamFii.axes.vision",
+        "value": 53
+      },
+      {
+        "factId": "AF-team-decision",
+        "type": "number",
+        "path": "teamFii.axes.decision",
+        "value": 49
+      },
+      {
+        "factId": "AF-team-pressure",
+        "type": "number",
+        "path": "teamFii.axes.pressure",
+        "value": 47
+      },
+      {
+        "factId": "AF-team-tactics",
+        "type": "number",
+        "path": "teamFii.axes.tactics",
+        "value": 51
+      },
+      {
+        "factId": "AF-PASS",
+        "type": "number",
+        "path": "gevInput.eventCounts.PASS",
+        "value": 20
+      },
+      {
+        "factId": "AF-RECEIVE",
+        "type": "number",
+        "path": "gevInput.eventCounts.RECEIVE",
+        "value": 16
+      },
+      {
+        "factId": "AF-TURNOVER",
+        "type": "number",
+        "path": "gevInput.eventCounts.TURNOVER",
+        "value": 1
+      },
+      {
+        "factId": "AF-brief-keyChangeToday",
+        "type": "string",
+        "path": "coachInsights.coachDecisionBrief.keyChangeToday",
+        "value": "P1 FII 66점으로 P2(58점) 대비 8점 차이가 있습니다."
+      },
+      {
+        "factId": "AF-brief-nextTrainingFocus",
+        "type": "string",
+        "path": "coachInsights.coachDecisionBrief.nextTrainingFocus",
+        "value": "P1·P2 비교 클립 리뷰"
+      },
+      {
+        "factId": "AF-hook0-label",
+        "type": "string",
+        "path": "coachInsights.reviewHooks[0].label",
+        "value": "P1·P2 격차"
+      },
+      {
+        "factId": "AF-hook0-headlineMetric",
+        "type": "string",
+        "path": "coachInsights.reviewHooks[0].headlineMetric",
+        "value": "FII 8점 차"
+      },
+      {
+        "factId": "AF-hook0-suggestedAction",
+        "type": "string",
+        "path": "coachInsights.reviewHooks[0].suggestedAction",
+        "value": "선수별 FII 차이 관측 리뷰"
+      },
+      {
+        "factId": "AF-P1",
+        "type": "string",
+        "path": "playerFii.name",
+        "value": "P1"
+      },
+      {
+        "factId": "AF-P1-fii",
+        "type": "number",
+        "path": "playerFii.P1.fii",
+        "value": 66
+      },
+      {
+        "factId": "AF-P1-spatial",
+        "type": "number",
+        "path": "playerFii.P1.axes.spatial",
+        "value": 68
+      },
+      {
+        "factId": "AF-P1-vision",
+        "type": "number",
+        "path": "playerFii.P1.axes.vision",
+        "value": 64
+      },
+      {
+        "factId": "AF-P1-decision",
+        "type": "number",
+        "path": "playerFii.P1.axes.decision",
+        "value": 62
+      },
+      {
+        "factId": "AF-P1-pressure",
+        "type": "number",
+        "path": "playerFii.P1.axes.pressure",
+        "value": 61
+      },
+      {
+        "factId": "AF-P1-tactics",
+        "type": "number",
+        "path": "playerFii.P1.axes.tactics",
+        "value": 63
+      },
+      {
+        "factId": "AF-P2",
+        "type": "string",
+        "path": "playerFii.name",
+        "value": "P2"
+      },
+      {
+        "factId": "AF-P2-fii",
+        "type": "number",
+        "path": "playerFii.P2.fii",
+        "value": 58
+      },
+      {
+        "factId": "AF-P2-spatial",
+        "type": "number",
+        "path": "playerFii.P2.axes.spatial",
+        "value": 55
+      },
+      {
+        "factId": "AF-P2-vision",
+        "type": "number",
+        "path": "playerFii.P2.axes.vision",
+        "value": 56
+      },
+      {
+        "factId": "AF-P2-decision",
+        "type": "number",
+        "path": "playerFii.P2.axes.decision",
+        "value": 54
+      },
+      {
+        "factId": "AF-P2-pressure",
+        "type": "number",
+        "path": "playerFii.P2.axes.pressure",
+        "value": 53
+      },
+      {
+        "factId": "AF-P2-tactics",
+        "type": "number",
+        "path": "playerFii.P2.axes.tactics",
+        "value": 55
+      },
+      {
+        "factId": "AF-S0",
+        "type": "string",
+        "path": "coachInsights.strengths",
+        "value": "P1: FII 66점"
+      },
+      {
+        "factId": "AF-S1",
+        "type": "string",
+        "path": "coachInsights.strengths",
+        "value": "팀 overall 63점"
+      },
+      {
+        "factId": "AF-IP0",
+        "type": "string",
+        "path": "coachInsights.improvementPoints",
+        "value": "턴오버 1건 포인트"
+      },
+      {
+        "factId": "AF-IP1",
+        "type": "string",
+        "path": "coachInsights.improvementPoints",
+        "value": "PLAYER 근거 확인"
+      },
+      {
+        "factId": "AF-PET",
+        "type": "string",
+        "path": "coachInsights.primaryEvidenceType",
+        "value": "PLAYER"
+      }
+    ],
+    "coachContext": {
+      "audience": "coach",
+      "task": "rewrite_brief",
+      "locale": "ko-KR",
+      "hitlRequired": true
+    }
+  },
+  "userMessage": "Rewrite a coach brief from the JSON evidence only.\nFollow the system prompt grounding rules.\nReturn plain Korean text only (no markdown fences, no JSON).\n\n{\n  \"sampleId\": \"CIE-SHADOW-V02-003\",\n  \"primaryEvidenceType\": \"PLAYER\",\n  \"fiiInput\": {\n    \"schemaVersion\": \"yago-vision-fii-summary-v1\",\n    \"teamFii\": {\n      \"overall\": 63,\n      \"axes\": {\n        \"spatial\": 50,\n        \"vision\": 53,\n        \"decision\": 49,\n        \"pressure\": 47,\n        \"tactics\": 51\n      },\n      \"playerCount\": 2\n    },\n    \"playerFii\": [\n      {\n        \"trackId\": \"t1\",\n        \"name\": \"P1\",\n        \"fii\": 66,\n        \"rank\": 1,\n        \"axes\": {\n          \"spatial\": 68,\n          \"vision\": 64,\n          \"decision\": 62,\n          \"pressure\": 61,\n          \"tactics\": 63\n        }\n      },\n      {\n        \"trackId\": \"t2\",\n        \"name\": \"P2\",\n        \"fii\": 58,\n        \"rank\": 2,\n        \"axes\": {\n          \"spatial\": 55,\n          \"vision\": 56,\n          \"decision\": 54,\n          \"pressure\": 53,\n          \"tactics\": 55\n        }\n      }\n    ],\n    \"gevInput\": {\n      \"eventCount\": 37,\n      \"eventCounts\": {\n        \"PASS\": 20,\n        \"RECEIVE\": 16,\n        \"TURNOVER\": 1\n      }\n    },\n    \"matchSummary\": {\n      \"eventHighlights\": {\n        \"passes\": 20,\n        \"receives\": 16,\n        \"turnovers\": 1,\n        \"totalEvents\": 37\n      }\n    }\n  },\n  \"coachInsightsInput\": {\n    \"primaryEvidenceType\": \"PLAYER\",\n    \"insightVersion\": \"e2-v1\",\n    \"coachDecisionBrief\": {\n      \"keyChangeToday\": \"P1 FII 66점으로 P2(58점) 대비 8점 차이가 있습니다.\",\n      \"nextTrainingFocus\": \"P1·P2 비교 클립 리뷰\",\n      \"playersToCoach\": [\n        {\n          \"trackId\": \"t2\",\n          \"name\": \"P2\",\n          \"focus\": \"지원 패스\",\n          \"oneLiner\": \"한 가지 큐만\"\n        }\n      ]\n    },\n    \"reviewHooks\": [\n      {\n        \"label\": \"P1·P2 격차\",\n        \"headlineMetric\": \"FII 8점 차\",\n        \"suggestedAction\": \"선수별 FII 차이 관측 리뷰\"\n      }\n    ],\n    \"strengths\": [\n      \"P1: FII 66점\",\n      \"팀 overall 63점\"\n    ],\n    \"improvementPoints\": [\n      \"턴오버 1건 포인트\",\n      \"PLAYER 근거 확인\"\n    ],\n    \"recommendations\": [\n      \"P1·P2 격차: 선수별 FII 차이 관측 리뷰\",\n      \"추가 클립으로 FII 추세 비교\"\n    ]\n  },\n  \"allowedFacts\": [\n    {\n      \"factId\": \"AF01\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.overall\",\n      \"value\": 63\n    },\n    {\n      \"factId\": \"AF-team-spatial\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.spatial\",\n      \"value\": 50\n    },\n    {\n      \"factId\": \"AF-team-vision\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.vision\",\n      \"value\": 53\n    },\n    {\n      \"factId\": \"AF-team-decision\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.decision\",\n      \"value\": 49\n    },\n    {\n      \"factId\": \"AF-team-pressure\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.pressure\",\n      \"value\": 47\n    },\n    {\n      \"factId\": \"AF-team-tactics\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.tactics\",\n      \"value\": 51\n    },\n    {\n      \"factId\": \"AF-PASS\",\n      \"type\": \"number\",\n      \"path\": \"gevInput.eventCounts.PASS\",\n      \"value\": 20\n    },\n    {\n      \"factId\": \"AF-RECEIVE\",\n      \"type\": \"number\",\n      \"path\": \"gevInput.eventCounts.RECEIVE\",\n      \"value\": 16\n    },\n    {\n      \"factId\": \"AF-TURNOVER\",\n      \"type\": \"number\",\n      \"path\": \"gevInput.eventCounts.TURNOVER\",\n      \"value\": 1\n    },\n    {\n      \"factId\": \"AF-brief-keyChangeToday\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.coachDecisionBrief.keyChangeToday\",\n      \"value\": \"P1 FII 66점으로 P2(58점) 대비 8점 차이가 있습니다.\"\n    },\n    {\n      \"factId\": \"AF-brief-nextTrainingFocus\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.coachDecisionBrief.nextTrainingFocus\",\n      \"value\": \"P1·P2 비교 클립 리뷰\"\n    },\n    {\n      \"factId\": \"AF-hook0-label\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.reviewHooks[0].label\",\n      \"value\": \"P1·P2 격차\"\n    },\n    {\n      \"factId\": \"AF-hook0-headlineMetric\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.reviewHooks[0].headlineMetric\",\n      \"value\": \"FII 8점 차\"\n    },\n    {\n      \"factId\": \"AF-hook0-suggestedAction\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.reviewHooks[0].suggestedAction\",\n      \"value\": \"선수별 FII 차이 관측 리뷰\"\n    },\n    {\n      \"factId\": \"AF-P1\",\n      \"type\": \"string\",\n      \"path\": \"playerFii.name\",\n      \"value\": \"P1\"\n    },\n    {\n      \"factId\": \"AF-P1-fii\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.fii\",\n      \"value\": 66\n    },\n    {\n      \"factId\": \"AF-P1-spatial\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.spatial\",\n      \"value\": 68\n    },\n    {\n      \"factId\": \"AF-P1-vision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.vision\",\n      \"value\": 64\n    },\n    {\n      \"factId\": \"AF-P1-decision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.decision\",\n      \"value\": 62\n    },\n    {\n      \"factId\": \"AF-P1-pressure\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.pressure\",\n      \"value\": 61\n    },\n    {\n      \"factId\": \"AF-P1-tactics\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.tactics\",\n      \"value\": 63\n    },\n    {\n      \"factId\": \"AF-P2\",\n      \"type\": \"string\",\n      \"path\": \"playerFii.name\",\n      \"value\": \"P2\"\n    },\n    {\n      \"factId\": \"AF-P2-fii\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.fii\",\n      \"value\": 58\n    },\n    {\n      \"factId\": \"AF-P2-spatial\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.spatial\",\n      \"value\": 55\n    },\n    {\n      \"factId\": \"AF-P2-vision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.vision\",\n      \"value\": 56\n    },\n    {\n      \"factId\": \"AF-P2-decision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.decision\",\n      \"value\": 54\n    },\n    {\n      \"factId\": \"AF-P2-pressure\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.pressure\",\n      \"value\": 53\n    },\n    {\n      \"factId\": \"AF-P2-tactics\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.tactics\",\n      \"value\": 55\n    },\n    {\n      \"factId\": \"AF-S0\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.strengths\",\n      \"value\": \"P1: FII 66점\"\n    },\n    {\n      \"factId\": \"AF-S1\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.strengths\",\n      \"value\": \"팀 overall 63점\"\n    },\n    {\n      \"factId\": \"AF-IP0\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.improvementPoints\",\n      \"value\": \"턴오버 1건 포인트\"\n    },\n    {\n      \"factId\": \"AF-IP1\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.improvementPoints\",\n      \"value\": \"PLAYER 근거 확인\"\n    },\n    {\n      \"factId\": \"AF-PET\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.primaryEvidenceType\",\n      \"value\": \"PLAYER\"\n    }\n  ],\n  \"coachContext\": {\n    \"audience\": \"coach\",\n    \"task\": \"rewrite_brief\",\n    \"locale\": \"ko-KR\",\n    \"hitlRequired\": true\n  }\n}",
+  "payloadAudit": {
+    "sampleId": "CIE-SHADOW-V02-003",
+    "primaryEvidenceType": "PLAYER",
+    "headlineInPayload": null,
+    "summaryInPayload": null,
+    "eventHighlightsInPayload": {
+      "passes": 20,
+      "receives": 16,
+      "turnovers": 1,
+      "totalEvents": 37
+    },
+    "keyChangeToday": "P1 FII 66점으로 P2(58점) 대비 8점 차이가 있습니다.",
+    "allowedFactsCount": 33,
+    "genericHeadlineAbsent": true,
+    "payloadKeyOrder": [
+      "sampleId",
+      "primaryEvidenceType",
+      "fiiInput",
+      "coachInsightsInput",
+      "allowedFacts",
+      "coachContext"
+    ]
+  },
+  "checks": {
+    "genericHeadlineAbsent": true,
+    "eventHighlightsPreserved": true
+  }
+}

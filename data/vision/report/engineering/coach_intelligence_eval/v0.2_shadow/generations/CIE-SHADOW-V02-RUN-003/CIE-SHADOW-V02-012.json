@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-012",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:58:21.244910+00:00",
+  "rewriteText": "패스 연결 19건이 확인되었습니다. P1과 P2는 역할 유지를 통해 안정성을 높이고, P3는 공간 이동에 집중해야 합니다. 턴오버 4건이 발생했으므로, 위험 지역에서의 안전 옵션 리허설을 고려하는 것이 좋습니다. 최종 적용 여부는 코치가 검토해 결정합니다.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3768,
+    "completion_tokens": 78
+  }
+}

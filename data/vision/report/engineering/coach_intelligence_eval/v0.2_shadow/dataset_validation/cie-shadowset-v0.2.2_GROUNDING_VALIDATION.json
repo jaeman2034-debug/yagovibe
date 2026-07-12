@@ -1,0 +1,518 @@
+{
+  "datasetVersion": "cie-shadowset-v0.2.2",
+  "validatedAt": "2026-07-12T23:39:59.347387+00:00",
+  "perSamplePass": 20,
+  "perSampleFail": 0,
+  "corpusChecks": {
+    "passOpenFamilyCount": 0,
+    "passOpenFamilyMax": 5,
+    "nextTrainingFocusTopPhrase": "동일 수치 지표 구분 리뷰",
+    "nextTrainingFocusTopCount": 2,
+    "nextTrainingFocusTopPct": 0.1,
+    "suggestedActionTopPhrase": "수치 맥락 구분 관측 리뷰",
+    "suggestedActionTopCount": 2,
+    "suggestedActionTopPct": 0.1,
+    "primaryEvidenceTypeDistribution": {
+      "AXIS": 4,
+      "NUMERIC": 4,
+      "PLAYER": 5,
+      "SEQUENCE": 3,
+      "TIME_WINDOW": 2,
+      "COACH_INSIGHT": 2
+    },
+    "maxPrimaryEvidenceTypePct": 0.25,
+    "keyChangeTodayUnique": 20,
+    "corpusPass": true,
+    "corpusFailures": []
+  },
+  "payloadContract": {
+    "matchSummary.headline": "OMIT when null or generic non-evidence title (e.g. 섀도 세션 요약)",
+    "matchSummary.summary": "OMIT when generic metadata only (e.g. GEV·FII 기반 코치 브리프)",
+    "matchSummary.eventHighlights": "INCLUDE — numeric evidence-bearing",
+    "teamFii": "INCLUDE",
+    "playerFii": "INCLUDE",
+    "gevInput": "INCLUDE",
+    "timeWindow": "INCLUDE when present",
+    "coachInsightsInput": "INCLUDE",
+    "allowedFacts": "INCLUDE",
+    "coachContext": "INCLUDE",
+    "primaryEvidenceType": "INCLUDE at payload root",
+    "forbiddenClaims": "OMIT from rewrite payload (evaluator uses full sample)",
+    "baitNote": "INCLUDE when present (adversarial guard)"
+  },
+  "payloadAudits": [
+    {
+      "sampleId": "CIE-SHADOW-V02-001",
+      "primaryEvidenceType": "AXIS",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 14,
+        "receives": 11,
+        "turnovers": 2,
+        "totalEvents": 27
+      },
+      "keyChangeToday": "의사결정(decision) 축 49점이 팀 축 중 가장 낮습니다.",
+      "allowedFactsCount": 33,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-002",
+      "primaryEvidenceType": "NUMERIC",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 7,
+        "receives": 8,
+        "turnovers": 5,
+        "totalEvents": 20
+      },
+      "keyChangeToday": "턴오버 5건이 패스 7건 대비 높게 관측되었습니다.",
+      "allowedFactsCount": 33,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-003",
+      "primaryEvidenceType": "PLAYER",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 20,
+        "receives": 16,
+        "turnovers": 1,
+        "totalEvents": 37
+      },
+      "keyChangeToday": "P1 FII 66점으로 P2(58점) 대비 8점 차이가 있습니다.",
+      "allowedFactsCount": 33,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-004",
+      "primaryEvidenceType": "SEQUENCE",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 11,
+        "receives": 9,
+        "turnovers": 3,
+        "totalEvents": 23
+      },
+      "keyChangeToday": "패스 11건·리시브 9건·턴오버 3건의 이벤트 흐름이 기록되었습니다.",
+      "allowedFactsCount": 33,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-005",
+      "primaryEvidenceType": "AXIS",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 4,
+        "receives": 5,
+        "turnovers": 6,
+        "totalEvents": 15
+      },
+      "keyChangeToday": "압박(pressure) 축 47점이 팀 축 중 가장 낮습니다.",
+      "allowedFactsCount": 33,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-006",
+      "primaryEvidenceType": "NUMERIC",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 15,
+        "receives": 12,
+        "turnovers": 2,
+        "totalEvents": 29
+      },
+      "keyChangeToday": "리시브 12건이 패스 15건 대비 낮게 관측되었습니다.",
+      "allowedFactsCount": 33,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-007",
+      "primaryEvidenceType": "PLAYER",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 13,
+        "receives": 10,
+        "turnovers": 4,
+        "totalEvents": 27
+      },
+      "keyChangeToday": "P2 FII 50점으로 팀 내 2위이며 지원 패스 포커스가 기록되어 있습니다.",
+      "allowedFactsCount": 33,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-008",
+      "primaryEvidenceType": "SEQUENCE",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 9,
+        "receives": 7,
+        "turnovers": 3,
+        "totalEvents": 19
+      },
+      "keyChangeToday": "턴오버 3건이 패스 9건 구간에서 반복 관측되었습니다.",
+      "allowedFactsCount": 33,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-009",
+      "primaryEvidenceType": "PLAYER",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 16,
+        "receives": 12,
+        "turnovers": 3,
+        "totalEvents": 31
+      },
+      "keyChangeToday": "P3·P4 FII 격차(45·40점)가 4인 라인업에서 두드러집니다.",
+      "allowedFactsCount": 47,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-010",
+      "primaryEvidenceType": "AXIS",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 17,
+        "receives": 13,
+        "turnovers": 4,
+        "totalEvents": 34
+      },
+      "keyChangeToday": "공간(spatial) 축 격차가 P1(61)과 P4(39) 사이에서 큽니다.",
+      "allowedFactsCount": 47,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-011",
+      "primaryEvidenceType": "SEQUENCE",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 18,
+        "receives": 14,
+        "turnovers": 3,
+        "totalEvents": 35
+      },
+      "keyChangeToday": "4인 활성 구간에서 턴오버 3건이 연속 관측되었습니다.",
+      "allowedFactsCount": 47,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-012",
+      "primaryEvidenceType": "PLAYER",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 19,
+        "receives": 15,
+        "turnovers": 4,
+        "totalEvents": 38
+      },
+      "keyChangeToday": "P1 FII 60점으로 4인 중 1위, P4는 40점으로 4위입니다.",
+      "allowedFactsCount": 47,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-013",
+      "primaryEvidenceType": "NUMERIC",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 12,
+        "receives": 10,
+        "turnovers": 2,
+        "totalEvents": 24
+      },
+      "keyChangeToday": "패스 12건·팀 overall 12점·P1 FII 12점이 동일 수치로 겹칩니다.",
+      "allowedFactsCount": 34,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-014",
+      "primaryEvidenceType": "NUMERIC",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 13,
+        "receives": 11,
+        "turnovers": 2,
+        "totalEvents": 26
+      },
+      "keyChangeToday": "패스 13건·팀 overall 13점·P1 FII 13점이 동일 수치로 겹칩니다.",
+      "allowedFactsCount": 34,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-015",
+      "primaryEvidenceType": "AXIS",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 14,
+        "receives": 12,
+        "turnovers": 2,
+        "totalEvents": 28
+      },
+      "keyChangeToday": "비전(vision) 축 51점이 팀 축 중 상대적으로 낮습니다.",
+      "allowedFactsCount": 34,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-016",
+      "primaryEvidenceType": "TIME_WINDOW",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 15,
+        "receives": 13,
+        "turnovers": 2,
+        "totalEvents": 30
+      },
+      "keyChangeToday": "2쿼터 구간에서 턴오버 2건이 집중되었습니다.",
+      "allowedFactsCount": 37,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-017",
+      "primaryEvidenceType": "COACH_INSIGHT",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 10,
+        "receives": 8,
+        "turnovers": 3,
+        "totalEvents": 21
+      },
+      "keyChangeToday": "P2 리시브 직전 스캔 포인트가 improvementPoints에 기록되어 있습니다.",
+      "allowedFactsCount": 32,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext",
+        "baitNote"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-018",
+      "primaryEvidenceType": "PLAYER",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 10,
+        "receives": 8,
+        "turnovers": 3,
+        "totalEvents": 21
+      },
+      "keyChangeToday": "P2 FII 46점으로 리시브 포커스가 playersToCoach에 기록되어 있습니다.",
+      "allowedFactsCount": 32,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext",
+        "baitNote"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-019",
+      "primaryEvidenceType": "COACH_INSIGHT",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 12,
+        "receives": 9,
+        "turnovers": 4,
+        "totalEvents": 25
+      },
+      "keyChangeToday": "P1 빌드업·폭 만들기 포커스가 coachDecisionBrief에 기록되어 있습니다.",
+      "allowedFactsCount": 31,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext",
+        "baitNote"
+      ]
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-020",
+      "primaryEvidenceType": "TIME_WINDOW",
+      "headlineInPayload": null,
+      "summaryInPayload": null,
+      "eventHighlightsInPayload": {
+        "passes": 12,
+        "receives": 9,
+        "turnovers": 4,
+        "totalEvents": 25
+      },
+      "keyChangeToday": "후반(3쿼터) 구간에서 턴오버 4건이 집중되었습니다.",
+      "allowedFactsCount": 34,
+      "genericHeadlineAbsent": true,
+      "payloadKeyOrder": [
+        "sampleId",
+        "primaryEvidenceType",
+        "fiiInput",
+        "coachInsightsInput",
+        "allowedFacts",
+        "coachContext",
+        "baitNote"
+      ]
+    }
+  ],
+  "headlineTreatment": {
+    "storageHeadlineNull": true,
+    "payloadGenericHeadlineAbsent": true
+  },
+  "promptSha256_cip_v0_2_2": "30c5f98b01843c77003282ebb231c453f7d19e2c502fe4ea49e5fbcac69d64dc",
+  "promptShaUnchanged": true,
+  "contractErrors": [],
+  "overallPass": true,
+  "productionWrites": false
+}

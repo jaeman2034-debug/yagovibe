@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-018",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:58:30.262535+00:00",
+  "rewriteText": "패스 연결 10건이 확인되었습니다. P2의 리시브 능력 향상이 필요하며, 이를 위해 \"받기 전 스캔\"에 집중하는 것이 좋습니다. 턴오버 3건이 발생했으므로, 위험 지역 안전 옵션 리허설을 고려해 보세요. 최종 적용 여부는 코치가 검토해 결정합니다.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2883,
+    "completion_tokens": 80
+  }
+}

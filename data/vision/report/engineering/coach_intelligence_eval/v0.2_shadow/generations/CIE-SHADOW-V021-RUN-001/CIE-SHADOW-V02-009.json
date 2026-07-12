@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-009",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:15:09.188108+00:00",
+  "rewriteText": "섀도 세션 요약입니다. GEV·FII 기반 코치 브리프입니다. 현재 P3와 P4의 FII 격차(45·40점)가 4인 라인업에서 두드러집니다. 다음 훈련에서는 4인 라인업 선수 비교 리뷰에 집중할 필요가 있습니다.\n\n강점으로는 패스 16건과 활성 선수 4명이 있습니다. 개선할 점으로는 턴오버 3건과 P3·P4 간격 점검이 있습니다. P3와 P4 간격에 대한 관측 리뷰를 제안합니다. \n\n이 포인트는 코치님이 결정 후 훈련에 적용해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 4001,
+    "completion_tokens": 152
+  }
+}

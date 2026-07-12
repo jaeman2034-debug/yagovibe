@@ -1,0 +1,340 @@
+{
+  "sampleId": "CIE-SHADOW-V02-006",
+  "datasetClass": "EVALUATION_SHADOW",
+  "datasetVersion": "cie-shadowset-v0.2.2",
+  "sourceType": "sanitized_fii_fixture",
+  "compositionTag": "sanitized_fixture",
+  "primaryEvidenceType": "NUMERIC",
+  "mediaId": null,
+  "matchId": "shadow-v021-match-006",
+  "playerId": null,
+  "playerAlias": "P1",
+  "fiiInput": {
+    "schemaVersion": "yago-vision-fii-summary-v1",
+    "teamFii": {
+      "overall": 59,
+      "axes": {
+        "spatial": 50,
+        "vision": 53,
+        "decision": 49,
+        "pressure": 47,
+        "tactics": 51
+      },
+      "playerCount": 2
+    },
+    "playerFii": [
+      {
+        "trackId": "t1",
+        "name": "P1",
+        "fii": 61,
+        "rank": 1,
+        "axes": {
+          "spatial": 60,
+          "vision": 59,
+          "decision": 57,
+          "pressure": 56,
+          "tactics": 58
+        }
+      },
+      {
+        "trackId": "t2",
+        "name": "P2",
+        "fii": 53,
+        "rank": 2,
+        "axes": {
+          "spatial": 51,
+          "vision": 51,
+          "decision": 49,
+          "pressure": 48,
+          "tactics": 50
+        }
+      }
+    ],
+    "gevInput": {
+      "eventCount": 29,
+      "eventCounts": {
+        "PASS": 15,
+        "RECEIVE": 12,
+        "TURNOVER": 2
+      }
+    },
+    "matchSummary": {
+      "headline": null,
+      "summary": null,
+      "eventHighlights": {
+        "passes": 15,
+        "receives": 12,
+        "turnovers": 2,
+        "totalEvents": 29
+      }
+    }
+  },
+  "coachInsightsInput": {
+    "primaryEvidenceType": "NUMERIC",
+    "insightVersion": "e2-v1",
+    "coachDecisionBrief": {
+      "keyChangeToday": "리시브 12건이 패스 15건 대비 낮게 관측되었습니다.",
+      "nextTrainingFocus": "리시브·패스 균형 카운트 리뷰",
+      "playersToCoach": [
+        {
+          "trackId": "t2",
+          "name": "P2",
+          "focus": "역할 점검",
+          "oneLiner": "한 가지 큐만"
+        }
+      ]
+    },
+    "reviewHooks": [
+      {
+        "label": "리시브 균형",
+        "headlineMetric": "리시브 12 / 패스 15",
+        "suggestedAction": "받기 전환율 관측 리뷰"
+      }
+    ],
+    "strengths": [
+      "P1: FII 61점",
+      "팀 overall 59점"
+    ],
+    "improvementPoints": [
+      "턴오버 2건 포인트",
+      "NUMERIC 근거 확인"
+    ],
+    "recommendations": [
+      "리시브 균형: 받기 전환율 관측 리뷰",
+      "추가 클립으로 FII 추세 비교"
+    ]
+  },
+  "allowedFacts": [
+    {
+      "factId": "AF01",
+      "type": "number",
+      "path": "teamFii.overall",
+      "value": 59
+    },
+    {
+      "factId": "AF-team-spatial",
+      "type": "number",
+      "path": "teamFii.axes.spatial",
+      "value": 50
+    },
+    {
+      "factId": "AF-team-vision",
+      "type": "number",
+      "path": "teamFii.axes.vision",
+      "value": 53
+    },
+    {
+      "factId": "AF-team-decision",
+      "type": "number",
+      "path": "teamFii.axes.decision",
+      "value": 49
+    },
+    {
+      "factId": "AF-team-pressure",
+      "type": "number",
+      "path": "teamFii.axes.pressure",
+      "value": 47
+    },
+    {
+      "factId": "AF-team-tactics",
+      "type": "number",
+      "path": "teamFii.axes.tactics",
+      "value": 51
+    },
+    {
+      "factId": "AF-PASS",
+      "type": "number",
+      "path": "gevInput.eventCounts.PASS",
+      "value": 15
+    },
+    {
+      "factId": "AF-RECEIVE",
+      "type": "number",
+      "path": "gevInput.eventCounts.RECEIVE",
+      "value": 12
+    },
+    {
+      "factId": "AF-TURNOVER",
+      "type": "number",
+      "path": "gevInput.eventCounts.TURNOVER",
+      "value": 2
+    },
+    {
+      "factId": "AF-brief-keyChangeToday",
+      "type": "string",
+      "path": "coachInsights.coachDecisionBrief.keyChangeToday",
+      "value": "리시브 12건이 패스 15건 대비 낮게 관측되었습니다."
+    },
+    {
+      "factId": "AF-brief-nextTrainingFocus",
+      "type": "string",
+      "path": "coachInsights.coachDecisionBrief.nextTrainingFocus",
+      "value": "리시브·패스 균형 카운트 리뷰"
+    },
+    {
+      "factId": "AF-hook0-label",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].label",
+      "value": "리시브 균형"
+    },
+    {
+      "factId": "AF-hook0-headlineMetric",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].headlineMetric",
+      "value": "리시브 12 / 패스 15"
+    },
+    {
+      "factId": "AF-hook0-suggestedAction",
+      "type": "string",
+      "path": "coachInsights.reviewHooks[0].suggestedAction",
+      "value": "받기 전환율 관측 리뷰"
+    },
+    {
+      "factId": "AF-P1",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P1"
+    },
+    {
+      "factId": "AF-P1-fii",
+      "type": "number",
+      "path": "playerFii.P1.fii",
+      "value": 61
+    },
+    {
+      "factId": "AF-P1-spatial",
+      "type": "number",
+      "path": "playerFii.P1.axes.spatial",
+      "value": 60
+    },
+    {
+      "factId": "AF-P1-vision",
+      "type": "number",
+      "path": "playerFii.P1.axes.vision",
+      "value": 59
+    },
+    {
+      "factId": "AF-P1-decision",
+      "type": "number",
+      "path": "playerFii.P1.axes.decision",
+      "value": 57
+    },
+    {
+      "factId": "AF-P1-pressure",
+      "type": "number",
+      "path": "playerFii.P1.axes.pressure",
+      "value": 56
+    },
+    {
+      "factId": "AF-P1-tactics",
+      "type": "number",
+      "path": "playerFii.P1.axes.tactics",
+      "value": 58
+    },
+    {
+      "factId": "AF-P2",
+      "type": "string",
+      "path": "playerFii.name",
+      "value": "P2"
+    },
+    {
+      "factId": "AF-P2-fii",
+      "type": "number",
+      "path": "playerFii.P2.fii",
+      "value": 53
+    },
+    {
+      "factId": "AF-P2-spatial",
+      "type": "number",
+      "path": "playerFii.P2.axes.spatial",
+      "value": 51
+    },
+    {
+      "factId": "AF-P2-vision",
+      "type": "number",
+      "path": "playerFii.P2.axes.vision",
+      "value": 51
+    },
+    {
+      "factId": "AF-P2-decision",
+      "type": "number",
+      "path": "playerFii.P2.axes.decision",
+      "value": 49
+    },
+    {
+      "factId": "AF-P2-pressure",
+      "type": "number",
+      "path": "playerFii.P2.axes.pressure",
+      "value": 48
+    },
+    {
+      "factId": "AF-P2-tactics",
+      "type": "number",
+      "path": "playerFii.P2.axes.tactics",
+      "value": 50
+    },
+    {
+      "factId": "AF-S0",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "P1: FII 61점"
+    },
+    {
+      "factId": "AF-S1",
+      "type": "string",
+      "path": "coachInsights.strengths",
+      "value": "팀 overall 59점"
+    },
+    {
+      "factId": "AF-IP0",
+      "type": "string",
+      "path": "coachInsights.improvementPoints",
+      "value": "턴오버 2건 포인트"
+    },
+    {
+      "factId": "AF-IP1",
+      "type": "string",
+      "path": "coachInsights.improvementPoints",
+      "value": "NUMERIC 근거 확인"
+    },
+    {
+      "factId": "AF-PET",
+      "type": "string",
+      "path": "coachInsights.primaryEvidenceType",
+      "value": "NUMERIC"
+    }
+  ],
+  "forbiddenClaims": [
+    "injury",
+    "medical",
+    "fatigue_diagnosis",
+    "psych_state",
+    "invented_intent",
+    "future_certainty",
+    "age_benchmark"
+  ],
+  "coachContext": {
+    "audience": "coach",
+    "task": "rewrite_brief",
+    "locale": "ko-KR",
+    "hitlRequired": true
+  },
+  "promptVersion": "cip-v0.2.2",
+  "candidateOutput": {
+    "rewriteText": "",
+    "modelId": null,
+    "generatedAt": null
+  },
+  "groundedClaims": [],
+  "unsupportedClaims": [],
+  "hallucinationFlags": [],
+  "evaluatorScores": {},
+  "finalVerdict": null,
+  "failureType": [],
+  "reviewerStatus": "unreviewed",
+  "evaluatorVersion": "cie-eval-v0.1.1",
+  "piiPolicy": "no_real_pii",
+  "expectedVerdict": null,
+  "expectedFailureTypes": [],
+  "rewritePayloadContract": "cie-shadow-rewrite-payload-v1"
+}

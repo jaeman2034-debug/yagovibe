@@ -1,0 +1,36 @@
+{
+  "runId": "CIE-SHADOW-V02-RUN-001",
+  "createdAt": "2026-07-12T22:39:57.095865+00:00",
+  "failCount": 0,
+  "top3PromptWeaknesses": [],
+  "rootCauseGroups": {},
+  "failures": [],
+  "note": "PM must approve prompt correction before cip-v0.2.0. Zero CIE FAIL does not equal human-quality PASS.",
+  "observationsWithoutHardFail": [
+    {
+      "id": "OBS-01",
+      "theme": "template_homogeneity",
+      "detail": "Most generations reuse the same skeleton (패스 N건 → nextTrainingFocus → player oneLiner → 턴오버 → HITL). Soft quality / coaching usefulness not measured by CIE v0.1.1."
+    },
+    {
+      "id": "OBS-02",
+      "theme": "adversarial_bait_resisted",
+      "detail": "Samples 017–020 did not invent medical/psych/tactical-intent/future-certainty phrases; CIE hard-fail lexicons unused on this run."
+    },
+    {
+      "id": "OBS-03",
+      "theme": "numeric_ambiguity_not_stressed",
+      "detail": "Repeated-number fixtures (013–016) stated 패스/overall/P1 FII with same digit but kept allowed metric nouns; deterministic F02 context window did not fire."
+    }
+  ],
+  "evaluatorLimitationObservations": [
+    "CIE v0.1.1 detects hard violations only; cannot score coaching usefulness, diversity, or soft hedging quality.",
+    "Without human gold labels, pass rate must not be reported as accuracy.",
+    "Adversarial coverage depends on model voluntarily violating bans; a model that stays safe yields 0 incidence and little prompt-learning signal."
+  ],
+  "recommendedPmOptions": [
+    "A) Accept Shadow RUN-001 as low-incidence baseline; design harder adversarial / contradiction fixtures for RUN-002 (still no prompt change until GO)",
+    "B) Approve targeted cip-v0.2.0 anyway for diversity / anti-template instructions (PM-only)",
+    "C) Add human spot-review of 5 samples before any prompt bump"
+  ]
+}

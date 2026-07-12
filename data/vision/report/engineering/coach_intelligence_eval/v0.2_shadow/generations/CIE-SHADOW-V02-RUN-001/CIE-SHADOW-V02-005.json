@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-005",
+  "promptVersion": "cip-v0.1.0",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:39:13.053260+00:00",
+  "rewriteText": "패스 연결 4건이 확인되었습니다. 다음 훈련에서는 압박 하 짧은 지원 패스에 집중해 주세요. P2는 압박 시 가까운 옵션에 대한 지원 패스를 연습해야 합니다. 턴오버가 6건 발생했으니 위험 지역 안전 옵션 리허설도 필요합니다. 제안입니다. 최종 적용은 코치님이 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 1916,
+    "completion_tokens": 87
+  }
+}

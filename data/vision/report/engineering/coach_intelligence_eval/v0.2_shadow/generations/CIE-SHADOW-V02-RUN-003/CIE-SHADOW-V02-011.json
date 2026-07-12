@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-011",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:58:16.425857+00:00",
+  "rewriteText": "패스 연결 18건이 확인되었습니다. P1은 62점으로 팀 내에서 가장 높은 FII를 기록하며, 공간과 비전에서 각각 61점과 60점을 보였습니다. 반면 P3와 P4는 각각 47점과 42점으로 상대적으로 낮은 성과를 보였으므로, 이들의 간격 점검이 필요합니다. 코치가 검토 후 훈련에 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3768,
+    "completion_tokens": 97
+  }
+}

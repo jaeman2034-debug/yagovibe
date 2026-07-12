@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-010",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T23:15:12.067054+00:00",
+  "rewriteText": "오늘의 주요 변화는 P1(61)과 P4(39) 사이의 공간(spatial) 축 격차가 크다는 점입니다. 다음 훈련에서는 spatial 축 훈련 제약을 점검하는 것이 필요합니다. \n\n현재 활성 선수는 4명이며, 패스는 17건, 수신은 13건, 턴오버는 4건 발생했습니다. 턴오버를 줄이고 P3와 P4 간의 간격을 점검하는 것이 개선 포인트입니다. \n\nP1과 P2는 역할 유지를 중심으로 훈련하고, P3는 공간 이동에 집중해야 합니다. 이 내용은 코치님이 결정 후 훈련에 적용해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3991,
+    "completion_tokens": 157
+  }
+}

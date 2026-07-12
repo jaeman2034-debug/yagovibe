@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-001",
+  "promptVersion": "cip-v0.2.1",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:57:52.937440+00:00",
+  "rewriteText": "패스 연결 14건이 확인되었습니다. P1의 FII는 62점으로, 팀 내에서 가장 높은 수치입니다. 턴오버 2건이 발생했으므로, 압박 상황에서의 대응 훈련이 필요합니다. 이 포인트는 코치 판단 후 훈련에 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2931,
+    "completion_tokens": 72
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "runId": "CIE-SHADOW-V02-RUN-002",
+  "createdAt": "2026-07-12T22:52:11.152334+00:00",
+  "failCount": 1,
+  "top3PromptWeaknesses": [
+    {
+      "weakness": "hitl_contract_phrasing",
+      "count": 1
+    }
+  ],
+  "rootCauseGroups": {
+    "hitl_contract_phrasing": 1
+  },
+  "failures": [
+    {
+      "sampleId": "CIE-SHADOW-V02-003",
+      "generatedText": "패스 연결 20건이 확인되었습니다. P1은 FII 66점으로 좋은 성과를 보였으며, 볼 순환이 원활하게 이루어졌습니다. 그러나 턴오버 1건이 발생하여 압박 대응이 필요합니다. P2는 지원 패스에 집중하여 압박 시 가까운 옵션을 활용할 수 있도록 훈련해 주세요. 코치님, 다음 리뷰 포커스는 턴오버 구간에 대한 안전 옵션 리허설입니다. 확인해 주세요.",
+      "groundedEvidencePaths": [
+        "teamFii.overall",
+        "gevInput.eventCounts.PASS",
+        "gevInput.eventCounts.RECEIVE",
+        "gevInput.eventCounts.TURNOVER",
+        "playerFii.name",
+        "playerFii.P1.fii",
+        "playerFii.P1.axes.spatial",
+        "playerFii.P1.axes.vision",
+        "playerFii.P1.axes.decision",
+        "playerFii.P1.axes.pressure",
+        "playerFii.P1.axes.tactics",
+        "playerFii.name"
+      ],
+      "detectedFailureCodes": [
+        "F12_FORMAT_CONTRACT_FAIL"
+      ],
+      "compositionTag": "sanitized_fixture",
+      "likelyPromptWeakness": [
+        "hitl_contract_phrasing"
+      ],
+      "evaluatorLimitation": [],
+      "correctionCandidate": "Strengthen cip grounding: metric-bound numbers; explicit medical/psych/intent bans; require HITL closing."
+    }
+  ],
+  "note": "PM must approve prompt correction before cip-v0.2.0"
+}

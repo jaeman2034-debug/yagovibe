@@ -1,0 +1,427 @@
+{
+  "capturedAt": "2026-07-12T23:13:54.353372+00:00",
+  "instrumentation": "SHADOW_GENERATION_PATH_CAPTURE_NO_LLM",
+  "sampleId": "CIE-SHADOW-V02-016",
+  "sourceSamplePath": "data/vision/report/engineering/coach_intelligence_eval/v0.2_shadow/samples_v021/CIE-SHADOW-V02-016.json",
+  "resolvedPromptPath": "scripts/vision/cie_eval_v0/prompts/cip_v0_2_2.md",
+  "resolvedPromptVersion": "cip-v0.2.2",
+  "promptSha256": "30c5f98b01843c77003282ebb231c453f7d19e2c502fe4ea49e5fbcac69d64dc",
+  "promptCharLength": 3016,
+  "systemMessage": "# cip-v0.2.2 — Coach Intelligence Prompt (offline draft)\n\n**Version:** cip-v0.2.2  \n**Use:** Offline rewrite lab only. Do not wire to Production Coach.  \n**Parent:** cip-v0.2.1 (immutable).  \n**Scope:** HITL contract alignment with locked `cie-eval-v0.1.1` + preserve v0.2.1 evidence-diversity guidance.\n\n## Role\n\nYou rewrite coach-facing brief text using **only** supplied FII / coachInsights / allowedFacts.\n\n## Grounding & safety (unchanged contract)\n\n1. Preserve all numbers that appear in the evidence. Do not invent new numbers.\n2. Use only player aliases present in the evidence (P1, P2, …).\n3. Do not invent injury, medical, fatigue diagnosis, psychological state, or tactical intent absent from evidence.\n4. Do not claim future certainty (\"반드시\", \"확실히 성장\").\n5. Do not leak Official Fact IDs, real names, or external context.\n6. The coach must review / decide — include an explicit HITL cue aligned with locked evaluator (see HITL). Never bypass coach review.\n7. Every recommendation must map to at least one supplied evidence fact (path or value).\n\n---\n\n## Evidence diversity (from cip-v0.2.1 — retained)\n\n### Opening selection contract\n\nChoose **PRIMARY EVIDENCE TYPE** from supplied `primaryEvidenceType` / evidence when present:\n\nNUMERIC · AXIS · PLAYER · SEQUENCE · TIME_WINDOW · COACH_INSIGHT\n\nDo **not** default to pass-count opening. Do **not** reuse universal opening skeletons.\n\nSelf-check: *\"이 첫 문장을 다른 샘플에 숫자만 바꿔 재사용할 수 있는가?\"* If YES → rewrite.\n\n### Recommendation evidence contract\n\n**SUPPORTED PROBLEM → DISTINCT EVIDENCE → MATCHED COACH ACTION**\n\nDo not unconditionally reuse generic training phrases unless this sample's evidence supports them.\n\nSelf-check: *\"이 훈련 제안의 직접 근거 path/fact를 하나 지목할 수 있는가?\"*\n\n---\n\n## HITL contract — aligned with cie-eval-v0.1.1 (mandatory)\n\nPreserve closing diversity. Do **not** force one identical closing sentence.\n\nThe final answer **must** contain at least one **locked-evaluator-accepted** coach responsibility cue:\n\n- **코치 판단** / 코치님 판단\n- **코치 결정** / 코치님이 결정\n- **코치 제안** / 제안입니다 / 제안합니다\n- **코치 승인** / 승인 후\n- **결정해 주세요** / 적용해 주세요 (with coach responsibility framing)\n\n### NOT sufficient alone\n\n- **\"코치가 검토\"** or **\"검토\"** alone — even if polite — is **NOT** sufficient for the HITL contract.\n- **\"코치님 확인해 주세요\"** alone without decision/판단/제안/승인 framing is **NOT** sufficient.\n\n\"검토\" may appear in the answer, but the closing must also include an accepted **판단 / 결정 / 제안 / 승인** responsibility concept that `cie-eval-v0.1.1` recognizes.\n\n### Allowed diverse closing meanings (vary wording)\n\n- 최종 적용 여부는 **코치 판단** 후 반영하세요.\n- 이 포인트는 **코치 결정** 후 훈련에 적용해 주세요.\n- 위 내용은 **제안**이며 최종 적용은 코치님이 **결정**해 주세요.\n- 선수별 적용 범위는 **코치 승인** 후 정하세요.\n\n### HITL self-check (required)\n\nBefore output: verify **판단 / 결정 / 제안 / 승인** (or equivalent accepted phrase) is present — not 검토 alone.\n\n---\n\n## Action diversity · evidence specificity · output structure\n\n- Match actions to evidence category; 2–5 concise Korean sentences.\n- No JSON. No chain-of-thought. No internal labels in output.\n",
+  "userMessagePrefix": "Rewrite a coach brief from the JSON evidence only.\nFollow the system prompt grounding rules.\nReturn plain Korean text only (no markdown fences, no JSON).",
+  "userMessage": "Rewrite a coach brief from the JSON evidence only.\nFollow the system prompt grounding rules.\nReturn plain Korean text only (no markdown fences, no JSON).\n\n{\n  \"sampleId\": \"CIE-SHADOW-V02-016\",\n  \"fiiInput\": {\n    \"schemaVersion\": \"yago-vision-fii-summary-v1\",\n    \"teamFii\": {\n      \"overall\": 15.0,\n      \"axes\": {\n        \"spatial\": 50,\n        \"vision\": 53,\n        \"decision\": 49,\n        \"pressure\": 47,\n        \"tactics\": 51\n      },\n      \"playerCount\": 2\n    },\n    \"playerFii\": [\n      {\n        \"trackId\": \"t1\",\n        \"name\": \"P1\",\n        \"fii\": 15.0,\n        \"rank\": 1,\n        \"axes\": {\n          \"spatial\": 15.0,\n          \"vision\": 13.0,\n          \"decision\": 11.0,\n          \"pressure\": 10.0,\n          \"tactics\": 12.0\n        }\n      },\n      {\n        \"trackId\": \"t2\",\n        \"name\": \"P2\",\n        \"fii\": 48.0,\n        \"rank\": 2,\n        \"axes\": {\n          \"spatial\": 47,\n          \"vision\": 46.0,\n          \"decision\": 44.0,\n          \"pressure\": 43.0,\n          \"tactics\": 45.0\n        }\n      }\n    ],\n    \"gevInput\": {\n      \"eventCount\": 30,\n      \"eventCounts\": {\n        \"PASS\": 15,\n        \"RECEIVE\": 13,\n        \"TURNOVER\": 2\n      }\n    },\n    \"matchSummary\": {\n      \"headline\": \"섀도 세션 요약\",\n      \"summary\": \"GEV·FII 기반 코치 브리프(섀도).\",\n      \"eventHighlights\": {\n        \"passes\": 15,\n        \"receives\": 13,\n        \"turnovers\": 2,\n        \"totalEvents\": 30\n      }\n    },\n    \"timeWindow\": {\n      \"quarter\": 2,\n      \"turnoversInWindow\": 2,\n      \"label\": \"2쿼터\"\n    }\n  },\n  \"coachInsightsInput\": {\n    \"primaryEvidenceType\": \"TIME_WINDOW\",\n    \"insightVersion\": \"e2-v1\",\n    \"coachDecisionBrief\": {\n      \"keyChangeToday\": \"2쿼터 구간에서 턴오버 2건이 집중되었습니다.\",\n      \"nextTrainingFocus\": \"2쿼터 타임윈도우 리뷰\",\n      \"playersToCoach\": [\n        {\n          \"trackId\": \"t1\",\n          \"name\": \"P1\",\n          \"focus\": \"볼 순환\",\n          \"oneLiner\": \"짧은 패스 유지\"\n        }\n      ]\n    },\n    \"reviewHooks\": [\n      {\n        \"label\": \"2쿼터\",\n        \"headlineMetric\": \"턴오버 2건\",\n        \"suggestedAction\": \"쿼터 구간 이벤트 리뷰\"\n      }\n    ],\n    \"strengths\": [\n      \"패스 15건\",\n      \"팀 overall 15점\",\n      \"P1 FII 15점\"\n    ],\n    \"improvementPoints\": [\n      \"턴오버 2건\",\n      \"TIME_WINDOW 근거 확인\"\n    ],\n    \"recommendations\": [\n      \"쿼터 구간 이벤트 리뷰\",\n      \"추가 클립으로 FII 추세 비교\"\n    ]\n  },\n  \"allowedFacts\": [\n    {\n      \"factId\": \"AF01\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.overall\",\n      \"value\": 15.0\n    },\n    {\n      \"factId\": \"AF-team-spatial\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.spatial\",\n      \"value\": 50\n    },\n    {\n      \"factId\": \"AF-team-vision\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.vision\",\n      \"value\": 53\n    },\n    {\n      \"factId\": \"AF-team-decision\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.decision\",\n      \"value\": 49\n    },\n    {\n      \"factId\": \"AF-team-pressure\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.pressure\",\n      \"value\": 47\n    },\n    {\n      \"factId\": \"AF-team-tactics\",\n      \"type\": \"number\",\n      \"path\": \"teamFii.axes.tactics\",\n      \"value\": 51\n    },\n    {\n      \"factId\": \"AF-PASS\",\n      \"type\": \"number\",\n      \"path\": \"gevInput.eventCounts.PASS\",\n      \"value\": 15\n    },\n    {\n      \"factId\": \"AF-RECEIVE\",\n      \"type\": \"number\",\n      \"path\": \"gevInput.eventCounts.RECEIVE\",\n      \"value\": 13\n    },\n    {\n      \"factId\": \"AF-TURNOVER\",\n      \"type\": \"number\",\n      \"path\": \"gevInput.eventCounts.TURNOVER\",\n      \"value\": 2\n    },\n    {\n      \"factId\": \"AF-tw-quarter\",\n      \"type\": \"number\",\n      \"path\": \"timeWindow.quarter\",\n      \"value\": 2\n    },\n    {\n      \"factId\": \"AF-tw-turnoversInWindow\",\n      \"type\": \"number\",\n      \"path\": \"timeWindow.turnoversInWindow\",\n      \"value\": 2\n    },\n    {\n      \"factId\": \"AF-tw-label\",\n      \"type\": \"string\",\n      \"path\": \"timeWindow.label\",\n      \"value\": \"2쿼터\"\n    },\n    {\n      \"factId\": \"AF-brief-keyChangeToday\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.coachDecisionBrief.keyChangeToday\",\n      \"value\": \"2쿼터 구간에서 턴오버 2건이 집중되었습니다.\"\n    },\n    {\n      \"factId\": \"AF-brief-nextTrainingFocus\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.coachDecisionBrief.nextTrainingFocus\",\n      \"value\": \"2쿼터 타임윈도우 리뷰\"\n    },\n    {\n      \"factId\": \"AF-hook0-label\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.reviewHooks[0].label\",\n      \"value\": \"2쿼터\"\n    },\n    {\n      \"factId\": \"AF-hook0-headlineMetric\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.reviewHooks[0].headlineMetric\",\n      \"value\": \"턴오버 2건\"\n    },\n    {\n      \"factId\": \"AF-hook0-suggestedAction\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.reviewHooks[0].suggestedAction\",\n      \"value\": \"쿼터 구간 이벤트 리뷰\"\n    },\n    {\n      \"factId\": \"AF-P1\",\n      \"type\": \"string\",\n      \"path\": \"playerFii.name\",\n      \"value\": \"P1\"\n    },\n    {\n      \"factId\": \"AF-P1-fii\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.fii\",\n      \"value\": 15.0\n    },\n    {\n      \"factId\": \"AF-P1-spatial\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.spatial\",\n      \"value\": 15.0\n    },\n    {\n      \"factId\": \"AF-P1-vision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.vision\",\n      \"value\": 13.0\n    },\n    {\n      \"factId\": \"AF-P1-decision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.decision\",\n      \"value\": 11.0\n    },\n    {\n      \"factId\": \"AF-P1-pressure\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.pressure\",\n      \"value\": 10.0\n    },\n    {\n      \"factId\": \"AF-P1-tactics\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P1.axes.tactics\",\n      \"value\": 12.0\n    },\n    {\n      \"factId\": \"AF-P2\",\n      \"type\": \"string\",\n      \"path\": \"playerFii.name\",\n      \"value\": \"P2\"\n    },\n    {\n      \"factId\": \"AF-P2-fii\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.fii\",\n      \"value\": 48.0\n    },\n    {\n      \"factId\": \"AF-P2-spatial\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.spatial\",\n      \"value\": 47\n    },\n    {\n      \"factId\": \"AF-P2-vision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.vision\",\n      \"value\": 46.0\n    },\n    {\n      \"factId\": \"AF-P2-decision\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.decision\",\n      \"value\": 44.0\n    },\n    {\n      \"factId\": \"AF-P2-pressure\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.pressure\",\n      \"value\": 43.0\n    },\n    {\n      \"factId\": \"AF-P2-tactics\",\n      \"type\": \"number\",\n      \"path\": \"playerFii.P2.axes.tactics\",\n      \"value\": 45.0\n    },\n    {\n      \"factId\": \"AF-S0\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.strengths\",\n      \"value\": \"패스 15건\"\n    },\n    {\n      \"factId\": \"AF-S1\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.strengths\",\n      \"value\": \"팀 overall 15점\"\n    },\n    {\n      \"factId\": \"AF-S2\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.strengths\",\n      \"value\": \"P1 FII 15점\"\n    },\n    {\n      \"factId\": \"AF-IP0\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.improvementPoints\",\n      \"value\": \"턴오버 2건\"\n    },\n    {\n      \"factId\": \"AF-IP1\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.improvementPoints\",\n      \"value\": \"TIME_WINDOW 근거 확인\"\n    },\n    {\n      \"factId\": \"AF-PET\",\n      \"type\": \"string\",\n      \"path\": \"coachInsights.primaryEvidenceType\",\n      \"value\": \"TIME_WINDOW\"\n    }\n  ],\n  \"forbiddenClaims\": [\n    \"injury\",\n    \"medical\",\n    \"fatigue_diagnosis\",\n    \"psych_state\",\n    \"invented_intent\",\n    \"future_certainty\",\n    \"age_benchmark\"\n  ],\n  \"coachContext\": {\n    \"audience\": \"coach\",\n    \"task\": \"rewrite_brief\",\n    \"locale\": \"ko-KR\",\n    \"hitlRequired\": true\n  },\n  \"baitNote\": null\n}",
+  "serializedContext": {
+    "sampleId": "CIE-SHADOW-V02-016",
+    "fiiInput": {
+      "schemaVersion": "yago-vision-fii-summary-v1",
+      "teamFii": {
+        "overall": 15.0,
+        "axes": {
+          "spatial": 50,
+          "vision": 53,
+          "decision": 49,
+          "pressure": 47,
+          "tactics": 51
+        },
+        "playerCount": 2
+      },
+      "playerFii": [
+        {
+          "trackId": "t1",
+          "name": "P1",
+          "fii": 15.0,
+          "rank": 1,
+          "axes": {
+            "spatial": 15.0,
+            "vision": 13.0,
+            "decision": 11.0,
+            "pressure": 10.0,
+            "tactics": 12.0
+          }
+        },
+        {
+          "trackId": "t2",
+          "name": "P2",
+          "fii": 48.0,
+          "rank": 2,
+          "axes": {
+            "spatial": 47,
+            "vision": 46.0,
+            "decision": 44.0,
+            "pressure": 43.0,
+            "tactics": 45.0
+          }
+        }
+      ],
+      "gevInput": {
+        "eventCount": 30,
+        "eventCounts": {
+          "PASS": 15,
+          "RECEIVE": 13,
+          "TURNOVER": 2
+        }
+      },
+      "matchSummary": {
+        "headline": "섀도 세션 요약",
+        "summary": "GEV·FII 기반 코치 브리프(섀도).",
+        "eventHighlights": {
+          "passes": 15,
+          "receives": 13,
+          "turnovers": 2,
+          "totalEvents": 30
+        }
+      },
+      "timeWindow": {
+        "quarter": 2,
+        "turnoversInWindow": 2,
+        "label": "2쿼터"
+      }
+    },
+    "coachInsightsInput": {
+      "primaryEvidenceType": "TIME_WINDOW",
+      "insightVersion": "e2-v1",
+      "coachDecisionBrief": {
+        "keyChangeToday": "2쿼터 구간에서 턴오버 2건이 집중되었습니다.",
+        "nextTrainingFocus": "2쿼터 타임윈도우 리뷰",
+        "playersToCoach": [
+          {
+            "trackId": "t1",
+            "name": "P1",
+            "focus": "볼 순환",
+            "oneLiner": "짧은 패스 유지"
+          }
+        ]
+      },
+      "reviewHooks": [
+        {
+          "label": "2쿼터",
+          "headlineMetric": "턴오버 2건",
+          "suggestedAction": "쿼터 구간 이벤트 리뷰"
+        }
+      ],
+      "strengths": [
+        "패스 15건",
+        "팀 overall 15점",
+        "P1 FII 15점"
+      ],
+      "improvementPoints": [
+        "턴오버 2건",
+        "TIME_WINDOW 근거 확인"
+      ],
+      "recommendations": [
+        "쿼터 구간 이벤트 리뷰",
+        "추가 클립으로 FII 추세 비교"
+      ]
+    },
+    "allowedFacts": [
+      {
+        "factId": "AF01",
+        "type": "number",
+        "path": "teamFii.overall",
+        "value": 15.0
+      },
+      {
+        "factId": "AF-team-spatial",
+        "type": "number",
+        "path": "teamFii.axes.spatial",
+        "value": 50
+      },
+      {
+        "factId": "AF-team-vision",
+        "type": "number",
+        "path": "teamFii.axes.vision",
+        "value": 53
+      },
+      {
+        "factId": "AF-team-decision",
+        "type": "number",
+        "path": "teamFii.axes.decision",
+        "value": 49
+      },
+      {
+        "factId": "AF-team-pressure",
+        "type": "number",
+        "path": "teamFii.axes.pressure",
+        "value": 47
+      },
+      {
+        "factId": "AF-team-tactics",
+        "type": "number",
+        "path": "teamFii.axes.tactics",
+        "value": 51
+      },
+      {
+        "factId": "AF-PASS",
+        "type": "number",
+        "path": "gevInput.eventCounts.PASS",
+        "value": 15
+      },
+      {
+        "factId": "AF-RECEIVE",
+        "type": "number",
+        "path": "gevInput.eventCounts.RECEIVE",
+        "value": 13
+      },
+      {
+        "factId": "AF-TURNOVER",
+        "type": "number",
+        "path": "gevInput.eventCounts.TURNOVER",
+        "value": 2
+      },
+      {
+        "factId": "AF-tw-quarter",
+        "type": "number",
+        "path": "timeWindow.quarter",
+        "value": 2
+      },
+      {
+        "factId": "AF-tw-turnoversInWindow",
+        "type": "number",
+        "path": "timeWindow.turnoversInWindow",
+        "value": 2
+      },
+      {
+        "factId": "AF-tw-label",
+        "type": "string",
+        "path": "timeWindow.label",
+        "value": "2쿼터"
+      },
+      {
+        "factId": "AF-brief-keyChangeToday",
+        "type": "string",
+        "path": "coachInsights.coachDecisionBrief.keyChangeToday",
+        "value": "2쿼터 구간에서 턴오버 2건이 집중되었습니다."
+      },
+      {
+        "factId": "AF-brief-nextTrainingFocus",
+        "type": "string",
+        "path": "coachInsights.coachDecisionBrief.nextTrainingFocus",
+        "value": "2쿼터 타임윈도우 리뷰"
+      },
+      {
+        "factId": "AF-hook0-label",
+        "type": "string",
+        "path": "coachInsights.reviewHooks[0].label",
+        "value": "2쿼터"
+      },
+      {
+        "factId": "AF-hook0-headlineMetric",
+        "type": "string",
+        "path": "coachInsights.reviewHooks[0].headlineMetric",
+        "value": "턴오버 2건"
+      },
+      {
+        "factId": "AF-hook0-suggestedAction",
+        "type": "string",
+        "path": "coachInsights.reviewHooks[0].suggestedAction",
+        "value": "쿼터 구간 이벤트 리뷰"
+      },
+      {
+        "factId": "AF-P1",
+        "type": "string",
+        "path": "playerFii.name",
+        "value": "P1"
+      },
+      {
+        "factId": "AF-P1-fii",
+        "type": "number",
+        "path": "playerFii.P1.fii",
+        "value": 15.0
+      },
+      {
+        "factId": "AF-P1-spatial",
+        "type": "number",
+        "path": "playerFii.P1.axes.spatial",
+        "value": 15.0
+      },
+      {
+        "factId": "AF-P1-vision",
+        "type": "number",
+        "path": "playerFii.P1.axes.vision",
+        "value": 13.0
+      },
+      {
+        "factId": "AF-P1-decision",
+        "type": "number",
+        "path": "playerFii.P1.axes.decision",
+        "value": 11.0
+      },
+      {
+        "factId": "AF-P1-pressure",
+        "type": "number",
+        "path": "playerFii.P1.axes.pressure",
+        "value": 10.0
+      },
+      {
+        "factId": "AF-P1-tactics",
+        "type": "number",
+        "path": "playerFii.P1.axes.tactics",
+        "value": 12.0
+      },
+      {
+        "factId": "AF-P2",
+        "type": "string",
+        "path": "playerFii.name",
+        "value": "P2"
+      },
+      {
+        "factId": "AF-P2-fii",
+        "type": "number",
+        "path": "playerFii.P2.fii",
+        "value": 48.0
+      },
+      {
+        "factId": "AF-P2-spatial",
+        "type": "number",
+        "path": "playerFii.P2.axes.spatial",
+        "value": 47
+      },
+      {
+        "factId": "AF-P2-vision",
+        "type": "number",
+        "path": "playerFii.P2.axes.vision",
+        "value": 46.0
+      },
+      {
+        "factId": "AF-P2-decision",
+        "type": "number",
+        "path": "playerFii.P2.axes.decision",
+        "value": 44.0
+      },
+      {
+        "factId": "AF-P2-pressure",
+        "type": "number",
+        "path": "playerFii.P2.axes.pressure",
+        "value": 43.0
+      },
+      {
+        "factId": "AF-P2-tactics",
+        "type": "number",
+        "path": "playerFii.P2.axes.tactics",
+        "value": 45.0
+      },
+      {
+        "factId": "AF-S0",
+        "type": "string",
+        "path": "coachInsights.strengths",
+        "value": "패스 15건"
+      },
+      {
+        "factId": "AF-S1",
+        "type": "string",
+        "path": "coachInsights.strengths",
+        "value": "팀 overall 15점"
+      },
+      {
+        "factId": "AF-S2",
+        "type": "string",
+        "path": "coachInsights.strengths",
+        "value": "P1 FII 15점"
+      },
+      {
+        "factId": "AF-IP0",
+        "type": "string",
+        "path": "coachInsights.improvementPoints",
+        "value": "턴오버 2건"
+      },
+      {
+        "factId": "AF-IP1",
+        "type": "string",
+        "path": "coachInsights.improvementPoints",
+        "value": "TIME_WINDOW 근거 확인"
+      },
+      {
+        "factId": "AF-PET",
+        "type": "string",
+        "path": "coachInsights.primaryEvidenceType",
+        "value": "TIME_WINDOW"
+      }
+    ],
+    "forbiddenClaims": [
+      "injury",
+      "medical",
+      "fatigue_diagnosis",
+      "psych_state",
+      "invented_intent",
+      "future_certainty",
+      "age_benchmark"
+    ],
+    "coachContext": {
+      "audience": "coach",
+      "task": "rewrite_brief",
+      "locale": "ko-KR",
+      "hitlRequired": true
+    },
+    "baitNote": null
+  },
+  "payloadKeyOrder": [
+    "sampleId",
+    "fiiInput",
+    "coachInsightsInput",
+    "allowedFacts",
+    "forbiddenClaims",
+    "coachContext",
+    "baitNote"
+  ],
+  "userMessageFieldPositions": {
+    "\"sampleId\"": 159,
+    "\"fiiInput\"": 195,
+    "\"coachInsightsInput\"": 1509,
+    "\"allowedFacts\"": 2294,
+    "\"keyChangeToday\"": 1640,
+    "\"eventCounts\"": 1075,
+    "\"playerFii\"": 474,
+    "\"nextTrainingFocus\"": 1693
+  },
+  "modelId": "gpt-4o-mini",
+  "generationParameters": {
+    "temperature": 0.2
+  },
+  "openaiRequestShape": {
+    "model": "gpt-4o-mini",
+    "temperature": 0.2,
+    "messageRoles": [
+      "system",
+      "user"
+    ],
+    "systemMessageSha256": "30c5f98b01843c77003282ebb231c453f7d19e2c502fe4ea49e5fbcac69d64dc",
+    "userMessageSha256": "b8488c01d13560c88b9fc9ba741e487680b7a0790b50109001ed9d58fe566959"
+  },
+  "evidenceAudit": {
+    "keyChangeToday": "2쿼터 구간에서 턴오버 2건이 집중되었습니다.",
+    "keyChangeTodayMatchesPassOpenFamily": false,
+    "nextTrainingFocus": "2쿼터 타임윈도우 리뷰",
+    "reviewHookSuggestedAction": [
+      "쿼터 구간 이벤트 리뷰"
+    ],
+    "playerAliases": [
+      "P1",
+      "P2"
+    ],
+    "playerCount": 2,
+    "teamOverall": 15.0,
+    "eventCounts": {
+      "PASS": 15,
+      "RECEIVE": 13,
+      "TURNOVER": 2
+    },
+    "teamAxes": {
+      "spatial": 50,
+      "vision": 53,
+      "decision": 49,
+      "pressure": 47,
+      "tactics": 51
+    },
+    "strengthsCount": 3,
+    "improvementPointsCount": 2,
+    "compositionTag": "numeric_ambiguity",
+    "baitNote": null
+  },
+  "runnerChecks": {
+    "hardcodedPassOpeningInUserPrefix": false,
+    "hardcodedPassOpeningInSystemPrompt": false,
+    "coachInsightsIncluded": true,
+    "fiiInputIncluded": true,
+    "allowedFactsIncluded": true
+  }
+}

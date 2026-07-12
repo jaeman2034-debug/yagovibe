@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-002",
+  "promptVersion": "cip-v0.2.0",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-12T22:51:22.933824+00:00",
+  "rewriteText": "패스 연결 7건이 확인되었습니다. P1의 FII는 55점으로, 패스와 볼 순환에서 강점을 보였습니다. 반면 P2는 FII 44점으로, 지원 패스에 대한 집중이 필요합니다. 턴오버 5건이 발생했으니, 위험 지역 안전 옵션 리허설을 통해 압박 대응을 강화하는 것이 좋겠습니다. 코치님, 이 사항에 대해 어떻게 판단하시겠습니까?",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 2495,
+    "completion_tokens": 101
+  }
+}
