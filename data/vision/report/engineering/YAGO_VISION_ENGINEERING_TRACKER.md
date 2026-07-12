@@ -843,6 +843,7 @@ SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 | 2026-07-12 | VOC-012 Visual Spot-check | ✅ **ACCEPTED** · Match Detail · card+Ranking Δ · `VOC_012_VISUAL_SPOTCHECK.md` · ❌ PASS 금지 · PM Final Review 대기 · Day-03 분리 |
 | 2026-07-12 | VOC-012 PAI-012 | ✅ **PM PASS** · Unit 8 · Harness 6 · Visual ACCEPTED · Manual QA FINAL PASS · ❌ COMPLETE/CLOSED 금지 · Day-03/VOC-011×15 미변경 |
 | 2026-07-12 | VOC-012 Hosting Deploy | ✅ **Deploy complete** 09:18 KST · HEAD `30170a1` · feature `61cf9ac` · URL https://yago-vibe-spt.web.app · `PAI_012_DEPLOY_FACT.md` · Smoke 대기 · COMPLETE 금지 |
+| 2026-07-12 | PAI-012 CLOSED | 🔒 **COMPLETE/CLOSED** · Post-Deploy Smoke **PASS** · P0100 72/65/+7 · `PAI_012_POST_DEPLOY_SMOKE.md` · **PROD-OBS-012** 분리 OPEN · Day-03 DATE_GATE_PENDING 유지 |
 
 ---
 

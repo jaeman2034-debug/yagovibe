@@ -102,7 +102,7 @@ Track B `supplement/` 신규 생성 조건 — **모두** 충족:
 | VOC-009 | 코치 승인 후 카카오 알림톡 자동 발송 | **1** | PV-005 | product / E3 | ❌ |
 | VOC-010 | GPS/웨어러블 원탭 연동 → 자동 리포트 | **1** | PV-006 | product / long-term | ❌ |
 | VOC-011 | Parent 리포트 또래/포지션 평균 비교 (Benchmark) | **15** | E3-PV-001·002·003·BETA-DAY-002~012 · **Production Day-02 Parent** | product / E3 | ✅ **PAI-011 COMPLETE/CLOSED** (Production verified) · count **15** 유지 · Day-03 gate 분리 |
-| VOC-012 | 성장·기간 추이 비교 시각화 (Parent 지난주 대비 · Coach 선수별 누적) | **7** | BETA-DAY-001·005·008~012 | product / E3 | ✅ **PAI-012 PASS** · Coach Match Detail · ❌ COMPLETE 금지 · Day-03 분리 |
+| VOC-012 | 성장·기간 추이 비교 시각화 (Parent 지난주 대비 · Coach 선수별 누적) | **7** | BETA-DAY-001·005·008~012 | product / E3 | ✅ **PAI-012 COMPLETE/CLOSED** (Production verified) · count **7** 유지 · PROD-OBS-012 분리 · Day-03 gate 분리 |
 | VOC-013 | Coach 리포트 히스토리 모아보기 | **1** | BETA-DAY-001 | product | ❌ · 관찰 |
 | VOC-014 | Coach 오늘의 MVP · 베스트11 추천 | **1** | BETA-DAY-002 | product | ❌ · 관찰 |
 | VOC-015 | Coach 팀 대시보드 (Team Dashboard) | **1** | BETA-DAY-003 | product | ❌ · 관찰 |

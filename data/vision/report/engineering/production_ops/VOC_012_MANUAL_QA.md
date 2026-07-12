@@ -2,8 +2,8 @@
 
 **Document ID:** `VOC-012-MANUAL-QA`  
 **Date:** 2026-07-12 (KST)  
-**Status:** 🔒 **FINAL PASS** (PM Review)  
-**PAI-012:** ✅ **PASS** · ❌ COMPLETE/CLOSED 금지 · ❌ Production 배포 완료 선언 금지  
+**Status:** 🔒 **FINAL PASS** (PM Review) · Production verified  
+**PAI-012:** 🔒 **COMPLETE / CLOSED** (Post-Deploy Smoke PASS)  
 **Day-03:** 🛑 DATE_GATE_PENDING 분리 유지  
 **PAI-011 / VOC-011 원장 15:** 🔒 유지
 

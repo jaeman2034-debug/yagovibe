@@ -22,7 +22,28 @@
 
 | ID | Date | Severity | Summary (Official Fact) | Linked Issue | Status |
 |---|---|---|---|---|---|
-| — | — | — | Production 개시 후 기록 | — | — |
+| **PROD-OBS-012** | 2026-07-12 | S3 | Production Coach Match Detail Job Monitor에 `[VISION_ANALYSIS_FAILED] no GEV events ...` 빨간 문구 관측. PAI-012 Trend 카드·Avg/Δ는 정상. | PAI-012 Smoke 분리 | ▶ **OPEN (후보)** |
+
+### PROD-OBS-012 Detail
+
+```text
+Incident ID: PROD-OBS-012
+Date: 2026-07-12 (KST)
+Severity: S3 (우회 가능 · 핵심 Trend UX 비차단)
+Environment: Production Hosting · Coach Vision Match Detail
+  teamId=D7TUZaOtfxdBc4P0lQLx
+  matchId=vision-pilot-pass01-clip-002
+Official Fact:
+  Job Monitor에 VISION_ANALYSIS_FAILED / no GEV events 문구 표시됨.
+  동일 화면에서 「최근 3경기 평균과 비교」·Ranking Avg/Δ 정상.
+Analysis (not Official Fact):
+  GEV pipeline / worker artifact 경로 이슈 후보.
+  PAI-012 match-flow rollup 실패로 단정하지 않음.
+Action / Link:
+  원인 분리 점검 (visionRuns / GEV events / Job Monitor 카피)
+  PAI-012 COMPLETE/CLOSED와 독립
+Status: OPEN (후보)
+```
 
 ### Template
 
@@ -43,8 +64,9 @@ Status: OPEN | MITIGATED | CLOSED
 
 | Issue | Priority | Status | Detail |
 |---|---|---|---|
-| BETA-ISSUE-001 | P1 | OPEN | `../beta_ops/issues/BETA-ISSUE-001.json` |
+| BETA-ISSUE-001 | P1 | CLOSED (Verified) | `../beta_ops/issues/BETA-ISSUE-001.json` · PAI-001 |
+| PROD-OBS-012 | S3 | OPEN (후보) | GEV events missing · Job Monitor · PAI-012 분리 |
 
 ---
 
-**Updated:** 2026-07-21
+**Updated:** 2026-07-12

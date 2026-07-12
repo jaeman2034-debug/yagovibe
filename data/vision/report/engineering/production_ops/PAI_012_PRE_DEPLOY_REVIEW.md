@@ -2,11 +2,10 @@
 
 **Document ID:** `PAI-012-PRE-DEPLOY-REVIEW`  
 **Date:** 2026-07-12 (KST)  
-**Status:** 🔒 **GO**  
-**PAI-012:** ✅ **PASS** · ❌ COMPLETE/CLOSED 금지 · ❌ Production 배포 완료 선언 금지  
-**Day-03:** 🛑 DATE_GATE_PENDING 분리 유지  
-**PAI-011 / VOC-011 원장 15:** 🔒 유지
-
+**Status:** 🔒 **GO** (사후: Deploy ✅ · Smoke PASS ✅ · COMPLETE/CLOSED 🔒)  
+**PAI-012:** 🔒 **COMPLETE / CLOSED** (Post-Deploy Smoke PASS 후)  
+**Day-03:** 🛑 DATE_GATE_PENDING 미변경  
+**Separated:** ▶ PROD-OBS-012 OPEN (후보)
 ---
 
 ## Checklist (6)
@@ -38,32 +37,21 @@
 
 ---
 
-## Forbidden (유지)
+## Gate Outcome (사후)
 
 | 항목 | 상태 |
 |---|---|
-| PAI-012 COMPLETE / CLOSED | ❌ 금지 (Post-Deploy Smoke 전) |
-| Production 배포 완료 선언 | ❌ 아직 (배포 미실시 시) |
-| Day-03 DATE_GATE_PENDING | 🛑 동결 · VOC-012와 분리 |
-| VOC-011 원장 15 | 🔒 유지 |
-
----
-
-## Next Gate
+| Production Deploy (`30170a1`) | ✅ 완료 |
+| Post-Deploy Smoke | ✅ PASS |
+| PAI-012 COMPLETE / CLOSED | 🔒 **CLOSED** |
+| Day-03 DATE_GATE_PENDING | 🛑 동결 유지 |
+| PROD-OBS-012 | ▶ OPEN (후보) · PAI-012 분리 |
 
 ```text
-Pre-Deploy GO ✅
-        ↓
-Firebase Hosting Production 배포  ← 별도 지시 시
-        ↓
-Deploy Fact
-        ↓
-Post-Deploy Smoke (Coach Match Detail · Trend 카드)
-        ↓
-PAI-012 COMPLETE / CLOSED 판정
+Pre-Deploy GO ✅ → Deploy ✅ → Smoke PASS ✅ → COMPLETE/CLOSED 🔒
 ```
 
 ---
 
 **Reviewed by:** Engineering Track A · 2026-07-12  
-**PM:** PAI-012 PASS · Pre-Deploy GO 가능
+**Closed reflection:** 2026-07-12 · `PAI_012_POST_DEPLOY_SMOKE.md`

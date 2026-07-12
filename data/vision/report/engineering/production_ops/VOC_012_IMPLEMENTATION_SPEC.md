@@ -1,8 +1,8 @@
 # VOC-012 Implementation Spec (1p) — LOCK
 
 **Document ID:** `VOC-012-IMPL-SPEC`  
-**Status:** 🔒 **SCOPE LOCK** · ✅ IMPLEMENT · 🔒 Manual QA FINAL PASS · ✅ Visual ACCEPTED · ✅ **PAI-012 PASS**  
-**PAI:** PAI-012 ✅ PASS · ❌ COMPLETE/CLOSED 금지  
+**Status:** 🔒 **SCOPE LOCK** · ✅ IMPLEMENT · 🔒 Manual QA FINAL PASS · ✅ Visual ACCEPTED · 🔒 **PAI-012 COMPLETE / CLOSED**  
+**PAI:** PAI-012 🔒 COMPLETE/CLOSED  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **PAI-011 / VOC-011 원장 15:** 🔒 유지
 
