@@ -1,0 +1,86 @@
+{
+  "loopVersion": "intelligence-ai-agent-learning-loop-v1",
+  "runId": "CIE-LEARNING-LOOP-V1-DRY-001",
+  "createdAt": "2026-07-12T23:59:14.714117+00:00",
+  "mode": "orchestration-only",
+  "datasetVersion": "cie-shadowset-v0.2.2",
+  "promptVersion": "cip-v0.2.2",
+  "evaluatorVersion": "cie-eval-v0.1.1",
+  "evalRunId": "CIE-SHADOW-V022-RUN-002",
+  "reuseGenerationsFrom": "CIE-SHADOW-V022-RUN-002",
+  "freezeVerification": {
+    "verified": true,
+    "checks": [
+      {
+        "artifact": "cip-v0.2.2",
+        "pass": true,
+        "sha256": "30c5f98b01843c77"
+      },
+      {
+        "artifact": "samples_v022",
+        "pass": true,
+        "sha256": "3151449033e2ef04",
+        "count": 20
+      },
+      {
+        "artifact": "rewrite_payload.py",
+        "pass": true,
+        "sha256": "115e77672fdc3a62"
+      },
+      {
+        "artifact": "cie-eval-v0.1.1",
+        "pass": true,
+        "sha256": "7b1742d52d3c7bb3"
+      },
+      {
+        "artifact": "run_quality_eval.py",
+        "pass": true,
+        "sha256": "e007a809ca91bb14"
+      }
+    ],
+    "mismatches": []
+  },
+  "datasetValidation": {
+    "overallPass": true,
+    "datasetVersion": "cie-shadowset-v0.2.2"
+  },
+  "hardGate": {
+    "pass": true,
+    "summary": {
+      "generationRate": 1.0,
+      "executionRate": 1.0,
+      "actualFail": 0
+    }
+  },
+  "qualityGate": {
+    "pass": true,
+    "meanScores": {
+      "Q01": 1.9,
+      "Q02": 2.0,
+      "Q03": 1.9,
+      "Q04": 1.9
+    },
+    "lowQualitySampleCount": 0
+  },
+  "gateAssertion": {
+    "hardGatePass": true,
+    "qualityGatePass": true,
+    "hardViolations": [],
+    "qualityViolations": [],
+    "openingMetrics": {
+      "genericHeadlineOpeningCount": 0,
+      "dominantOpeningFamily": "의사결정(decision) 축이 <NUM>점으로 팀",
+      "dominantOpeningFamilyCount": 1,
+      "dominantOpeningFamilyRatio": 0.05,
+      "sampleCount": 20
+    },
+    "thresholdsLocked": true
+  },
+  "llmCalled": false,
+  "productionWrites": false,
+  "liveCoachChanged": false,
+  "modelWeightTraining": false,
+  "versionPromotionGuard": "manual_pm_only",
+  "stoppedAt": null,
+  "officialFactSeparation": "PRODUCTION_FACT_IS_NOT_TRAINING_DATA"
+}

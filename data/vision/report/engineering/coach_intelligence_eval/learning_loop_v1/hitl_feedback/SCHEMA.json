@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "yago/cie/learning-loop-v1/hitl-feedback",
+  "title": "CIE Learning Loop V1 HITL Feedback Record",
+  "description": "Offline append-only human-in-the-loop review. No real PII.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feedbackId",
+    "runId",
+    "sampleId",
+    "datasetVersion",
+    "promptVersion",
+    "evaluatorVersion",
+    "reviewerAlias",
+    "reviewStatus",
+    "decision",
+    "acceptedClaims",
+    "rejectedClaims",
+    "failureTypes",
+    "usefulnessScore",
+    "actionabilityScore",
+    "groundingScore",
+    "reviewNote",
+    "reviewedAt"
+  ],
+  "properties": {
+    "feedbackId": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Unique feedback row id (uuid or hash prefix)"
+    },
+    "runId": { "type": "string", "minLength": 1 },
+    "sampleId": { "type": "string", "pattern": "^CIE-SHADOW-V02-[0-9]{3}$" },
+    "datasetVersion": { "type": "string" },
+    "promptVersion": { "type": "string" },
+    "evaluatorVersion": { "type": "string" },
+    "reviewerAlias": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "description": "Opaque alias only — no real names"
+    },
+    "reviewStatus": {
+      "type": "string",
+      "enum": ["pending", "complete"]
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["ACCEPT", "REJECT", "REVISE", "ABSTAIN"]
+    },
+    "acceptedClaims": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "rejectedClaims": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "failureTypes": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^F[0-9]{2}_" }
+    },
+    "usefulnessScore": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "actionabilityScore": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "groundingScore": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "reviewNote": { "type": "string", "maxLength": 2000 },
+    "reviewedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
