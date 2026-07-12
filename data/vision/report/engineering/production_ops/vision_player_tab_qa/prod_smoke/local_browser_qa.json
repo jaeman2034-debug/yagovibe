@@ -1,0 +1,27 @@
+{
+  "base": "https://yago-vibe-spt.web.app",
+  "parentUid": "wSlh4oDIqIP4GnV3Di1IeAQnFy13",
+  "CaseA": {
+    "url": "https://yago-vibe-spt.web.app/home/parent/vision/report?teamId=D7TUZaOtfxdBc4P0lQLx&playerId=P0100&matchId=vision-pilot-pass01-clip-002",
+    "playerIdContext": "P0100",
+    "playerTabVisible": "N",
+    "navigatedToChildP0100": "N",
+    "accessDeniedShown": "N",
+    "parentReportOk": "Y",
+    "peerBenchmarkVisible": "Y"
+  },
+  "CaseB": {
+    "urlBeforeClick": "https://yago-vibe-spt.web.app/home/parent/vision/report?teamId=D7TUZaOtfxdBc4P0lQLx&playerId=player-ap-63d56190&matchId=vision-pilot-pass01-clip-002",
+    "playerIdContext": "player-ap-63d56190",
+    "playerTabVisible": "Y",
+    "urlAfterClick": "https://yago-vibe-spt.web.app/home/parent/child/D7TUZaOtfxdBc4P0lQLx/player-ap-63d56190?matchId=vision-pilot-pass01-clip-002",
+    "profileOpenedOk": "Y",
+    "accessDeniedShown": "N"
+  },
+  "Regression": {
+    "matchDetailNav": "Y",
+    "matchDetailPlayerTabHiddenForTrackRanking": "Y",
+    "coachHashRouting": "Y"
+  },
+  "pageErrors": []
+}
