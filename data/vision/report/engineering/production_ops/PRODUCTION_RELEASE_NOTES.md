@@ -17,6 +17,25 @@
 | Hosting `4d508ac` | 2026-07-11 14:57 KST | PAI-001: Kakao iOS openExternal · persistence · next preserve · Safari CTA | BETA-ISSUE-001 · PAI-001 | Production Hosting · Verification PASS · ISSUE CLOSED (Verified) |
 | — | 2026-07-21 | Production 운영 체계 개시 (`production_ops/`) | GO with Open Issue | Docs only |
 
+### PAI-012 Deploy Fact (2026-07-12)
+
+```text
+배포 일시: 2026-07-12 09:18 KST
+프로젝트: yago-vibe-spt
+타깃: Firebase Hosting Production
+Hosting URL: https://yago-vibe-spt.web.app
+Feature commit: 61cf9ac
+Deployed HEAD: 30170a18a7838ffcc33e4b99de3a3014228157db
+Rollback: 64270a31918fc091f32c4996bd3ee0e782d28592
+결과: Deploy complete · release complete · 456 files
+CF / Rules: N (hosting only)
+Scope: PAI-012 coach match-flow · Vision Match Detail
+```
+
+> SoT: `PAI_012_DEPLOY_FACT.md`  
+> ❌ Deploy 성공 ≠ PAI-012 COMPLETE/CLOSED  
+> 🛑 Day-03 DATE_GATE_PENDING 미변경 (VOC-011 원장 15 유지)
+
 ### PAI-011 Deploy Fact (2026-07-11) — VERIFIED
 
 ```text
