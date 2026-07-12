@@ -3,7 +3,8 @@
 **Document ID:** `VISION-TAB-ROUTING-PRE-DEPLOY-REVIEW`  
 **Date:** 2026-07-12 (KST)  
 **Status:** ⏳ **AWAITING PM GO / NO-GO**  
-**Feature commit (pending deploy):** 본 문서 작성 시점 HEAD 기준 push 후 SHA 보고  
+**Feature commit:** **`918208c`** · `fix(vision): repair match detail tab routing`  
+**Full SHA:** `918208c` (see `git log -1`)  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **PAI-011 / PAI-012:** 🔒 COMPLETE/CLOSED 미변경  
 **PROD-OBS-012:** ▶ OPEN 후보 미변경
