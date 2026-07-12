@@ -1,5 +1,6 @@
 /**
  * Vision v6-6 — Parent Intelligence section (guardian-friendly · no version badge)
+ * PAI-032: VisionPlatformNav lives on host pages only (not inside this section).
  */
 
 import { cn } from "@/lib/utils";
@@ -17,7 +18,6 @@ import {
 } from "@/components/vision/parent/ParentFiiInsightCards";
 import { ParentPeerBenchmarkCard } from "@/components/vision/parent/ParentPeerBenchmarkCard";
 import { useParentIntelligenceView } from "@/components/vision/parent/ParentIntelligenceProvider";
-import { VisionPlatformNav } from "@/components/vision/VisionPlatformNav";
 
 export type ParentIntelligenceSectionProps = {
   teamId: string;
@@ -28,15 +28,7 @@ export type ParentIntelligenceSectionProps = {
   className?: string;
 };
 
-function ParentIntelligenceGrid({
-  teamId,
-  playerId,
-  matchId,
-}: {
-  teamId: string;
-  playerId: string;
-  matchId?: string | null;
-}) {
+function ParentIntelligenceGrid() {
   const { state, isFiiSummarySource } = useParentIntelligenceView();
 
   if (state.status === "error") {
@@ -63,16 +55,6 @@ function ParentIntelligenceGrid({
 
   return (
     <div className="grid gap-3" data-testid="parent-intelligence-grid">
-      {matchId?.trim() && (isFiiSummarySource || state.status === "ready") ? (
-        <VisionPlatformNav
-          teamId={teamId}
-          matchId={matchId}
-          playerId={playerId}
-          current="parent-report"
-          variant="light"
-          compact
-        />
-      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <ParentTeamFiiBadge />
         <ParentFiiSourceBadge />
@@ -130,11 +112,7 @@ export function ParentIntelligenceSection({
             코치 분석을 학부모가 이해하기 쉬운 언어로 정리했습니다.
           </p>
         </div>
-        <ParentIntelligenceGrid
-          teamId={teamId}
-          playerId={playerId}
-          matchId={matchId}
-        />
+        <ParentIntelligenceGrid />
       </section>
     </ParentIntelligenceProvider>
   );

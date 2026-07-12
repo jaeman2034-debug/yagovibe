@@ -2,6 +2,7 @@
 
 **Status:** 📝 OBSERVATION OPEN — **코드 변경 없음** (Player Tab ID Guard CLOSED와 분리)  
 **Action Item:** **PAI-032** ▶ OPEN  
+**Root Cause Review:** `VISION_NAV_DUPLICATE_ROOT_CAUSE_REVIEW.md` ⏳ PM GO/NO-GO  
 **Related:** Player Tab ID Guard Local/Production QA
 
 ---

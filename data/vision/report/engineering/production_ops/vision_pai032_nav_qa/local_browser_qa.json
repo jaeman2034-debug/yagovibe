@@ -1,0 +1,27 @@
+{
+  "base": "http://127.0.0.1:5173",
+  "ParentReport": {
+    "url": "http://127.0.0.1:5173/home/parent/vision/report?teamId=D7TUZaOtfxdBc4P0lQLx&playerId=player-ap-63d56190&matchId=vision-pilot-pass01-clip-002",
+    "navRenderCount": 1,
+    "navCountIsOne": "Y",
+    "activeParentReport": "Y",
+    "peerBenchmark": "Y",
+    "intelligenceCards": "Y"
+  },
+  "PlayerTabGuard": {
+    "trackIdNavCount": 1,
+    "trackIdNavIsOne": "Y",
+    "playerTabHidden": "Y"
+  },
+  "GrowthProfile": {
+    "accessDenied": "N",
+    "navRenderCount": 1,
+    "navCountIsOne": "Y",
+    "activePlayerProfile": "Y",
+    "wrongActiveParentReport": "N"
+  },
+  "Regression": {
+    "coachHash": "Y"
+  },
+  "pageErrors": []
+}
