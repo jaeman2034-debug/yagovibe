@@ -3,7 +3,8 @@
 **Document ID:** `VISION-PAI032-DUPLICATE-NAV-PRE-DEPLOY`  
 **Date:** 2026-07-12 (KST)  
 **Status:** ⏳ **AWAITING PM GO / NO-GO**  
-**Feature commit:** push 후 SHA 기입  
+**Feature commit:** **`7562ccb`** · `fix(vision): remove duplicate parent intelligence nav`  
+**Full SHA:** `7562ccbec6c012181356c7456ee3e7731316c303`  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **PAI-011 / 012 / 013 / 014:** 🔒 미변경  
 **PROD-OBS-012:** ▶ OPEN 미변경
