@@ -1,8 +1,8 @@
 # Vision Nav — Duplicate VisionPlatformNav Observation (NON-SCOPE)
 
-**Date:** 2026-07-12  
-**Status:** 📝 OBSERVATION ONLY — **코드 변경 없음**  
-**Related:** Player Tab ID Guard Local QA
+**Status:** 📝 OBSERVATION OPEN — **코드 변경 없음** (Player Tab ID Guard CLOSED와 분리)  
+**Action Item:** **PAI-032** ▶ OPEN  
+**Related:** Player Tab ID Guard Local/Production QA
 
 ---
 
