@@ -2,48 +2,19 @@
 
 **Document ID:** `VISION-PAI032-DUPLICATE-NAV-PRE-DEPLOY`  
 **Date:** 2026-07-12 (KST)  
-**Status:** 🔒 **GO** (PM APPROVED · Deploy 진행)  
-**Feature commit:** **`7562ccb`** · `fix(vision): remove duplicate parent intelligence nav`  
-**Full SHA:** `7562ccbec6c012181356c7456ee3e7731316c303`  
-**Docs stamp:** `437fc8a`  
+**Status:** 🔒 **GO / DEPLOYED / VERIFIED**  
+**Feature commit:** **`7562ccb`**  
+**Deployed HEAD:** **`437fc8a`**  
+**Issue:** 🔒 **COMPLETE / CLOSED**  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
-**PAI-011 / 012 / 013 / 014:** 🔒 미변경  
 **PROD-OBS-012:** ▶ OPEN 미변경
 
 ---
 
-## Scope
-
-| Item | Value |
-|---|---|
-| Fix | Remove section-level `VisionPlatformNav` from `ParentIntelligenceSection` |
-| Canonical owner | Page-level only |
-| Non-scope | Route helpers · CF/Rules · PROD-OBS-012 · Day-03 |
-
----
-
-## Checklist
-
-| # | 항목 | 결과 | Evidence |
-|---|---|---|---|
-| 1 | Branch | ✅ **vision-v2-i13** | |
-| 2 | Deploy target (의도) | ✅ Hosting only | |
-| 3 | Unit | ✅ Ownership 3 + routes 8 | |
-| 4 | Local Browser QA | 🔒 **ACCEPTED** | Nav count=1 · active OK |
-| 5 | Rollback parent (Hosting) | ✅ **`0520cf4`** | Player Tab ID Guard HEAD |
-
----
-
-## Pre-Deploy 판정
-
-# 🔒 **GO** (PM APPROVED 2026-07-12)
-
-### Forbidden until Post-Deploy Smoke + PM final
-- COMPLETE / CLOSED
+## Pre-Deploy 판정 (사후)
 
 ```text
-Pre-Deploy GO 🔒 → Hosting deploy → Smoke → PM Final Review
+Pre-Deploy GO ✅ → Deploy ✅ → Smoke PASS ✅ → COMPLETE/CLOSED 🔒
 ```
 
-**Reviewed by:** Engineering Track A · 2026-07-12  
-**PM:** GO/NO-GO 대기
+**Closed by:** PM Final Review · 2026-07-12
