@@ -2,9 +2,10 @@
 
 **Document ID:** `VISION-PLAYER-TAB-ID-GUARD-PRE-DEPLOY`  
 **Date:** 2026-07-12 (KST)  
-**Status:** ⏳ **AWAITING PM GO / NO-GO**  
+**Status:** 🔒 **GO** (PM APPROVED · Deploy 진행)  
 **Feature commit:** **`a3a0b25`** · `fix(vision): guard player tab against track ids`  
 **Full SHA:** `a3a0b25a47486a3be204182b65c8f8fec832fe89`  
+**Docs stamp:** `0520cf4`  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **PAI-011 / PAI-012 / PAI-013:** 🔒 미변경 (본 건은 Player ID Guard)  
 **PROD-OBS-012:** ▶ OPEN 미변경
@@ -37,20 +38,21 @@
 
 ## Pre-Deploy 판정
 
-# ⏳ **AWAITING PM GO / NO-GO**
+# 🔒 **GO** (PM APPROVED 2026-07-12)
 
-### Forbidden until PM GO
-- Production deploy
+### Forbidden until Post-Deploy Smoke + PM final
 - COMPLETE / CLOSED
 
 ```text
-Commit + Push ✅
+Pre-Deploy GO 🔒
         ↓
-Pre-Deploy Review ⏳ (본 문서)
+Firebase Hosting Production deploy
         ↓
-PM GO / NO-GO
+Deploy Fact
         ↓
-(GO 시) Hosting deploy → Smoke → Final Review
+Production Case A/B Smoke
+        ↓
+PM Final Review
 ```
 
 **Reviewed by:** Engineering Track A · 2026-07-12  
