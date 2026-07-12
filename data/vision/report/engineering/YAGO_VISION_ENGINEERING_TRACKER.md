@@ -79,7 +79,7 @@
 | personIdContinuityProxy | 0.9713 |
 | personContinuityIndex | 0.9434 |
 | personShortTrackRatio | 0.057 |
-| gevTrackEndpointCoverage | **8.33%** (1/12) ← **E1 개선 1순위 후보** |
+| gevTrackEndpointCoverage | **8.33%** (1/12) · string-ID diagnostic only · **≠ Production defect** · see `GEV_ENDPOINT_METRIC_EVAL_DEBT_ALIGNMENT.md` |
 | trackingQualityScore (VQ2) | 93 (grade A) |
 
 **GEV remeasure (동일일, eval only):** pooled microF1 **0.7667** (현 pred + 현 eval 스크립트) — lock 0.7404와 **비교 기준은 lock 유지**.
@@ -94,7 +94,7 @@
 
 | 지표 (우선순위) | E1 Baseline | Step 4 | Δ | 판정 |
 |---|---|---|---|---|
-| **GEV Endpoint Coverage** | 0.0833 | 0.0833 | 0 | ❌ |
+| **GEV Endpoint Coverage** (string) | 0.0833 | 0.0833 | 0 | supporting diagnostic · ID drift |
 | personIdSwitchRate | 0.0287 | **0.0155** | -0.0132 | ✅ |
 | personContinuityIndex | 0.9434 | **0.9823** | +0.0389 | ✅ |
 | clip002 microF1 (lock) | **0.7714** | 0.6377 | -0.1337 | ❌ |
@@ -102,9 +102,9 @@
 
 **E1 PASS:** ❌ — GEV endpoint·clip F1 **개선 없음/퇴보**. Tracking proxy만 개선.
 
-**참고:** 과거 raw1080p VQ2 run endpoint coverage **66.7%** — GT track ID는 특정 추적 run에 종속.
+**참고:** 과거 raw1080p VQ2 run string coverage **66.7%** — **tracking-run-dependent** · re-track 간 직접 비교 금지(unless ID lineage preserved). Spatial diagnostic **75%** = primary cross-run endpoint metric (`GEV_ENDPOINT_METRIC_EVAL_DEBT_ALIGNMENT.md`).
 
-**다음:** Evaluator(공간 매칭) · lock preds 정합성 · GEV 튜닝 — Tracker 추가 수정 **보류**
+**다음:** Tracker/GEV heuristic tuning **NO-GO** (PM 2026-07-12) · Production 개발 **NO-GO** · Evaluation debt aligned.
 
 ---
 
@@ -331,6 +331,7 @@ Lock tracks + phase_d re-run: **0.7887** (lock preds 0.7714 대비 개선, regre
 2. GT 위치에 player bbox는 **spatial 기준 동일**(75%) — 순수 detection 실패 아님
 3. time_only F1은 re-track에서 **lock 초과** (0.7887 vs 0.7714)
 4. clip003/004 lock tracks에서도 spatial > string (+17~25%p) — GT ID 문자열 metric 구조적 한계
+5. **PM 2026-07-12:** string 8.33% = **Evaluation Debt** · **≠ Production defect** · cross-run primary = **spatial** · regression guard = **time_only F1** · string = supporting only (`GEV_ENDPOINT_METRIC_EVAL_DEBT_ALIGNMENT.md`)
 
 **Gate:** E1 PASS ⏳ Step 5 후 · phase_d candidate ✅ · Production `rc3_1_phase_c` 🔒
 
@@ -723,7 +724,7 @@ SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 `vision_tracking_engine.py` — 목표:
 
 - ID switch 감소 · track span 증가
-- **GEV endpoint track coverage** 향상 (baseline 8.33% → 상향)
+- **GEV endpoint track coverage** (string) — historical E1 target; **PM 2026-07-12:** supporting diagnostic only · do not treat 8.33% as Production failure · spatial 75% primary
 - short track ratio 감소
 
 완료 후 Step 4: 동일 eval 스크립트로 GT 재실행 → lock 대비 delta 기록.
@@ -849,6 +850,7 @@ SoT: `YAGO_VOC_Trigger_로그.md` · Backlog: `E2_ENGINEERING_BACKLOG.md`
 | 2026-07-12 | Player Tab ID Guard CLOSED | 🔒 **COMPLETE/CLOSED** (PAI-014) · Production Case A/B Smoke **PASS** · feature `a3a0b25` · HEAD `0520cf4` · `VISION_PLAYER_TAB_ID_GUARD_POST_DEPLOY_SMOKE.md` · Duplicate Nav Observation OPEN · Day-03/PROD-OBS-012 미변경 |
 | 2026-07-12 | PAI-032 CLOSED | 🔒 **COMPLETE/CLOSED** · Production Smoke **PASS** · Nav count=1 · feature `7562ccb` · HEAD `437fc8a` · `VISION_PAI032_DUPLICATE_NAV_POST_DEPLOY_SMOKE.md` · PROD-OBS-012 OPEN · Day-03/VOC-011×15 미변경 |
 | 2026-07-12 | PAI-033 CLOSED | 🔒 **PASS/COMPLETE/CLOSED** · Production smoke **13/13 PASS** · A-set touch 44px · feature `7f2c0d0` · `PAI_033_PM_FINAL_SIGNOFF.md` · VOC-008×1 · Day-01 DATE_GATE_PENDING / PAI-022 PLANNED / VOC-011×15 미변경 |
+| 2026-07-12 | GEV endpoint metric ALIGNED | 🔒 Evaluation Debt · string 8.33% (1/12) ≠ Production defect · spatial 75% primary · time_only F1 guard · `GEV_ENDPOINT_METRIC_EVAL_DEBT_ALIGNMENT.md` · no PAI · no code |
 
 ---
 

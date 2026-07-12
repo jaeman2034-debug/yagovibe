@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "yago-vision-e1-baseline-snapshot-v1",
+  "capturedAt": "2026-07-09",
+  "purpose": "E1 Vision AI — canonical baseline for before/after comparison",
+  "preset": "rc3_1_phase_c",
+  "lockFiles": [
+    "data/vision/gt/rc3_1_phase_c_lock.json",
+    "data/vision/gt/rc3_2_lock.json"
+  ],
+  "note": "Lock metrics = official production sign-off. E1 remeasure = same eval scripts re-run 2026-07-09 before engine changes.",
+  "gev": {
+    "canonical": {
+      "source": "data/vision/gt/rc3_1_phase_c_lock.json",
+      "pooledMicroF1": 0.7404,
+      "microFp": 15,
+      "microFn": 46,
+      "perClip": {
+        "pass01_clip_002": 0.7714,
+        "pass01_clip_003": 0.6562,
+        "pass01_clip_004": 0.7723
+      }
+    },
+    "e1Remeasure": {
+      "capturedAt": "2026-07-09",
+      "command": "python scripts/report/vision_gev_gt_report.py --preset rc3_1_phase_c",
+      "reportDir": "data/vision/report/rc3_1_phase_c",
+      "pooledMicroF1": 0.7667,
+      "microFp": 10,
+      "microFn": 46,
+      "microTp": 92,
+      "evalQualityGrade": "B",
+      "avgTrackCompletenessPct": 100.0
+    }
+  },
+  "tracking": {
+    "primaryClip": "pass01_clip_002",
+    "vq2SourceRun": "data/vision/report/vq2_tracking/run_1783212906445",
+    "e1Remeasure": {
+      "capturedAt": "2026-07-09",
+      "command": "python yago-worker/lib/vision/vision_tracking_quality_vq2_cli.py analyze --summary .../tracking_summary.json --registry .../tracks_registry.json --tracks-jsonl .../tracks.jsonl",
+      "artifact": "data/vision/report/engineering/e1_tracking_vq2_remeasure.json",
+      "personIdSwitchRate": 0.0287,
+      "personIdContinuityProxy": 0.9713,
+      "personContinuityIndex": 0.9434,
+      "personShortTrackRatio": 0.057,
+      "trackingQualityScore": 93,
+      "grade": "A",
+      "uniquePersonTracks": 35,
+      "gevTrackEndpointCoverage": 0.0833,
+      "gevEndpointHits": "1/12",
+      "metricNote": "string-ID diagnostic only; run-dependent; NOT Production endpoint success rate; spatial primary=75% — see GEV_ENDPOINT_METRIC_EVAL_DEBT_ALIGNMENT.md (2026-07-12)"
+    },
+    "e1ImprovementTargets": {
+      "personIdSwitchRate": "decrease",
+      "personContinuityIndex": "increase",
+      "personShortTrackRatio": "decrease",
+      "gevTrackEndpointCoverage": "historical target superseded 2026-07-12: string coverage supporting only (8.33% anonymized; raw_1080p 66.7% run-dependent, not cross-run comparable); use spatial endpoint as primary diagnostic"
+    }
+  },
+  "e1PassCriteria": {
+    "gevMicroF1VsCanonical": "improve vs 0.7404 lock (or maintain with tracking gain)",
+    "regressionTest": "vision_gev_gt_report.py --preset rc3_1_phase_c PASS",
+    "pilotStability": "Ops Upload+Analysis consecutive PASS on real Pilot footage"
+  },
+  "e1WorkflowStatus": {
+    "step1_baselineFixed": "DONE",
+    "step2_trackingRegression": "DONE",
+    "step3_trackingEngineImprove": "DONE (code+offline eval)",
+    "step4_gtEvalRerun": "DONE — E1 PASS❌",
+    "step4_abExperiment": "DONE",
+    "step4_rootCause": "GT_alignment + GEV_preds_drift — tracker_tune_no_gev_lift"
+    "step5_pilotValidation": "WAIT"
+  }
+}
