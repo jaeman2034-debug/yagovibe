@@ -1,9 +1,9 @@
 # Vision Match Detail Tab Routing — Production Deploy Fact
 
 **Document ID:** `VISION-TAB-ROUTING-DEPLOY-FACT`  
-**Status:** ✅ **DEPLOYED** (Hosting) · ⏳ Post-Deploy Smoke 후 PM Final Review  
-**Feature commit:** **`918208c`**  
-**Deployed HEAD:** **`a86d097`** (includes `918208c` + Pre-Deploy SHA stamp)  
+**Status:** ✅ **DEPLOYED** · 🔒 **Production Verified** · Issue **COMPLETE / CLOSED**  
+**Feature commit:** **`918208c82d4435610614d898e4b1dad1d9983228`**  
+**Deployed HEAD:** **`a86d097`**  
 **Day-03:** 🛑 DATE_GATE_PENDING 미변경  
 **PAI-011 / PAI-012:** 🔒 COMPLETE/CLOSED 미변경  
 **PROD-OBS-012:** ▶ OPEN 후보 미변경
@@ -19,6 +19,7 @@
 Hosting URL: https://yago-vibe-spt.web.app
 결과: Deploy complete · release complete · 456 files in dist
 명령: npm run deploy:hosting (= build + firebase deploy --only hosting)
+Post-Deploy Smoke: PASS (4-tab) · PM Final PASS → COMPLETE/CLOSED
 ```
 
 ### Commits
@@ -37,7 +38,7 @@ Hosting URL: https://yago-vibe-spt.web.app
 
 | Item | Value |
 |---|---|
-| Coach / Timeline / Parent tab routing fix | 포함 |
+| Coach / Timeline / Parent tab routing fix | 포함 · **Verified** |
 | Team Hub route | **미변경** |
 | Play Lounge | **미변경** |
 | PAI-011 / PAI-012 logic | **미변경** |
@@ -52,4 +53,4 @@ npm run build (production) → PASS (~1m 21s)
 ```
 
 **Recorded by:** Engineering Track A · 2026-07-12  
-❌ COMPLETE / CLOSED 선언 금지 (PM Final Review 전)
+**Verified by:** PM Final Review · 2026-07-12

@@ -2,9 +2,9 @@
 
 **Document ID:** `VISION-TAB-ROUTING-POST-DEPLOY-SMOKE`  
 **Date:** 2026-07-12 (KST)  
-**Status:** ✅ **SMOKE PASS** (4-tab actual click · Production)  
-**PM Final:** ⏳ **AWAITING** (COMPLETE/CLOSED 금지)  
-**Deployed HEAD:** `a86d097` (feature `918208c`)  
+**Status:** 🔒 **FINAL PASS / ACCEPTED**  
+**Issue:** 🔒 **COMPLETE / CLOSED**  
+**Deployed HEAD:** `a86d097` (feature `918208c82d4435610614d898e4b1dad1d9983228`)  
 **Hosting:** https://yago-vibe-spt.web.app  
 **Raw JSON:** `vision_tab_routing_qa/prod_smoke/local_browser_qa.json`  
 **Script:** `VISION_QA_BASE_URL=https://yago-vibe-spt.web.app npx tsx scripts/vision-tab-routing-local-qa.ts`
@@ -56,22 +56,26 @@ https://yago-vibe-spt.web.app/teams/D7TUZaOtfxdBc4P0lQLx/vision/match/vision-pil
 
 ---
 
-## Engineering Verdict
+## PM Final Review
+
+| Item | Value |
+|---|---|
+| Post-Deploy Smoke | 🔒 **FINAL PASS / ACCEPTED** |
+| Issue status | 🔒 **COMPLETE / CLOSED** |
+| PM | 2026-07-12 PASS 승인 |
 
 ```text
-Production 4-tab Post-Deploy Smoke = PASS
+Vision Match Detail Tab Routing Fix = PASS / COMPLETE / CLOSED 🔒
 ```
-
-❌ COMPLETE / CLOSED 선언 금지 — **PM Final Review 대기**
 
 ---
 
 ## Separated (unchanged)
 
 - Day-03 DATE_GATE_PENDING
-- PAI-011 / PAI-012
-- PROD-OBS-012 / PAI-031
+- PAI-011 / PAI-012 · VOC-011 count **15**
+- PROD-OBS-012 / PAI-031 ▶ OPEN
 - Team Hub Observation
 
 **Recorded by:** Engineering Track A · 2026-07-12  
-**Next:** PM Final Review → PASS / COMPLETE/CLOSED 판정
+**Closed by:** PM Final Review · 2026-07-12
