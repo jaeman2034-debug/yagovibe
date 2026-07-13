@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-005",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-13T00:04:30.981850+00:00",
+  "rewriteText": "압박(pressure) 축의 점수가 47점으로 팀 내에서 가장 낮습니다. 다음 훈련에서는 압박 축에 대한 훈련 제약을 점검하는 것이 필요합니다. P2 선수는 역할 점검을 통해 한 가지 큐에 집중할 수 있도록 지도해 주세요. \n\n턴오버가 6건 발생한 점은 개선이 필요한 부분입니다. 압박 축에 대한 관측 포커스를 유지하며, 추가 클립을 통해 FII 추세를 비교하는 것도 고려해 주세요. \n\n위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3036,
+    "completion_tokens": 132
+  }
+}

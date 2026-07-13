@@ -1,0 +1,13 @@
+{
+  "runId": "CIE-LEARNING-LOOP-V1-RUN-001",
+  "manifest": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-RUN-001/_loop_manifest.json",
+  "pmChecklist": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-RUN-001/PM_REVIEW_CHECKLIST.md",
+  "failureRegistry": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-RUN-001/failure_registry.jsonl",
+  "evalRunId": "CIE-LEARNING-LOOP-V1-RUN-001",
+  "hitlReviewQueue": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-RUN-001/HITL_REVIEW_QUEUE.jsonl",
+  "hitlCompleteFeedback": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/hitl_feedback/CIE-LEARNING-LOOP-V1-RUN-001_complete.jsonl",
+  "hitlCompletionReport": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-RUN-001/HITL_COMPLETION_REPORT.md",
+  "humanWeaknessRegistry": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-RUN-001/human_weakness_registry.jsonl",
+  "hitlPendingCount": 0,
+  "hitlCompleteCount": 20
+}

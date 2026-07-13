@@ -43,7 +43,7 @@
     },
     "reviewStatus": {
       "type": "string",
-      "enum": ["pending", "complete"]
+      "enum": ["pending", "unreviewed", "complete"]
     },
     "decision": {
       "type": "string",
@@ -63,22 +63,25 @@
     },
     "usefulnessScore": {
       "type": "integer",
-      "minimum": 0,
-      "maximum": 2
+      "minimum": 1,
+      "maximum": 5,
+      "description": "HITL human scale 1-5 (PM Learning Loop V1)"
     },
     "actionabilityScore": {
       "type": "integer",
-      "minimum": 0,
-      "maximum": 2
+      "minimum": 1,
+      "maximum": 5,
+      "description": "HITL human scale 1-5 (PM Learning Loop V1)"
     },
     "groundingScore": {
       "type": "integer",
-      "minimum": 0,
-      "maximum": 2
+      "minimum": 1,
+      "maximum": 5,
+      "description": "HITL human scale 1-5 (PM Learning Loop V1)"
     },
     "reviewNote": { "type": "string", "maxLength": 2000 },
     "reviewedAt": {
-      "type": "string",
+      "type": ["string", "null"],
       "format": "date-time"
     }
   }

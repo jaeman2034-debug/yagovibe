@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-015",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-13T00:04:58.721683+00:00",
+  "rewriteText": "비전(vision) 축 51점이 팀 축 중 상대적으로 낮습니다. 다음 훈련에서는 비전 축 훈련 제약 점검에 집중해야 합니다. P1 선수는 볼 순환에 중점을 두고 짧은 패스를 유지하는 훈련이 필요합니다. \n\n현재 팀의 패스는 14건, 수신은 12건, 턴오버는 2건으로 나타났습니다. 턴오버를 줄이기 위해 AXIS 근거를 확인하고, 비전 축 클립 리뷰를 진행하는 것이 좋습니다. \n\n위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3122,
+    "completion_tokens": 144
+  }
+}

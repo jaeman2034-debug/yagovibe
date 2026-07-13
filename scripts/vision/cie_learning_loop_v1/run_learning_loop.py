@@ -125,12 +125,175 @@ def validate_dataset(dataset_version: str) -> dict:
     return {"datasetVersion": dataset_version, "overallPass": True, "sampleCount": len(paths)}
 
 
+def load_per_sample_maps(eval_run_id: str) -> tuple[dict, dict]:
+    hard_rows: dict = {}
+    qual_rows: dict = {}
+    hard_path = SHADOW / "results" / f"{eval_run_id}_per_sample.jsonl"
+    qual_path = SHADOW / "quality_results" / f"{eval_run_id}_QUALITY_per_sample.jsonl"
+    if hard_path.exists():
+        for line in hard_path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                hard_rows[row["sampleId"]] = row
+    if qual_path.exists():
+        for line in qual_path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                qual_rows[row["sampleId"]] = row
+    return hard_rows, qual_rows
+
+
+def summarize_allowed_facts(sample: dict, limit: int = 8) -> list[dict]:
+    facts = sample.get("allowedFacts") or []
+    out = []
+    for f in facts[:limit]:
+        out.append(
+            {
+                "factId": f.get("factId"),
+                "path": f.get("path"),
+                "value": f.get("value"),
+            }
+        )
+    if len(facts) > limit:
+        out.append({"factId": "_truncated", "path": None, "value": f"+{len(facts) - limit} more"})
+    return out
+
+
+def prepare_hitl_review(
+    loop_run_id: str,
+    eval_run_id: str,
+    *,
+    dataset_version: str,
+    prompt_version: str,
+    evaluator_version: str,
+) -> dict:
+    """Create unreviewed HITL queue rows — no auto-ACCEPT."""
+    samples_dir = DATASET_DIRS[dataset_version]
+    gen_dir = SHADOW / "generations" / eval_run_id
+    hard_rows, qual_rows = load_per_sample_maps(eval_run_id)
+    loop_run_dir = LOOP / "runs" / loop_run_id
+    loop_run_dir.mkdir(parents=True, exist_ok=True)
+
+    queue_path = loop_run_dir / "HITL_REVIEW_QUEUE.jsonl"
+    feedback_path = LOOP / "hitl_feedback" / f"{loop_run_id}_unreviewed.jsonl"
+    feedback_path.parent.mkdir(parents=True, exist_ok=True)
+
+    queue_lines: list[str] = []
+    feedback_lines: list[str] = []
+    created = 0
+
+    for sp in sorted(samples_dir.glob("CIE-SHADOW-V02-*.json")):
+        sample = json.loads(sp.read_text(encoding="utf-8"))
+        sid = sample["sampleId"]
+        gp = gen_dir / f"{sid}.json"
+        gen = json.loads(gp.read_text(encoding="utf-8")) if gp.exists() else {}
+        text = (gen.get("rewriteText") or "").strip()
+        hard = hard_rows.get(sid, {})
+        qual = qual_rows.get(sid, {})
+        scores = qual.get("scores") or {}
+        failure_types = hard.get("failureTypes") or []
+        hard_verdict = hard.get("actualVerdict", "UNKNOWN")
+
+        primary_ev = (
+            sample.get("primaryEvidenceType")
+            or (sample.get("coachInsightsInput") or {}).get("primaryEvidenceType")
+            or sample.get("compositionTag")
+        )
+
+        compact = {
+            "runId": loop_run_id,
+            "evalRunId": eval_run_id,
+            "sampleId": sid,
+            "primaryEvidenceType": primary_ev,
+            "allowedFactsSummary": summarize_allowed_facts(sample),
+            "generatedRewrite": text,
+            "hardGateResult": hard_verdict,
+            "failureTypes": failure_types,
+            "qualityScores": {
+                "Q01": scores.get("Q01"),
+                "Q02": scores.get("Q02"),
+                "Q03": scores.get("Q03"),
+                "Q04": scores.get("Q04"),
+            },
+            "reviewStatus": "unreviewed",
+            "decision": "ABSTAIN",
+            "reviewerDecision": None,
+            "reviewerNote": None,
+        }
+        queue_lines.append(json.dumps(compact, ensure_ascii=False))
+
+        feedback_id = hashlib.sha256(f"{loop_run_id}:{sid}".encode()).hexdigest()[:16]
+        feedback_lines.append(
+            json.dumps(
+                {
+                    "feedbackId": f"fb-{feedback_id}",
+                    "runId": loop_run_id,
+                    "sampleId": sid,
+                    "datasetVersion": dataset_version,
+                    "promptVersion": prompt_version,
+                    "evaluatorVersion": evaluator_version,
+                    "reviewerAlias": "",
+                    "reviewStatus": "unreviewed",
+                    "decision": "ABSTAIN",
+                    "acceptedClaims": [],
+                    "rejectedClaims": [],
+                    "failureTypes": failure_types,
+                    "usefulnessScore": 0,
+                    "actionabilityScore": 0,
+                    "groundingScore": 0,
+                    "reviewNote": "",
+                    "reviewedAt": None,
+                },
+                ensure_ascii=False,
+            )
+        )
+        created += 1
+
+    queue_path.write_text("\n".join(queue_lines) + "\n", encoding="utf-8")
+    feedback_path.write_text("\n".join(feedback_lines) + "\n", encoding="utf-8")
+
+    md_path = loop_run_dir / "HITL_REVIEW_QUEUE.md"
+    md_lines = [
+        f"# HITL Review Queue — {loop_run_id}",
+        "",
+        f"**Status:** unreviewed · **Rows:** {created}",
+        "",
+        "Do not auto-ACCEPT. Complete human review then append to `hitl_feedback/` with `reviewStatus: complete`.",
+        "",
+    ]
+    for line in queue_lines:
+        row = json.loads(line)
+        md_lines.append(f"## {row['sampleId']} ({row['primaryEvidenceType']})")
+        md_lines.append(f"- Hard: **{row['hardGateResult']}** · failures: `{row['failureTypes']}`")
+        md_lines.append(
+            f"- Q: {row['qualityScores']['Q01']}/{row['qualityScores']['Q02']}/"
+            f"{row['qualityScores']['Q03']}/{row['qualityScores']['Q04']}"
+        )
+        md_lines.append(f"- Rewrite: {row['generatedRewrite'][:200]}...")
+        md_lines.append(f"- decision: `{row['decision']}` · reviewerNote: _(pending)_")
+        md_lines.append("")
+    md_path.write_text("\n".join(md_lines) + "\n", encoding="utf-8")
+
+    return {
+        "hitlRowsCreated": created,
+        "hitlPendingCount": created,
+        "queuePath": str(queue_path.relative_to(ROOT)).replace("\\", "/"),
+        "feedbackQueuePath": str(feedback_path.relative_to(ROOT)).replace("\\", "/"),
+        "reviewMdPath": str(md_path.relative_to(ROOT)).replace("\\", "/"),
+    }
+
+
 def count_hitl_pending(run_id: str) -> int:
     fb_dir = LOOP / "hitl_feedback"
+    unreviewed = LOOP / "hitl_feedback" / f"{run_id}_unreviewed.jsonl"
+    if unreviewed.exists():
+        return sum(1 for line in unreviewed.read_text(encoding="utf-8").splitlines() if line.strip())
     if not fb_dir.exists():
         return 20
     done_samples: set[str] = set()
     for fp in fb_dir.glob("*.jsonl"):
+        if fp.name.endswith("_unreviewed.jsonl"):
+            continue
         for line in fp.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
@@ -308,17 +471,22 @@ def write_loop_manifest(
     return path
 
 
-def load_summaries(eval_run_id: str) -> tuple[dict, dict]:
+def load_hard_summary(eval_run_id: str) -> dict:
     hard_path = SHADOW / "results" / f"{eval_run_id}_summary.json"
-    qual_path = SHADOW / "quality_results" / f"{eval_run_id}_QUALITY_summary.json"
     if not hard_path.exists():
         raise SystemExit(f"STOP: missing hard summary {hard_path}")
+    return json.loads(hard_path.read_text(encoding="utf-8"))
+
+
+def load_quality_summary(eval_run_id: str) -> dict:
+    qual_path = SHADOW / "quality_results" / f"{eval_run_id}_QUALITY_summary.json"
     if not qual_path.exists():
         raise SystemExit(f"STOP: missing quality summary {qual_path}")
-    return (
-        json.loads(hard_path.read_text(encoding="utf-8")),
-        json.loads(qual_path.read_text(encoding="utf-8")),
-    )
+    return json.loads(qual_path.read_text(encoding="utf-8"))
+
+
+def load_summaries(eval_run_id: str) -> tuple[dict, dict]:
+    return load_hard_summary(eval_run_id), load_quality_summary(eval_run_id)
 
 
 def main() -> None:
@@ -344,6 +512,11 @@ def main() -> None:
     )
     parser.add_argument("--lab-only", action="store_true", help="Required with --generate")
     parser.add_argument("--model", default="gpt-4o-mini")
+    parser.add_argument(
+        "--prepare-hitl",
+        action="store_true",
+        help="Create HITL review queue after gates (also with --orchestration-only)",
+    )
     parser.add_argument(
         "--promote",
         action="store_true",
@@ -416,6 +589,8 @@ def main() -> None:
             hard_summary.setdefault("generationRate", m.get("generationRate"))
             hard_summary.setdefault("requested", m.get("requested"))
             hard_summary.setdefault("generated", m.get("generated"))
+            if m.get("labOnly"):
+                llm_called = True
         print(f"[loop] orchestration-only: loaded summaries from {eval_run_id}")
     else:
         # 4. Hard Gate
@@ -430,7 +605,13 @@ def main() -> None:
             ],
             label="hard_gate",
         )
-        hard_summary, _ = load_summaries(eval_run_id)
+        hard_summary = load_hard_summary(eval_run_id)
+        manifest_path = gen_dir / "_manifest.json"
+        if manifest_path.exists():
+            m = json.loads(manifest_path.read_text(encoding="utf-8"))
+            hard_summary.setdefault("generationRate", m.get("generationRate"))
+            hard_summary.setdefault("requested", m.get("requested"))
+            hard_summary.setdefault("generated", m.get("generated"))
 
         if hard_summary.get("actualFail", 0) > 0:
             ensure_failure_registry(args.run_id, eval_run_id, hard_summary)
@@ -481,7 +662,7 @@ def main() -> None:
             qual_cmd.append("--lab-only")
             llm_called = True
         run_cmd(qual_cmd, label="quality_gate")
-        _, quality_summary = load_summaries(eval_run_id)
+        quality_summary = load_quality_summary(eval_run_id)
 
     # 6. Gate assertion
     gate_result = assert_all(
@@ -525,33 +706,50 @@ def main() -> None:
         stopped_at=stopped_at,
     )
 
+    # 9. HITL review preparation (after gates; Hard PASS required)
+    hitl_info: dict = {}
+    should_prepare_hitl = (
+        hard_summary.get("actualFail", 0) == 0
+        and (not args.orchestration_only or args.prepare_hitl)
+    )
+    if should_prepare_hitl:
+        hitl_info = prepare_hitl_review(
+            args.run_id,
+            eval_run_id,
+            dataset_version=args.dataset_version,
+            prompt_version=args.prompt_version,
+            evaluator_version=args.evaluator_version,
+        )
+
     # Copy checklist reference into loop index
     index_path = LOOP / "runs" / args.run_id / "ARTIFACT_INDEX.json"
+    index_data = {
+        "runId": args.run_id,
+        "manifest": str(manifest.relative_to(ROOT)).replace("\\", "/"),
+        "pmChecklist": str(checklist.relative_to(ROOT)).replace("\\", "/"),
+        "failureRegistry": str(reg_path.relative_to(ROOT)).replace("\\", "/"),
+        "reusedEvalRunId": args.reuse_generations,
+        "evalRunId": eval_run_id,
+    }
+    if hitl_info:
+        index_data["hitlReviewQueue"] = hitl_info.get("queuePath")
+        index_data["hitlPendingCount"] = hitl_info.get("hitlPendingCount")
     index_path.write_text(
-        json.dumps(
-            {
-                "runId": args.run_id,
-                "manifest": str(manifest.relative_to(ROOT)).replace("\\", "/"),
-                "pmChecklist": str(checklist.relative_to(ROOT)).replace("\\", "/"),
-                "failureRegistry": str(reg_path.relative_to(ROOT)).replace("\\", "/"),
-                "reusedEvalRunId": eval_run_id,
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
+        json.dumps(index_data, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
 
     out = {
         "status": "COMPLETE",
         "runId": args.run_id,
+        "evalRunId": eval_run_id,
         "hardGatePass": gate_result["hardGatePass"],
         "qualityGatePass": gate_result["qualityGatePass"],
         "llmCalled": llm_called,
         "pmDecisionRequired": True,
         "manifest": str(manifest),
         "checklist": str(checklist),
+        "hitl": hitl_info,
     }
     print(json.dumps(out, ensure_ascii=False, indent=2))
 

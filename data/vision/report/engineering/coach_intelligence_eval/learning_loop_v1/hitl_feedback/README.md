@@ -8,8 +8,9 @@
 
 - Append only — never delete or overwrite prior feedback rows.
 - Use `reviewerAlias` (e.g. `reviewer-a`) — **no real PII**.
-- `reviewStatus`: `pending` → `complete` when review finished.
+- `reviewStatus`: `unreviewed` / `pending` → `complete` when review finished.
 - `decision`: `ACCEPT` | `REJECT` | `REVISE` | `ABSTAIN`
+- Human scores (`usefulnessScore`, `actionabilityScore`, `groundingScore`): **1–5** when `reviewStatus=complete`
 
 ## Validate a row
 
@@ -33,10 +34,10 @@ python scripts/vision/cie_learning_loop_v1/validate_hitl_feedback.py hitl_feedba
   "acceptedClaims": ["decision 축 49점", "턴오버 2건"],
   "rejectedClaims": [],
   "failureTypes": [],
-  "usefulnessScore": 2,
-  "actionabilityScore": 2,
-  "groundingScore": 2,
-  "reviewNote": "Dry-run schema validation example.",
+  "usefulnessScore": 4,
+  "actionabilityScore": 4,
+  "groundingScore": 5,
+  "reviewNote": "Example schema row.",
   "reviewedAt": "2026-07-13T00:00:00+00:00"
 }
 ```
