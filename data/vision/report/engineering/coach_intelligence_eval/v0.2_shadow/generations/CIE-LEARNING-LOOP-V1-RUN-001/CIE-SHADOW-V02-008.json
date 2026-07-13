@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-008",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-13T00:04:38.070733+00:00",
+  "rewriteText": "턴오버 3건이 패스 9건 구간에서 반복 관측되었습니다. 다음 훈련에서는 턴오버 구간 시퀀스를 리뷰하는 데 집중해야 합니다. P2는 역할 점검을 위해 한 가지 큐만 제공할 예정입니다. 턴오버 구간 클립을 리뷰하는 것이 필요합니다. 최종 적용 여부는 코치 판단 후 반영하세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3061,
+    "completion_tokens": 88
+  }
+}

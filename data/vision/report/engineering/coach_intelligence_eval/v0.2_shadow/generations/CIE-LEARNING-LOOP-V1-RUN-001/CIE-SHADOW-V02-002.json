@@ -1,0 +1,12 @@
+{
+  "sampleId": "CIE-SHADOW-V02-002",
+  "promptVersion": "cip-v0.2.2",
+  "modelId": "gpt-4o-mini",
+  "generatedAt": "2026-07-13T00:04:22.463359+00:00",
+  "rewriteText": "턴오버 5건이 패스 7건 대비 높게 관측되었습니다. 이로 인해 턴오버와 패스 비율에 대한 임계값 관측 리뷰가 필요합니다. P2는 역할 점검이 필요하며, 한 가지 큐에 집중해야 합니다. \n\n턴오버 비율에 대한 이벤트 카운트 임계값을 리뷰하는 것이 좋습니다. P1은 FII 55점으로 팀의 강점 중 하나입니다. 팀 전체 FII는 49점입니다. \n\n위 내용은 제안이며 최종 적용은 코치님이 결정해 주세요.",
+  "labOnly": true,
+  "usage": {
+    "prompt_tokens": 3080,
+    "completion_tokens": 130
+  }
+}

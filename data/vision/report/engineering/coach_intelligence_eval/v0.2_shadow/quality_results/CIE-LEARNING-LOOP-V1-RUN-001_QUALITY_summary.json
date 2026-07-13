@@ -1,0 +1,101 @@
+{
+  "runId": "CIE-LEARNING-LOOP-V1-RUN-001",
+  "layer": "SHADOW_QUALITY_ADVISORY_NON_GATING",
+  "evaluatedAt": "2026-07-13T00:06:22.837052+00:00",
+  "outputsEvaluated": 20,
+  "judgeUsed": true,
+  "judgeModel": "gpt-4o-mini",
+  "scoringMethod": "lab_judge_Q01_Q04+deterministic_Q05",
+  "meanScores": {
+    "Q01": 1.95,
+    "Q02": 1.95,
+    "Q03": 1.95,
+    "Q04": 1.95
+  },
+  "diversity": {
+    "uniqueOpeningRatio": 0.95,
+    "uniqueClosingRatio": 0.9,
+    "repeatedSentenceRatio": 0.0673,
+    "meanPairwiseJaccard": 0.159,
+    "topOpeningPatterns": [
+      [
+        "패스 <NUM>건, 팀 overall <NUM>점,",
+        2
+      ],
+      [
+        "의사결정(decision) 축의 점수가 <NUM>점",
+        1
+      ],
+      [
+        "턴오버 <NUM>건이 패스 <NUM>건 대비 높게 ",
+        1
+      ]
+    ],
+    "topClosingPatterns": [
+      [
+        " 발생한 점은 개선이 필요합니다. 위 내용은 제안이며 <HITL>",
+        2
+      ],
+      [
+        "비교를 추천합니다. 최종 적용 여부는 코치님 판단 후 반영하세요.",
+        2
+      ],
+      [
+        " 추세를 비교하는 것이 좋습니다. 위 내용은 제안이며 <HITL>",
+        1
+      ]
+    ],
+    "topRecommendationPatterns": [
+      [
+        "볼 순환",
+        4
+      ],
+      [
+        "폭 만들",
+        3
+      ],
+      [
+        "받기 전 스캔",
+        1
+      ]
+    ],
+    "highestSimilarityPairs": [
+      {
+        "a": "CIE-SHADOW-V02-001",
+        "b": "CIE-SHADOW-V02-005",
+        "jaccard": 0.4675
+      },
+      {
+        "a": "CIE-SHADOW-V02-009",
+        "b": "CIE-SHADOW-V02-012",
+        "jaccard": 0.4487
+      },
+      {
+        "a": "CIE-SHADOW-V02-013",
+        "b": "CIE-SHADOW-V02-014",
+        "jaccard": 0.4375
+      },
+      {
+        "a": "CIE-SHADOW-V02-009",
+        "b": "CIE-SHADOW-V02-011",
+        "jaccard": 0.4111
+      },
+      {
+        "a": "CIE-SHADOW-V02-016",
+        "b": "CIE-SHADOW-V02-020",
+        "jaccard": 0.3968
+      }
+    ]
+  },
+  "zeroOnAnyQ01Q04": [],
+  "lowTotalQ01Q04_le4": [
+    "CIE-SHADOW-V02-002"
+  ],
+  "lowQualitySampleCount": 1,
+  "top3MeasurablePromptWeaknesses": [],
+  "cieHardGateStatus": "RUN-001 hard FAIL incidence 0 — safety gate unchanged / not replaced",
+  "productionWrites": false,
+  "liveCoachChanged": false,
+  "promptChanged": false,
+  "note": "Advisory quality only. Not accuracy. Not Shadow PASS/COMPLETE/LOCK."
+}

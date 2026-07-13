@@ -35,10 +35,13 @@ REQUIRED = [
     "reviewedAt",
 ]
 DECISIONS = frozenset({"ACCEPT", "REJECT", "REVISE", "ABSTAIN"})
-REVIEW_STATUS = frozenset({"pending", "complete"})
+REVIEW_STATUS = frozenset({"pending", "unreviewed", "complete"})
 SAMPLE_ID = re.compile(r"^CIE-SHADOW-V02-[0-9]{3}$")
 FAILURE_CODE = re.compile(r"^F[0-9]{2}_")
 PII_BLOCK = re.compile(r"@|전화|휴대|주민|실명|E2-PV-", re.I)
+# HITL human scores use 1–5 (PM Learning Loop V1). Unreviewed placeholders may be 0.
+SCORE_MIN = 0
+SCORE_MAX = 5
 
 
 def validate_row(row: dict, line_no: int) -> list[str]:
@@ -58,8 +61,10 @@ def validate_row(row: dict, line_no: int) -> list[str]:
 
     for score_key in ("usefulnessScore", "actionabilityScore", "groundingScore"):
         v = row[score_key]
-        if not isinstance(v, int) or v < 0 or v > 2:
-            errors.append(f"line {line_no}: {score_key} must be int 0-2")
+        if not isinstance(v, int) or v < SCORE_MIN or v > SCORE_MAX:
+            errors.append(f"line {line_no}: {score_key} must be int {SCORE_MIN}-{SCORE_MAX}")
+        if row.get("reviewStatus") == "complete" and (not isinstance(v, int) or v < 1 or v > 5):
+            errors.append(f"line {line_no}: complete review requires {score_key} in 1-5")
 
     for arr_key in ("acceptedClaims", "rejectedClaims", "failureTypes"):
         if not isinstance(row[arr_key], list):
@@ -68,6 +73,9 @@ def validate_row(row: dict, line_no: int) -> list[str]:
             for code in row[arr_key]:
                 if not isinstance(code, str) or not FAILURE_CODE.match(code):
                     errors.append(f"line {line_no}: invalid failureType {code}")
+
+    if row.get("reviewedAt") is not None and not isinstance(row.get("reviewedAt"), str):
+        errors.append(f"line {line_no}: reviewedAt must be string or null")
 
     blob = json.dumps(row, ensure_ascii=False)
     if PII_BLOCK.search(blob):

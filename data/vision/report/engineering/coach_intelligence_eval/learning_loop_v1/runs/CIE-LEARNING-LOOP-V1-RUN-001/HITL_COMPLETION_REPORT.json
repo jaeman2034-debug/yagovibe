@@ -1,0 +1,232 @@
+{
+  "runId": "CIE-LEARNING-LOOP-V1-RUN-001",
+  "reviewedAt": "2026-07-13T00:13:11.222820+00:00",
+  "reviewerAlias": "reviewer-loop-v1",
+  "counts": {
+    "ACCEPT": 9,
+    "REJECT": 1,
+    "REVISE": 10,
+    "ABSTAIN": 0
+  },
+  "acceptanceRate": 0.45,
+  "meanUsefulnessScore": 3.95,
+  "meanActionabilityScore": 3.6,
+  "meanGroundingScore": 4.6,
+  "sample002Verdict": "REJECT",
+  "top3HumanWeaknesses": [
+    {
+      "weakness": "generic_single_cue_template",
+      "count": 8,
+      "samples": [
+        "CIE-SHADOW-V02-001",
+        "CIE-SHADOW-V02-002",
+        "CIE-SHADOW-V02-004",
+        "CIE-SHADOW-V02-005",
+        "CIE-SHADOW-V02-006",
+        "CIE-SHADOW-V02-008",
+        "CIE-SHADOW-V02-009",
+        "CIE-SHADOW-V02-011"
+      ]
+    },
+    {
+      "weakness": "future_plan_certainty_tone",
+      "count": 5,
+      "samples": [
+        "CIE-SHADOW-V02-007",
+        "CIE-SHADOW-V02-009",
+        "CIE-SHADOW-V02-011",
+        "CIE-SHADOW-V02-018",
+        "CIE-SHADOW-V02-019"
+      ]
+    },
+    {
+      "weakness": "meta_jargon_leak",
+      "count": 3,
+      "samples": [
+        "CIE-SHADOW-V02-004",
+        "CIE-SHADOW-V02-015",
+        "CIE-SHADOW-V02-017"
+      ]
+    }
+  ],
+  "repeatedWeaknessByCategory": {
+    "dataset_field_name_echo": {
+      "count": 1,
+      "samples": [
+        "CIE-SHADOW-V02-017"
+      ]
+    },
+    "future_plan_certainty_tone": {
+      "count": 5,
+      "samples": [
+        "CIE-SHADOW-V02-007",
+        "CIE-SHADOW-V02-009",
+        "CIE-SHADOW-V02-011",
+        "CIE-SHADOW-V02-018",
+        "CIE-SHADOW-V02-019"
+      ]
+    },
+    "generic_single_cue_template": {
+      "count": 8,
+      "samples": [
+        "CIE-SHADOW-V02-001",
+        "CIE-SHADOW-V02-002",
+        "CIE-SHADOW-V02-004",
+        "CIE-SHADOW-V02-005",
+        "CIE-SHADOW-V02-006",
+        "CIE-SHADOW-V02-008",
+        "CIE-SHADOW-V02-009",
+        "CIE-SHADOW-V02-011"
+      ]
+    },
+    "low_coach_product_readiness": {
+      "count": 1,
+      "samples": [
+        "CIE-SHADOW-V02-002"
+      ]
+    },
+    "meta_jargon_leak": {
+      "count": 3,
+      "samples": [
+        "CIE-SHADOW-V02-004",
+        "CIE-SHADOW-V02-015",
+        "CIE-SHADOW-V02-017"
+      ]
+    },
+    "near_duplicate_sibling_sample": {
+      "count": 1,
+      "samples": [
+        "CIE-SHADOW-V02-014"
+      ]
+    },
+    "redundant_number_dump": {
+      "count": 1,
+      "samples": [
+        "CIE-SHADOW-V02-004"
+      ]
+    },
+    "vague_closing_action": {
+      "count": 1,
+      "samples": [
+        "CIE-SHADOW-V02-014"
+      ]
+    },
+    "vague_threshold_review_action": {
+      "count": 1,
+      "samples": [
+        "CIE-SHADOW-V02-002"
+      ]
+    }
+  },
+  "repeatedWeaknessGe3": {
+    "generic_single_cue_template": {
+      "count": 8,
+      "samples": [
+        "CIE-SHADOW-V02-001",
+        "CIE-SHADOW-V02-002",
+        "CIE-SHADOW-V02-004",
+        "CIE-SHADOW-V02-005",
+        "CIE-SHADOW-V02-006",
+        "CIE-SHADOW-V02-008",
+        "CIE-SHADOW-V02-009",
+        "CIE-SHADOW-V02-011"
+      ]
+    },
+    "meta_jargon_leak": {
+      "count": 3,
+      "samples": [
+        "CIE-SHADOW-V02-004",
+        "CIE-SHADOW-V02-015",
+        "CIE-SHADOW-V02-017"
+      ]
+    },
+    "future_plan_certainty_tone": {
+      "count": 5,
+      "samples": [
+        "CIE-SHADOW-V02-007",
+        "CIE-SHADOW-V02-009",
+        "CIE-SHADOW-V02-011",
+        "CIE-SHADOW-V02-018",
+        "CIE-SHADOW-V02-019"
+      ]
+    }
+  },
+  "automatedPassButHumanRejectOrRevise": {
+    "count": 11,
+    "samples": [
+      "CIE-SHADOW-V02-001",
+      "CIE-SHADOW-V02-002",
+      "CIE-SHADOW-V02-004",
+      "CIE-SHADOW-V02-007",
+      "CIE-SHADOW-V02-009",
+      "CIE-SHADOW-V02-011",
+      "CIE-SHADOW-V02-014",
+      "CIE-SHADOW-V02-015",
+      "CIE-SHADOW-V02-017",
+      "CIE-SHADOW-V02-018",
+      "CIE-SHADOW-V02-019"
+    ]
+  },
+  "humanAcceptButLowAutomatedQuality": {
+    "count": 0,
+    "samples": []
+  },
+  "evaluatorHumanDisagreementCases": [
+    {
+      "sampleId": "CIE-SHADOW-V02-001",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-004",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-007",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-009",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-011",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-014",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-015",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-017",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-018",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    },
+    {
+      "sampleId": "CIE-SHADOW-V02-019",
+      "type": "auto_Q_max_but_human_not_ACCEPT"
+    }
+  ],
+  "failureRegistryAdditions": {
+    "hardSafetyRegistry": "unchanged_empty_all_PASS",
+    "humanWeaknessRegistry": "data/vision/report/engineering/coach_intelligence_eval/learning_loop_v1/runs/CIE-LEARNING-LOOP-V1-RUN-001/human_weakness_registry.jsonl",
+    "humanWeaknessRowCount": 14
+  },
+  "correctionJustified": {
+    "prompt": true,
+    "dataset": true,
+    "evaluator": false
+  },
+  "recommendedNextLearningAction": "REVIEW_FAILURES candidate: repeated human weakness ['generic_single_cue_template', 'meta_jargon_leak', 'future_plan_certainty_tone'] supported by >=3 samples; do not promote version; prepare PM-gated correction candidates (prompt phrasing bans for template cue / future-plan tone; optional dataset fork to demote meta jargon in coachInsights). Do NOT self-select PM decision.",
+  "pmDecisionCandidates": [
+    "REVIEW_FAILURES",
+    "HOLD"
+  ],
+  "note": "Script does NOT choose final PM decision. PRODUCTION FACT IS NOT TRAINING DATA."
+}
