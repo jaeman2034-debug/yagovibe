@@ -584,19 +584,17 @@ export default function FederationHomePage() {
         }}
       />
 
-      {/* Nowon promo only: mobile guest read-only guidance (desktop / logged-in hidden) */}
+      {/* Nowon promo only: mobile guest guidance → YAGO Hub acquisition funnel (desktop / logged-in hidden) */}
       {!authLoading && !user?.uid && federationSlug === "nowon-football" ? (
         <div className="md:hidden border-b border-amber-100 bg-amber-50/90">
           <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-start gap-3">
             <p className="flex-1 text-[12px] leading-snug text-amber-950/90">
-              현재 공개 페이지를 읽기 전용으로 보고 있습니다.
+              현재 공개 페이지를 보고 있습니다.
               <br />
-              로그인하면 팀 관리 및 운영 기능을 이용할 수 있습니다.
+              YAGO VIBE에 로그인하면 팀과 클럽을 찾고 다양한 축구 서비스를 이용할 수 있습니다.
             </p>
             <Link
-              to={`/login?next=${encodeURIComponent(
-                `${window.location.pathname}${window.location.search}`
-              )}`}
+              to={`/login?next=${encodeURIComponent("/hub")}`}
               className="shrink-0 inline-flex items-center justify-center rounded-md bg-amber-800 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-amber-900"
               data-testid="federation-guest-login-cta"
             >
