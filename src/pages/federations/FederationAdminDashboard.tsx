@@ -33,6 +33,7 @@ import FederationMemberList from "@/components/federation/FederationMemberList";
 import FederationTeamFeeDashboard from "@/components/federation/fees/FederationTeamFeeDashboard";
 import FederationCompetitionDashboard from "@/components/federation/fees/FederationCompetitionDashboard";
 import FederationAccountingDashboard from "@/components/federation/accounting/FederationAccountingDashboard";
+import { FederationVenueRentalAdminPanel } from "@/components/federation/FederationVenueRentalAdminPanel";
 
 type FederationDoc = {
   id?: string;
@@ -150,6 +151,7 @@ const ADMIN_TABS = [
   { id: "dashboard", label: "대시보드" },
   { id: "league", label: "리그 관리" },
   { id: "applications", label: "신청 관리" },
+  { id: "venue-rental", label: "축구장 대관" },
   { id: "team", label: "팀 관리" },
   { id: "members", label: "회원 관리" },
   { id: "finance", label: "회계" },
@@ -2882,6 +2884,10 @@ export default function FederationAdminDashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === "venue-rental" && user?.uid && (
+          <FederationVenueRentalAdminPanel federationSlug={federationSlug} adminUid={user.uid} />
         )}
 
         {activeTab === "applications" && (
