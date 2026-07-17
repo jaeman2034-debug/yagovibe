@@ -427,7 +427,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
               onClick={() => setCalendarStatusFilter(f.id)}
               className={`rounded-full px-2.5 py-1 text-xs font-semibold border ${
                 calendarStatusFilter === f.id
-                  ? "bg-primary-700 text-white border-primary-700"
+                  ? "bg-primary text-primary-foreground border-primary"
                   : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
               }`}
             >
@@ -650,7 +650,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                           type="button"
                           disabled={busy}
                           onClick={() => void onAllocateFromPool(r.id)}
-                          className="rounded-md bg-primary-700 text-white px-2 py-1 text-xs font-semibold disabled:opacity-50"
+                          className="rounded-md bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold disabled:opacity-50"
                         >
                           배정
                         </button>
@@ -734,7 +734,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                           type="button"
                           disabled={busy || !directTeamId}
                           onClick={() => void runInlineDirect(false)}
-                          className="rounded-lg bg-primary-700 text-white px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                          className="rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm font-semibold disabled:opacity-50"
                         >
                           선배정
                         </button>
@@ -952,7 +952,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
               })
               .finally(() => setBusy(false));
           }}
-          className="rounded-lg bg-primary-700 text-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold disabled:opacity-50"
         >
           선배정 실행
         </button>
@@ -1021,7 +1021,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                   (reasonCode === "OTHER" && !reasonText.trim())
                 }
                 onClick={() => void submitReasonModal()}
-                className="rounded-lg bg-primary-700 text-white px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
+                className="rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
               >
                 확인
               </button>
