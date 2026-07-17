@@ -128,6 +128,21 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     }
   }
 
+  function slotMatchesStatusFilter(row: AdminMonthlyBoardRow): boolean {
+    switch (calendarStatusFilter) {
+      case "OPEN":
+        return row.status === "OPEN";
+      case "REQUEST_POOL":
+        return row.status === "REQUEST_POOL";
+      case "ADMIN_DIRECT":
+        return row.status === "ALLOCATED" && row.winner?.allocationSource === "ADMIN_DIRECT";
+      case "ALLOCATED":
+        return row.status === "ALLOCATED" && row.winner?.allocationSource !== "ADMIN_DIRECT";
+      default:
+        return true;
+    }
+  }
+
   useEffect(() => {
     const u1 = subscribeAllVenueAllocationRequests(federationSlug, setRequests);
     const u2 = subscribeAllVenueSlotAllocations(federationSlug, setWinners);
@@ -180,6 +195,10 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     if (!selectedDate) return [];
     return boardRows.filter((r) => r.bookingDate === selectedDate);
   }, [boardRows, selectedDate]);
+  const filteredDaySlots = useMemo(
+    () => daySlots.filter(slotMatchesStatusFilter),
+    [daySlots, calendarStatusFilter]
+  );
 
   const selected = boardRows.find((r) => r.key === selectedKey) || null;
   const selectedDaySummary =
@@ -424,7 +443,12 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
             <button
               key={f.id}
               type="button"
-              onClick={() => setCalendarStatusFilter(f.id)}
+              onClick={() => {
+                setCalendarStatusFilter(f.id);
+                setSelectedKey(null);
+                setShowLogs(false);
+                setPendingOverride(null);
+              }}
               className={`rounded-full px-2.5 py-1 text-xs font-semibold border ${
                 calendarStatusFilter === f.id
                   ? "bg-primary text-primary-foreground border-primary"
@@ -581,35 +605,41 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
 
               <div>
                 <p className="text-xs font-semibold text-gray-800 mb-1">① 슬롯 선택</p>
-                <ul className="divide-y rounded-lg border border-gray-100 max-h-48 overflow-auto">
-                  {daySlots.map((row) => (
-                    <li key={row.key}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedKey(row.key);
-                          setShowLogs(false);
-                          setError(null);
-                          setPendingOverride(null);
-                        }}
-                        className={`w-full flex justify-between px-3 py-2 text-sm hover:bg-gray-50 ${
-                          selectedKey === row.key ? "bg-primary-50" : ""
-                        }`}
-                      >
-                        <span className="font-medium">
-                          {row.startTime}–{row.endTime}
-                        </span>
-                        <span
-                          className={`text-xs font-semibold px-1.5 py-0.5 rounded ${rowBadgeClass(row)}`}
+                {filteredDaySlots.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-gray-200 px-3 py-6 text-center text-sm text-gray-500">
+                    선택한 상태에 해당하는 슬롯이 없습니다.
+                  </div>
+                ) : (
+                  <ul className="divide-y rounded-lg border border-gray-100 max-h-48 overflow-auto">
+                    {filteredDaySlots.map((row) => (
+                      <li key={row.key}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedKey(row.key);
+                            setShowLogs(false);
+                            setError(null);
+                            setPendingOverride(null);
+                          }}
+                          className={`w-full flex justify-between px-3 py-2 text-sm hover:bg-gray-50 ${
+                            selectedKey === row.key ? "bg-primary-50" : ""
+                          }`}
                         >
-                          {row.status === "ALLOCATED" && row.winnerTeamName
-                            ? `${statusBadge(row)} · ${row.winnerTeamName}`
-                            : statusBadge(row)}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                          <span className="font-medium">
+                            {row.startTime}–{row.endTime}
+                          </span>
+                          <span
+                            className={`text-xs font-semibold px-1.5 py-0.5 rounded ${rowBadgeClass(row)}`}
+                          >
+                            {row.status === "ALLOCATED" && row.winnerTeamName
+                              ? `${statusBadge(row)} · ${row.winnerTeamName}`
+                              : statusBadge(row)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           )}
