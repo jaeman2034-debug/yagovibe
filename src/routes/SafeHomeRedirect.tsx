@@ -3,6 +3,10 @@ import { useAuth } from "@/context/AuthProvider";
 import { auth } from "@/lib/firebase";
 import { usePostAuthBootstrapGate } from "@/hooks/usePostAuthBootstrapGate";
 import { AuthBootSplash } from "@/components/auth/AuthBootSplash";
+import {
+  getPendingInviteReturnPath,
+  isPendingInviteReturn,
+} from "@/lib/auth/pendingInviteReturn";
 
 /**
  * 루트 "/" 전용: 반드시 Auth 초기화(loading) 후에만 분기.
@@ -48,6 +52,8 @@ export default function SafeHomeRedirect() {
     });
   }
   if (sessionUser && !sessionUser.isAnonymous) {
+    // 로그인된 사용자는 / → Hub(또는 onboarding).
+    // pending invite 복귀는 /login?next= 또는 InvitePage 진입 시에만 — used 초대 루프 방지.
     let hasChosenSport = false;
     try {
       hasChosenSport = !!localStorage.getItem("lastSport");
@@ -55,6 +61,13 @@ export default function SafeHomeRedirect() {
       hasChosenSport = false;
     }
     return <Navigate to={hasChosenSport ? "/hub" : "/onboarding"} replace />;
+  }
+
+  const pendingInvite = getPendingInviteReturnPath();
+  if (isPendingInviteReturn(pendingInvite) && pendingInvite) {
+    return (
+      <Navigate to={`/login?next=${encodeURIComponent(pendingInvite)}`} replace />
+    );
   }
 
   return <Navigate to="/login" replace />;
