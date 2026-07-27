@@ -48,13 +48,14 @@ export function PendingInviteRestoreGate() {
       return;
     }
 
-    // Hub·홈은 pending으로 뺏지 않음 — 사용완료 초대 루프 방지.
-    // (유효 초대 복귀는 /login?next= / SafeHomeRedirect 가 담당)
+    // Hub·홈·온보딩·협회는 pending으로 뺏지 않음 — 사용완료 초대 루프 방지.
     if (
       location.pathname === "/hub" ||
       location.pathname.startsWith("/hub/") ||
       location.pathname === "/home" ||
-      location.pathname.startsWith("/home/")
+      location.pathname.startsWith("/home/") ||
+      location.pathname.startsWith("/onboarding") ||
+      location.pathname.startsWith("/federations")
     ) {
       return;
     }

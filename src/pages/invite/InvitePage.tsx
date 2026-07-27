@@ -18,6 +18,7 @@ import { acceptFederationPhoneInviteById } from "@/services/federationInvitePhon
 import { setPendingInviteTeamId } from "@/lib/team/pendingInviteTeam";
 import {
   clearPendingInviteReturnPath,
+  escapeDeadInviteToHub,
   inviteReturnPathFromSearchParams,
   setPendingInviteReturnPath,
   setPendingInviteToken,
@@ -304,9 +305,8 @@ export default function InvitePage() {
       if (token) {
         const preview = await loadTokenInvitePreview(token);
         if (!preview) {
-          clearPendingInviteReturnPath();
-          setStatus("used");
-          setMessage("초대가 만료되었거나 이미 사용되었습니다.");
+          console.log("[InvitePage] dead invite → hard escape /hub");
+          escapeDeadInviteToHub();
           return;
         }
 
@@ -409,12 +409,17 @@ export default function InvitePage() {
     void run().catch((error) => {
       console.error(error);
       const msg = error instanceof Error ? error.message : "초대 처리에 실패했습니다.";
+      if (
+        msg.includes("만료") ||
+        msg.includes("이미 사용") ||
+        msg.includes("이미 사용되었")
+      ) {
+        console.log("[InvitePage] dead invite (error) → hard escape /hub");
+        escapeDeadInviteToHub();
+        return;
+      }
       clearPendingInviteReturnPath();
-      if (msg.includes("만료")) {
-        setStatus("expired");
-      } else if (msg.includes("이미 사용") || msg.includes("이미 사용되었")) {
-        setStatus("used");
-      } else if (msg.includes("유효하지 않은")) {
+      if (msg.includes("유효하지 않은")) {
         setStatus("invalid");
       } else {
         setStatus("error");
@@ -618,9 +623,8 @@ export default function InvitePage() {
               type="button"
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700"
               onClick={() => {
-                clearPendingInviteReturnPath();
-                console.log("[InvitePage] dismiss dead invite → /hub");
-                navigate("/hub", { replace: true });
+                console.log("[InvitePage] CTA hard escape → /hub");
+                escapeDeadInviteToHub();
               }}
             >
               홈으로 이동
