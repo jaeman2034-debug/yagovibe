@@ -48,6 +48,10 @@ import {
   venueBaselineAllocationDocId,
   venueSlotBookingDocId,
 } from "@/lib/federation/venueRentalService";
+import {
+  ensureVenueReservationAfterAllocate,
+  resolveFederationBankAccountGuide,
+} from "@/lib/federation/venueReservationService";
 
 /** One active request per club per venue+date+slot */
 export function venueAllocationRequestDocId(
@@ -128,6 +132,22 @@ function parseSlotAllocation(id: string, raw: Record<string, unknown>): VenueSlo
     allocatedAt: raw.allocatedAt,
     allocationSource: source,
     status,
+    paymentStatus: raw.paymentStatus === "CONFIRMED" ? "CONFIRMED" : "UNCONFIRMED",
+    paymentClaimStatus: raw.paymentClaimStatus === "REQUESTED" ? "REQUESTED" : "NONE",
+    paymentClaimedByUid:
+      raw.paymentClaimedByUid != null ? String(raw.paymentClaimedByUid) : null,
+    paymentClaimedAt: raw.paymentClaimedAt,
+    paymentClaimDepositedAt:
+      raw.paymentClaimDepositedAt != null ? String(raw.paymentClaimDepositedAt) : null,
+    reservationId: raw.reservationId != null ? String(raw.reservationId) : null,
+    shortReservationCode:
+      raw.shortReservationCode != null ? String(raw.shortReservationCode) : null,
+    confirmStatus: raw.confirmStatus === "FINALIZED" ? "FINALIZED" : "PENDING_PAYMENT",
+    paymentConfirmedByUid:
+      raw.paymentConfirmedByUid != null ? String(raw.paymentConfirmedByUid) : null,
+    paymentConfirmedAt: raw.paymentConfirmedAt,
+    finalizedByUid: raw.finalizedByUid != null ? String(raw.finalizedByUid) : null,
+    finalizedAt: raw.finalizedAt,
     cancelledByUid: raw.cancelledByUid != null ? String(raw.cancelledByUid) : undefined,
     cancelledAt: raw.cancelledAt,
     cancelReasonCode:
@@ -149,7 +169,22 @@ function parseChangeLog(id: string, raw: Record<string, unknown>): VenueAllocati
     startTime: String(raw.startTime || ""),
     endTime: String(raw.endTime || ""),
     slotAllocationId: String(raw.slotAllocationId || ""),
-    changeType: raw.changeType === "REALLOCATE" ? "REALLOCATE" : "CANCEL",
+    changeType:
+      raw.changeType === "REALLOCATE"
+        ? "REALLOCATE"
+        : raw.changeType === "RESERVATION_CREATED"
+          ? "RESERVATION_CREATED"
+          : raw.changeType === "PAYMENT_CLAIM"
+            ? "PAYMENT_CLAIM"
+            : raw.changeType === "PAYMENT_CONFIRM"
+              ? "PAYMENT_CONFIRM"
+              : raw.changeType === "PAYMENT_UNCONFIRM"
+                ? "PAYMENT_UNCONFIRM"
+                : raw.changeType === "ALLOCATION_FINALIZE"
+                  ? "ALLOCATION_FINALIZE"
+                  : raw.changeType === "ALLOCATION_UNFINALIZE"
+                    ? "ALLOCATION_UNFINALIZE"
+                    : "CANCEL",
     reasonCode: String(raw.reasonCode || "OTHER") as VenueAllocationChangeReasonCode,
     reasonText: raw.reasonText != null ? String(raw.reasonText) : null,
     fromTeamId: raw.fromTeamId != null ? String(raw.fromTeamId) : null,
@@ -614,6 +649,36 @@ export async function allocateVenueSlotToTeam(input: {
       }
     }
   });
+
+  // PR1 — first ALLOCATED → idempotent reservation + notify (best-effort; CF mirrors)
+  try {
+    const bankAccountGuide = await resolveFederationBankAccountGuide(input.federationSlug);
+    const venueName =
+      preData.venueName != null && String(preData.venueName).trim()
+        ? String(preData.venueName)
+        : venueId;
+    await ensureVenueReservationAfterAllocate({
+      federationSlug: input.federationSlug,
+      slotAllocationId: winnerId,
+      allocatedRequestId: input.requestId,
+      venueId,
+      venueName,
+      bookingDate,
+      startTime,
+      endTime,
+      teamId,
+      teamName,
+      createdByUid: String(preData.createdByUid || ""),
+      allocatedByUid: input.adminUid,
+      allocationSource: "REQUEST_SELECTION",
+      baseAmount: typeof preData.baseAmount === "number" ? preData.baseAmount : 0,
+      lightingAmount: typeof preData.lightingAmount === "number" ? preData.lightingAmount : 0,
+      totalAmount: typeof preData.totalAmount === "number" ? preData.totalAmount : 0,
+      bankAccountGuide,
+    });
+  } catch (e) {
+    console.warn("[allocateVenueSlotToTeam] ensureVenueReservation skipped", e);
+  }
 }
 
 /**
@@ -787,6 +852,34 @@ export async function adminDirectAllocateVenueSlot(input: {
       }
     }
   });
+
+  // PR1 — first ALLOCATED → idempotent reservation + notify (best-effort; CF mirrors)
+  try {
+    const bankAccountGuide = await resolveFederationBankAccountGuide(input.federationSlug);
+    const reqSnap = await getDoc(requestRef);
+    const reqData = (reqSnap.data() || {}) as Record<string, unknown>;
+    await ensureVenueReservationAfterAllocate({
+      federationSlug: input.federationSlug,
+      slotAllocationId: winnerId,
+      allocatedRequestId: requestId,
+      venueId: input.venueId,
+      venueName: input.venueName,
+      bookingDate: input.bookingDate,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      teamId: input.teamId,
+      teamName: input.teamName,
+      createdByUid: String(reqData.createdByUid || input.adminUid),
+      allocatedByUid: input.adminUid,
+      allocationSource: "ADMIN_DIRECT",
+      baseAmount: typeof reqData.baseAmount === "number" ? reqData.baseAmount : 0,
+      lightingAmount: typeof reqData.lightingAmount === "number" ? reqData.lightingAmount : 0,
+      totalAmount: typeof reqData.totalAmount === "number" ? reqData.totalAmount : 0,
+      bankAccountGuide,
+    });
+  } catch (e) {
+    console.warn("[adminDirectAllocateVenueSlot] ensureVenueReservation skipped", e);
+  }
 
   return {
     requestId,

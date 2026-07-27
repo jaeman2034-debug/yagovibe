@@ -25,7 +25,15 @@ export type VenueAllocationChangeReasonCode =
   | "FEDERATION_ADJUSTMENT"
   | "OTHER";
 
-export type VenueAllocationChangeType = "REALLOCATE" | "CANCEL";
+export type VenueAllocationChangeType =
+  | "REALLOCATE"
+  | "CANCEL"
+  | "RESERVATION_CREATED"
+  | "PAYMENT_CLAIM"
+  | "PAYMENT_CONFIRM"
+  | "PAYMENT_UNCONFIRM"
+  | "ALLOCATION_FINALIZE"
+  | "ALLOCATION_UNFINALIZE";
 
 export const VENUE_ALLOCATION_REASON_OPTIONS: Array<{
   code: VenueAllocationChangeReasonCode;
@@ -89,6 +97,20 @@ export type VenueSlotAllocation = {
   allocatedAt?: unknown;
   allocationSource: VenueAllocationSource;
   status: "ALLOCATED" | "CANCELLED";
+  /** Axis B — admin confirm only (PR3); claim must not set CONFIRMED */
+  paymentStatus?: "UNCONFIRMED" | "CONFIRMED";
+  /** Axis B — member claim; REQUESTED = PAYMENT_CLAIMED alias when UNCONFIRMED */
+  paymentClaimStatus?: "NONE" | "REQUESTED";
+  paymentClaimedByUid?: string | null;
+  paymentClaimedAt?: unknown;
+  paymentClaimDepositedAt?: string | null;
+  reservationId?: string | null;
+  shortReservationCode?: string | null;
+  confirmStatus?: "PENDING_PAYMENT" | "FINALIZED";
+  paymentConfirmedByUid?: string | null;
+  paymentConfirmedAt?: unknown;
+  finalizedByUid?: string | null;
+  finalizedAt?: unknown;
   cancelledByUid?: string;
   cancelledAt?: unknown;
   cancelReasonCode?: VenueAllocationChangeReasonCode | null;

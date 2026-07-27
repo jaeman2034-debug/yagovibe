@@ -270,6 +270,9 @@ const FederationShell = lazy(() => import("./pages/federations/FederationShell")
 const FederationHomePage = lazy(() => import("./pages/federations/FederationHomePage"));
 const FederationVenueListPage = lazy(() => import("./pages/federations/FederationVenueListPage"));
 const FederationVenueDetailPage = lazy(() => import("./pages/federations/FederationVenueDetailPage"));
+const FederationVenueReservationDetailPage = lazy(
+  () => import("./pages/federations/FederationVenueReservationDetailPage")
+);
 const FederationTournamentPublicPage = lazy(
   () => import("./pages/federations/FederationTournamentPublicPage")
 );
@@ -627,6 +630,10 @@ export default function App() {
               <Route index element={<FederationHomePage />} />
               <Route path="venues" element={<FederationVenueListPage />} />
               <Route path="venues/:venueId" element={<FederationVenueDetailPage />} />
+              <Route
+                path="reservations/:reservationId"
+                element={<FederationVenueReservationDetailPage />}
+              />
               <Route path="leagues" element={<FederationLeaguesListRedirect />} />
               <Route path="leagues/:leagueId" element={<FederationLeagueDetailRedirect />} />
               <Route path="matches" element={<FederationLegacyTabRedirect tab="matches" />} />

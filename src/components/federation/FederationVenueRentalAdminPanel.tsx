@@ -36,6 +36,15 @@ import {
   getEffectiveVenueBookingPolicy,
   type VenueBookingPolicy,
 } from "@/lib/federation/venueBookingPolicy";
+import {
+  confirmVenueReservationPayment,
+  finalizeVenueReservation,
+  listPaymentClaimQueue,
+  unconfirmVenueReservationPayment,
+  unfinalizeVenueReservation,
+} from "@/lib/federation/venueReservationService";
+import type { VenueReservation } from "@/lib/federation/venueReservationTypes";
+import { Link } from "react-router-dom";
 
 type Props = {
   federationSlug: string;
@@ -81,6 +90,7 @@ function formatTs(v: unknown): string {
 
 type ReasonModalState =
   | { mode: "cancel"; row: AdminMonthlyBoardRow }
+  | { mode: "unfinalize"; row: AdminMonthlyBoardRow; reservationId: string }
   | {
       mode: "reallocate";
       row: AdminMonthlyBoardRow;
@@ -115,6 +125,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
   const [calendarStatusFilter, setCalendarStatusFilter] = useState<
     "ALL" | "OPEN" | "REQUEST_POOL" | "ADMIN_DIRECT" | "ALLOCATED"
   >("ALL");
+  const [claimQueue, setClaimQueue] = useState<VenueReservation[]>([]);
 
   const selectedVenue = useMemo(
     () => venues.find((v) => v.id === venueFilter) || null,
@@ -184,6 +195,21 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
       u3();
     };
   }, [federationSlug]);
+
+  // PR2 — 입금 확인 요청 대기열 (winner denorm + reservation claim)
+  useEffect(() => {
+    let cancelled = false;
+    listPaymentClaimQueue(federationSlug)
+      .then((rows) => {
+        if (!cancelled) setClaimQueue(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setClaimQueue([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [federationSlug, winners]);
 
   const boardRows = useMemo(() => {
     if (!venueFilter) return [];
@@ -319,6 +345,15 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
           reasonText,
         });
         setMsg("배정 취소 완료 · 슬롯 신청 가능");
+      } else if (reasonModal.mode === "unfinalize") {
+        await unfinalizeVenueReservation({
+          federationSlug,
+          reservationId: reasonModal.reservationId,
+          adminUid,
+          reasonCode,
+          reasonText,
+        });
+        setMsg("예약 확정 취소 완료");
       } else {
         const { row, toTeamId, allocationSource, winningRequestId } = reasonModal;
         const team = teams.find((t) => t.id === toTeamId);
@@ -351,6 +386,74 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     }
   }
 
+  function reservationIdForRow(row: AdminMonthlyBoardRow): string | null {
+    if (!row.winner) return null;
+    return row.winner.reservationId || row.winner.id || null;
+  }
+
+  async function runConfirmPayment(row: AdminMonthlyBoardRow) {
+    const reservationId = reservationIdForRow(row);
+    if (!reservationId) {
+      setError("예약 문서가 없습니다. 배정 직후 예약이 생성되어야 합니다.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMsg(null);
+    try {
+      await confirmVenueReservationPayment({
+        federationSlug,
+        reservationId,
+        adminUid,
+      });
+      setMsg("입금 확인 완료");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "입금 확인 실패");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runUnconfirmPayment(row: AdminMonthlyBoardRow) {
+    const reservationId = reservationIdForRow(row);
+    if (!reservationId) return;
+    setBusy(true);
+    setError(null);
+    setMsg(null);
+    try {
+      await unconfirmVenueReservationPayment({
+        federationSlug,
+        reservationId,
+        adminUid,
+      });
+      setMsg("입금 확인 해제 완료");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "입금 해제 실패");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runFinalize(row: AdminMonthlyBoardRow) {
+    const reservationId = reservationIdForRow(row);
+    if (!reservationId) return;
+    setBusy(true);
+    setError(null);
+    setMsg(null);
+    try {
+      await finalizeVenueReservation({
+        federationSlug,
+        reservationId,
+        adminUid,
+      });
+      setMsg("예약 확정 완료");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "예약 확정 실패");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onLegacyApprove(bookingId: string) {
     setBusy(true);
     try {
@@ -378,15 +481,45 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     return legacyRows.filter((r) => r.bookingStatus === legacyFilter);
   }, [legacyRows, legacyFilter]);
 
+  const claimBySlotId = useMemo(() => {
+    const m = new Map<string, VenueReservation>();
+    for (const r of claimQueue) m.set(r.slotAllocationId || r.reservationId, r);
+    return m;
+  }, [claimQueue]);
+
+  const paymentSignal = (
+    row: AdminMonthlyBoardRow
+  ): "FINALIZED" | "CONFIRMED" | "CLAIMED" | "UNCONFIRMED" | null => {
+    if (row.status !== "ALLOCATED" || !row.winner) return null;
+    if (row.winner.confirmStatus === "FINALIZED") return "FINALIZED";
+    if (row.winner.paymentStatus === "CONFIRMED") return "CONFIRMED";
+    if (
+      (row.winner.paymentClaimStatus === "REQUESTED" && row.winner.paymentStatus !== "CONFIRMED") ||
+      claimBySlotId.has(row.winner.id)
+    ) {
+      return "CLAIMED";
+    }
+    return "UNCONFIRMED";
+  };
+
   const statusBadge = (row: AdminMonthlyBoardRow) => {
     if (row.status === "ALLOCATED") {
-      return row.winner?.allocationSource === "ADMIN_DIRECT" ? "선배정" : "배정완료";
+      const base = row.winner?.allocationSource === "ADMIN_DIRECT" ? "선배정" : "배정완료";
+      const sig = paymentSignal(row);
+      if (sig === "FINALIZED") return `${base} · ✅ 예약 확정`;
+      if (sig === "CONFIRMED") return `${base} · 🟢 입금 완료`;
+      if (sig === "CLAIMED") return `${base} · 🟠 입금 확인 요청`;
+      return `${base} · 🔴 미입금`;
     }
     if (row.status === "REQUEST_POOL") return `신청중(${row.requestCount})`;
     return "신청가능";
   };
 
   const rowBadgeClass = (row: AdminMonthlyBoardRow) => {
+    const sig = paymentSignal(row);
+    if (sig === "FINALIZED") return "bg-emerald-100 text-emerald-950";
+    if (sig === "CONFIRMED") return "bg-green-100 text-green-900";
+    if (sig === "CLAIMED") return "bg-orange-100 text-orange-950";
     if (row.status === "ALLOCATED") {
       return row.winner?.allocationSource === "ADMIN_DIRECT"
         ? "bg-sky-100 text-sky-900"
@@ -401,9 +534,43 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
       <div>
         <h2 className="text-lg font-semibold text-gray-900">월간 배정 캘린더</h2>
         <p className="text-sm text-gray-600">
-          왼쪽 달력 · 오른쪽 상세 작업 · 하단 빠른 선배정 · 입금·확정 HOLD
+          왼쪽 달력 · 오른쪽 상세 작업 · 하단 빠른 선배정 · 입금 확인 요청 큐 · 입금확인/예약확정(PR3)
         </p>
       </div>
+
+      {claimQueue.length > 0 && (
+        <div className="rounded-xl border border-orange-200 bg-orange-50/80 p-4 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-orange-950">
+              🟠 입금 확인 요청 대기열 ({claimQueue.length})
+            </h3>
+            <span className="text-xs text-orange-800">통장 확인 전 · 미입금 유지</span>
+          </div>
+          <ul className="divide-y divide-orange-100 rounded-lg border border-orange-100 bg-white max-h-48 overflow-auto">
+            {claimQueue.map((r) => (
+              <li key={r.reservationId} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                <div>
+                  <div className="font-medium text-gray-900">
+                    {r.shortReservationCode} · {r.teamName}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {r.venueName} · {r.bookingDate} {r.startTime}–{r.endTime}
+                    {r.paymentClaimDepositedAt
+                      ? ` · 신고입금 ${r.paymentClaimDepositedAt}`
+                      : ""}
+                  </div>
+                </div>
+                <Link
+                  to={r.detailPath}
+                  className="text-xs font-semibold text-orange-900 underline"
+                >
+                  예약 상세
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3 items-end rounded-xl border border-gray-200 bg-white p-3">
         <div className="flex items-end gap-1">
@@ -759,6 +926,26 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                     {selected.winner.allocatedByUid.slice(0, 8)}… ·{" "}
                     {formatTs(selected.winner.allocatedAt)}
                   </div>
+                  <div className="text-xs font-semibold">
+                    입금 시그널:{" "}
+                    {paymentSignal(selected) === "FINALIZED" ? (
+                      <span className="text-emerald-800">✅ 예약 확정</span>
+                    ) : paymentSignal(selected) === "CONFIRMED" ? (
+                      <span className="text-green-800">🟢 입금 완료</span>
+                    ) : paymentSignal(selected) === "CLAIMED" ? (
+                      <span className="text-orange-800">🟠 입금 확인 요청</span>
+                    ) : (
+                      <span className="text-red-700">🔴 미입금</span>
+                    )}
+                  </div>
+                  {(selected.winner.reservationId || selected.winner.id) && (
+                    <Link
+                      to={`/federations/${encodeURIComponent(federationSlug)}/reservations/${encodeURIComponent(selected.winner.reservationId || selected.winner.id)}`}
+                      className="inline-block text-xs font-semibold text-primary-800 underline"
+                    >
+                      예약 상세 보기
+                    </Link>
+                  )}
                 </div>
               )}
 
@@ -814,7 +1001,12 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                     <>
                       <button
                         type="button"
-                        disabled={busy}
+                        disabled={busy || paymentSignal(selected) === "FINALIZED"}
+                        title={
+                          paymentSignal(selected) === "FINALIZED"
+                            ? "확정 취소 후 재배정 가능"
+                            : undefined
+                        }
                         onClick={() => {
                           setReasonCode("FEDERATION_ADJUSTMENT");
                           setReasonText("");
@@ -825,19 +1017,24 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                             allocationSource: "ADMIN_DIRECT",
                           });
                         }}
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold"
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
                       >
                         재배정
                       </button>
                       <button
                         type="button"
-                        disabled={busy}
+                        disabled={busy || paymentSignal(selected) === "FINALIZED"}
+                        title={
+                          paymentSignal(selected) === "FINALIZED"
+                            ? "확정 취소 후 배정 취소 가능"
+                            : undefined
+                        }
                         onClick={() => {
                           setReasonCode("FEDERATION_ADJUSTMENT");
                           setReasonText("");
                           setReasonModal({ mode: "cancel", row: selected });
                         }}
-                        className="rounded-lg border border-red-300 text-red-800 px-3 py-1.5 text-xs font-semibold"
+                        className="rounded-lg border border-red-300 text-red-800 px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
                       >
                         취소
                       </button>
@@ -851,22 +1048,68 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                       </button>
                     </>
                   )}
-                  <button
-                    type="button"
-                    disabled
-                    title="Payment Signal 설계만 LOCK — 구현 HOLD"
-                    className="rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-xs text-gray-400 cursor-not-allowed"
-                  >
-                    입금확인 (HOLD)
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    title="PS1 — 입금 확인 후 배정 확정"
-                    className="rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-xs text-gray-400 cursor-not-allowed"
-                  >
-                    최종확정 (HOLD)
-                  </button>
+                  {selected.status === "ALLOCATED" && selected.winner && (
+                    <>
+                      {paymentSignal(selected) !== "CONFIRMED" &&
+                        paymentSignal(selected) !== "FINALIZED" && (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void runConfirmPayment(selected)}
+                            className="rounded-lg border border-green-600 bg-green-50 text-green-900 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                          >
+                            입금 확인
+                          </button>
+                        )}
+                      {paymentSignal(selected) === "CONFIRMED" && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void runUnconfirmPayment(selected)}
+                          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                        >
+                          입금 확인 해제
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={
+                          busy ||
+                          paymentSignal(selected) === "FINALIZED" ||
+                          paymentSignal(selected) !== "CONFIRMED"
+                        }
+                        title={
+                          paymentSignal(selected) === "CONFIRMED"
+                            ? "입금 확인된 예약을 최종 확정"
+                            : "입금 확인 후에만 예약 확정 가능"
+                        }
+                        onClick={() => void runFinalize(selected)}
+                        className="rounded-lg border border-emerald-700 bg-emerald-50 text-emerald-950 px-3 py-1.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        예약 확정
+                      </button>
+                      {paymentSignal(selected) === "FINALIZED" && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            const reservationId = reservationIdForRow(selected);
+                            if (!reservationId) return;
+                            setReasonCode("FEDERATION_ADJUSTMENT");
+                            setReasonText("");
+                            setReasonModal({
+                              mode: "unfinalize",
+                              row: selected,
+                              reservationId,
+                            });
+                          }}
+                          className="rounded-lg border border-amber-400 text-amber-950 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                        >
+                          확정 취소
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1031,7 +1274,12 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-xl bg-white p-4 space-y-3 shadow-lg">
             <h3 className="font-semibold text-gray-900">
-              {reasonModal.mode === "cancel" ? "배정 취소" : "재배정"} — 사유 필수
+              {reasonModal.mode === "cancel"
+                ? "배정 취소"
+                : reasonModal.mode === "unfinalize"
+                  ? "예약 확정 취소"
+                  : "재배정"}{" "}
+              — 사유 필수
             </h3>
             {reasonModal.mode === "reallocate" && !reasonModal.toTeamId && (
               <label className="block text-sm">

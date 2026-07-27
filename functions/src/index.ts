@@ -7,6 +7,7 @@ export { api } from "./apiRouter";
 export { generateSearchMeta } from "./generateSearchMeta";
 export { analyzeProduct } from "./analyzeProduct";
 export { sendPushOnNotificationCreate } from "./notifications/sendPushOnNotificationCreate";
+export { onVenueSlotAllocationWritten } from "./federation/onVenueSlotAllocationWritten";
 export {
   createTeamFeePayment,
   confirmTeamFeePayment,

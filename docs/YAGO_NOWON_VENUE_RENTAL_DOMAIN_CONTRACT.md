@@ -28,7 +28,9 @@ P0 Audit phase        = CLOSED ✅
 Sprint 1 apply/approve engine = COMPLETE ✅
 D1 Entity             = 🔒 LOCK
 D2 Pricing breakdown  = 🔒 LOCK (TOTAL-ONLY REJECTED; unit/min/slot = 2h LOCKED; 1h booking PROHIBITED)
-D3 Booking≠Payment    = 🔒 LOCK (APPROVED + UNCONFIRMED is valid; unpaid ≠ auto-cancel)
+D3 Booking≠Payment    = 🔒 LOCK (APPROVED/ALLOCATED + UNCONFIRMED is valid; unpaid ≠ auto-cancel)
+                        3-axis: requestStatus · paymentStatus(+claim) · confirmStatus
+                        PS5 CONDITIONAL UNLOCK — see Payment Signal design (2026-07-27)
 D4 Refund review      = 🔒 LOCK (WEATHER auto-approve PROHIBITED; UsageStatus tri-state)
 C4 General cancel     = 🔒 LOCK v3 ACCEPTED (KST day: 7+ FULL; 6–3 −10%; 2–1 −30%; day-of NO)
 RefundBreakdown       = REQUIRED
@@ -653,17 +655,28 @@ Any older “24h FULL_REFUND” draft and v2 SAME_DAY hour-eligible invent-100% 
 
 ## 5. Status Machines (contract) — D3 / D4 LOCK
 
-### 5.1 Booking vs payment (separated)
+### 5.1 Booking vs payment (separated) — 3-axis LOCK
 
 ```text
-bookingStatus:  REQUESTED → APPROVED | REJECTED
-                APPROVED  → CANCELLED
+Axis A — allocation / booking
+  requestStatus:  REQUESTED → ALLOCATED | NOT_ALLOCATED | WITHDRAWN | CANCELLED
+  (legacy bookingStatus: REQUESTED → APPROVED | REJECTED → CANCELLED)
 
-paymentStatus:  UNCONFIRMED ↔ CONFIRMED   (independent of bookingStatus)
+Axis B — payment
+  paymentStatus:       UNCONFIRMED ↔ CONFIRMED     (admin only → CONFIRMED)
+  paymentClaimStatus:  NONE | REQUESTED            (member 「입금 확인 요청」)
+  PAYMENT_CLAIMED := claim=REQUESTED ∧ payment=UNCONFIRMED
+  Member MUST NOT set paymentStatus=CONFIRMED
+
+Axis C — final confirmation
+  confirmStatus: PENDING_PAYMENT → FINALIZED       (admin; requires payment CONFIRMED)
+
+FORBIDDEN: single linear enum REQUESTED→…→FINALIZED
 ```
 
-Do **not** conflate `APPROVED` with deposit paid.  
-Do **not** add `EXPIRED` / unpaid auto-cancel until operator Q3–Q4 answered.
+Do **not** conflate `APPROVED`/`ALLOCATED` with deposit paid.  
+Do **not** add unpaid auto-cancel (Q4 LOCK).  
+PS5 detail: `docs/YAGO_NOWON_VENUE_PAYMENT_SIGNAL_AND_CONFIRM_DESIGN.md`.
 
 ### 5.2 Refund
 

@@ -10,11 +10,18 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // 🔥 전역 관리자 확인 (users/{uid}.role == "ADMIN")
+    // 🔥 전역 관리자 = Platform Super Admin
+    // users.role == ADMIN 또는 Auth custom claims (admin:true / role:admin)
     function isGlobalAdmin() {
-      return request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "ADMIN";
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'ADMIN' ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "ADMIN"
+        )
+      );
     }
     
     function isAdmin(teamId) {
@@ -452,10 +459,18 @@ service cloud.firestore {
     function federationDoc(fedSlug) {
       return get(/databases/$(database)/documents/federations/$(fedSlug)).data;
     }
+    /**
+     * Federation manager = Owner | adminUids/adminIds | roles.admins/editors
+     * + Platform Super Admin (users.role == ADMIN) for emergency override.
+     * Canonical fields: ownerUid, adminUids (legacy aliases still honored).
+     */
     function isFederationManager(fedSlug) {
       return isSignedIn() && federationDocExists(fedSlug) && (
+        isGlobalAdmin() ||
         request.auth.uid == federationDoc(fedSlug).ownerId ||
         request.auth.uid == federationDoc(fedSlug).ownerUid ||
+        ("adminUids" in federationDoc(fedSlug) && federationDoc(fedSlug).adminUids is list &&
+          request.auth.uid in federationDoc(fedSlug).adminUids) ||
         ("adminIds" in federationDoc(fedSlug) && federationDoc(fedSlug).adminIds is list &&
           request.auth.uid in federationDoc(fedSlug).adminIds) ||
         ("roles" in federationDoc(fedSlug) && federationDoc(fedSlug).roles is map &&
@@ -465,6 +480,23 @@ service cloud.firestore {
           "editors" in federationDoc(fedSlug).roles && federationDoc(fedSlug).roles.editors is list &&
           request.auth.uid in federationDoc(fedSlug).roles.editors)
       );
+    }
+
+    /**
+     * Ownership / transfer workflow fields — Platform Super Admin (CF) only.
+     * Federation Owner cannot self-transfer or mutate pending transfer.
+     */
+    function federationOwnerFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny([
+          'ownerUid',
+          'ownerId',
+          'ownerTransferredAt',
+          'ownerTransferredBy',
+          'ownerHistory',
+          'pendingOwnershipTransfer',
+          'ownershipTransferHold'
+        ]);
     }
     function federationSensitiveSubpath(docPath) {
       return docPath.matches('transactions/.*') ||
@@ -1100,6 +1132,12 @@ service cloud.firestore {
           allow write: if false;
         }
 
+        /** Vision MLOps Phase 2b — GEV event candidates (CF/server only) */
+        match /gevEventCandidates/{candidateId} {
+          allow read: if isSignedIn() && isTeamStaffElevated(teamId);
+          allow write: if false;
+        }
+
         /** Vision v6-7 — vision pipeline runs (CF/server only) */
         match /visionRuns/{runId} {
           allow read: if isSignedIn() && isActiveMember(teamId);
@@ -1116,6 +1154,12 @@ service cloud.firestore {
       /** Vision RC5-2 — upload queue status (CF write only) */
       match /visionUploadQueue/{mediaId} {
         allow read: if isSignedIn() && isActiveMember(teamId);
+        allow write: if false;
+      }
+
+      /** Vision MLOps Phase 2 — training samples shadow (CF write only) */
+      match /visionTrainingSamples/{sampleId} {
+        allow read: if isSignedIn() && isTeamStaffElevated(teamId);
         allow write: if false;
       }
 
@@ -1640,6 +1684,15 @@ service cloud.firestore {
       allow create, update, delete: if false; // 🔒 핵심: 클라이언트 직접 쓰기 차단
     }
 
+    /**
+     * Optional Platform Super Admin mirror (canonical check remains users/{uid}.role == ADMIN).
+     * Writes: Admin SDK only.
+     */
+    match /platform/admins/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isGlobalAdmin());
+      allow create, update, delete: if false;
+    }
+
     /* =====================
        🏛 federations/{slug} — 공개 포털 (/federations/nowon-football 등)
     ====================== */
@@ -1649,14 +1702,573 @@ service cloud.firestore {
         request.resource.data.ownerId == request.auth.uid &&
         request.resource.data.slug == fedSlug &&
         request.resource.data.name is string;
-      allow update, delete: if isFederationManager(fedSlug);
+      // Owner 필드 변경은 Platform Super Admin만 (보통 transferFederationOwnership CF).
+      // 일반 Federation Manager는 Owner 필드 외 운영 필드만 갱신.
+      allow update: if isGlobalAdmin() ||
+        (isFederationManager(fedSlug) && federationOwnerFieldsUnchanged());
+      allow delete: if isGlobalAdmin();
 
-      match /{document=**} {
-        allow read: if federationSensitiveSubpath(string(document))
+      /**
+       * Multi-club allocation requests — workflow alignment
+       * Path: federations/{fedSlug}/venueAllocationRequests/{requestId}
+       * Doc id: req_{venueId}_{YYYY-MM-DD}_{HHmm}_{teamId}
+       * REQUESTED is non-blocking across clubs; ALLOCATED set only by manager allocate txn.
+       */
+      match /venueAllocationRequests/{requestId} {
+        function varHhmmOk() {
+          return request.resource.data.startTime is string
+            && request.resource.data.startTime.size() == 5
+            && request.resource.data.startTime[2:3] == ':';
+        }
+        function varRequestDocId() {
+          return 'req_'
+            + request.resource.data.venueId
+            + '_'
+            + request.resource.data.bookingDate
+            + '_'
+            + request.resource.data.startTime[0:2]
+            + request.resource.data.startTime[3:5]
+            + '_'
+            + request.resource.data.teamId;
+        }
+        function varApplicantCreateOk() {
+          return isSignedIn()
+            && request.resource.data.createdByUid == request.auth.uid
+            && request.resource.data.federationId == fedSlug
+            && request.resource.data.requestStatus == 'REQUESTED'
+            && request.resource.data.paymentStatus == 'UNCONFIRMED'
+            && request.resource.data.teamId is string
+            && request.resource.data.venueId is string
+            && request.resource.data.bookingDate is string
+            && request.resource.data.endTime is string
+            && varHhmmOk()
+            && requestId == varRequestDocId();
+        }
+        function varRequesterIdentityFrozen() {
+          return request.resource.data.createdByUid == resource.data.createdByUid
+            && request.resource.data.teamId == resource.data.teamId
+            && request.resource.data.venueId == resource.data.venueId
+            && request.resource.data.bookingDate == resource.data.bookingDate
+            && request.resource.data.startTime == resource.data.startTime
+            && request.resource.data.endTime == resource.data.endTime
+            && request.resource.data.federationId == resource.data.federationId;
+        }
+        function varManagerAllocateUpdateOk() {
+          return isFederationManager(fedSlug)
+            && varRequesterIdentityFrozen()
+            && (
+              (resource.data.requestStatus == 'REQUESTED'
+                && request.resource.data.requestStatus in ['ALLOCATED', 'NOT_ALLOCATED'])
+              || (resource.data.requestStatus in ['NOT_ALLOCATED', 'WITHDRAWN', 'CANCELLED']
+                && request.resource.data.requestStatus == 'ALLOCATED'
+                && request.resource.data.allocatedByUid == request.auth.uid)
+              || (resource.data.requestStatus == 'ALLOCATED'
+                && request.resource.data.requestStatus == 'CANCELLED')
+              || (resource.data.requestStatus == request.resource.data.requestStatus)
+            );
+        }
+        /** Admin creates ALLOCATED request (Path B or P11 reallocate without prior REQUESTED) */
+        function varManagerDirectCreateOk() {
+          return isFederationManager(fedSlug)
+            && request.resource.data.federationId == fedSlug
+            && request.resource.data.requestStatus == 'ALLOCATED'
+            && request.resource.data.allocationSource in ['REQUEST_SELECTION', 'ADMIN_DIRECT']
+            && request.resource.data.paymentStatus == 'UNCONFIRMED'
+            && request.resource.data.teamId is string
+            && request.resource.data.venueId is string
+            && request.resource.data.bookingDate is string
+            && request.resource.data.endTime is string
+            && request.resource.data.allocatedByUid == request.auth.uid
+            && request.resource.data.createdByUid == request.auth.uid
+            && varHhmmOk()
+            && requestId == varRequestDocId();
+        }
+        function varRequesterWithdrawOk() {
+          return isSignedIn()
+            && resource.data.createdByUid == request.auth.uid
+            && resource.data.requestStatus == 'REQUESTED'
+            && request.resource.data.requestStatus == 'WITHDRAWN'
+            && varRequesterIdentityFrozen();
+        }
+        function varRequesterRerequestOk() {
+          return isSignedIn()
+            && resource.data.createdByUid == request.auth.uid
+            && resource.data.requestStatus in ['NOT_ALLOCATED', 'WITHDRAWN']
+            && request.resource.data.requestStatus == 'REQUESTED'
+            && request.resource.data.createdByUid == request.auth.uid
+            && varRequesterIdentityFrozen()
+            && request.resource.data.paymentStatus == 'UNCONFIRMED'
+            && requestId == varRequestDocId();
+        }
+
+        // Public read: slot boards need status; do not rely on client to hide private fields.
+        allow read: if true;
+        allow create: if varApplicantCreateOk() || varManagerDirectCreateOk();
+        allow update: if varManagerAllocateUpdateOk()
+          || varRequesterWithdrawOk()
+          || varRequesterRerequestOk();
+        allow delete: if false;
+      }
+
+      /**
+       * One-winner slot allocation cursor
+       * Path: federations/{fedSlug}/venueSlotAllocations/{slotId}
+       * Doc id MUST be slot_{venueId}_{YYYY-MM-DD}_{HHmm}
+       * Shared by REQUEST_SELECTION and ADMIN_DIRECT.
+       */
+      match /venueSlotAllocations/{slotId} {
+        function vsaHmOk() {
+          return request.resource.data.startTime is string
+            && request.resource.data.startTime.size() == 5
+            && request.resource.data.startTime[2:3] == ':';
+        }
+        function vsaSlotDocId() {
+          return 'slot_'
+            + request.resource.data.venueId
+            + '_'
+            + request.resource.data.bookingDate
+            + '_'
+            + request.resource.data.startTime[0:2]
+            + request.resource.data.startTime[3:5];
+        }
+        function vsaManagerCreateOk() {
+          return isFederationManager(fedSlug)
+            && request.resource.data.federationId == fedSlug
+            && request.resource.data.status == 'ALLOCATED'
+            && request.resource.data.allocatedTeamId is string
+            && request.resource.data.allocatedRequestId is string
+            && request.resource.data.allocatedByUid == request.auth.uid
+            && request.resource.data.allocationSource in ['REQUEST_SELECTION', 'ADMIN_DIRECT']
+            && vsaHmOk()
+            && slotId == vsaSlotDocId();
+        }
+        function vsaSlotIdentityFrozen() {
+          return request.resource.data.federationId == resource.data.federationId
+            && request.resource.data.venueId == resource.data.venueId
+            && request.resource.data.bookingDate == resource.data.bookingDate
+            && request.resource.data.startTime == resource.data.startTime
+            && request.resource.data.endTime == resource.data.endTime;
+        }
+        /** P12 cancel / P11 reallocate / reactivate after cancel */
+        function vsaManagerUpdateOk() {
+          return isFederationManager(fedSlug)
+            && vsaSlotIdentityFrozen()
+            && vsaHmOk()
+            && slotId == vsaSlotDocId()
+            && (
+              (resource.data.status == 'ALLOCATED'
+                && request.resource.data.status == 'CANCELLED'
+                && request.resource.data.cancelledByUid == request.auth.uid)
+              || (resource.data.status == 'ALLOCATED'
+                && request.resource.data.status == 'ALLOCATED'
+                && request.resource.data.allocatedTeamId is string
+                && request.resource.data.allocatedRequestId is string
+                && request.resource.data.allocatedByUid == request.auth.uid
+                && request.resource.data.allocationSource in ['REQUEST_SELECTION', 'ADMIN_DIRECT'])
+              || (resource.data.status == 'CANCELLED'
+                && request.resource.data.status == 'ALLOCATED'
+                && request.resource.data.allocatedTeamId is string
+                && request.resource.data.allocatedRequestId is string
+                && request.resource.data.allocatedByUid == request.auth.uid
+                && request.resource.data.allocationSource in ['REQUEST_SELECTION', 'ADMIN_DIRECT'])
+            );
+        }
+        /**
+         * PR2 — Member claim denorm on winner (PAYMENT_CLAIMED alias).
+         * Must not set paymentStatus=CONFIRMED or confirmStatus=FINALIZED.
+         */
+        function vsaMemberClaimDenormOk() {
+          return isSignedIn()
+            && resource.data.status == 'ALLOCATED'
+            && request.resource.data.status == 'ALLOCATED'
+            && vsaSlotIdentityFrozen()
+            && request.resource.data.paymentClaimStatus == 'REQUESTED'
+            && request.resource.data.paymentClaimedByUid == request.auth.uid
+            && (
+              !('paymentStatus' in request.resource.data)
+              || request.resource.data.paymentStatus == 'UNCONFIRMED'
+            )
+            && (
+              !('confirmStatus' in request.resource.data)
+              || request.resource.data.confirmStatus != 'FINALIZED'
+            )
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly([
+                'paymentClaimStatus',
+                'paymentClaimedByUid',
+                'paymentClaimedAt',
+                'paymentClaimDepositedAt',
+                'paymentStatus',
+                'updatedAt',
+                'reservationId',
+                'shortReservationCode',
+                'confirmStatus'
+              ]);
+        }
+        /** PR3 — Manager denorm payment/confirm axis on winner */
+        function vsaManagerPaymentAxisOk() {
+          return isFederationManager(fedSlug)
+            && resource.data.status == 'ALLOCATED'
+            && request.resource.data.status == 'ALLOCATED'
+            && vsaSlotIdentityFrozen()
+            && request.resource.data.paymentStatus in ['UNCONFIRMED', 'CONFIRMED']
+            && request.resource.data.confirmStatus in ['PENDING_PAYMENT', 'FINALIZED']
+            && (
+              request.resource.data.confirmStatus != 'FINALIZED'
+              || request.resource.data.paymentStatus == 'CONFIRMED'
+            )
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly([
+                'paymentStatus',
+                'paymentClaimStatus',
+                'paymentClaimedByUid',
+                'paymentClaimedAt',
+                'paymentClaimDepositedAt',
+                'paymentConfirmedByUid',
+                'paymentConfirmedAt',
+                'paymentUnconfirmedByUid',
+                'paymentUnconfirmedAt',
+                'confirmStatus',
+                'finalizedByUid',
+                'finalizedAt',
+                'unfinalizeReasonCode',
+                'unfinalizeReasonText',
+                'reservationId',
+                'shortReservationCode',
+                'updatedAt'
+              ]);
+        }
+
+        allow read: if true;
+        allow create: if vsaManagerCreateOk();
+        allow update: if vsaManagerUpdateOk() || vsaMemberClaimDenormOk() || vsaManagerPaymentAxisOk();
+        allow delete: if false;
+      }
+
+      /**
+       * Append-only allocation change logs (P11/P12/P13)
+       * Path: federations/{fedSlug}/venueAllocationChangeLogs/{logId}
+       */
+      match /venueAllocationChangeLogs/{logId} {
+        function vaclManagerCreateOk() {
+          return isFederationManager(fedSlug)
+            && request.resource.data.federationId == fedSlug
+            && request.resource.data.changedByUid == request.auth.uid
+            && request.resource.data.venueId is string
+            && request.resource.data.bookingDate is string
+            && request.resource.data.slotAllocationId is string
+            && (
+              (
+                request.resource.data.changeType in ['REALLOCATE', 'CANCEL']
+                && request.resource.data.reasonCode in [
+                  'DUPLICATE_ALLOCATION',
+                  'TEAM_REQUEST',
+                  'MATCH_SCHEDULE_CHANGE',
+                  'WEATHER_RAIN',
+                  'FEDERATION_ADJUSTMENT',
+                  'OTHER'
+                ]
+              )
+              || (
+                request.resource.data.changeType == 'RESERVATION_CREATED'
+                && request.resource.data.reservationId is string
+                && request.resource.data.shortReservationCode is string
+              )
+              || (
+                request.resource.data.changeType in [
+                  'PAYMENT_CONFIRM',
+                  'PAYMENT_UNCONFIRM',
+                  'ALLOCATION_FINALIZE'
+                ]
+                && request.resource.data.reservationId is string
+                && request.resource.data.paymentStatusAfter in ['UNCONFIRMED', 'CONFIRMED']
+                && request.resource.data.confirmStatusAfter in ['PENDING_PAYMENT', 'FINALIZED']
+              )
+              || (
+                request.resource.data.changeType == 'ALLOCATION_UNFINALIZE'
+                && request.resource.data.reservationId is string
+                && request.resource.data.reasonCode in [
+                  'DUPLICATE_ALLOCATION',
+                  'TEAM_REQUEST',
+                  'MATCH_SCHEDULE_CHANGE',
+                  'WEATHER_RAIN',
+                  'FEDERATION_ADJUSTMENT',
+                  'OTHER'
+                ]
+                && request.resource.data.confirmStatusAfter == 'PENDING_PAYMENT'
+                && request.resource.data.paymentStatusAfter == 'CONFIRMED'
+              )
+            );
+        }
+        /** PR2 — member append-only PAYMENT_CLAIM audit */
+        function vaclPaymentClaimCreateOk() {
+          return isSignedIn()
+            && request.resource.data.federationId == fedSlug
+            && request.resource.data.changeType == 'PAYMENT_CLAIM'
+            && request.resource.data.changedByUid == request.auth.uid
+            && request.resource.data.reservationId is string
+            && request.resource.data.slotAllocationId is string
+            && request.resource.data.venueId is string
+            && request.resource.data.bookingDate is string
+            && request.resource.data.paymentStatusAfter == 'UNCONFIRMED'
+            && request.resource.data.paymentClaimStatusAfter == 'REQUESTED';
+        }
+        allow read: if isFederationManager(fedSlug);
+        allow create: if vaclManagerCreateOk() || vaclPaymentClaimCreateOk();
+        allow update, delete: if false;
+      }
+
+      /**
+       * PR1–PR2 — Venue reservation (post first ALLOCATED)
+       * Path: federations/{fedSlug}/venueReservations/{reservationId}
+       * Doc id MUST equal venueSlotAllocations slot id (idempotent key).
+       * Member may claim (REQUESTED); CONFIRMED/FINALIZED = PR3 manager only.
+       */
+      match /venueReservations/{reservationId} {
+        function vrManagerCreateOk() {
+          return isFederationManager(fedSlug)
+            && request.resource.data.federationSlug == fedSlug
+            && request.resource.data.reservationId == reservationId
+            && request.resource.data.slotAllocationId == reservationId
+            && request.resource.data.shortReservationCode is string
+            && request.resource.data.paymentStatus == 'UNCONFIRMED'
+            && request.resource.data.paymentClaimStatus == 'NONE'
+            && request.resource.data.confirmStatus == 'PENDING_PAYMENT'
+            && request.resource.data.detailPath is string;
+        }
+        function vrClaimantOk() {
+          return isSignedIn() && (
+            resource.data.createdByUid == request.auth.uid
+            || (
+              resource.data.teamId is string
+              && exists(/databases/$(database)/documents/teams/$(resource.data.teamId)/members/$(request.auth.uid))
+            )
+          );
+        }
+        function vrMemberClaimUpdateOk() {
+          return vrClaimantOk()
+            && (
+              !('paymentStatus' in resource.data)
+              || resource.data.paymentStatus == 'UNCONFIRMED'
+            )
+            && request.resource.data.paymentStatus == 'UNCONFIRMED'
+            && (
+              !('confirmStatus' in resource.data)
+              || resource.data.confirmStatus == 'PENDING_PAYMENT'
+            )
+            && request.resource.data.confirmStatus == 'PENDING_PAYMENT'
+            && (
+              !('paymentClaimStatus' in resource.data)
+              || resource.data.paymentClaimStatus == 'NONE'
+              || resource.data.paymentClaimStatus == 'REQUESTED'
+            )
+            && request.resource.data.paymentClaimStatus == 'REQUESTED'
+            && request.resource.data.paymentClaimedByUid == request.auth.uid
+            && request.resource.data.federationSlug == resource.data.federationSlug
+            && request.resource.data.reservationId == resource.data.reservationId
+            && request.resource.data.slotAllocationId == resource.data.slotAllocationId
+            && request.resource.data.teamId == resource.data.teamId
+            && request.resource.data.venueId == resource.data.venueId
+            && request.resource.data.bookingDate == resource.data.bookingDate
+            && request.resource.data.startTime == resource.data.startTime
+            && request.resource.data.endTime == resource.data.endTime
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly([
+                'paymentClaimStatus',
+                'paymentClaimedByUid',
+                'paymentClaimedAt',
+                'paymentClaimDepositedAt',
+                'claimNotifyDedupKey',
+                'updatedAt',
+                'paymentStatus',
+                'confirmStatus'
+              ]);
+        }
+        /** PR3 — Manager confirm / unconfirm / finalize / unfinalize */
+        function vrIdentityFrozen() {
+          return request.resource.data.federationSlug == resource.data.federationSlug
+            && request.resource.data.reservationId == resource.data.reservationId
+            && request.resource.data.slotAllocationId == resource.data.slotAllocationId
+            && request.resource.data.teamId == resource.data.teamId
+            && request.resource.data.venueId == resource.data.venueId
+            && request.resource.data.bookingDate == resource.data.bookingDate
+            && request.resource.data.startTime == resource.data.startTime
+            && request.resource.data.endTime == resource.data.endTime
+            && request.resource.data.shortReservationCode == resource.data.shortReservationCode
+            && request.resource.data.createdByUid == resource.data.createdByUid;
+        }
+        function vrManagerAdminAxisUpdateOk() {
+          return isFederationManager(fedSlug)
+            && vrIdentityFrozen()
+            && request.resource.data.paymentStatus in ['UNCONFIRMED', 'CONFIRMED']
+            && request.resource.data.confirmStatus in ['PENDING_PAYMENT', 'FINALIZED']
+            && (
+              request.resource.data.confirmStatus != 'FINALIZED'
+              || request.resource.data.paymentStatus == 'CONFIRMED'
+            )
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly([
+                'paymentStatus',
+                'paymentConfirmedByUid',
+                'paymentConfirmedAt',
+                'paymentUnconfirmedByUid',
+                'paymentUnconfirmedAt',
+                'confirmStatus',
+                'finalizedByUid',
+                'finalizedAt',
+                'unfinalizeReasonCode',
+                'unfinalizeReasonText',
+                'paymentClaimStatus',
+                'updatedAt'
+              ]);
+        }
+        allow read: if true;
+        allow create: if vrManagerCreateOk();
+        allow update: if vrMemberClaimUpdateOk() || vrManagerAdminAxisUpdateOk();
+        allow delete: if false;
+      }
+
+      /**
+       * Venue rental bookings — Sprint 1 P0 (legacy single-request path; preserved)
+       * Path: federations/{fedSlug}/venueBookings/{bookingId}
+       * Doc id MUST be slot_{venueId}_{YYYY-MM-DD}_{HHmm} (one active row per slot).
+       * Catch-all write below EXCLUDES this collection (prevents manager OR leaks
+       * from broadening create/update semantics).
+       */
+      match /venueBookings/{bookingId} {
+        function venueBookingHmOk() {
+          return request.resource.data.startTime is string
+            && request.resource.data.startTime.size() == 5
+            && request.resource.data.startTime[2:3] == ':';
+        }
+        function venueBookingSlotDocId() {
+          return 'slot_'
+            + request.resource.data.venueId
+            + '_'
+            + request.resource.data.bookingDate
+            + '_'
+            + request.resource.data.startTime[0:2]
+            + request.resource.data.startTime[3:5];
+        }
+        function venueBookingApplicantCreateOk() {
+          return isSignedIn()
+            && request.resource.data.createdByUid == request.auth.uid
+            && request.resource.data.federationId == fedSlug
+            && request.resource.data.bookingStatus == 'REQUESTED'
+            && request.resource.data.paymentStatus == 'UNCONFIRMED'
+            && request.resource.data.teamId is string
+            && request.resource.data.venueId is string
+            && request.resource.data.bookingDate is string
+            && request.resource.data.endTime is string
+            && venueBookingHmOk()
+            && bookingId == venueBookingSlotDocId();
+        }
+        function venueBookingRequesterRerequestOk() {
+          return isSignedIn()
+            && resource.data.createdByUid == request.auth.uid
+            && resource.data.bookingStatus in ['REJECTED', 'CANCELLED']
+            && request.resource.data.bookingStatus == 'REQUESTED'
+            && request.resource.data.createdByUid == request.auth.uid
+            && request.resource.data.federationId == fedSlug
+            && request.resource.data.paymentStatus == 'UNCONFIRMED'
+            && request.resource.data.venueId == resource.data.venueId
+            && request.resource.data.bookingDate == resource.data.bookingDate
+            && request.resource.data.startTime == resource.data.startTime
+            && request.resource.data.endTime == resource.data.endTime
+            && venueBookingHmOk()
+            && bookingId == venueBookingSlotDocId();
+        }
+        /**
+         * Manager may update bookings, but transition *into* APPROVED is only
+         * allowed on the canonical slot doc id. Prevents two APPROVED rows for
+         * the same venue/date/start when a legacy non-slot id also exists.
+         */
+        function venueBookingManagerUpdateOk() {
+          return isFederationManager(fedSlug)
+            && (
+              !(request.resource.data.bookingStatus == 'APPROVED'
+                && resource.data.bookingStatus != 'APPROVED')
+              || (venueBookingHmOk() && bookingId == venueBookingSlotDocId())
+            );
+        }
+
+        allow read: if true;
+        allow create: if venueBookingApplicantCreateOk();
+        allow update: if venueBookingManagerUpdateOk() || venueBookingRequesterRerequestOk();
+        allow delete: if false;
+      }
+
+      /**
+       * Dated baseline allocations (XLSX / admin import) — Sprint 2 contract extension
+       * Path: federations/{fedSlug}/venueBaselineAllocations/{allocationId}
+       * NOT booking workflow. Requester create/update/delete DENY.
+       * Catch-all write EXCLUDES this collection.
+       */
+      match /venueBaselineAllocations/{allocationId} {
+        function venueBaselineHmOk() {
+          return request.resource.data.startTime is string
+            && request.resource.data.startTime.size() == 5
+            && request.resource.data.startTime[2:3] == ':'
+            && request.resource.data.endTime is string
+            && request.resource.data.endTime.size() == 5;
+        }
+        function venueBaselineDocId() {
+          return fedSlug
+            + '__'
+            + request.resource.data.venueId
+            + '__'
+            + request.resource.data.bookingDate
+            + '__'
+            + request.resource.data.startTime[0:2]
+            + request.resource.data.startTime[3:5]
+            + '__'
+            + request.resource.data.endTime[0:2]
+            + request.resource.data.endTime[3:5];
+        }
+        function venueBaselineWriteOk() {
+          return isFederationManager(fedSlug)
+            && request.resource.data.federationId == fedSlug
+            && request.resource.data.venueId is string
+            && request.resource.data.bookingDate is string
+            && request.resource.data.sourceType == 'XLSX_BASELINE'
+            && request.resource.data.status == 'OCCUPIED'
+            && request.resource.data.sourceAllocationLabel is string
+            && request.resource.data.sourceFile is string
+            && request.resource.data.sourceSheet is string
+            && request.resource.data.sourceCell is string
+            && request.resource.data.importManifestVersion is string
+            && venueBaselineHmOk()
+            && allocationId == venueBaselineDocId();
+        }
+
+        allow read: if true;
+        allow create, update: if venueBaselineWriteOk();
+        allow delete: if isFederationManager(fedSlug);
+      }
+
+      /**
+       * Federation subcollection catch-all.
+       * Use {firstSegment}/{rest=**} so venueBookings / baseline can be excluded by segment.
+       * Prior `{document=**}` + regex/split exclude leaked manager writes into
+       * venueBookings (legacy id APPROVE → dual APPROVED race).
+       */
+      match /{firstSegment}/{rest=**} {
+        function federationCatchAllDocPath() {
+          return firstSegment + '/' + string(rest);
+        }
+        allow read: if federationSensitiveSubpath(federationCatchAllDocPath())
           ? isFederationManager(fedSlug)
           : true;
-        allow write: if isFederationManager(fedSlug) ||
-          (isSignedIn() && federationTeamSelfServeWritePath(string(document)));
+        allow write: if firstSegment != 'venueBookings'
+          && firstSegment != 'venueBaselineAllocations'
+          && firstSegment != 'venueAllocationRequests'
+          && firstSegment != 'venueSlotAllocations'
+          && firstSegment != 'venueAllocationChangeLogs'
+          && firstSegment != 'venueReservations'
+          && (
+            isFederationManager(fedSlug) ||
+            (isSignedIn() && federationTeamSelfServeWritePath(federationCatchAllDocPath()))
+          );
       }
     }
     
@@ -2706,6 +3318,18 @@ service cloud.firestore {
       allow read: if isTenantAdmin() && request.auth.token.tenantId == resource.data.tenantId;
       allow create: if isSignedIn() && request.resource.data.tenantId == tenantId();
       allow update, delete: if false;
+    }
+
+    /** Vision MLOps — platform registry (CF write only · shadow mode) */
+    match /visionMlopsDatasetRegistry/{datasetVersion} {
+      allow read: if isSignedIn() && isGlobalAdmin();
+      allow write: if false;
+    }
+
+    /** Vision MLOps — training queue placeholder (CF write only) */
+    match /visionMlopsTrainingQueue/{jobId} {
+      allow read: if isSignedIn() && isGlobalAdmin();
+      allow write: if false;
     }
   }
 }
