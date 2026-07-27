@@ -60,9 +60,10 @@ export async function createNotification(
       ...(params.link && { link: params.link }),
       ...(params.status && { status: params.status }),
       ...(params.pushDedupKey && { pushDedupKey: params.pushDedupKey }),
-      target: params.target,
+      // omit undefined — Firestore SDK rejects undefined field values
+      ...(params.target ? { target: params.target } : {}),
       priority: params.priority || "normal",
-      payload: params.payload,
+      ...(params.payload ? { payload: params.payload } : {}),
       ...(params.actorId && { actorId: params.actorId }),
       ...(params.actorName && { actorName: params.actorName }),
       ...(params.actorPhotoUrl && { actorPhotoUrl: params.actorPhotoUrl }),
