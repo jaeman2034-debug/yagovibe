@@ -93,6 +93,7 @@
     "src/team/onTeamGameCompletedPlayFeedbackPush.ts",
     "src/notifications/sendPushOnNotificationCreate.ts",
     "src/notifications/sendPushOnNotificationCreate.handler.ts",
+    "src/federation/onVenueSlotAllocationWritten.ts",
     "src/billing/createTeamStripeCheckoutSession.ts",
     "src/billing/stripeBillingWebhook.ts",
     "src/game/applyGameProgressionEvent.ts",

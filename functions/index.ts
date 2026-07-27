@@ -49,6 +49,13 @@ attachLazyModuleExports(module.exports, modulePathFromLibSrc("billing/stripeBill
   "stripeBillingWebhook",
 ] as const);
 
+/** Nowon venue PR1 — first ALLOCATED → reservation + notify (isolated from rootBundle) */
+attachLazyModuleExports(
+  module.exports,
+  modulePathFromLibSrc("federation/onVenueSlotAllocationWritten"),
+  ["onVenueSlotAllocationWritten"] as const
+);
+
 /** AI Growth ingestion — rootBundle 전체 로드 없이 격리 (첫 호출 internal 방지) */
 attachLazyModuleExports(module.exports, modulePathFromLibSrc("lib/aiGrowthIngestionCallables"), [
   "startYoutubeIngestion",
@@ -133,6 +140,13 @@ attachLazyModuleExports(
   module.exports,
   modulePathFromLibSrc("lib/academyCvInterpretationReviewCallables"),
   ["reviewInterpretationCandidate"] as const
+);
+
+/** Vision MLOps Phase 2b — GEV event candidate Coach Review (shadow) */
+attachLazyModuleExports(
+  module.exports,
+  modulePathFromLibSrc("lib/visionMlops/reviewGevEventCandidateCallables"),
+  ["reviewGevEventCandidate"] as const
 );
 
 /** CV-1 I9-1 — growthSignals simulation preview */
@@ -268,6 +282,18 @@ attachLazyModuleExports(module.exports, modulePathFromLibSrc("lib/youtubeUrlImpo
 /** I-2.1 — VOC interview Whisper STT */
 attachLazyModuleExports(module.exports, modulePathFromLibSrc("lib/vocTranscribeCallable"), [
   "transcribeVocInterview",
+] as const);
+
+/** Federation Role Hierarchy — invites (Admin SDK) + 2-step Ownership Transfer */
+attachLazyModuleExports(module.exports, modulePathFromLibSrc("lib/federationRoleHierarchyCallables"), [
+  "createFederationRoleInvite",
+  "acceptFederationRoleInvite",
+  "proposeFederationOwnershipTransfer",
+  "confirmFederationOwnershipTransfer",
+  "cancelFederationOwnershipTransfer",
+  "transferFederationOwnership",
+  "sendInviteSMS",
+  "acceptFederationInviteById",
 ] as const);
 
 /** Sprint D-1.1a — Growth report delivery → parent auto-notify (Firestore trigger) */
