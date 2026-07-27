@@ -66,6 +66,11 @@ export type FederationVenue = {
    * Missing/invalid → DEFAULT 2h. Slot UIs use buildSlotsFromPolicy(effective).
    */
   bookingPolicy?: VenueBookingPolicy | null;
+  /**
+   * Display-only deposit guide for Reservation Detail (multiline OK).
+   * Snapshot onto venueReservations.bankAccountGuide at allocate time.
+   */
+  depositAccountGuide?: string | null;
   createdAt?: unknown;
   updatedAt?: unknown;
 };

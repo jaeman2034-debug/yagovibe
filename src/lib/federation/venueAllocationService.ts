@@ -50,7 +50,7 @@ import {
 } from "@/lib/federation/venueRentalService";
 import {
   ensureVenueReservationAfterAllocate,
-  resolveFederationBankAccountGuide,
+  resolveVenueDepositAccountGuide,
 } from "@/lib/federation/venueReservationService";
 
 /** One active request per club per venue+date+slot */
@@ -652,11 +652,15 @@ export async function allocateVenueSlotToTeam(input: {
 
   // PR1 — first ALLOCATED → idempotent reservation + notify (best-effort; CF mirrors)
   try {
-    const bankAccountGuide = await resolveFederationBankAccountGuide(input.federationSlug);
     const venueName =
       preData.venueName != null && String(preData.venueName).trim()
         ? String(preData.venueName)
         : venueId;
+    const bankAccountGuide = await resolveVenueDepositAccountGuide({
+      federationSlug: input.federationSlug,
+      venueId,
+      venueName,
+    });
     await ensureVenueReservationAfterAllocate({
       federationSlug: input.federationSlug,
       slotAllocationId: winnerId,
@@ -855,9 +859,13 @@ export async function adminDirectAllocateVenueSlot(input: {
 
   // PR1 — first ALLOCATED → idempotent reservation + notify (best-effort; CF mirrors)
   try {
-    const bankAccountGuide = await resolveFederationBankAccountGuide(input.federationSlug);
     const reqSnap = await getDoc(requestRef);
     const reqData = (reqSnap.data() || {}) as Record<string, unknown>;
+    const bankAccountGuide = await resolveVenueDepositAccountGuide({
+      federationSlug: input.federationSlug,
+      venueId: input.venueId,
+      venueName: input.venueName,
+    });
     await ensureVenueReservationAfterAllocate({
       federationSlug: input.federationSlug,
       slotAllocationId: winnerId,

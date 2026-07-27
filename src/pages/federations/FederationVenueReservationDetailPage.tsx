@@ -14,11 +14,13 @@ import { db } from "@/lib/firebase";
 import {
   claimVenueReservationPayment,
   getVenueReservation,
+  resolveVenueDepositAccountGuide,
 } from "@/lib/federation/venueReservationService";
 import {
   isPaymentClaimed,
   type VenueReservation,
 } from "@/lib/federation/venueReservationTypes";
+import { isGenericDepositAccountGuide } from "@/lib/federation/venueDepositAccount";
 
 function formatWon(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return "협회 안내 / 확정 예정";
@@ -37,6 +39,7 @@ export default function FederationVenueReservationDetailPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [depositedAtLocal, setDepositedAtLocal] = useState("");
+  const [displayBankGuide, setDisplayBankGuide] = useState("");
   const [fedMeta, setFedMeta] = useState<{ name: string; region: string; logoUrl?: string }>({
     name: federationSlug,
     region: "",
@@ -85,6 +88,33 @@ export default function FederationVenueReservationDetailPage() {
       cancelled = true;
     };
   }, [federationSlug, reservationId]);
+
+  // Hot fix: if snapshot is generic, resolve venue-scoped account for Detail display
+  useEffect(() => {
+    let cancelled = false;
+    if (!reservation) {
+      setDisplayBankGuide("");
+      return;
+    }
+    if (!isGenericDepositAccountGuide(reservation.bankAccountGuide)) {
+      setDisplayBankGuide(reservation.bankAccountGuide);
+      return;
+    }
+    resolveVenueDepositAccountGuide({
+      federationSlug: reservation.federationSlug || federationSlug,
+      venueId: reservation.venueId,
+      venueName: reservation.venueName,
+    })
+      .then((guide) => {
+        if (!cancelled) setDisplayBankGuide(guide);
+      })
+      .catch(() => {
+        if (!cancelled) setDisplayBankGuide(reservation.bankAccountGuide);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reservation, federationSlug]);
 
   const qrUrl = useMemo(() => {
     if (!reservation?.detailPath) return "";
@@ -203,9 +233,9 @@ export default function FederationVenueReservationDetailPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">입금계좌</dt>
+                <dt className="text-slate-500">입금계좌 · 예금주</dt>
                 <dd className="mt-0.5 whitespace-pre-wrap font-medium text-slate-900">
-                  {reservation.bankAccountGuide}
+                  {displayBankGuide || reservation.bankAccountGuide}
                 </dd>
               </div>
               <div>

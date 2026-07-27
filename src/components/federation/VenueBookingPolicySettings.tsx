@@ -23,14 +23,21 @@ import {
 import {
   listVenueBookingPolicyHistory,
   saveVenueBookingPolicy,
+  saveVenueDepositAccountGuide,
 } from "@/lib/federation/venueRentalService";
 import type { FederationVenue } from "@/lib/federation/venueRentalTypes";
+import {
+  NOWON_FEDERATION_DEPOSIT_GUIDE,
+  NOWON_SURAKSAN_DEPOSIT_GUIDE,
+  isSuraksanVenue,
+} from "@/lib/federation/venueDepositAccount";
 
 type Props = {
   federationSlug: string;
   venue: FederationVenue;
   adminUid: string;
   onSaved?: (policy: VenueBookingPolicy) => void;
+  onDepositSaved?: (guide: string) => void;
 };
 
 function cloneDefault(): VenueBookingPolicy {
@@ -108,12 +115,22 @@ function PolicySummaryCard({ policy }: { policy: VenueBookingPolicy }) {
   );
 }
 
-export function VenueBookingPolicySettings({ federationSlug, venue, adminUid, onSaved }: Props) {
+export function VenueBookingPolicySettings({
+  federationSlug,
+  venue,
+  adminUid,
+  onSaved,
+  onDepositSaved,
+}: Props) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState<VenueBookingPolicy>(() =>
     getEffectiveVenueBookingPolicy(venue.bookingPolicy ?? null)
   );
+  const [depositGuide, setDepositGuide] = useState(
+    () => venue.depositAccountGuide?.trim() || ""
+  );
   const [busy, setBusy] = useState(false);
+  const [depositBusy, setDepositBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [history, setHistory] = useState<VenueBookingPolicyHistoryEntry[]>([]);
@@ -126,9 +143,10 @@ export function VenueBookingPolicySettings({ federationSlug, venue, adminUid, on
 
   useEffect(() => {
     setDraft(getEffectiveVenueBookingPolicy(venue.bookingPolicy ?? null));
+    setDepositGuide(venue.depositAccountGuide?.trim() || "");
     setErr(null);
     setMsg(null);
-  }, [venue.id, venue.bookingPolicy]);
+  }, [venue.id, venue.bookingPolicy, venue.depositAccountGuide]);
 
   async function refreshHistory() {
     setHistoryLoading(true);
@@ -221,6 +239,26 @@ export function VenueBookingPolicySettings({ federationSlug, venue, adminUid, on
     }
   }
 
+  async function onSaveDeposit() {
+    setDepositBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const guide = depositGuide.trim();
+      await saveVenueDepositAccountGuide({
+        federationSlug,
+        venueId: venue.id,
+        depositAccountGuide: guide,
+      });
+      setMsg("입금계좌 저장됨 · 이후 배정 Reservation에 반영됩니다");
+      onDepositSaved?.(guide);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "입금계좌 저장에 실패했습니다.");
+    } finally {
+      setDepositBusy(false);
+    }
+  }
+
   return (
     <section className="rounded-xl border border-violet-200 bg-violet-50/40 overflow-hidden">
       <button
@@ -258,6 +296,32 @@ export function VenueBookingPolicySettings({ federationSlug, venue, adminUid, on
         </div>
       ) : (
         <div className="px-4 pb-4 space-y-4 border-t border-violet-100 pt-4">
+          <div className="rounded-xl border border-emerald-200 bg-white p-3 space-y-2">
+            <p className="text-sm font-bold text-gray-900">입금계좌 (Reservation Detail)</p>
+            <p className="text-xs text-gray-500">
+              비우면 노원 운영 기본값 사용 — 수락산 전용 / 그 외 협회 계좌. 은행·계좌·예금주를
+              줄바꿈으로 입력하세요.
+            </p>
+            <textarea
+              value={depositGuide}
+              onChange={(e) => setDepositGuide(e.target.value)}
+              rows={4}
+              placeholder={
+                isSuraksanVenue(venue.id, venue.name)
+                  ? NOWON_SURAKSAN_DEPOSIT_GUIDE
+                  : NOWON_FEDERATION_DEPOSIT_GUIDE
+              }
+              className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm font-mono"
+            />
+            <button
+              type="button"
+              disabled={depositBusy}
+              onClick={() => void onSaveDeposit()}
+              className="rounded-lg bg-emerald-700 text-white px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+            >
+              {depositBusy ? "저장 중…" : "입금계좌 저장"}
+            </button>
+          </div>
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">

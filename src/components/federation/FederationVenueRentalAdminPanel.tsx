@@ -632,6 +632,13 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
               prev.map((v) => (v.id === selectedVenue.id ? { ...v, bookingPolicy: policy } : v))
             );
           }}
+          onDepositSaved={(guide) => {
+            setVenues((prev) =>
+              prev.map((v) =>
+                v.id === selectedVenue.id ? { ...v, depositAccountGuide: guide || null } : v
+              )
+            );
+          }}
         />
       ) : null}
 

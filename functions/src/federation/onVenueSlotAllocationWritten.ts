@@ -13,6 +13,8 @@ if (!admin.apps.length) {
 
 const DEFAULT_BANK_GUIDE =
   "협회가 안내한 지정 계좌로 입금해 주세요. (계좌 정보는 협회 공지·운영 안내를 따릅니다.)";
+const NOWON_FEDERATION_DEPOSIT_GUIDE = "국민은행\n536201-01-485137\n노원구축구협회";
+const NOWON_SURAKSAN_DEPOSIT_GUIDE = "국민은행\n278501-04-116237\n수락산구장 전용";
 const DEFAULT_DEADLINE_LABEL = "이용일 기준 전월까지 납부";
 
 function buildShortReservationCode(slotAllocationId: string, bookingDate: string): string {
@@ -40,24 +42,53 @@ function isFirstAllocated(
   return String(before.status) !== "ALLOCATED";
 }
 
-async function resolveBankGuide(fedSlug: string): Promise<string> {
+async function resolveBankGuide(
+  fedSlug: string,
+  venueId: string,
+  venueName: string
+): Promise<string> {
   try {
-    const snap = await admin.firestore().doc(`federations/${fedSlug}`).get();
-    if (!snap.exists) return DEFAULT_BANK_GUIDE;
-    const d = snap.data() as Record<string, unknown>;
-    const meta = (d.meta && typeof d.meta === "object" ? d.meta : {}) as Record<string, unknown>;
-    for (const c of [
-      d.bankAccountGuide,
-      d.venueBankAccountGuide,
-      meta.bankAccountGuide,
-      meta.depositAccount,
-      d.bankAccount,
-    ]) {
-      if (typeof c === "string" && c.trim()) return c.trim();
+    if (venueId) {
+      const venueSnap = await admin.firestore().doc(`federations/${fedSlug}/venues/${venueId}`).get();
+      if (venueSnap.exists) {
+        const vd = venueSnap.data() as Record<string, unknown>;
+        if (typeof vd.depositAccountGuide === "string" && vd.depositAccountGuide.trim()) {
+          return vd.depositAccountGuide.trim();
+        }
+        if (!venueName && typeof vd.name === "string") venueName = vd.name;
+      }
     }
   } catch {
     /* ignore */
   }
+
+  if (fedSlug === "nowon-football") {
+    const id = venueId.toLowerCase();
+    if (id.includes("suraksan") || venueName.includes("수락산")) {
+      return NOWON_SURAKSAN_DEPOSIT_GUIDE;
+    }
+  }
+
+  try {
+    const snap = await admin.firestore().doc(`federations/${fedSlug}`).get();
+    if (snap.exists) {
+      const d = snap.data() as Record<string, unknown>;
+      const meta = (d.meta && typeof d.meta === "object" ? d.meta : {}) as Record<string, unknown>;
+      for (const c of [
+        d.bankAccountGuide,
+        d.venueBankAccountGuide,
+        meta.bankAccountGuide,
+        meta.depositAccount,
+        d.bankAccount,
+      ]) {
+        if (typeof c === "string" && c.trim()) return c.trim();
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  if (fedSlug === "nowon-football") return NOWON_FEDERATION_DEPOSIT_GUIDE;
   return DEFAULT_BANK_GUIDE;
 }
 
@@ -121,7 +152,7 @@ export const onVenueSlotAllocationWritten = onDocumentWritten(
     const shortReservationCode = buildShortReservationCode(slotId, bookingDate);
     const detailPath = `/federations/${encodeURIComponent(fedSlug)}/reservations/${encodeURIComponent(reservationId)}`;
     const notifyDedupKey = `venue_reservation_allocated_${fedSlug}_${reservationId}`;
-    const bankAccountGuide = await resolveBankGuide(fedSlug);
+    const bankAccountGuide = await resolveBankGuide(fedSlug, venueId, venueName);
     const now = admin.firestore.FieldValue.serverTimestamp();
 
     let created = false;

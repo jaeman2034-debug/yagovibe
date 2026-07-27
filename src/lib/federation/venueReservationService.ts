@@ -22,9 +22,16 @@ import {
   venueReservationDetailPath,
   type VenueReservation,
 } from "@/lib/federation/venueReservationTypes";
+import {
+  GENERIC_DEPOSIT_ACCOUNT_GUIDE,
+  isSuraksanVenue,
+  NOWON_FEDERATION_DEPOSIT_GUIDE,
+  NOWON_SURAKSAN_DEPOSIT_GUIDE,
+  nowonOpsDepositFallback,
+} from "@/lib/federation/venueDepositAccount";
+import { getFederationVenue } from "@/lib/federation/venueRentalService";
 
-const DEFAULT_BANK_GUIDE =
-  "협회가 안내한 지정 계좌로 입금해 주세요. (계좌 정보는 협회 공지·운영 안내를 따릅니다.)";
+const DEFAULT_BANK_GUIDE = GENERIC_DEPOSIT_ACCOUNT_GUIDE;
 const DEFAULT_DEADLINE_LABEL = "이용일 기준 전월까지 납부";
 
 export type EnsureVenueReservationInput = {
@@ -267,28 +274,65 @@ export async function ensureVenueReservationAfterAllocate(
   };
 }
 
-/** Load bank guide from federation doc if present (display only). */
+/** @deprecated Prefer resolveVenueDepositAccountGuide — federation-wide fallback only. */
 export async function resolveFederationBankAccountGuide(
   federationSlug: string
 ): Promise<string> {
+  return resolveVenueDepositAccountGuide({ federationSlug, venueId: "" });
+}
+
+/**
+ * Venue-first deposit guide for Reservation snapshot / Detail display.
+ * Priority:
+ * 1) venue.depositAccountGuide (CMS)
+ * 2) Nowon ops: 수락산 전용 vs 협회 계좌
+ * 3) federation doc default
+ * 4) generic placeholder
+ */
+export async function resolveVenueDepositAccountGuide(input: {
+  federationSlug: string;
+  venueId: string;
+  venueName?: string | null;
+}): Promise<string> {
+  let venueName = input.venueName || "";
+  if (input.venueId) {
+    try {
+      const venue = await getFederationVenue(input.federationSlug, input.venueId);
+      if (venue?.depositAccountGuide?.trim()) return venue.depositAccountGuide.trim();
+      if (!venueName && venue?.name) venueName = venue.name;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (input.federationSlug === "nowon-football") {
+    if (isSuraksanVenue(input.venueId, venueName)) return NOWON_SURAKSAN_DEPOSIT_GUIDE;
+    // non-수락산: prefer federation doc, else ops federation account
+  }
+
   try {
-    const snap = await getDoc(doc(db, "federations", federationSlug));
-    if (!snap.exists()) return DEFAULT_BANK_GUIDE;
-    const d = snap.data() as Record<string, unknown>;
-    const meta = (d.meta && typeof d.meta === "object" ? d.meta : {}) as Record<string, unknown>;
-    const candidates = [
-      d.bankAccountGuide,
-      d.venueBankAccountGuide,
-      meta.bankAccountGuide,
-      meta.depositAccount,
-      d.bankAccount,
-    ];
-    for (const c of candidates) {
-      if (typeof c === "string" && c.trim()) return c.trim();
+    const snap = await getDoc(doc(db, "federations", input.federationSlug));
+    if (snap.exists()) {
+      const d = snap.data() as Record<string, unknown>;
+      const meta = (d.meta && typeof d.meta === "object" ? d.meta : {}) as Record<string, unknown>;
+      const candidates = [
+        d.bankAccountGuide,
+        d.venueBankAccountGuide,
+        meta.bankAccountGuide,
+        meta.depositAccount,
+        d.bankAccount,
+      ];
+      for (const c of candidates) {
+        if (typeof c === "string" && c.trim()) return c.trim();
+      }
     }
   } catch {
     /* ignore */
   }
+
+  if (input.federationSlug === "nowon-football") return NOWON_FEDERATION_DEPOSIT_GUIDE;
+  const ops = nowonOpsDepositFallback(input.federationSlug, input.venueId, venueName);
+  if (ops) return ops;
   return DEFAULT_BANK_GUIDE;
 }
 

@@ -115,6 +115,10 @@ function parseVenue(id: string, raw: Record<string, unknown>): FederationVenue {
     status: statusRaw === "inactive" ? "inactive" : "active",
     sortOrder: typeof sortRaw === "number" ? sortRaw : undefined,
     bookingPolicy: bookingPolicy ?? null,
+    depositAccountGuide:
+      typeof raw.depositAccountGuide === "string" && raw.depositAccountGuide.trim()
+        ? raw.depositAccountGuide.trim()
+        : null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   };
@@ -146,6 +150,19 @@ async function resolveAdminDisplayName(uid: string): Promise<string | undefined>
   } catch {
     return undefined;
   }
+}
+
+/** Hot fix — persist display-only deposit guide on venue doc. */
+export async function saveVenueDepositAccountGuide(input: {
+  federationSlug: string;
+  venueId: string;
+  depositAccountGuide: string;
+}): Promise<void> {
+  const guide = input.depositAccountGuide.trim();
+  await updateDoc(doc(db, "federations", input.federationSlug, "venues", input.venueId), {
+    depositAccountGuide: guide || null,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 /**
