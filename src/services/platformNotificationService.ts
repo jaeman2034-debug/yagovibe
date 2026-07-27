@@ -47,11 +47,27 @@ interface CreateNotificationParams {
 /**
  * 알림 생성
  */
+function omitUndefinedDeep<T>(value: T): T {
+  if (value === undefined) return value;
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => omitUndefinedDeep(item))
+      .filter((item) => item !== undefined) as T;
+  }
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (v === undefined) continue;
+    out[k] = omitUndefinedDeep(v);
+  }
+  return out as T;
+}
+
 export async function createNotification(
   params: CreateNotificationParams
 ): Promise<void> {
   try {
-    await addDoc(collection(db, "notifications"), {
+    const doc = omitUndefinedDeep({
       userId: params.userId,
       type: params.type,
       title: params.title,
@@ -60,7 +76,6 @@ export async function createNotification(
       ...(params.link && { link: params.link }),
       ...(params.status && { status: params.status }),
       ...(params.pushDedupKey && { pushDedupKey: params.pushDedupKey }),
-      // omit undefined — Firestore SDK rejects undefined field values
       ...(params.target ? { target: params.target } : {}),
       priority: params.priority || "normal",
       ...(params.payload ? { payload: params.payload } : {}),
@@ -72,6 +87,7 @@ export async function createNotification(
       isRead: false,
       createdAt: serverTimestamp(),
     });
+    await addDoc(collection(db, "notifications"), doc);
   } catch (error) {
     console.error("알림 생성 실패:", error);
     throw error;

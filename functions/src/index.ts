@@ -8,6 +8,7 @@ export { generateSearchMeta } from "./generateSearchMeta";
 export { analyzeProduct } from "./analyzeProduct";
 export { sendPushOnNotificationCreate } from "./notifications/sendPushOnNotificationCreate";
 export { onVenueSlotAllocationWritten } from "./federation/onVenueSlotAllocationWritten";
+export { onVenueReservationWritten } from "./federation/onVenueReservationWritten";
 export {
   createTeamFeePayment,
   confirmTeamFeePayment,

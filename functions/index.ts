@@ -56,6 +56,13 @@ attachLazyModuleExports(
   ["onVenueSlotAllocationWritten"] as const
 );
 
+/** Nowon venue PR3 — Confirm/Finalize member notify (Admin SDK; client-path fallback) */
+attachLazyModuleExports(
+  module.exports,
+  modulePathFromLibSrc("federation/onVenueReservationWritten"),
+  ["onVenueReservationWritten"] as const
+);
+
 /** AI Growth ingestion — rootBundle 전체 로드 없이 격리 (첫 호출 internal 방지) */
 attachLazyModuleExports(module.exports, modulePathFromLibSrc("lib/aiGrowthIngestionCallables"), [
   "startYoutubeIngestion",

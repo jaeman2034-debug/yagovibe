@@ -13,7 +13,7 @@ import {
   type Auth,
 } from "firebase/auth";
 import { ensureDurableAuthPersistence, useSessionPersistenceInDev } from "@/utils/authHelpers";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, type Firestore } from "firebase/firestore";
 import { getDatabase, connectDatabaseEmulator, type Database } from "firebase/database";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getFunctions, type Functions } from "firebase/functions";
@@ -204,7 +204,11 @@ try {
     throw new Error("❌ [firebase.ts] getFirestore가 undefined입니다. Firebase Firestore SDK가 로드되지 않았습니다.");
   }
   
-  db = getFirestore(app);
+  try {
+    db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+  } catch {
+    db = getFirestore(app);
+  }
   console.log("✅ [firebase.ts] Firebase Firestore 초기화 성공");
 } catch (error) {
   console.error("❌ [firebase.ts] Firebase Firestore 초기화 실패:", error);
