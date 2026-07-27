@@ -25,15 +25,24 @@ import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthProvider";
+import { useRoleGate } from "@/hooks/useRoleGate";
 import { createFederationInviteLink, type FederationInviteRole } from "@/services/inviteService";
 import { initKakao } from "@/lib/kakaoAuth";
 import { shareFederationInviteViaKakao } from "@/services/kakaoShare";
+import { isRunningOnLoopbackHost } from "@/lib/growth/teamInviteShare";
 import FederationInviteManager from "@/components/federation/FederationInviteManager";
 import FederationMemberList from "@/components/federation/FederationMemberList";
+import FederationOwnershipPanel from "@/components/federation/FederationOwnershipPanel";
 import FederationTeamFeeDashboard from "@/components/federation/fees/FederationTeamFeeDashboard";
 import FederationCompetitionDashboard from "@/components/federation/fees/FederationCompetitionDashboard";
 import FederationAccountingDashboard from "@/components/federation/accounting/FederationAccountingDashboard";
 import { FederationVenueRentalAdminPanel } from "@/components/federation/FederationVenueRentalAdminPanel";
+import {
+  getPlatformTeamPickById,
+  searchPlatformTeamsByName,
+  setFederationTeamPlatformLink,
+  type PlatformTeamPickItem,
+} from "@/services/federationOperatingService";
 
 type FederationDoc = {
   id?: string;
@@ -67,6 +76,7 @@ type DivisionItem = {
 type TeamItem = {
   id: string;
   name: string;
+  platformTeamId?: string;
   leagueId?: string;
   tournamentId?: string;
   divisionId?: string | null;
@@ -348,6 +358,7 @@ export default function FederationAdminDashboard() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const { isPlatformAdmin, loading: platformRoleLoading } = useRoleGate();
   const [loading, setLoading] = useState(true);
   const [federation, setFederation] = useState<FederationDoc | null>(null);
   const [savingBranding, setSavingBranding] = useState(false);
@@ -357,6 +368,16 @@ export default function FederationAdminDashboard() {
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [sharingKakao, setSharingKakao] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [linkingTeam, setLinkingTeam] = useState<TeamItem | null>(null);
+  const [platformTeamSearch, setPlatformTeamSearch] = useState("");
+  const [platformTeamOptions, setPlatformTeamOptions] = useState<PlatformTeamPickItem[]>([]);
+  const [platformTeamSearchLoading, setPlatformTeamSearchLoading] = useState(false);
+  const [platformTeamSearchHint, setPlatformTeamSearchHint] = useState<string | null>(null);
+  const [platformTeamSearchError, setPlatformTeamSearchError] = useState<string | null>(null);
+  const [selectedPlatformTeam, setSelectedPlatformTeam] = useState<PlatformTeamPickItem | null>(
+    null
+  );
+  const [platformTeamLinkSaving, setPlatformTeamLinkSaving] = useState(false);
   const [aiStatsDate, setAiStatsDate] = useState(() => seoulYesterdayClient());
   const [aiStats, setAiStats] = useState<FederationAiDailyStatsDoc | null>(null);
   const [aiStatsLoading, setAiStatsLoading] = useState(false);
@@ -420,20 +441,24 @@ export default function FederationAdminDashboard() {
         const data = { id: snap.id, ...(snap.data() as FederationDoc) };
         const ownerUid = data?.ownerUid || data?.ownerId;
         const adminIds = Array.isArray(data?.adminIds) ? data.adminIds : [];
+        const adminUids = Array.isArray(data?.adminUids) ? data.adminUids : [];
         const roleAdmins = Array.isArray(data?.roles?.admins) ? data.roles.admins : [];
         const roleEditors = Array.isArray(data?.roles?.editors) ? data.roles.editors : [];
         const uid = user?.uid || "";
         const isOwner = !!uid && ownerUid === uid;
-        const isAdmin = !!uid && (adminIds.includes(uid) || roleAdmins.includes(uid));
+        const isAdmin =
+          !!uid &&
+          (adminIds.includes(uid) || adminUids.includes(uid) || roleAdmins.includes(uid));
         const isEditor = !!uid && roleEditors.includes(uid);
+        // Platform Super Admin = emergency override (Ownership Transfer 포함)
         const isManager =
-          !!uid && (isOwner || isAdmin || isEditor);
+          !!uid && (isPlatformAdmin || isOwner || isAdmin || isEditor);
         if (!isManager) {
           setForbidden(true);
           setFederation(data);
           return;
         }
-        setCanPublish(isOwner || isAdmin);
+        setCanPublish(isPlatformAdmin || isOwner || isAdmin);
         setForbidden(false);
         setFederation(data);
         setBranding({
@@ -453,8 +478,9 @@ export default function FederationAdminDashboard() {
   };
 
   useEffect(() => {
+    if (platformRoleLoading) return;
     void loadFederation();
-  }, [federationSlug, user?.uid]);
+  }, [federationSlug, user?.uid, isPlatformAdmin, platformRoleLoading]);
 
   useEffect(() => {
     void initKakao();
@@ -520,12 +546,13 @@ export default function FederationAdminDashboard() {
       for (const d of snap.docs) {
         const data = d.data() as any;
         const leagueId = String(data?.leagueId || "");
-        if (!leagueId) continue;
-        if (!grouped[leagueId]) grouped[leagueId] = [];
-        grouped[leagueId].push({
+        const groupKey = leagueId || "__unassigned__";
+        if (!grouped[groupKey]) grouped[groupKey] = [];
+        grouped[groupKey].push({
           id: d.id,
           name: String(data?.name || "이름 없는 팀"),
-          leagueId,
+          platformTeamId: typeof data?.platformTeamId === "string" ? data.platformTeamId : undefined,
+          leagueId: leagueId || undefined,
           tournamentId: typeof data?.tournamentId === "string" ? data.tournamentId : undefined,
           divisionId: typeof data?.divisionId === "string" ? data.divisionId : null,
           applicationId: typeof data?.applicationId === "string" ? data.applicationId : undefined,
@@ -720,8 +747,12 @@ export default function FederationAdminDashboard() {
     setCreatingInvite(true);
     try {
       const link = await createFederationInviteLink(federationSlug, inviteRole);
+      console.log("[FederationInvite] copied URL:", link);
       await navigator.clipboard.writeText(link);
       toast.success(`초대 링크가 복사되었습니다. (${inviteRole})`);
+      if (isRunningOnLoopbackHost()) {
+        toast.message("운영 URL이 복사되었습니다. 카카오 수신자는 localhost가 아닌 이 링크로 접속합니다.");
+      }
     } catch (e) {
       console.error(e);
       toast.error("초대 링크 생성에 실패했습니다.");
@@ -732,16 +763,33 @@ export default function FederationAdminDashboard() {
 
   const handleKakaoInvite = async () => {
     if (!federationSlug) return;
+    // Kakao JS SDK는 공유를 연 페이지 origin을 링크에 섞는 경우가 있음 → localhost에서 카카오 공유 금지
+    if (isRunningOnLoopbackHost()) {
+      toast.error(
+        "localhost에서는 카카오 초대를 보낼 수 없습니다. https://yago-vibe-spt.web.app 에서 「초대 링크 생성 + 복사」 후 전달하세요."
+      );
+      return;
+    }
     setSharingKakao(true);
     try {
       const link = await createFederationInviteLink(federationSlug, inviteRole);
-      await shareFederationInviteViaKakao({
+      if (/localhost|127\.0\.0\.1/i.test(link)) {
+        throw new Error("초대 링크에 localhost가 포함되어 전송을 중단했습니다. 페이지를 새로고침 후 다시 시도하세요.");
+      }
+      console.log("[FederationInvite] kakao URL:", link);
+      const sharedUrl = await shareFederationInviteViaKakao({
         link,
         federationName: federation?.name || federationSlug,
       });
+      toast.success(
+        `카카오 초대 창이 열렸습니다. 수신 링크는 반드시\n${sharedUrl || link}\n형태여야 합니다. (localhost·yagovibe.com 금지)`
+      );
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message || "카카오 초대 전송에 실패했습니다.");
+      toast.message(
+        "대안: 「초대 링크 생성 + 복사」로 https://yago-vibe-spt.web.app/invite?token=… 를 카톡에 직접 붙여넣기 하세요."
+      );
     } finally {
       setSharingKakao(false);
     }
@@ -775,9 +823,14 @@ export default function FederationAdminDashboard() {
   const currentDivisionId = searchParams.get("divisionId");
   const currentLeagueDivisions = currentLeagueId ? divisionsByTournament[currentLeagueId] || [] : [];
   const currentDivision = currentLeagueDivisions.find((d) => d.id === currentDivisionId) || null;
-  // 퍼블릭 URL: 배포된 Hosting(web.app) 기준. 문자열 치환은 반드시 템플릿 리터럴 사용
+  // 퍼블릭 URL: 항상 Hosting 프로덕션 (localhost origin 금지 — 카카오/복사 수신자 연결 실패 방지)
   const publicUrl = useMemo(() => {
-    const base = typeof window !== "undefined" ? window.location.origin : "https://yago-vibe-spt.web.app";
+    const live =
+      typeof window !== "undefined" ? window.location.origin.replace(/\/$/, "") : "";
+    const base =
+      live && !/localhost|127\.0\.0\.1/i.test(live)
+        ? live
+        : "https://yago-vibe-spt.web.app";
     const slug = federationSlug || "your-slug";
     if (currentLeagueId) {
       if (currentLeague?.mode === "tournament") {
@@ -803,12 +856,17 @@ export default function FederationAdminDashboard() {
   const firstTournament = useMemo(() => leagues.find((l) => l.mode === "tournament") || null, [leagues]);
   const publicTournamentUrl = useMemo(() => {
     if (!federationSlug || !selectedTournamentId) return null;
-    const base = typeof window !== "undefined" ? window.location.origin : "https://yago-vibe-spt.web.app";
+    const live =
+      typeof window !== "undefined" ? window.location.origin.replace(/\/$/, "") : "";
+    const base =
+      live && !/localhost|127\.0\.0\.1/i.test(live)
+        ? live
+        : "https://yago-vibe-spt.web.app";
     if (currentDivisionId && currentLeagueId === selectedTournamentId) {
       return `${base}/federations/${federationSlug}/tournaments/${selectedTournamentId}/divisions/${currentDivisionId}`;
     }
     return `${base}/federations/${federationSlug}/tournaments/${selectedTournamentId}`;
-  }, [federationSlug, selectedTournamentId, currentDivisionId]);
+  }, [federationSlug, selectedTournamentId, currentDivisionId, currentLeagueId]);
   const handleOpenPublicTournament = () => {
     if (!federationSlug) {
       toast.error("협회 정보가 아직 준비되지 않았습니다.");
@@ -1044,6 +1102,16 @@ export default function FederationAdminDashboard() {
     () => Object.values(teamsByLeague).flat(),
     [teamsByLeague]
   );
+  /** 이 협회에서 이미 홈페이지 연결된 platformTeamId → 협회 팀 */
+  const platformTeamAlreadyLinkedMap = useMemo(() => {
+    const map: Record<string, { federationTeamId: string; federationTeamName: string }> = {};
+    for (const t of allFederationTeams) {
+      const pid = t.platformTeamId?.trim();
+      if (!pid) continue;
+      map[pid] = { federationTeamId: t.id, federationTeamName: t.name };
+    }
+    return map;
+  }, [allFederationTeams]);
   const filteredFederationTeams = useMemo(() => {
     const normalizeTeamStatus = (team: TeamItem): "submitted" | "approved" | "rejected" | "other" => {
       if (team.status === "submitted" || team.status === "approved" || team.status === "rejected") {
@@ -1121,6 +1189,135 @@ export default function FederationAdminDashboard() {
       toast.error("팀 추가에 실패했습니다.");
     });
   };
+
+  const openPlatformTeamLinkDialog = (team: TeamItem) => {
+    setLinkingTeam(team);
+    setPlatformTeamSearch(team.name || "");
+    setSelectedPlatformTeam(null);
+    setPlatformTeamOptions([]);
+    setPlatformTeamSearchHint(null);
+    setPlatformTeamSearchError(null);
+    if (team.platformTeamId) {
+      const linkedMap: Record<string, { federationTeamId: string; federationTeamName: string }> = {};
+      for (const t of Object.values(teamsByLeague).flat()) {
+        const pid = t.platformTeamId?.trim();
+        if (pid) linkedMap[pid] = { federationTeamId: t.id, federationTeamName: t.name };
+      }
+      void getPlatformTeamPickById(team.platformTeamId, {
+        alreadyLinkedMap: linkedMap,
+        currentFederationTeamId: team.id,
+      })
+        .then((pick) => {
+          if (pick) {
+            setSelectedPlatformTeam(pick);
+            setPlatformTeamSearch(pick.name);
+          }
+        })
+        .catch((e) => console.warn("[platformTeamLink] load linked team failed", e));
+    }
+  };
+
+  const handlePlatformTeamLink = async () => {
+    if (!federationSlug || !linkingTeam) return;
+    setPlatformTeamLinkSaving(true);
+
+    try {
+      const platformTeamId = selectedPlatformTeam?.id?.trim() || null;
+      await setFederationTeamPlatformLink(federationSlug, linkingTeam.id, platformTeamId);
+      toast.success(
+        platformTeamId
+          ? `「${selectedPlatformTeam?.name || "팀"}」 공개 홈페이지를 연결했습니다.`
+          : "공개 홈페이지 연결을 해제했습니다."
+      );
+      setLinkingTeam(null);
+      setSelectedPlatformTeam(null);
+      setPlatformTeamSearch("");
+      setPlatformTeamOptions([]);
+      setPlatformTeamSearchHint(null);
+      setPlatformTeamSearchError(null);
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "플랫폼 팀 연결에 실패했습니다.");
+    } finally {
+      setPlatformTeamLinkSaving(false);
+    }
+  };
+
+  const closePlatformTeamLinkDialog = () => {
+    if (platformTeamLinkSaving) return;
+    setLinkingTeam(null);
+    setSelectedPlatformTeam(null);
+    setPlatformTeamSearch("");
+    setPlatformTeamOptions([]);
+    setPlatformTeamSearchHint(null);
+    setPlatformTeamSearchError(null);
+  };
+
+  /** 플랫폼 팀명 검색 — 디바운스 자동완성 (동명/이미연결/표기정규화 포함) */
+  useEffect(() => {
+    if (!linkingTeam) return;
+    let cancelled = false;
+    const q = platformTeamSearch.trim();
+    const timer = window.setTimeout(() => {
+      setPlatformTeamSearchLoading(true);
+      setPlatformTeamSearchError(null);
+      void searchPlatformTeamsByName(q, {
+        limitCount: 50,
+        alreadyLinkedMap: platformTeamAlreadyLinkedMap,
+        currentFederationTeamId: linkingTeam.id,
+      })
+        .then((outcome) => {
+          if (cancelled) return;
+          if (!outcome.ok) {
+            setPlatformTeamOptions([]);
+            setPlatformTeamSearchHint(null);
+            setPlatformTeamSearchError(outcome.message);
+            setSelectedPlatformTeam((prev) =>
+              prev && linkingTeam.platformTeamId === prev.id ? prev : null
+            );
+            return;
+          }
+          const rows = outcome.items;
+          setPlatformTeamOptions(rows);
+          setPlatformTeamSearchHint(rows.length === 0 ? outcome.emptyHint || null : null);
+          setPlatformTeamSearchError(null);
+          const selectable = rows.filter((r) => !r.alreadyLinked);
+          // 결과 1개 → 자동 선택 / 여러 개 → 사용자 선택 / 0개 → 연결 버튼 비활성(기존 링크 로드분 제외)
+          if (selectable.length === 1) {
+            setSelectedPlatformTeam(selectable[0]);
+          } else if (selectable.length > 1) {
+            setSelectedPlatformTeam((prev) => {
+              if (prev && selectable.some((s) => s.id === prev.id)) return prev;
+              return null;
+            });
+          } else {
+            setSelectedPlatformTeam((prev) => {
+              if (prev && linkingTeam.platformTeamId === prev.id) return prev;
+              return null;
+            });
+          }
+        })
+        .catch((e) => {
+          console.error(e);
+          if (!cancelled) {
+            setPlatformTeamOptions([]);
+            setSelectedPlatformTeam(null);
+            setPlatformTeamSearchHint(null);
+            setPlatformTeamSearchError(
+              e instanceof Error ? e.message : "플랫폼 팀 목록을 불러오지 못했습니다."
+            );
+            toast.error("플랫폼 팀 목록을 불러오지 못했습니다.");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setPlatformTeamSearchLoading(false);
+        });
+    }, q ? 220 : 80);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [linkingTeam, platformTeamSearch, platformTeamAlreadyLinkedMap]);
 
   useEffect(() => {
     if (!federationSlug || !currentLeagueId) {
@@ -2126,8 +2323,187 @@ export default function FederationAdminDashboard() {
           </div>
           </div>
         )}
-        {/* settings 탭: 브랜딩 설정 */}
+        {linkingTeam && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-lg space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-xl">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">공개 홈페이지 연결</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  협회 팀{" "}
+                  <span className="font-medium text-gray-900">{linkingTeam.name}</span>에 연결할
+                  플랫폼 팀을 <strong>이름</strong>으로 검색·선택하세요.
+                </p>
+              </div>
+              <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
+                Team ID를 입력할 필요가 없습니다. 목록에서 팀을 고른 뒤 「홈페이지 연결」을 누르면
+                됩니다.
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="platform-team-search" className="block text-sm font-medium text-gray-800">
+                  플랫폼 팀 검색
+                </label>
+                <input
+                  id="platform-team-search"
+                  value={platformTeamSearch}
+                  onChange={(event) => {
+                    setPlatformTeamSearch(event.target.value);
+                    setSelectedPlatformTeam(null);
+                  }}
+                  placeholder="예: 대우FC, 노해FC"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  disabled={platformTeamLinkSaving}
+                  autoFocus
+                />
+                {selectedPlatformTeam ? (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                    선택됨:{" "}
+                    <span className="font-semibold">
+                      {selectedPlatformTeam.name}
+                      {selectedPlatformTeam.region
+                        ? ` (${selectedPlatformTeam.region})`
+                        : ""}
+                    </span>
+                    {selectedPlatformTeam.subtitle ? (
+                      <div className="mt-0.5 text-xs font-normal text-emerald-800">
+                        {selectedPlatformTeam.subtitle}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500">
+                    입력하면 자동완성됩니다. 동명 팀은 지역·협회·팀장으로 구분하세요.
+                  </p>
+                )}
+                <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200">
+                  {platformTeamSearchLoading ? (
+                    <p className="px-3 py-4 text-sm text-gray-500">검색 중…</p>
+                  ) : platformTeamSearchError ? (
+                    <p className="px-3 py-4 text-sm text-red-600 whitespace-pre-line">
+                      {platformTeamSearchError}
+                    </p>
+                  ) : platformTeamOptions.length === 0 ? (
+                    <p className="px-3 py-4 text-sm text-gray-600 whitespace-pre-line">
+                      {platformTeamSearchHint ||
+                        "플랫폼에 동일·유사 이름 팀이 없습니다. 팀 이름을 바꿔 보거나, 플랫폼에서 팀을 먼저 생성해 주세요."}
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-gray-100">
+                      {platformTeamOptions.map((opt) => {
+                        const active = selectedPlatformTeam?.id === opt.id;
+                        const blocked = !!opt.alreadyLinked;
+                        return (
+                          <li key={opt.id}>
+                            <button
+                              type="button"
+                              className={`flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left text-sm transition ${
+                                blocked
+                                  ? "cursor-not-allowed bg-gray-50 text-gray-400"
+                                  : active
+                                    ? "bg-blue-100 ring-1 ring-inset ring-blue-300 font-semibold text-blue-900"
+                                    : "hover:bg-gray-50 text-gray-900"
+                              }`}
+                              onClick={() => {
+                                if (blocked) return;
+                                setSelectedPlatformTeam(opt);
+                              }}
+                              disabled={platformTeamLinkSaving || blocked}
+                              title={
+                                blocked
+                                  ? `이미 「${opt.linkedToFederationTeamName || "다른 팀"}」에 연결됨`
+                                  : undefined
+                              }
+                            >
+                              <span className="flex w-full items-center justify-between gap-2">
+                                <span>
+                                  {active ? (
+                                    <span className="mr-1.5 text-blue-600" aria-hidden>
+                                      ✓
+                                    </span>
+                                  ) : null}
+                                  {opt.name}
+                                  {opt.region ? (
+                                    <span className="font-normal text-gray-500">
+                                      {" "}
+                                      ({opt.region})
+                                    </span>
+                                  ) : null}
+                                </span>
+                                {blocked ? (
+                                  <span className="shrink-0 text-[11px] font-medium text-amber-700">
+                                    이미 연결됨
+                                  </span>
+                                ) : active ? (
+                                  <span className="shrink-0 text-[11px] font-medium text-blue-700">
+                                    선택됨
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span
+                                className={`text-[11px] font-normal ${
+                                  blocked ? "text-gray-400" : "text-gray-500"
+                                }`}
+                              >
+                                {blocked
+                                  ? `→ ${opt.linkedToFederationTeamName || "다른 협회 팀"}`
+                                  : opt.subtitle}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="outline" onClick={closePlatformTeamLinkDialog} disabled={platformTeamLinkSaving}>
+                  취소
+                </Button>
+                {linkingTeam.platformTeamId || selectedPlatformTeam ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedPlatformTeam(null);
+                      setPlatformTeamSearch("");
+                    }}
+                    disabled={platformTeamLinkSaving}
+                  >
+                    선택 해제
+                  </Button>
+                ) : null}
+                <Button
+                  onClick={() => void handlePlatformTeamLink()}
+                  disabled={
+                    platformTeamLinkSaving ||
+                    (!selectedPlatformTeam && !linkingTeam.platformTeamId) ||
+                    (platformTeamSearchLoading && !selectedPlatformTeam)
+                  }
+                >
+                  {platformTeamLinkSaving
+                    ? "저장 중..."
+                    : selectedPlatformTeam
+                      ? "홈페이지 연결"
+                      : linkingTeam.platformTeamId
+                        ? "연결 해제"
+                        : "홈페이지 연결"}
+                </Button>
+              </div>
+              {!selectedPlatformTeam && !linkingTeam.platformTeamId ? (
+                <p className="text-xs text-gray-500">
+                  검색 결과에서 팀을 선택해야 연결할 수 있습니다. (결과 1개면 자동 선택)
+                </p>
+              ) : null}
+              {!selectedPlatformTeam && linkingTeam.platformTeamId ? (
+                <p className="text-xs text-amber-700">
+                  선택을 비운 뒤 「연결 해제」를 누르면 기존 홈페이지 연결이 해제됩니다.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        )}
+        {/* settings 탭: 브랜딩 설정 + (Platform Admin) Ownership */}
         {activeTab === "settings" && (
+        <div className="space-y-4">
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">브랜딩 설정 (Draft)</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -2160,12 +2536,42 @@ export default function FederationAdminDashboard() {
             </Button>
           </div>
         </div>
+        {isPlatformAdmin && federationSlug && (
+          <FederationOwnershipPanel
+            federationSlug={federationSlug}
+            ownerUid={federation?.ownerUid}
+            ownerId={federation?.ownerId}
+            ownerTransferredAt={federation?.ownerTransferredAt}
+            ownerTransferredBy={federation?.ownerTransferredBy}
+            ownerHistory={federation?.ownerHistory}
+            pendingOwnershipTransfer={federation?.pendingOwnershipTransfer}
+            ownershipTransferHold={federation?.ownershipTransferHold}
+            onTransferred={() => void loadFederation()}
+          />
+        )}
+        </div>
         )}
 
         {/* members 탭: 초대 링크 */}
         {activeTab === "members" && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">관리자 초대 링크</h2>
+          {isRunningOnLoopbackHost() && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              지금 주소는 <strong>localhost</strong>입니다. 카카오 초대는 수신자 기기에서 열리지 않습니다.
+              <br />
+              운영 CMS에서 초대해 주세요:{" "}
+              <a
+                className="underline font-medium"
+                href={`https://yago-vibe-spt.web.app/federations/${federationSlug}/admin`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                yago-vibe-spt.web.app
+              </a>
+              . 또는 「초대 링크 생성 + 복사」로 운영 URL만 전달하세요. 예전 localhost 카카오 메시지는 다시 보내지 마세요.
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <select
               className="border rounded-lg px-3 py-2 text-sm"
@@ -2179,12 +2585,18 @@ export default function FederationAdminDashboard() {
             <Button onClick={() => void handleCreateInvite()} disabled={creatingInvite}>
               {creatingInvite ? "생성 중..." : "초대 링크 생성 + 복사"}
             </Button>
-            <Button variant="secondary" onClick={() => void handleKakaoInvite()} disabled={sharingKakao}>
+            <Button
+              variant="secondary"
+              onClick={() => void handleKakaoInvite()}
+              disabled={sharingKakao || isRunningOnLoopbackHost()}
+            >
               {sharingKakao ? "카카오 준비 중..." : "카카오로 초대"}
             </Button>
           </div>
           <p className="text-xs text-gray-500">
-            링크 수락 시 선택한 role로 자동 등록됩니다.
+            링크 수락 시 선택한 role로 자동 등록됩니다. 초대 URL은 항상{" "}
+            <code className="text-[11px] bg-gray-100 px-1 rounded">https://yago-vibe-spt.web.app/invite?…</code> 형태여야
+            합니다.
           </p>
         </div>
         )}
@@ -2872,13 +3284,29 @@ export default function FederationAdminDashboard() {
                       <div className="text-xs text-gray-600 mt-1">
                         리그: {leagues.find((l) => l.id === team.tournamentId || l.id === (team as any).leagueId)?.name || "-"} · 상태: {team.rosterStatus || "draft"}
                       </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        홈페이지: {team.platformTeamId ? "공개 홈페이지 연결 완료" : "미연결"}
+                      </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate(`/federations/${federationSlug}/teams/${team.id}/register`)}
-                    >
-                      등록 페이지
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {team.platformTeamId && (
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate(`/team/${team.platformTeamId}/public`)}
+                        >
+                          공개 홈
+                        </Button>
+                      )}
+                      <Button variant="outline" onClick={() => openPlatformTeamLinkDialog(team)}>
+                        {team.platformTeamId ? "홈페이지 연결 관리" : "홈페이지 연결"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate(`/federations/${federationSlug}/teams/${team.id}/register`)}
+                      >
+                        등록 페이지
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

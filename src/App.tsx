@@ -14,6 +14,7 @@ import { lazyWithRecovery as lazy } from "@/lib/lazyWithRecovery";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthProvider";
 import { WebFcmDeepLinkBridge } from "./components/WebFcmDeepLinkBridge";
+import { PendingInviteRestoreGate } from "./components/auth/PendingInviteRestoreGate";
 import FirebaseAuthCallbackPage from "./components/FirebaseAuthCallbackPage";
 import InAppBrowserRedirect from "./components/InAppBrowserRedirect";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -267,6 +268,8 @@ const QRLoginDesktopPage = lazy(() => import("./pages/qr-login/QRLoginDesktopPag
 const QRPhoneLoginPage = lazy(() => import("./pages/qr-login/QRPhoneLoginPage"));
 const FederationShell = lazy(() => import("./pages/federations/FederationShell"));
 const FederationHomePage = lazy(() => import("./pages/federations/FederationHomePage"));
+const FederationVenueListPage = lazy(() => import("./pages/federations/FederationVenueListPage"));
+const FederationVenueDetailPage = lazy(() => import("./pages/federations/FederationVenueDetailPage"));
 const FederationTournamentPublicPage = lazy(
   () => import("./pages/federations/FederationTournamentPublicPage")
 );
@@ -486,6 +489,7 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <WebFcmDeepLinkBridge />
+        <PendingInviteRestoreGate />
         <InAppBrowserRedirect />
         <Suspense fallback={<div className="p-6 text-center text-gray-500">로딩 중...</div>}>
           <Routes>
@@ -621,6 +625,8 @@ export default function App() {
             <Route path="/nowon-football" element={<NowonFootballPromoRedirect />} />
             <Route path="/federations/:federationSlug" element={<FederationShell />}>
               <Route index element={<FederationHomePage />} />
+              <Route path="venues" element={<FederationVenueListPage />} />
+              <Route path="venues/:venueId" element={<FederationVenueDetailPage />} />
               <Route path="leagues" element={<FederationLeaguesListRedirect />} />
               <Route path="leagues/:leagueId" element={<FederationLeagueDetailRedirect />} />
               <Route path="matches" element={<FederationLegacyTabRedirect tab="matches" />} />

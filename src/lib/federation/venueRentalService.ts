@@ -9,19 +9,33 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
+  orderBy,
   query,
   runTransaction,
   serverTimestamp,
   updateDoc,
+  writeBatch,
   where,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
+  buildSlotsFromPolicy,
+  DEFAULT_VENUE_BOOKING_POLICY,
+  diffVenueBookingPolicy,
+  getEffectiveVenueBookingPolicy,
+  intervalsOverlap,
+  isSlotAllowedByPolicy,
+  toVenueBookingPolicySnapshot,
+  validateVenueBookingPolicy,
+  type VenueBookingPolicy,
+  type VenueBookingPolicyHistoryEntry,
+} from "@/lib/federation/venueBookingPolicy";
+import {
   DEFAULT_DAY_SLOT_END,
   DEFAULT_DAY_SLOT_START,
-  VENUE_SLOT_INTERVAL_MINUTES,
   type FederationVenue,
   type SlotUiStatus,
   type VenueBaselineAllocation,
@@ -87,6 +101,12 @@ function parseBaseline(
 function parseVenue(id: string, raw: Record<string, unknown>): FederationVenue {
   const statusRaw = String(raw.status || "active");
   const sortRaw = raw.sortOrder;
+  const policyRaw = raw.bookingPolicy;
+  const bookingPolicy =
+    policyRaw != null && typeof policyRaw === "object"
+      ? getEffectiveVenueBookingPolicy(policyRaw)
+      : undefined;
+
   return {
     id,
     name: String(raw.name || "이름 없는 구장"),
@@ -94,9 +114,129 @@ function parseVenue(id: string, raw: Record<string, unknown>): FederationVenue {
     fieldType: raw.fieldType != null ? String(raw.fieldType) : undefined,
     status: statusRaw === "inactive" ? "inactive" : "active",
     sortOrder: typeof sortRaw === "number" ? sortRaw : undefined,
+    bookingPolicy: bookingPolicy ?? null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   };
+}
+
+function policyPayload(policy: VenueBookingPolicy, uid: string) {
+  return {
+    schemaVersion: policy.schemaVersion,
+    slotIntervalMinutes: policy.slotIntervalMinutes,
+    minBookingMinutes: policy.minBookingMinutes,
+    maxBookingMinutes: policy.maxBookingMinutes,
+    defaultBookingMinutes: policy.defaultBookingMinutes,
+    allowHourlyStart: policy.allowHourlyStart,
+    allowConsecutiveSlots: policy.allowConsecutiveSlots,
+    dayStart: policy.dayStart,
+    dayEnd: policy.dayEnd,
+    updatedByUid: uid,
+    updatedAt: serverTimestamp(),
+  };
+}
+
+async function resolveAdminDisplayName(uid: string): Promise<string | undefined> {
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (!snap.exists()) return undefined;
+    const d = snap.data() as Record<string, unknown>;
+    const name = d.displayName ?? d.name ?? d.nickname;
+    return typeof name === "string" && name.trim() ? name.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * P1 — merge bookingPolicy onto venue doc + append history entry.
+ * Does not change production slot generators / public apply.
+ */
+export async function saveVenueBookingPolicy(input: {
+  federationSlug: string;
+  venueId: string;
+  policy: VenueBookingPolicy;
+  uid: string;
+}): Promise<VenueBookingPolicy> {
+  const validated = validateVenueBookingPolicy(input.policy);
+  if (!validated.ok) {
+    throw new Error(`예약 정책이 올바르지 않습니다: ${validated.errors.join("; ")}`);
+  }
+  const toSave: VenueBookingPolicy = {
+    ...validated.policy,
+    schemaVersion: 1,
+    updatedByUid: input.uid,
+  };
+
+  const venueRef = doc(db, "federations", input.federationSlug, "venues", input.venueId);
+  const beforeSnap = await getDoc(venueRef);
+  const beforeRaw = beforeSnap.exists()
+    ? (beforeSnap.data() as Record<string, unknown>).bookingPolicy
+    : null;
+  const before = toVenueBookingPolicySnapshot(getEffectiveVenueBookingPolicy(beforeRaw ?? null));
+  const after = toVenueBookingPolicySnapshot(toSave);
+  const changes = diffVenueBookingPolicy(before, after);
+
+  const changedByName = await resolveAdminDisplayName(input.uid);
+  const batch = writeBatch(db);
+  batch.update(venueRef, {
+    bookingPolicy: policyPayload(toSave, input.uid),
+    updatedAt: serverTimestamp(),
+  });
+
+  if (changes.length > 0) {
+    const historyRef = doc(
+      collection(db, "federations", input.federationSlug, "venues", input.venueId, "bookingPolicyHistory")
+    );
+    batch.set(historyRef, {
+      venueId: input.venueId,
+      changedByUid: input.uid,
+      ...(changedByName ? { changedByName } : {}),
+      before,
+      after,
+      changes,
+      createdAt: serverTimestamp(),
+    });
+  }
+
+  await batch.commit();
+  return getEffectiveVenueBookingPolicy(toSave);
+}
+
+/** Recent booking-policy change logs for CMS (newest first). */
+export async function listVenueBookingPolicyHistory(input: {
+  federationSlug: string;
+  venueId: string;
+  limitCount?: number;
+}): Promise<VenueBookingPolicyHistoryEntry[]> {
+  const q = query(
+    collection(
+      db,
+      "federations",
+      input.federationSlug,
+      "venues",
+      input.venueId,
+      "bookingPolicyHistory"
+    ),
+    orderBy("createdAt", "desc"),
+    limit(input.limitCount ?? 20)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const raw = d.data() as Record<string, unknown>;
+    return {
+      id: d.id,
+      venueId: String(raw.venueId || input.venueId),
+      changedByUid: String(raw.changedByUid || ""),
+      changedByName: typeof raw.changedByName === "string" ? raw.changedByName : undefined,
+      before: raw.before as VenueBookingPolicyHistoryEntry["before"],
+      after: raw.after as VenueBookingPolicyHistoryEntry["after"],
+      changes: Array.isArray(raw.changes)
+        ? (raw.changes as VenueBookingPolicyHistoryEntry["changes"])
+        : [],
+      createdAt: raw.createdAt,
+    };
+  });
 }
 
 function sortVenues(rows: FederationVenue[]): FederationVenue[] {
@@ -140,32 +280,19 @@ function parseBooking(id: string, raw: Record<string, unknown>): VenueBooking {
   };
 }
 
-function clockToMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map((x) => parseInt(x, 10));
-  return (h || 0) * 60 + (m || 0);
-}
-
-function minutesToClock(total: number): string {
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-/** Build 2h slots from [start,end). */
+/**
+ * Legacy helper — default Nowon 2h grid.
+ * Prefer buildSlotsFromPolicy(getEffectiveVenueBookingPolicy(...)) for venue-aware UIs.
+ */
 export function buildTwoHourSlots(
   dayStart = DEFAULT_DAY_SLOT_START,
   dayEnd = DEFAULT_DAY_SLOT_END
 ): Array<{ startTime: string; endTime: string }> {
-  const start = clockToMinutes(dayStart);
-  const end = clockToMinutes(dayEnd);
-  const out: Array<{ startTime: string; endTime: string }> = [];
-  for (let t = start; t + VENUE_SLOT_INTERVAL_MINUTES <= end; t += VENUE_SLOT_INTERVAL_MINUTES) {
-    out.push({
-      startTime: minutesToClock(t),
-      endTime: minutesToClock(t + VENUE_SLOT_INTERVAL_MINUTES),
-    });
-  }
-  return out;
+  return buildSlotsFromPolicy({
+    ...DEFAULT_VENUE_BOOKING_POLICY,
+    dayStart,
+    dayEnd,
+  }).map((s) => ({ startTime: s.startTime, endTime: s.endTime }));
 }
 
 export async function listFederationVenues(federationSlug: string): Promise<FederationVenue[]> {
@@ -375,31 +502,38 @@ export function buildSlotViews(
   bookings: VenueBooking[],
   baselines: VenueBaselineAllocation[] = [],
   dayStart = DEFAULT_DAY_SLOT_START,
-  dayEnd = DEFAULT_DAY_SLOT_END
+  dayEnd = DEFAULT_DAY_SLOT_END,
+  policy?: VenueBookingPolicy | null
 ): SlotView[] {
-  const slots = buildTwoHourSlots(dayStart, dayEnd);
-  const bookingBySlot = new Map<string, VenueBooking>();
-  for (const b of bookings) {
-    if (!ACTIVE_BOOKING_STATUSES.includes(b.bookingStatus)) continue;
-    bookingBySlot.set(`${b.startTime}|${b.endTime}`, b);
-  }
-  const baselineBySlot = new Map<string, VenueBaselineAllocation>();
-  for (const a of baselines) {
-    if (a.status !== "OCCUPIED") continue;
-    baselineBySlot.set(`${a.startTime}|${a.endTime}`, a);
-  }
+  const effective = policy
+    ? getEffectiveVenueBookingPolicy(policy)
+    : {
+        ...DEFAULT_VENUE_BOOKING_POLICY,
+        dayStart,
+        dayEnd,
+      };
+  const slots = buildSlotsFromPolicy(effective);
+  const activeBookings = bookings.filter((b) => ACTIVE_BOOKING_STATUSES.includes(b.bookingStatus));
+  const occupiedBaselines = baselines.filter((a) => a.status === "OCCUPIED");
+
   return slots.map((s) => {
-    const key = `${s.startTime}|${s.endTime}`;
-    const booking = bookingBySlot.get(key);
-    const baseline = baselineBySlot.get(key);
-    // Baseline occupancy wins for display as 배정 완료 even if a stale REQUESTED exists
+    const baseline =
+      occupiedBaselines.find((a) => a.startTime === s.startTime && a.endTime === s.endTime) ||
+      occupiedBaselines.find((a) =>
+        intervalsOverlap(s.startTime, s.endTime, a.startTime, a.endTime)
+      );
+    const booking =
+      activeBookings.find((b) => b.startTime === s.startTime && b.endTime === s.endTime) ||
+      activeBookings.find((b) =>
+        intervalsOverlap(s.startTime, s.endTime, b.startTime, b.endTime)
+      );
+
     if (baseline) {
       return {
         ...s,
         status: "APPROVED" as const,
         occupancyKind: "BASELINE_ALLOCATION" as const,
         baselineAllocationId: baseline.id,
-        // public: no sourceAllocationLabel
       };
     }
     if (!booking) {
@@ -421,11 +555,12 @@ export function subscribeVenueDayOccupancy(
   venueId: string,
   bookingDate: string,
   onData: (slots: SlotView[]) => void,
-  onError?: (e: Error) => void
+  onError?: (e: Error) => void,
+  policy?: VenueBookingPolicy | null
 ): Unsubscribe {
   let bookings: VenueBooking[] = [];
   let baselines: VenueBaselineAllocation[] = [];
-  const emit = () => onData(buildSlotViews(bookings, baselines));
+  const emit = () => onData(buildSlotViews(bookings, baselines, undefined, undefined, policy));
   const unsubB = subscribeVenueBookingsForDate(
     federationSlug,
     venueId,
@@ -463,10 +598,11 @@ export async function createVenueBookingRequest(input: {
   teamName: string;
   uid: string;
 }): Promise<string> {
-  const duration =
-    clockToMinutes(input.endTime) - clockToMinutes(input.startTime);
-  if (duration !== VENUE_SLOT_INTERVAL_MINUTES) {
-    throw new Error("대관은 2시간 단위만 가능합니다.");
+  const venue = await getFederationVenue(input.federationSlug, input.venueId);
+  if (!venue) throw new Error("구장을 찾을 수 없습니다.");
+  const policy = getEffectiveVenueBookingPolicy(venue.bookingPolicy ?? null);
+  if (!isSlotAllowedByPolicy(policy, input.startTime, input.endTime)) {
+    throw new Error("선택한 시간은 현재 구장 예약 정책에서 허용되지 않습니다.");
   }
 
   const bookingId = venueSlotBookingDocId(

@@ -32,20 +32,22 @@ import {
 import {
   DEFAULT_DAY_SLOT_END,
   DEFAULT_DAY_SLOT_START,
-  VENUE_SLOT_INTERVAL_MINUTES,
   type VenueBaselineAllocation,
   type VenueBooking,
 } from "@/lib/federation/venueRentalTypes";
 import {
-  buildTwoHourSlots,
+  buildSlotsFromPolicy,
+  DEFAULT_VENUE_BOOKING_POLICY,
+  getEffectiveVenueBookingPolicy,
+  intervalsOverlap,
+  isSlotAllowedByPolicy,
+  type VenueBookingPolicy,
+} from "@/lib/federation/venueBookingPolicy";
+import {
+  getFederationVenue,
   venueBaselineAllocationDocId,
   venueSlotBookingDocId,
 } from "@/lib/federation/venueRentalService";
-
-function clockToMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map((x) => parseInt(x, 10));
-  return (h || 0) * 60 + (m || 0);
-}
 
 /** One active request per club per venue+date+slot */
 export function venueAllocationRequestDocId(
@@ -191,17 +193,25 @@ export function buildAllocationSlotViews(input: {
   viewerTeamId?: string | null;
   dayStart?: string;
   dayEnd?: string;
+  /** Venue bookingPolicy — when set, slot grid follows policy (hourly start etc.). */
+  policy?: VenueBookingPolicy | null;
 }): AllocationSlotView[] {
   const dayStart = input.dayStart ?? DEFAULT_DAY_SLOT_START;
   const dayEnd = input.dayEnd ?? DEFAULT_DAY_SLOT_END;
-  const slots = buildTwoHourSlots(dayStart, dayEnd);
+  const policy = input.policy
+    ? getEffectiveVenueBookingPolicy(input.policy)
+    : {
+        ...DEFAULT_VENUE_BOOKING_POLICY,
+        dayStart,
+        dayEnd,
+      };
+  const slots = buildSlotsFromPolicy(policy);
   const viewerTeamId = input.viewerTeamId || null;
 
+  const allocatedWinners = input.winners.filter((w) => w.status === "ALLOCATED");
   const winnersBySlot = new Map<string, VenueSlotAllocation>();
-  for (const w of input.winners) {
-    if (w.status === "ALLOCATED") {
-      winnersBySlot.set(`${w.startTime}|${w.endTime}`, w);
-    }
+  for (const w of allocatedWinners) {
+    winnersBySlot.set(`${w.startTime}|${w.endTime}`, w);
   }
 
   // Legacy APPROVED = final allocation (backward compat)
@@ -277,9 +287,20 @@ export function buildAllocationSlotViews(input: {
 
   return slots.map((s) => {
     const key = `${s.startTime}|${s.endTime}`;
-    const winner = winnersBySlot.get(key);
+    const winner =
+      winnersBySlot.get(key) ||
+      allocatedWinners.find((w) =>
+        intervalsOverlap(s.startTime, s.endTime, w.startTime, w.endTime)
+      ) ||
+      [...winnersBySlot.values()].find((w) =>
+        intervalsOverlap(s.startTime, s.endTime, w.startTime, w.endTime)
+      );
     const reqs = requestsBySlot.get(key) || [];
-    const baseline = baselineBySlot.get(key);
+    const baseline =
+      baselineBySlot.get(key) ||
+      [...baselineBySlot.values()].find((a) =>
+        intervalsOverlap(s.startTime, s.endTime, a.startTime, a.endTime)
+      );
     const ownPending = viewerTeamId
       ? reqs.find((r) => r.teamId === viewerTeamId && r.requestStatus === "REQUESTED")
       : undefined;
@@ -317,6 +338,55 @@ export function buildAllocationSlotViews(input: {
   });
 }
 
+async function loadVenueBookingPolicy(
+  federationSlug: string,
+  venueId: string
+): Promise<VenueBookingPolicy> {
+  const venue = await getFederationVenue(federationSlug, venueId);
+  return getEffectiveVenueBookingPolicy(venue?.bookingPolicy ?? null);
+}
+
+async function assertSlotMatchesVenuePolicy(input: {
+  federationSlug: string;
+  venueId: string;
+  startTime: string;
+  endTime: string;
+}): Promise<VenueBookingPolicy> {
+  const policy = await loadVenueBookingPolicy(input.federationSlug, input.venueId);
+  if (!isSlotAllowedByPolicy(policy, input.startTime, input.endTime)) {
+    throw new Error("선택한 시간은 현재 구장 예약 정책에서 허용되지 않습니다.");
+  }
+  return policy;
+}
+
+/** Reject allocate/direct when another ALLOCATED winner overlaps the interval. */
+async function assertNoOverlappingWinner(input: {
+  federationSlug: string;
+  venueId: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  exceptWinnerId?: string;
+}): Promise<void> {
+  const snap = await getDocs(
+    query(
+      collection(db, "federations", input.federationSlug, "venueSlotAllocations"),
+      where("venueId", "==", input.venueId),
+      where("bookingDate", "==", input.bookingDate)
+    )
+  );
+  for (const d of snap.docs) {
+    if (input.exceptWinnerId && d.id === input.exceptWinnerId) continue;
+    const raw = d.data() as Record<string, unknown>;
+    if (String(raw.status || "") !== "ALLOCATED") continue;
+    const wStart = String(raw.startTime || "");
+    const wEnd = String(raw.endTime || "");
+    if (intervalsOverlap(input.startTime, input.endTime, wStart, wEnd)) {
+      throw new Error(`이미 배정된 시간과 겹칩니다 (${wStart}–${wEnd}).`);
+    }
+  }
+}
+
 export { formatAllocationSlotLabel };
 
 export async function createVenueAllocationRequest(input: {
@@ -330,13 +400,15 @@ export async function createVenueAllocationRequest(input: {
   teamName: string;
   uid: string;
 }): Promise<string> {
-  const duration = clockToMinutes(input.endTime) - clockToMinutes(input.startTime);
-  if (duration !== VENUE_SLOT_INTERVAL_MINUTES) {
-    throw new Error("배정 신청은 2시간 단위만 가능합니다.");
-  }
   if (!input.teamId.trim()) {
     throw new Error("신청 팀 식별자가 필요합니다.");
   }
+  await assertSlotMatchesVenuePolicy({
+    federationSlug: input.federationSlug,
+    venueId: input.venueId,
+    startTime: input.startTime,
+    endTime: input.endTime,
+  });
 
   const requestId = venueAllocationRequestDocId(
     input.venueId,
@@ -448,6 +520,14 @@ export async function allocateVenueSlotToTeam(input: {
   const teamId = String(preData.teamId || "");
   const teamName = preData.teamName != null ? String(preData.teamName) : "";
 
+  await assertNoOverlappingWinner({
+    federationSlug: input.federationSlug,
+    venueId,
+    bookingDate,
+    startTime,
+    endTime,
+  });
+
   const winnerId = venueSlotAllocationDocId(venueId, bookingDate, startTime);
   const winnerRef = doc(
     db,
@@ -554,13 +634,22 @@ export async function adminDirectAllocateVenueSlot(input: {
   adminUid: string;
   acknowledgePendingOverride?: boolean;
 }): Promise<{ requestId: string; slotAllocationId: string; overriddenPendingCount: number }> {
-  const duration = clockToMinutes(input.endTime) - clockToMinutes(input.startTime);
-  if (duration !== VENUE_SLOT_INTERVAL_MINUTES) {
-    throw new Error("배정은 2시간 단위만 가능합니다.");
-  }
   if (!input.teamId.trim()) {
     throw new Error("협회 가입 클럽을 선택해야 합니다.");
   }
+  await assertSlotMatchesVenuePolicy({
+    federationSlug: input.federationSlug,
+    venueId: input.venueId,
+    startTime: input.startTime,
+    endTime: input.endTime,
+  });
+  await assertNoOverlappingWinner({
+    federationSlug: input.federationSlug,
+    venueId: input.venueId,
+    bookingDate: input.bookingDate,
+    startTime: input.startTime,
+    endTime: input.endTime,
+  });
 
   const requestsCol = collection(
     db,
@@ -733,6 +822,7 @@ export function subscribeVenueAllocationDay(input: {
   venueId: string;
   bookingDate: string;
   viewerTeamId?: string | null;
+  policy?: VenueBookingPolicy | null;
   onData: (slots: AllocationSlotView[]) => void;
   onError?: (e: Error) => void;
 }): Unsubscribe {
@@ -749,6 +839,7 @@ export function subscribeVenueAllocationDay(input: {
         legacyBookings,
         baselines,
         viewerTeamId: input.viewerTeamId,
+        policy: input.policy,
       })
     );
 
@@ -991,7 +1082,15 @@ function resolveBoardRow(
         w.bookingDate === bookingDate &&
         w.startTime === startTime &&
         w.endTime === endTime
-    ) || null;
+    ) ||
+    winners.find(
+      (w) =>
+        w.status === "ALLOCATED" &&
+        w.venueId === venueId &&
+        w.bookingDate === bookingDate &&
+        intervalsOverlap(startTime, endTime, w.startTime, w.endTime)
+    ) ||
+    null;
   let status: AdminMonthlyBoardRow["status"] = "OPEN";
   if (winner) status = "ALLOCATED";
   else if (pending.length > 0) status = "REQUEST_POOL";
@@ -1012,7 +1111,7 @@ function resolveBoardRow(
 
 /**
  * Month board rows.
- * - mode ALL (default when venue selected): every date × 2h slot for that venue
+ * - mode ALL (default when venue selected): every date × policy slots for that venue
  * - mode ACTIVITY: only slots with requests / active winner (multi-venue ok)
  */
 export function buildMonthlyAllocationBoard(input: {
@@ -1023,6 +1122,8 @@ export function buildMonthlyAllocationBoard(input: {
   venueIdFilter?: string | null;
   /** ALL = full month grid (requires venueIdFilter). ACTIVITY = sparse. */
   mode?: "ALL" | "ACTIVITY";
+  /** Effective bookingPolicy for the filtered venue (slot grid SoT). */
+  policy?: VenueBookingPolicy | null;
 }): AdminMonthlyBoardRow[] {
   const venueName = new Map(input.venues.map((v) => [v.id, v.name]));
   const prefix = input.yearMonth;
@@ -1034,7 +1135,8 @@ export function buildMonthlyAllocationBoard(input: {
     const venueId = input.venueIdFilter;
     if (!venueId) return [];
     const name = venueName.get(venueId) || venueId;
-    const slots = buildTwoHourSlots();
+    const policy = getEffectiveVenueBookingPolicy(input.policy ?? null);
+    const slots = buildSlotsFromPolicy(policy);
     const dates = datesInYearMonth(prefix);
     const rows: AdminMonthlyBoardRow[] = [];
     for (const bookingDate of dates) {

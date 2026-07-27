@@ -13,6 +13,7 @@ import {
   Wallet,
   ClipboardList,
   PieChart,
+  Plus,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
@@ -29,6 +30,8 @@ import NotificationCenter from "@/components/notifications/NotificationCenter";
 import { hasRole } from "@/utils/hasRole";
 import { LeagueCard } from "@/components/leagues/LeagueCard";
 import { uploadFederationCoverImage, uploadFederationLogoImage } from "@/services/federationService";
+import { listFederationTeams } from "@/services/federationOperatingService";
+import type { FederationOperatingTeam } from "@/types/federationOperating";
 import { toast } from "sonner";
 
 export default function FederationHomePage() {
@@ -1528,17 +1531,70 @@ function ContactTab({ federationSlug }: { federationSlug: string }) {
 
 // 팀 탭
 function TeamsTab({ federationSlug }: { federationSlug: string }) {
+  const [teams, setTeams] = useState<FederationOperatingTeam[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+
+    void listFederationTeams(federationSlug)
+      .then((rows) => {
+        if (active) setTeams(rows.filter((team) => team.isActive));
+      })
+      .catch((error) => {
+        console.error("[FederationHomePage] 팀 목록 조회 실패:", error);
+        if (active) setTeams([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [federationSlug]);
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6">
-      <h2 className="text-lg font-semibold mb-4">참가 팀</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[1, 2, 3, 4, 5, 6].map((team) => (
-          <div key={team} className="p-4 border border-gray-200 rounded-lg">
-            <div className="font-semibold">팀 {team}</div>
-            <div className="text-sm text-gray-600 mt-1">서울 노원구</div>
-          </div>
-        ))}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">참가 팀</h2>
+        <Link
+          to={`/sports/soccer/team/create?federation=${encodeURIComponent(federationSlug)}`}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          팀 만들기
+        </Link>
       </div>
+      <p className="mb-4 text-sm text-gray-600">
+        플랫폼에서 팀을 만든 뒤, 협회 관리자가 CMS에서 팀 이름으로 「공개 홈페이지 연결」하면
+        참가팀 카드에 홈페이지가 표시됩니다.
+      </p>
+      {loading ? (
+        <p className="text-sm text-gray-600">참가 팀을 불러오는 중입니다.</p>
+      ) : teams.length === 0 ? (
+        <p className="text-sm text-gray-600">공개 가능한 참가 팀이 없습니다.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {teams.map((team) => (
+            <div key={team.id} className="p-4 border border-gray-200 rounded-lg">
+              <div className="font-semibold">{team.name}</div>
+              <div className="text-sm text-gray-600 mt-1">{team.ageGroup === "other" ? "클럽팀" : `${team.ageGroup}대`}</div>
+              {team.platformTeamId ? (
+                <Link
+                  to={`/team/${team.platformTeamId}/public`}
+                  className="inline-block mt-3 text-sm font-medium text-blue-600 hover:underline"
+                >
+                  팀 홈페이지 보기
+                </Link>
+              ) : (
+                <div className="mt-3 text-sm text-gray-400">팀 홈페이지 준비 중</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

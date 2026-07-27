@@ -23,7 +23,6 @@ import {
 } from "@/lib/federation/venueAllocationTypes";
 import {
   approveVenueBooking,
-  buildTwoHourSlots,
   listFederationVenues,
   rejectVenueBooking,
   subscribeAllVenueBookings,
@@ -31,6 +30,12 @@ import {
 import type { FederationVenue, VenueBooking, VenueBookingStatus } from "@/lib/federation/venueRentalTypes";
 import { listFederationTeams } from "@/services/federationOperatingService";
 import type { FederationOperatingTeam } from "@/types/federationOperating";
+import { VenueBookingPolicySettings } from "@/components/federation/VenueBookingPolicySettings";
+import {
+  buildSlotsFromPolicy,
+  getEffectiveVenueBookingPolicy,
+  type VenueBookingPolicy,
+} from "@/lib/federation/venueBookingPolicy";
 
 type Props = {
   federationSlug: string;
@@ -111,7 +116,24 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     "ALL" | "OPEN" | "REQUEST_POOL" | "ADMIN_DIRECT" | "ALLOCATED"
   >("ALL");
 
-  const slotOptions = useMemo(() => buildTwoHourSlots(), []);
+  const selectedVenue = useMemo(
+    () => venues.find((v) => v.id === venueFilter) || null,
+    [venues, venueFilter]
+  );
+  const venuePolicy = useMemo(
+    () => getEffectiveVenueBookingPolicy(selectedVenue?.bookingPolicy ?? null),
+    [selectedVenue?.bookingPolicy]
+  );
+  const slotOptions = useMemo(() => buildSlotsFromPolicy(venuePolicy), [venuePolicy]);
+
+  useEffect(() => {
+    const first = slotOptions[0];
+    if (!first) return;
+    setDirectSlot((prev) => {
+      const stillValid = slotOptions.some((s) => `${s.startTime}|${s.endTime}` === prev);
+      return stillValid ? prev : `${first.startTime}|${first.endTime}`;
+    });
+  }, [slotOptions]);
 
   function dayMatchesStatusFilter(sum: AdminCalendarDaySummary): boolean {
     switch (calendarStatusFilter) {
@@ -172,8 +194,9 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
       winners,
       venueIdFilter: venueFilter,
       mode: "ALL",
+      policy: venuePolicy,
     });
-  }, [yearMonth, venues, requests, winners, venueFilter]);
+  }, [yearMonth, venues, requests, winners, venueFilter, venuePolicy]);
 
   const daySummaries = useMemo(() => summarizeBoardRowsByDate(boardRows), [boardRows]);
   const calendarCells = useMemo(() => buildMonthCalendarCells(yearMonth), [yearMonth]);
@@ -430,6 +453,22 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
             ))}
           </select>
         </label>
+      </div>
+
+      {selectedVenue ? (
+        <VenueBookingPolicySettings
+          federationSlug={federationSlug}
+          venue={selectedVenue}
+          adminUid={adminUid}
+          onSaved={(policy: VenueBookingPolicy) => {
+            setVenues((prev) =>
+              prev.map((v) => (v.id === selectedVenue.id ? { ...v, bookingPolicy: policy } : v))
+            );
+          }}
+        />
+      ) : null}
+
+      <div className="flex flex-wrap gap-3 items-end rounded-xl border border-gray-200 bg-white p-3">
         <div className="flex flex-wrap gap-1.5 pb-0.5">
           {(
             [

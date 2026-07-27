@@ -3,6 +3,10 @@
  * SoT tenant: federations/{federationId}/…
  */
 
+import type { VenueBookingPolicy } from "@/lib/federation/venueBookingPolicy";
+
+export type { VenueBookingPolicy } from "@/lib/federation/venueBookingPolicy";
+
 export type VenueDocStatus = "active" | "inactive";
 
 export type VenueBookingStatus = "REQUESTED" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -56,6 +60,12 @@ export type FederationVenue = {
   fieldType?: string;
   status: VenueDocStatus;
   sortOrder?: number;
+  /**
+   * Optional per-venue booking policy (P0/P1).
+   * slotInterval vs min/max booking length are independent.
+   * Missing/invalid → DEFAULT 2h. Slot UIs use buildSlotsFromPolicy(effective).
+   */
+  bookingPolicy?: VenueBookingPolicy | null;
   createdAt?: unknown;
   updatedAt?: unknown;
 };
