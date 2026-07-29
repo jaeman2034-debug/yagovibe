@@ -87,9 +87,9 @@ export class KakaoNotificationProvider implements NotificationProvider {
     const templateId =
       msg.alimTalkTemplateId || fromPayload || ("RESERVATION_COMPLETE" as const);
     await sendAlimTalk({
+      recipientPhone: phone,
       templateId,
-      toPhone: phone,
-      vars: {
+      templateVariables: {
         team: msg.teamName || "",
         link: msg.link || "https://yago-vibe.com",
         venue: "",

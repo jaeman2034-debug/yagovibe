@@ -1,33 +1,42 @@
 /**
- * PR4 Sprint B prep — Kakao AlimTalk provider (client-safe stub).
- * Real send is CF-owned after business approval; never put secrets in browser.
+ * PR4 Sprint B prep — Kakao AlimTalk provider (stub only; no REST call).
  */
 
 import {
   ALIMTALK_TEMPLATE_REGISTRY,
+  resolveTemplateCodeFromEnv,
   type AlimTalkTemplateId,
   renderAlimTalkPreview,
 } from "@/lib/notifications/alimtalkTemplates";
 
+export type AlimTalkButton = {
+  type?: string;
+  name: string;
+  urlMobile?: string;
+  urlPc?: string;
+};
+
 export type KakaoAlimTalkSendInput = {
-  templateId: AlimTalkTemplateId;
-  /** Phone digits for AlimTalk (Kakao friend / phone bridge per Biz API) */
-  toPhone: string;
-  vars: Record<string, string>;
+  recipientPhone: string;
+  /** Approved code or PENDING placeholder */
+  templateCode?: string;
+  templateId?: AlimTalkTemplateId;
+  templateVariables: Record<string, string>;
+  buttons?: AlimTalkButton[];
   notificationId?: string;
   federationSlug?: string;
 };
 
 export type KakaoAlimTalkSendResult = {
-  ok: boolean;
-  dryRun: boolean;
-  provider: "KAKAO_STUB" | "KAKAO_ALIMTALK";
   providerMessageId: string | null;
-  templateId: AlimTalkTemplateId;
-  templateCode: string | null;
-  previewBody: string;
-  errorCode: string | null;
-  errorMessage: string | null;
+  /** Stub always returns queued — no live send */
+  status: "queued" | "sent" | "failed";
+  error?: { code: string; message: string };
+  provider: "kakao";
+  templateCode: string;
+  templateId: AlimTalkTemplateId | null;
+  dryRun: boolean;
+  previewBody?: string;
 };
 
 export interface KakaoAlimTalkProvider {
@@ -36,22 +45,21 @@ export interface KakaoAlimTalkProvider {
   sendAlimTalk(input: KakaoAlimTalkSendInput): Promise<KakaoAlimTalkSendResult>;
 }
 
-function readTemplateCode(templateId: AlimTalkTemplateId): string | null {
-  const def = ALIMTALK_TEMPLATE_REGISTRY[templateId];
-  const fromVite =
-    typeof import.meta !== "undefined" && import.meta.env
-      ? String(
-          (import.meta.env as Record<string, string | undefined>)[
-            `VITE_${def.templateCodeEnvKey}`
-          ] || ""
-        ).trim()
-      : "";
-  return fromVite || null;
+function viteEnvMap(): Record<string, string | undefined> {
+  // Avoid bare `import.meta` so Jest (CJS) can parse this module.
+  try {
+    // eslint-disable-next-line no-new-func
+    const meta = new Function("return import.meta")() as {
+      env?: Record<string, string | undefined>;
+    };
+    return meta?.env || {};
+  } catch {
+    return {};
+  }
 }
 
 /**
- * Dry-run stub — no Kakao network.
- * Approval pending: channel YAGO SPORTS / search id yagovibe.
+ * Stub: no Kakao network. status=queued for queue compatibility.
  */
 export class KakaoAlimTalkProviderStub implements KakaoAlimTalkProvider {
   readonly isStub = true;
@@ -60,64 +68,71 @@ export class KakaoAlimTalkProviderStub implements KakaoAlimTalkProvider {
   async sendAlimTalk(
     input: KakaoAlimTalkSendInput
   ): Promise<KakaoAlimTalkSendResult> {
-    const phone = String(input.toPhone || "").replace(/\D/g, "");
-    const previewBody = renderAlimTalkPreview(input.templateId, input.vars);
-    const templateCode = readTemplateCode(input.templateId);
+    const phone = String(input.recipientPhone || "").replace(/\D/g, "");
+    const templateId = input.templateId || "RESERVATION_COMPLETE";
+    const templateCode =
+      (input.templateCode && input.templateCode.trim()) ||
+      resolveTemplateCodeFromEnv(templateId, {
+        KAKAO_TEMPLATE_RESERVATION: viteEnvMap().VITE_KAKAO_TEMPLATE_RESERVATION,
+        KAKAO_TEMPLATE_PAYMENT: viteEnvMap().VITE_KAKAO_TEMPLATE_PAYMENT,
+        KAKAO_TEMPLATE_CANCEL: viteEnvMap().VITE_KAKAO_TEMPLATE_CANCEL,
+        KAKAO_TEMPLATE_AI_REPORT: viteEnvMap().VITE_KAKAO_TEMPLATE_AI_REPORT,
+      });
+
     if (!phone) {
       return {
-        ok: false,
-        dryRun: true,
-        provider: "KAKAO_STUB",
         providerMessageId: null,
-        templateId: input.templateId,
+        status: "failed",
+        error: { code: "MISSING_PHONE", message: "수신 전화번호가 없습니다." },
+        provider: "kakao",
         templateCode,
-        previewBody,
-        errorCode: "MISSING_PHONE",
-        errorMessage: "수신 전화번호가 없습니다.",
+        templateId,
+        dryRun: true,
       };
     }
+
+    const previewBody = ALIMTALK_TEMPLATE_REGISTRY[templateId]
+      ? renderAlimTalkPreview(templateId, input.templateVariables || {})
+      : "";
+
     return {
-      ok: true,
-      dryRun: true,
-      provider: "KAKAO_STUB",
       providerMessageId: `kakao_stub_${Date.now()}_${phone.slice(-4)}`,
-      templateId: input.templateId,
+      status: "queued",
+      provider: "kakao",
       templateCode,
+      templateId,
+      dryRun: true,
       previewBody,
-      errorCode: null,
-      errorMessage: null,
     };
   }
 }
 
-/** After approval: UI should call CF, not browser Kakao API. */
-export class KakaoAlimTalkProviderClientPlaceholder
-  implements KakaoAlimTalkProvider
-{
-  readonly isStub = false;
-  readonly displayName = "Kakao AlimTalk (CF)";
-
-  async sendAlimTalk(
-    input: KakaoAlimTalkSendInput
-  ): Promise<KakaoAlimTalkSendResult> {
-    return {
-      ok: false,
-      dryRun: false,
-      provider: "KAKAO_ALIMTALK",
-      providerMessageId: null,
-      templateId: input.templateId,
-      templateCode: readTemplateCode(input.templateId),
-      previewBody: renderAlimTalkPreview(input.templateId, input.vars),
-      errorCode: "USE_CF_SEND_ALIMTALK",
-      errorMessage:
-        "실발송은 Cloud Function(sendAlimTalk)을 사용하세요. 승인 후 secrets 연결.",
-    };
-  }
-}
-
-export function sendAlimTalk(
+/** Named export matching product brief */
+export async function sendAlimTalk(
   input: KakaoAlimTalkSendInput,
   provider: KakaoAlimTalkProvider = new KakaoAlimTalkProviderStub()
 ): Promise<KakaoAlimTalkSendResult> {
   return provider.sendAlimTalk(input);
+}
+
+/** @deprecated use KakaoAlimTalkProviderStub */
+export class KakaoAlimTalkProviderClientPlaceholder extends KakaoAlimTalkProviderStub {
+  readonly isStub = false;
+  readonly displayName = "Kakao AlimTalk (CF placeholder)";
+
+  async sendAlimTalk(
+    input: KakaoAlimTalkSendInput
+  ): Promise<KakaoAlimTalkSendResult> {
+    const base = await super.sendAlimTalk(input);
+    if (base.status === "failed") return base;
+    return {
+      ...base,
+      status: "queued",
+      error: {
+        code: "USE_CF_SEND_ALIMTALK",
+        message: "실발송은 승인 후 CF에서 수행. 현재는 queued stub.",
+      },
+      dryRun: true,
+    };
+  }
 }

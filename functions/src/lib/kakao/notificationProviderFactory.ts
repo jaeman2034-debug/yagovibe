@@ -1,58 +1,55 @@
 /**
- * PR4 Sprint B prep — outbound channel factory (Functions).
- * SMS (SENS|stub) + Kakao AlimTalk (stub|ops).
+ * PR4 Sprint B prep — NOTIFICATION_PROVIDER factory (Functions).
  */
 
 import {
   createOpsSmsProviderFromEnv,
   type OpsSmsProvider,
 } from "../sms/opsSmsProvider";
-import { resolveSmsProviderMode } from "../sms/smsProviderConfig";
 import {
   createKakaoAlimTalkProviderFromEnv,
   type KakaoAlimTalkProvider,
 } from "./kakaoAlimTalkProvider";
 
-export type OutboundChannel = "sms" | "kakao" | "auto" | "stub";
+export type NotificationProviderMode = "sms" | "kakao" | "auto";
 
-export function resolveOutboundChannel(
-  raw: string | undefined | null = process.env.NOTIFY_OUTBOUND
-): OutboundChannel {
+function truthy(v: string | undefined): boolean {
+  const s = String(v || "").trim().toLowerCase();
+  return s === "1" || s === "true" || s === "yes";
+}
+
+export function resolveNotificationProviderMode(
+  raw: string | undefined | null = process.env.NOTIFICATION_PROVIDER
+): NotificationProviderMode {
   const v = String(raw || "auto").trim().toLowerCase();
-  if (v === "sms" || v === "kakao" || v === "stub" || v === "auto") return v;
+  if (v === "sms" || v === "kakao" || v === "auto") return v;
   return "auto";
 }
 
-function kakaoEnabled(): boolean {
-  const v = String(process.env.KAKAO_ALIMTALK_ENABLED || "")
-    .trim()
-    .toLowerCase();
-  return v === "1" || v === "true";
+export function resolveOutboundProvider(
+  mode: NotificationProviderMode
+): "sms" | "kakao" {
+  if (mode === "sms") return "sms";
+  if (mode === "kakao") return "kakao";
+  const enabled = truthy(process.env.KAKAO_ALIMTALK_ENABLED);
+  const sender = String(process.env.KAKAO_SENDER_KEY || "").trim();
+  if (enabled && sender) return "kakao";
+  return "sms";
 }
 
-export type NotificationProviderFactory = {
-  channel: OutboundChannel;
-  resolved: "sms" | "kakao" | "stub";
+export type NotificationProviderFactoryResult = {
+  mode: NotificationProviderMode;
+  resolved: "sms" | "kakao";
   sms: OpsSmsProvider;
   kakao: KakaoAlimTalkProvider;
 };
 
-export function NotificationProviderFactory(
-  channelOverride?: OutboundChannel
-): NotificationProviderFactory {
-  const channel = channelOverride || resolveOutboundChannel();
-  const sms = createOpsSmsProviderFromEnv();
-  const kakao = createKakaoAlimTalkProviderFromEnv();
-
-  if (channel === "sms") return { channel, resolved: "sms", sms, kakao };
-  if (channel === "kakao") return { channel, resolved: "kakao", sms, kakao };
-  if (channel === "stub") return { channel, resolved: "stub", sms, kakao };
-
-  if (kakaoEnabled() && !kakao.isStub) {
-    return { channel: "auto", resolved: "kakao", sms, kakao };
-  }
-  if (resolveSmsProviderMode() === "sens" && !sms.isStub) {
-    return { channel: "auto", resolved: "sms", sms, kakao };
-  }
-  return { channel: "auto", resolved: "stub", sms, kakao };
+export function NotificationProviderFactory(): NotificationProviderFactoryResult {
+  const mode = resolveNotificationProviderMode();
+  return {
+    mode,
+    resolved: resolveOutboundProvider(mode),
+    sms: createOpsSmsProviderFromEnv(),
+    kakao: createKakaoAlimTalkProviderFromEnv(),
+  };
 }

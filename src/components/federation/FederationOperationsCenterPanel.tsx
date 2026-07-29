@@ -27,7 +27,6 @@ import type { OpsProviderLog } from "@/lib/federation/opsProviderLogTypes";
 import { getOpsSmsProvider } from "@/lib/notifications/opsSmsProvider";
 import { resolveSmsProviderMode } from "@/lib/notifications/smsProviderConfig";
 import { getNotificationProviderFactory } from "@/lib/notifications/notificationProviderFactory";
-import { ALIMTALK_TEMPLATE_REGISTRY } from "@/lib/notifications/alimtalkTemplates";
 
 type Props = {
   federationSlug: string;
@@ -62,7 +61,7 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
   const provider = getOpsSmsProvider();
   const providerMode = resolveSmsProviderMode();
   const outbound = getNotificationProviderFactory();
-  const alimTalkTemplateCount = Object.keys(ALIMTALK_TEMPLATE_REGISTRY).length;
+  const kakaoStatus = outbound.kakaoStatus;
   const [subTab, setSubTab] = useState<OpsCenterTabId>("stats");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -174,9 +173,15 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
             SMS_PROVIDER={providerMode} · {provider.displayName}
             {provider.isStub ? " · 실발송 OFF" : " · CF 발송"}
           </span>
-          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-950">
-            Kakao AlimTalk · outbound={outbound.resolved} · 템플릿 {alimTalkTemplateCount} ·{" "}
-            {outbound.kakao.isStub ? "심사대기 Stub" : "준비됨"}
+          <span
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+              kakaoStatus.approvalStatus === "Pending"
+                ? "border-amber-300 bg-amber-50 text-amber-950"
+                : "border-emerald-300 bg-emerald-50 text-emerald-950"
+            }`}
+          >
+            Kakao · {kakaoStatus.approvalStatus} · NOTIFICATION_PROVIDER=
+            {outbound.mode}→{outbound.resolved}
           </span>
           <button
             type="button"
@@ -232,6 +237,51 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
             <>
               {subTab === "stats" && (
                 <div className="space-y-4">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-amber-950">Kakao Status</h3>
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+                          kakaoStatus.approvalStatus === "Pending"
+                            ? "border-amber-500 bg-white text-amber-900"
+                            : "border-emerald-600 bg-white text-emerald-900"
+                        }`}
+                      >
+                        {kakaoStatus.approvalStatus}
+                      </span>
+                    </div>
+                    <dl className="grid grid-cols-[7rem_1fr] gap-y-1 text-xs text-amber-950">
+                      <dt className="text-amber-800">Channel</dt>
+                      <dd>{kakaoStatus.channelIdMasked || "— (미설정)"}</dd>
+                      <dt className="text-amber-800">SenderKey</dt>
+                      <dd>{kakaoStatus.hasSenderKey ? "[SET]" : "— (Pending)"}</dd>
+                      <dt className="text-amber-800">API Key</dt>
+                      <dd>{kakaoStatus.hasApiKey ? "[SET]" : "— (Pending)"}</dd>
+                      <dt className="text-amber-800">승인 상태</dt>
+                      <dd>비즈니스 심사 {kakaoStatus.approvalStatus}</dd>
+                      <dt className="text-amber-800">Templates</dt>
+                      <dd>
+                        {kakaoStatus.templates.length}개 · PENDING{" "}
+                        {kakaoStatus.pendingTemplateCount}개
+                      </dd>
+                    </dl>
+                    <ul className="divide-y rounded-lg border border-amber-100 bg-white text-xs">
+                      {kakaoStatus.templates.map((t) => (
+                        <li key={t.id} className="flex flex-wrap justify-between gap-2 px-3 py-2">
+                          <span className="font-medium text-gray-900">
+                            {t.templateName}{" "}
+                            <span className="text-gray-500">({t.id})</span>
+                          </span>
+                          <span className="font-mono text-amber-800">{t.templateCode}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-[11px] text-amber-900/80">
+                      심사 승인 후 Channel / SenderKey / Template Code만 채우면 Queue → Factory →
+                      Kakao로 전환됩니다. 실 API 호출은 아직 없습니다.
+                    </p>
+                  </div>
+
                   <h3 className="text-sm font-semibold text-gray-900">오늘</h3>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                     {[

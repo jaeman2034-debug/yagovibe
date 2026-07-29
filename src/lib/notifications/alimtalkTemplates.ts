@@ -1,24 +1,25 @@
 /**
  * PR4 Sprint B prep — Kakao AlimTalk template registry.
- * Codes are placeholders until Kakao Business approval + template registration.
- * Channel search ID (ops): yagovibe · brand: YAGO SPORTS
+ * templateCode stays "PENDING" until Biz approval registers real codes.
+ * Channel: YAGO SPORTS · search id yagovibe
  */
 
 export type AlimTalkTemplateId =
   | "RESERVATION_COMPLETE"
   | "PAYMENT_REQUEST"
   | "RESERVATION_CANCELLED"
-  | "AI_ANALYSIS_COMPLETE";
+  | "AI_REPORT_READY";
 
 export type AlimTalkTemplateDef = {
   id: AlimTalkTemplateId;
-  /** Kakao console template code — fill after approval */
+  templateName: string;
+  /** Always PENDING until approval fills env */
+  templateCode: string;
+  /** Env key for approved code (empty until approval) */
   templateCodeEnvKey: string;
-  /** Human label (ops) */
-  labelKo: string;
-  /** Preview body with {placeholders} — must match registered Kakao template */
+  description: string;
+  placeholders: string[];
   bodyPreview: string;
-  requiredVars: string[];
 };
 
 export const ALIMTALK_TEMPLATE_REGISTRY: Record<
@@ -27,9 +28,11 @@ export const ALIMTALK_TEMPLATE_REGISTRY: Record<
 > = {
   RESERVATION_COMPLETE: {
     id: "RESERVATION_COMPLETE",
-    templateCodeEnvKey: "KAKAO_TEMPLATE_CODE_RESERVATION_COMPLETE",
-    labelKo: "예약 완료",
-    requiredVars: ["venue", "date", "time", "team", "link"],
+    templateName: "예약완료",
+    templateCode: "PENDING",
+    templateCodeEnvKey: "KAKAO_TEMPLATE_RESERVATION",
+    description: "구장 예약 배정/완료 안내",
+    placeholders: ["venue", "date", "time", "team", "link"],
     bodyPreview: [
       "[YAGO SPORTS]",
       "",
@@ -49,9 +52,11 @@ export const ALIMTALK_TEMPLATE_REGISTRY: Record<
   },
   PAYMENT_REQUEST: {
     id: "PAYMENT_REQUEST",
-    templateCodeEnvKey: "KAKAO_TEMPLATE_CODE_PAYMENT_REQUEST",
-    labelKo: "결제 요청",
-    requiredVars: ["price", "deadline", "link"],
+    templateName: "결제요청",
+    templateCode: "PENDING",
+    templateCodeEnvKey: "KAKAO_TEMPLATE_PAYMENT",
+    description: "예약 승인 후 결제/입금 요청",
+    placeholders: ["price", "deadline", "link"],
     bodyPreview: [
       "[YAGO SPORTS]",
       "",
@@ -70,9 +75,11 @@ export const ALIMTALK_TEMPLATE_REGISTRY: Record<
   },
   RESERVATION_CANCELLED: {
     id: "RESERVATION_CANCELLED",
-    templateCodeEnvKey: "KAKAO_TEMPLATE_CODE_RESERVATION_CANCELLED",
-    labelKo: "예약 취소",
-    requiredVars: ["contact"],
+    templateName: "예약취소",
+    templateCode: "PENDING",
+    templateCodeEnvKey: "KAKAO_TEMPLATE_CANCEL",
+    description: "예약 취소 안내",
+    placeholders: ["contact"],
     bodyPreview: [
       "[YAGO SPORTS]",
       "",
@@ -82,11 +89,13 @@ export const ALIMTALK_TEMPLATE_REGISTRY: Record<
       "{contact}",
     ].join("\n"),
   },
-  AI_ANALYSIS_COMPLETE: {
-    id: "AI_ANALYSIS_COMPLETE",
-    templateCodeEnvKey: "KAKAO_TEMPLATE_CODE_AI_ANALYSIS_COMPLETE",
-    labelKo: "AI 분석 완료",
-    requiredVars: ["name", "link"],
+  AI_REPORT_READY: {
+    id: "AI_REPORT_READY",
+    templateName: "AI분석완료",
+    templateCode: "PENDING",
+    templateCodeEnvKey: "KAKAO_TEMPLATE_AI_REPORT",
+    description: "AI 분석 리포트 준비 완료",
+    placeholders: ["name", "link"],
     bodyPreview: [
       "[YAGO SPORTS]",
       "",
@@ -102,19 +111,21 @@ export const ALIMTALK_TEMPLATE_REGISTRY: Record<
   },
 };
 
+export function listAlimTalkTemplates(): AlimTalkTemplateDef[] {
+  return Object.values(ALIMTALK_TEMPLATE_REGISTRY);
+}
+
 export function renderAlimTalkPreview(
   id: AlimTalkTemplateId,
   vars: Record<string, string>
 ): string {
-  const def = ALIMTALK_TEMPLATE_REGISTRY[id];
-  let out = def.bodyPreview;
+  let out = ALIMTALK_TEMPLATE_REGISTRY[id].bodyPreview;
   for (const [k, v] of Object.entries(vars)) {
     out = out.split(`{${k}}`).join(v);
   }
   return out;
 }
 
-/** Map venue notification template keys → AlimTalk template id (when wiring later) */
 export function mapVenueKeyToAlimTalkId(
   venueTemplateKey: string
 ): AlimTalkTemplateId | null {
@@ -131,4 +142,14 @@ export function mapVenueKeyToAlimTalkId(
     default:
       return null;
   }
+}
+
+/** Resolve approved code from env map; falls back to PENDING */
+export function resolveTemplateCodeFromEnv(
+  id: AlimTalkTemplateId,
+  env: Record<string, string | undefined> = {}
+): string {
+  const def = ALIMTALK_TEMPLATE_REGISTRY[id];
+  const fromEnv = String(env[def.templateCodeEnvKey] || "").trim();
+  return fromEnv || def.templateCode;
 }

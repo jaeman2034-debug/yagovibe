@@ -1,116 +1,55 @@
 /**
- * PR4 Sprint B prep — AlimTalk templates (Functions copy; keep in sync with
- * src/lib/notifications/alimtalkTemplates.ts).
+ * PR4 Sprint B prep — AlimTalk templates (Functions; sync with client registry).
  */
 
 export type AlimTalkTemplateId =
   | "RESERVATION_COMPLETE"
   | "PAYMENT_REQUEST"
   | "RESERVATION_CANCELLED"
-  | "AI_ANALYSIS_COMPLETE";
-
-export type AlimTalkTemplateDef = {
-  id: AlimTalkTemplateId;
-  templateCodeEnvKey: string;
-  labelKo: string;
-  bodyPreview: string;
-  requiredVars: string[];
-};
+  | "AI_REPORT_READY";
 
 export const ALIMTALK_TEMPLATE_REGISTRY: Record<
   AlimTalkTemplateId,
-  AlimTalkTemplateDef
+  {
+    id: AlimTalkTemplateId;
+    templateName: string;
+    templateCode: string;
+    templateCodeEnvKey: string;
+    placeholders: string[];
+  }
 > = {
   RESERVATION_COMPLETE: {
     id: "RESERVATION_COMPLETE",
-    templateCodeEnvKey: "KAKAO_TEMPLATE_CODE_RESERVATION_COMPLETE",
-    labelKo: "예약 완료",
-    requiredVars: ["venue", "date", "time", "team", "link"],
-    bodyPreview: [
-      "[YAGO SPORTS]",
-      "",
-      "예약이 완료되었습니다.",
-      "",
-      "구장 : {venue}",
-      "",
-      "날짜 : {date}",
-      "",
-      "시간 : {time}",
-      "",
-      "팀 : {team}",
-      "",
-      "확인하기",
-      "{link}",
-    ].join("\n"),
+    templateName: "예약완료",
+    templateCode: "PENDING",
+    templateCodeEnvKey: "KAKAO_TEMPLATE_RESERVATION",
+    placeholders: ["venue", "date", "time", "team", "link"],
   },
   PAYMENT_REQUEST: {
     id: "PAYMENT_REQUEST",
-    templateCodeEnvKey: "KAKAO_TEMPLATE_CODE_PAYMENT_REQUEST",
-    labelKo: "결제 요청",
-    requiredVars: ["price", "deadline", "link"],
-    bodyPreview: [
-      "[YAGO SPORTS]",
-      "",
-      "예약이 승인되었습니다.",
-      "",
-      "결제를 진행해 주세요.",
-      "",
-      "금액 : {price}",
-      "",
-      "마감 :",
-      "{deadline}",
-      "",
-      "결제하기",
-      "{link}",
-    ].join("\n"),
+    templateName: "결제요청",
+    templateCode: "PENDING",
+    templateCodeEnvKey: "KAKAO_TEMPLATE_PAYMENT",
+    placeholders: ["price", "deadline", "link"],
   },
   RESERVATION_CANCELLED: {
     id: "RESERVATION_CANCELLED",
-    templateCodeEnvKey: "KAKAO_TEMPLATE_CODE_RESERVATION_CANCELLED",
-    labelKo: "예약 취소",
-    requiredVars: ["contact"],
-    bodyPreview: [
-      "[YAGO SPORTS]",
-      "",
-      "예약이 취소되었습니다.",
-      "",
-      "문의 :",
-      "{contact}",
-    ].join("\n"),
+    templateName: "예약취소",
+    templateCode: "PENDING",
+    templateCodeEnvKey: "KAKAO_TEMPLATE_CANCEL",
+    placeholders: ["contact"],
   },
-  AI_ANALYSIS_COMPLETE: {
-    id: "AI_ANALYSIS_COMPLETE",
-    templateCodeEnvKey: "KAKAO_TEMPLATE_CODE_AI_ANALYSIS_COMPLETE",
-    labelKo: "AI 분석 완료",
-    requiredVars: ["name", "link"],
-    bodyPreview: [
-      "[YAGO SPORTS]",
-      "",
-      "AI 분석이 완료되었습니다.",
-      "",
-      "선수 :",
-      "{name}",
-      "",
-      "리포트 보기",
-      "",
-      "{link}",
-    ].join("\n"),
+  AI_REPORT_READY: {
+    id: "AI_REPORT_READY",
+    templateName: "AI분석완료",
+    templateCode: "PENDING",
+    templateCodeEnvKey: "KAKAO_TEMPLATE_AI_REPORT",
+    placeholders: ["name", "link"],
   },
 };
 
-export function renderAlimTalkPreview(
-  id: AlimTalkTemplateId,
-  vars: Record<string, string>
-): string {
-  let out = ALIMTALK_TEMPLATE_REGISTRY[id].bodyPreview;
-  for (const [k, v] of Object.entries(vars)) {
-    out = out.split(`{${k}}`).join(v);
-  }
-  return out;
-}
-
-export function resolveAlimTalkTemplateCode(id: AlimTalkTemplateId): string | null {
-  const key = ALIMTALK_TEMPLATE_REGISTRY[id].templateCodeEnvKey;
-  const v = String(process.env[key] || "").trim();
-  return v || null;
+export function resolveAlimTalkTemplateCode(id: AlimTalkTemplateId): string {
+  const def = ALIMTALK_TEMPLATE_REGISTRY[id];
+  const v = String(process.env[def.templateCodeEnvKey] || "").trim();
+  return v || def.templateCode;
 }
