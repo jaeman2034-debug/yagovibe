@@ -1,11 +1,11 @@
 /**
- * PR3 Notification Hot Fix — venueReservations 축 전이 시 멤버 알림 (Admin SDK).
- * Client createNotification 실패와 무관하게 Confirm / Finalize 문서를 보장한다.
- * Idempotent via pushDedupKey.
+ * PR3/PR4 Sprint C — venueReservations 축 전이 시 멤버 알림 + AlimTalk outbound queue.
+ * Confirm / Finalize in-app + phone → queued_sms_pending (auto AlimTalk when Live).
  */
 import * as admin from "firebase-admin";
 import { logger } from "firebase-functions";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { resolveTeamContactsNotifyAdmin } from "../lib/resolveTeamContactsNotify";
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -53,6 +53,100 @@ async function notifyOnce(input: {
   });
 }
 
+async function enqueueOutboundAlimTalk(input: {
+  fedSlug: string;
+  reservationId: string;
+  teamId: string;
+  teamName: string;
+  teamKind: "platform" | "guest" | null;
+  guestTeamId: string | null;
+  venueName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  shortCode: string;
+  detailPath: string;
+  templateKey: "PAYMENT_APPROVED" | "RESERVATION_CONFIRMED";
+  alimTalkTemplateId: "PAYMENT_CONFIRMED";
+  title: string;
+  message: string;
+  body: string;
+  createdByUid: string;
+}): Promise<void> {
+  const db = admin.firestore();
+  const resolved = await resolveTeamContactsNotifyAdmin(
+    db,
+    input.guestTeamId || input.teamId,
+    [input.createdByUid],
+    input.fedSlug,
+    input.teamKind
+  );
+  const notifyable = resolved.targets.filter((t) => Boolean(t.phone));
+  if (notifyable.length === 0) {
+    logger.info("[onVenueReservationWritten] no phone for outbound", {
+      reservationId: input.reservationId,
+      templateKey: input.templateKey,
+    });
+    return;
+  }
+
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  for (const target of notifyable) {
+    const notifId = `${input.fedSlug}_${input.templateKey}_${input.reservationId}_${target.role}`.replace(
+      /[^a-zA-Z0-9_-]/g,
+      "_"
+    );
+    const ref = db.collection("notifications").doc(notifId);
+    const existing = await ref.get();
+    if (existing.exists) continue;
+
+    await ref.set({
+      userId: target.uid || `phone:${target.phone}`,
+      recipientUid: target.uid || null,
+      recipientPhone: target.phone || null,
+      recipientRole: target.role,
+      type: "SYSTEM_NOTICE",
+      notificationType: input.templateKey,
+      templateKey: input.templateKey,
+      alimTalkTemplateId: input.alimTalkTemplateId,
+      title: input.title,
+      message: input.message,
+      body: input.body,
+      link: input.detailPath,
+      status: "queued_sms_pending",
+      deliveryStatus: "queued",
+      pushDedupKey: `outbound_${input.templateKey}_${input.fedSlug}_${input.reservationId}_${target.role}`,
+      teamId: input.teamId,
+      teamName: input.teamName,
+      teamKind: input.teamKind,
+      guestTeamId: input.guestTeamId,
+      federationSlug: input.fedSlug,
+      provider: null,
+      providerMessageId: null,
+      retryCount: 0,
+      success: null,
+      priority: "high",
+      payload: {
+        reservationId: input.reservationId,
+        shortReservationCode: input.shortCode,
+        federationSlug: input.fedSlug,
+        templateKey: input.templateKey,
+        venueName: input.venueName,
+        bookingDate: input.bookingDate,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        time: `${input.startTime}~${input.endTime}`,
+        reservationUrl: input.detailPath,
+        recipientRole: target.role,
+        recipientUid: target.uid || null,
+        recipientPhone: target.phone || null,
+      },
+      isRead: false,
+      createdAt: now,
+    });
+  }
+}
+
 export const onVenueReservationWritten = onDocumentWritten(
   {
     document: "federations/{fedSlug}/venueReservations/{reservationId}",
@@ -79,6 +173,12 @@ export const onVenueReservationWritten = onDocumentWritten(
     const endTime = String(after.endTime || "");
     const teamId = String(after.teamId || "");
     const teamName = String(after.teamName || "");
+    const teamKind =
+      after.teamKind === "guest" || after.teamKind === "platform"
+        ? after.teamKind
+        : null;
+    const guestTeamId =
+      typeof after.guestTeamId === "string" ? after.guestTeamId : null;
     const payload = {
       reservationId,
       shortReservationCode: shortCode,
@@ -90,7 +190,7 @@ export const onVenueReservationWritten = onDocumentWritten(
     const prevConfirm = before ? String(before.confirmStatus || "") : "";
     const nextConfirm = String(after.confirmStatus || "");
 
-    // UNCONFIRMED → CONFIRMED (입금 확인)
+    // UNCONFIRMED → CONFIRMED (입금 확인) — in-app + AlimTalk PAYMENT_CONFIRMED
     if (nextPay === "CONFIRMED" && prevPay !== "CONFIRMED") {
       try {
         await notifyOnce({
@@ -106,6 +206,32 @@ export const onVenueReservationWritten = onDocumentWritten(
         });
       } catch (e) {
         logger.warn("[onVenueReservationWritten] confirm notify skipped", { e: String(e) });
+      }
+      try {
+        await enqueueOutboundAlimTalk({
+          fedSlug,
+          reservationId,
+          teamId,
+          teamName,
+          teamKind,
+          guestTeamId,
+          venueName,
+          bookingDate,
+          startTime,
+          endTime,
+          shortCode,
+          detailPath,
+          templateKey: "PAYMENT_APPROVED",
+          alimTalkTemplateId: "PAYMENT_CONFIRMED",
+          title: "입금 확인",
+          message: `예약번호 ${shortCode} · 입금이 확인되었습니다`,
+          body: "입금이 확인되었습니다. 예약이 최종 확정되었습니다.",
+          createdByUid: userId,
+        });
+      } catch (e) {
+        logger.warn("[onVenueReservationWritten] payment alimtalk enqueue skipped", {
+          e: String(e),
+        });
       }
     }
 

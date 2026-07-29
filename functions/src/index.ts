@@ -9,6 +9,8 @@ export { analyzeProduct } from "./analyzeProduct";
 export { sendPushOnNotificationCreate } from "./notifications/sendPushOnNotificationCreate";
 export { onVenueSlotAllocationWritten } from "./federation/onVenueSlotAllocationWritten";
 export { onVenueReservationWritten } from "./federation/onVenueReservationWritten";
+export { onQueuedOutboundNotification } from "./federation/onQueuedOutboundNotification";
+export { retryFailedNotifications } from "./federation/retryFailedNotifications";
 export {
   createTeamFeePayment,
   confirmTeamFeePayment,

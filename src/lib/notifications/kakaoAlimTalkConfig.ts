@@ -49,9 +49,9 @@ export function getKakaoAlimTalkConfigStatus(
 
   const templates = listAlimTalkTemplates().map((t) => ({
     id: t.id,
-    templateName: t.templateName,
+    templateName: t.displayName,
     templateCode: resolveTemplateCodeFromEnv(t.id, env),
-    placeholders: t.placeholders,
+    placeholders: t.variables,
     description: t.description,
   }));
 
@@ -98,10 +98,21 @@ export function emptyKakaoEnvPlaceholders(): EnvMap {
     KAKAO_SENDER_KEY: "",
     KAKAO_API_KEY: "",
     KAKAO_TEMPLATE_RESERVATION: "",
+    KAKAO_TEMPLATE_RESERVATION_REQUEST: "",
+    KAKAO_TEMPLATE_RESERVATION_APPROVED: "",
     KAKAO_TEMPLATE_PAYMENT: "",
+    KAKAO_TEMPLATE_PAYMENT_REQUEST: "",
+    KAKAO_TEMPLATE_PAYMENT_CONFIRMED: "",
     KAKAO_TEMPLATE_CANCEL: "",
+    KAKAO_TEMPLATE_RESERVATION_CANCELLED: "",
+    KAKAO_TEMPLATE_RESERVATION_REMINDER: "",
+    KAKAO_TEMPLATE_MATCH_REMINDER: "",
     KAKAO_TEMPLATE_AI_REPORT: "",
+    KAKAO_TEMPLATE_AI_REPORT_READY: "",
+    KAKAO_TEMPLATE_NOTICE: "",
+    KAKAO_TEMPLATE_WELCOME: "",
     KAKAO_ALIMTALK_ENABLED: "",
+    KAKAO_API_SECRET: "",
     NOTIFICATION_PROVIDER: "auto",
   };
 }

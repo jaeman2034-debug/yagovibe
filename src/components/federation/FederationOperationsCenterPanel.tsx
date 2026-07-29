@@ -1,6 +1,5 @@
 /**
- * PR4-3 Sprint A — Federation Operations Center shell.
- * Read-only SMS ops UI + SensProviderStub (no real send).
+ * PR4 Sprint C — Federation Operations Center (queue / delivery / retry).
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -11,13 +10,16 @@ import {
   listFederationOpsNotifications,
   listFederationOpsProviderLogs,
   listFederationOpsReservations,
+  opsDeliveryLabel,
   opsKindLabel,
   opsRoleLabel,
   opsStatusLabel,
   runConsumeQueuedSms,
+  runRetryFailedNotifications,
 } from "@/lib/federation/opsCenterService";
 import type {
   OpsCenterTabId,
+  OpsDeliveryFilter,
   OpsMessageKind,
   OpsNotificationRow,
   OpsReservationRow,
@@ -40,16 +42,29 @@ const NAV: { id: OpsCenterTabId; label: string }[] = [
   { id: "stats", label: "통계" },
 ];
 
-function StatusBadge({ status }: { status: OpsSmsStatus }) {
-  const label = opsStatusLabel(status);
+function StatusBadge({
+  status,
+  deliveryStatus,
+}: {
+  status: OpsSmsStatus;
+  deliveryStatus?: OpsDeliveryFilter | "other";
+}) {
+  const label = deliveryStatus
+    ? opsDeliveryLabel(deliveryStatus)
+    : opsStatusLabel(status);
+  const key = deliveryStatus || status;
   const cls =
-    status === "sms_sent"
+    key === "delivered" || key === "sms_sent"
       ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-      : status === "sms_failed"
+      : key === "failed" || key === "sms_failed"
         ? "bg-rose-50 text-rose-800 border-rose-200"
-        : status === "queued_sms_pending"
-          ? "bg-amber-50 text-amber-900 border-amber-200"
-          : "bg-slate-50 text-slate-700 border-slate-200";
+        : key === "sending"
+          ? "bg-sky-50 text-sky-900 border-sky-200"
+          : key === "retry"
+            ? "bg-violet-50 text-violet-900 border-violet-200"
+            : key === "queued" || key === "queued_sms_pending"
+              ? "bg-amber-50 text-amber-900 border-amber-200"
+              : "bg-slate-50 text-slate-700 border-slate-200";
   return (
     <span className={`inline-flex rounded border px-1.5 py-0.5 text-[11px] font-semibold ${cls}`}>
       {label}
@@ -70,10 +85,11 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
   const [providerLogs, setProviderLogs] = useState<OpsProviderLog[]>([]);
   const [teamFilter, setTeamFilter] = useState("");
   const [kindFilter, setKindFilter] = useState<OpsMessageKind | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<OpsSmsStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<OpsDeliveryFilter | "all">("all");
   const [detail, setDetail] = useState<OpsNotificationRow | null>(null);
   const [stubMsg, setStubMsg] = useState<string | null>(null);
   const [consumeBusy, setConsumeBusy] = useState(false);
+  const [retryBusy, setRetryBusy] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -105,17 +121,26 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
     return notifs.filter((n) => {
       if (q && !n.teamName.toLowerCase().includes(q)) return false;
       if (kindFilter !== "all" && n.kind !== kindFilter) return false;
-      if (statusFilter !== "all" && n.status !== statusFilter) return false;
+      if (statusFilter !== "all" && n.deliveryStatus !== statusFilter) return false;
       return true;
     });
   }, [notifs, teamFilter, kindFilter, statusFilter]);
 
   const pendingSms = useMemo(
-    () => notifs.filter((n) => n.status === "queued_sms_pending"),
+    () =>
+      notifs.filter(
+        (n) =>
+          n.status === "queued_sms_pending" ||
+          n.deliveryStatus === "queued" ||
+          n.deliveryStatus === "retry"
+      ),
     [notifs]
   );
   const failures = useMemo(
-    () => notifs.filter((n) => n.status === "sms_failed"),
+    () =>
+      notifs.filter(
+        (n) => n.status === "sms_failed" || n.deliveryStatus === "failed"
+      ),
     [notifs]
   );
 
@@ -147,9 +172,9 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
       });
       setStubMsg(
         `consumeQueuedSms · mode=${res.providerMode} · processed=${res.processed}` +
-          (res.providerMode === "stub"
-            ? " (stub: 상태 변경 없음 · Provider 로그만 기록)"
-            : "")
+          (res.providerMode === "sms" || res.providerMode === "kakao"
+            ? ""
+            : " (stub dry-run)")
       );
       await reload();
     } catch (e: unknown) {
@@ -159,13 +184,32 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
     }
   }
 
+  async function runRetry(notificationId?: string) {
+    setRetryBusy(true);
+    setStubMsg(null);
+    try {
+      const res = await runRetryFailedNotifications({
+        federationSlug,
+        notificationId,
+        bulk: !notificationId,
+        limit: 20,
+      });
+      setStubMsg(`retry · processed=${res.processed}`);
+      await reload();
+    } catch (e: unknown) {
+      setStubMsg(e instanceof Error ? e.message : "재발송 실패");
+    } finally {
+      setRetryBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">운영센터</h2>
           <p className="text-sm text-gray-600">
-            예약·문자·발송 이력·실패·통계를 한곳에서 관리합니다. (Sprint A · Provider Stub)
+            예약·문자/알림톡·발송 이력·실패·재시도를 한곳에서 관리합니다. (Sprint C)
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -286,7 +330,8 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                     {[
                       ["발송요청", stats.todayTotal],
-                      ["문자대기", stats.todayPendingSms],
+                      ["Queued", stats.todayPendingSms],
+                      ["Sending", stats.todaySending],
                       ["앱대기", stats.todayQueued],
                       ["성공", stats.todaySent],
                       ["실패", stats.todayFailed],
@@ -314,7 +359,8 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
                     ))}
                   </div>
                   <p className="text-xs text-gray-500">
-                    SMS 비용은 Sprint B(SENS) 연동 후 집계됩니다. 재발송 카운트: 오늘 {stats.todayRetry}건
+                    Live Kakao/SENS 자격증명 연결 후 자동 발송됩니다. Retry: 오늘{" "}
+                    {stats.todayRetry}건
                   </p>
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-gray-900">
@@ -421,7 +467,7 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
                       문자 대기 큐 ({pendingSms.length})
                     </h3>
                     <p className="text-xs text-gray-500">
-                      `queued_sms_pending` · Sprint A는 Stub dry-run만 가능합니다.
+                      `queued_sms_pending` · Live 설정 시 자동 발송 · 수동 소비도 가능
                     </p>
                   </div>
                   {pendingSms.length === 0 ? (
@@ -480,17 +526,21 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
                       <option value="RESERVATION_ASSIGNED">예약배정</option>
                       <option value="PAYMENT_APPROVED">입금확인</option>
                       <option value="RESERVATION_CONFIRMED">예약확정</option>
+                      <option value="AI_REPORT_READY">AI리포트</option>
                     </select>
                     <select
                       className="rounded-lg border px-2 py-1.5 text-xs"
                       value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as OpsSmsStatus | "all")}
+                      onChange={(e) =>
+                        setStatusFilter(e.target.value as OpsDeliveryFilter | "all")
+                      }
                     >
                       <option value="all">상태 전체</option>
-                      <option value="queued_sms_pending">문자대기</option>
-                      <option value="queued">앱대기</option>
-                      <option value="sms_sent">발송</option>
-                      <option value="sms_failed">실패</option>
+                      <option value="queued">Queued</option>
+                      <option value="sending">Sending</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="failed">Failed</option>
+                      <option value="retry">Retry</option>
                     </select>
                   </div>
                   <div className="overflow-x-auto">
@@ -516,7 +566,10 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
                             <td className="py-2 pr-2 whitespace-nowrap">{formatOpsPhone(n.recipientPhone)}</td>
                             <td className="py-2 pr-2">{opsKindLabel(n.kind)}</td>
                             <td className="py-2 pr-2">
-                              <StatusBadge status={n.status} />
+                              <StatusBadge
+                                status={n.status}
+                                deliveryStatus={n.deliveryStatus}
+                              />
                             </td>
                             <td className="py-2 pr-2">{n.provider || "—"}</td>
                             <td className="py-2">
@@ -541,7 +594,19 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
 
               {subTab === "failures" && (
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-900">실패 목록 ({failures.length})</h3>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      실패 목록 ({failures.length})
+                    </h3>
+                    <button
+                      type="button"
+                      disabled={retryBusy || failures.length === 0}
+                      onClick={() => void runRetry()}
+                      className="rounded border border-violet-700 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-950 disabled:opacity-50"
+                    >
+                      {retryBusy ? "재시도 중…" : "Bulk Retry"}
+                    </button>
+                  </div>
                   {failures.length === 0 ? (
                     <p className="text-sm text-gray-500">실패 건이 없습니다.</p>
                   ) : (
@@ -558,11 +623,11 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
                           </div>
                           <button
                             type="button"
-                            disabled
-                            title="Sprint C에서 재발송 활성화"
-                            className="rounded border px-2 py-1 text-xs opacity-50"
+                            disabled={retryBusy}
+                            onClick={() => void runRetry(n.id)}
+                            className="rounded border border-violet-800 bg-violet-900 px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
                           >
-                            재발송 (준비중)
+                            Single Retry
                           </button>
                         </li>
                       ))}
@@ -595,18 +660,29 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
               <dd>{opsKindLabel(detail.kind)}</dd>
               <dt className="text-gray-500">상태</dt>
               <dd>
-                <StatusBadge status={detail.status} />
+                <StatusBadge
+                  status={detail.status}
+                  deliveryStatus={detail.deliveryStatus}
+                />
               </dd>
               <dt className="text-gray-500">Provider</dt>
               <dd>{detail.provider || "—"}</dd>
               <dt className="text-gray-500">Message ID</dt>
               <dd className="break-all font-mono">{detail.providerMessageId || "—"}</dd>
+              <dt className="text-gray-500">Request ID</dt>
+              <dd className="break-all font-mono">{detail.requestId || "—"}</dd>
               <dt className="text-gray-500">생성</dt>
               <dd>{formatOpsTime(detail.createdAt)}</dd>
               <dt className="text-gray-500">발송</dt>
               <dd>{formatOpsTime(detail.sentAt)}</dd>
+              <dt className="text-gray-500">완료</dt>
+              <dd>{formatOpsTime(detail.completedAt)}</dd>
               <dt className="text-gray-500">재시도</dt>
               <dd>{detail.retryCount}</dd>
+              <dt className="text-gray-500">success</dt>
+              <dd>
+                {detail.success === null ? "—" : detail.success ? "true" : "false"}
+              </dd>
               <dt className="text-gray-500">Error</dt>
               <dd>
                 {detail.errorCode || "—"}

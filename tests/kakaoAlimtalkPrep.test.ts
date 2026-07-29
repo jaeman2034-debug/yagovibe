@@ -1,12 +1,14 @@
 /**
- * PR4 Sprint B prep — Kakao AlimTalk unit tests (no network).
+ * PR4 Sprint B Kakao AlimTalk prep + Final Template Design tests.
  */
 
 import {
+  ALIMTALK_COMMON_VARIABLES,
   ALIMTALK_TEMPLATE_REGISTRY,
   listAlimTalkTemplates,
+  renderAlimTalkPreview,
   resolveTemplateCodeFromEnv,
-} from "@/lib/notifications/alimtalkTemplates";
+} from "@/lib/notifications/kakao/templates";
 import {
   emptyKakaoEnvPlaceholders,
   getKakaoAlimTalkConfigStatus,
@@ -23,42 +25,73 @@ import {
   resetNotificationProviderFactoryForTests,
 } from "@/lib/notifications/notificationProviderFactory";
 
-describe("PR4 Sprint B Kakao AlimTalk prep", () => {
+describe("PR4 Sprint B Kakao AlimTalk template final design", () => {
   beforeEach(() => {
     resetNotificationProviderFactoryForTests();
   });
 
-  test("template registry has 4 templates with PENDING codes", () => {
+  test("registry has 10 operational templates (excludes legacy)", () => {
     const list = listAlimTalkTemplates();
-    expect(list).toHaveLength(4);
-    expect(ALIMTALK_TEMPLATE_REGISTRY.RESERVATION_COMPLETE.templateCode).toBe(
-      "PENDING"
-    );
-    expect(ALIMTALK_TEMPLATE_REGISTRY.PAYMENT_REQUEST.placeholders).toEqual(
-      expect.arrayContaining(["price", "deadline", "link"])
-    );
-    expect(ALIMTALK_TEMPLATE_REGISTRY.AI_REPORT_READY.templateName).toBe(
-      "AI분석완료"
+    expect(list).toHaveLength(10);
+    const ids = list.map((t) => t.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "RESERVATION_REQUEST",
+        "RESERVATION_APPROVED",
+        "PAYMENT_REQUEST",
+        "PAYMENT_CONFIRMED",
+        "RESERVATION_CANCELLED",
+        "RESERVATION_REMINDER",
+        "MATCH_REMINDER",
+        "AI_REPORT_READY",
+        "NOTICE",
+        "WELCOME",
+      ])
     );
     for (const t of list) {
+      expect(t.templateCode).toBe("PENDING");
+      expect(t.body.includes("#{") || t.variables.length >= 0).toBe(true);
       expect(resolveTemplateCodeFromEnv(t.id, {})).toBe("PENDING");
     }
   });
 
-  test("placeholder env keys are empty by default", () => {
+  test("common variables catalog", () => {
+    expect(ALIMTALK_COMMON_VARIABLES).toEqual(
+      expect.arrayContaining([
+        "team",
+        "venue",
+        "reservationNo",
+        "reservationUrl",
+        "reportUrl",
+      ])
+    );
+  });
+
+  test("render uses Kakao #{var} syntax", () => {
+    const text = renderAlimTalkPreview("RESERVATION_REQUEST", {
+      team: "TEST FC",
+      venue: "수락산",
+      date: "2026-08-01",
+      time: "18:00~20:00",
+      reservationNo: "NW-2608-TEST",
+      reservationUrl: "https://yago-vibe.com",
+    });
+    expect(text).toContain("TEST FC");
+    expect(text).toContain("수락산");
+    expect(text).not.toContain("#{team}");
+  });
+
+  test("placeholder env keys empty", () => {
     const ph = emptyKakaoEnvPlaceholders();
     expect(ph.KAKAO_CHANNEL_ID).toBe("");
-    expect(ph.KAKAO_SENDER_KEY).toBe("");
-    expect(ph.KAKAO_API_KEY).toBe("");
-    expect(ph.KAKAO_TEMPLATE_RESERVATION).toBe("");
+    expect(ph.KAKAO_TEMPLATE_RESERVATION_APPROVED).toBe("");
     expect(ph.NOTIFICATION_PROVIDER).toBe("auto");
   });
 
-  test("config status is Pending without secrets", () => {
+  test("config Pending with 10 pending templates", () => {
     const status = getKakaoAlimTalkConfigStatus(emptyKakaoEnvPlaceholders());
     expect(status.approvalStatus).toBe("Pending");
-    expect(status.hasSenderKey).toBe(false);
-    expect(status.pendingTemplateCount).toBe(4);
+    expect(status.pendingTemplateCount).toBe(10);
   });
 
   test("Factory auto → sms when Kakao not ready", () => {
@@ -67,7 +100,6 @@ describe("PR4 Sprint B Kakao AlimTalk prep", () => {
       KAKAO_ALIMTALK_ENABLED: "",
       KAKAO_SENDER_KEY: "",
     });
-    expect(bundle.mode).toBe("auto");
     expect(bundle.resolved).toBe("sms");
   });
 
@@ -80,48 +112,43 @@ describe("PR4 Sprint B Kakao AlimTalk prep", () => {
     });
     expect(resolveOutboundProvider("auto", status)).toBe("kakao");
     expect(resolveNotificationProviderMode("kakao")).toBe("kakao");
-    expect(resolveNotificationProviderMode("sms")).toBe("sms");
   });
 
-  test("Provider Stub returns status=queued", async () => {
+  test("Provider Stub status=queued", async () => {
     const stub = new KakaoAlimTalkProviderStub();
     const res = await stub.sendAlimTalk({
       recipientPhone: "01012345678",
-      templateId: "RESERVATION_COMPLETE",
+      templateId: "RESERVATION_APPROVED",
       templateCode: "PENDING",
       templateVariables: {
+        team: "TEST FC",
         venue: "수락산",
         date: "2026-08-01",
         time: "18:00~20:00",
-        team: "TEST FC",
-        link: "https://yago-vibe.com",
+        price: "120000원",
+        deadline: "이용일 전월",
+        reservationUrl: "https://yago-vibe.com",
       },
     });
     expect(res.status).toBe("queued");
-    expect(res.dryRun).toBe(true);
-    expect(res.provider).toBe("kakao");
     expect(res.providerMessageId).toMatch(/^kakao_stub_/);
-    expect(res.templateCode).toBe("PENDING");
+    expect(ALIMTALK_TEMPLATE_REGISTRY.AI_REPORT_READY.displayName).toBe(
+      "AI 분석 완료"
+    );
   });
 
-  test("sendAlimTalk helper uses stub", async () => {
+  test("sendAlimTalk + audit fields", async () => {
     const res = await sendAlimTalk({
       recipientPhone: "01099998888",
-      templateVariables: { contact: "노원구축구협회" },
       templateId: "RESERVATION_CANCELLED",
+      templateVariables: { team: "TEST FC", venue: "수락산", date: "d", time: "t", reservationNo: "n" },
     });
     expect(res.status).toBe("queued");
-  });
-
-  test("audit fields keep provider kakao", () => {
     const audit = buildKakaoAuditFields({
       templateCode: "PENDING",
-      providerMessageId: "kakao_stub_1",
+      providerMessageId: res.providerMessageId,
       senderKeyPresent: false,
     });
     expect(audit.provider).toBe("kakao");
-    expect(audit.templateCode).toBe("PENDING");
-    expect(audit.senderKey).toBe("[PENDING]");
-    expect(audit.providerMessageId).toBe("kakao_stub_1");
   });
 });

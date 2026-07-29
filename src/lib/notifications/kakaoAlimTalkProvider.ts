@@ -69,14 +69,32 @@ export class KakaoAlimTalkProviderStub implements KakaoAlimTalkProvider {
     input: KakaoAlimTalkSendInput
   ): Promise<KakaoAlimTalkSendResult> {
     const phone = String(input.recipientPhone || "").replace(/\D/g, "");
-    const templateId = input.templateId || "RESERVATION_COMPLETE";
+    const templateId = input.templateId || "RESERVATION_APPROVED";
     const templateCode =
       (input.templateCode && input.templateCode.trim()) ||
       resolveTemplateCodeFromEnv(templateId, {
         KAKAO_TEMPLATE_RESERVATION: viteEnvMap().VITE_KAKAO_TEMPLATE_RESERVATION,
+        KAKAO_TEMPLATE_RESERVATION_REQUEST:
+          viteEnvMap().VITE_KAKAO_TEMPLATE_RESERVATION_REQUEST,
+        KAKAO_TEMPLATE_RESERVATION_APPROVED:
+          viteEnvMap().VITE_KAKAO_TEMPLATE_RESERVATION_APPROVED,
         KAKAO_TEMPLATE_PAYMENT: viteEnvMap().VITE_KAKAO_TEMPLATE_PAYMENT,
+        KAKAO_TEMPLATE_PAYMENT_REQUEST:
+          viteEnvMap().VITE_KAKAO_TEMPLATE_PAYMENT_REQUEST,
+        KAKAO_TEMPLATE_PAYMENT_CONFIRMED:
+          viteEnvMap().VITE_KAKAO_TEMPLATE_PAYMENT_CONFIRMED,
         KAKAO_TEMPLATE_CANCEL: viteEnvMap().VITE_KAKAO_TEMPLATE_CANCEL,
+        KAKAO_TEMPLATE_RESERVATION_CANCELLED:
+          viteEnvMap().VITE_KAKAO_TEMPLATE_RESERVATION_CANCELLED,
+        KAKAO_TEMPLATE_RESERVATION_REMINDER:
+          viteEnvMap().VITE_KAKAO_TEMPLATE_RESERVATION_REMINDER,
+        KAKAO_TEMPLATE_MATCH_REMINDER:
+          viteEnvMap().VITE_KAKAO_TEMPLATE_MATCH_REMINDER,
         KAKAO_TEMPLATE_AI_REPORT: viteEnvMap().VITE_KAKAO_TEMPLATE_AI_REPORT,
+        KAKAO_TEMPLATE_AI_REPORT_READY:
+          viteEnvMap().VITE_KAKAO_TEMPLATE_AI_REPORT_READY,
+        KAKAO_TEMPLATE_NOTICE: viteEnvMap().VITE_KAKAO_TEMPLATE_NOTICE,
+        KAKAO_TEMPLATE_WELCOME: viteEnvMap().VITE_KAKAO_TEMPLATE_WELCOME,
       });
 
     if (!phone) {
