@@ -18,7 +18,8 @@ export function resetPlaygroundTrialXp(): void {
   notify();
 }
 
-export function addPlaygroundTrialXp(amount: number, _reason: XpTrialReason): void {
+export function addPlaygroundTrialXp(amount: number, reason: XpTrialReason): void {
+  void reason;
   if (amount <= 0) return;
   trialXp += amount;
   notify();

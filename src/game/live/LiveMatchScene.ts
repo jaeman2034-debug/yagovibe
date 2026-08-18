@@ -460,7 +460,6 @@ export class LiveMatchScene extends Phaser.Scene {
       detectFieldLayoutMode();
     this.field = bridge.fieldLayout ?? getLiveFieldLayout(mode);
 
-    const { w, h } = this.field;
     this.cameras.main.setBackgroundColor("#070b14");
     this.drawPitch();
     this.createTextures();
@@ -554,7 +553,7 @@ export class LiveMatchScene extends Phaser.Scene {
   }
 
   private applyWorldAndCameraBounds(): void {
-    const { w, h, margin } = this.field;
+    const { w, h } = this.field;
     // 카메라·월드 메타는 전체 필드, 물리 벽은 cyan 라인(margin) static collider가 담당
     this.physics.world.setBounds(0, 0, w, h, true);
     this.cameras.main.setBounds(0, 0, w, h);
@@ -636,7 +635,7 @@ export class LiveMatchScene extends Phaser.Scene {
   }
 
   private drawGoals(g: Phaser.GameObjects.Graphics): void {
-    const { w, h, margin, goalDepth, goalMouth } = this.field;
+    const { margin, goalDepth, goalMouth } = this.field;
 
     if (this.field.mode === "portrait") {
       const pg = getPortraitGoals(this.field);
@@ -1183,6 +1182,7 @@ export class LiveMatchScene extends Phaser.Scene {
   }
 
   private resetKickoff(_match: LiveMatchSnapshot["match"]): void {
+    void _match;
     const s0 = this.spawnFor(0);
     const s1 = this.spawnFor(1);
     this.localPlayer.setPosition(
@@ -1290,7 +1290,6 @@ export class LiveMatchScene extends Phaser.Scene {
     }
 
     const frameMs = this.cappedFrameMs(delta);
-    const dt = frameMs / 1000;
     this.refreshOwnershipFromBridge(bridge);
     const snap = bridge.snapshot;
     const opponent =
