@@ -1,0 +1,45 @@
+/**
+ * Sprint 2-1 — Team Public Home layout presets + mobile polish.
+ * Scoped to [data-layout] on TeamPage root. Not a page builder.
+ */
+
+/* Classic keeps existing visual language; Modern tightens type & radius only */
+[data-layout="modern"].team-public-layout-modern .team-public-hero {
+  border-radius: 1.25rem;
+}
+
+[data-layout="modern"].team-public-layout-modern .team-public-hero h1 {
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+[data-layout="modern"].team-public-layout-modern .team-public-hero .team-public-hero-slogan {
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+/* Mobile: CTA strip full-width + safe-area when near bottom */
+.team-public-cta {
+  padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 639px) {
+  .team-public-cta [role="group"] {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .team-public-cta [role="group"] > button {
+    min-height: 2.75rem;
+    width: 100%;
+  }
+
+  [data-layout] .team-public-hero {
+    min-height: 180px;
+  }
+
+  [data-layout] .team-public-hero .team-public-hero-inner {
+    padding: 1rem;
+  }
+}
