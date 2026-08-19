@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { FederationHeader } from "@/components/federation/FederationHeader";
 import { VenuePricingEstimateSummary } from "@/components/federation/VenuePricingEstimateSummary";
 import { useAuth } from "@/context/AuthProvider";
@@ -51,12 +51,13 @@ export default function FederationVenueDetailPage() {
   const [bookingDate, setBookingDate] = useState(todayIsoLocal);
   const [slots, setSlots] = useState<AllocationSlotView[]>([]);
   const [teams, setTeams] = useState<FederationOperatingTeam[]>([]);
+  const [memberTeamIds, setMemberTeamIds] = useState<Set<string>>(new Set());
   const [teamId, setTeamId] = useState("");
   const [isManager, setIsManager] = useState(false);
-  const [isMember, setIsMember] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [slotLoadError, setSlotLoadError] = useState<string | null>(null);
   const [fedMeta, setFedMeta] = useState<{ name: string; region: string; logoUrl?: string }>({
     name: federationSlug,
     region: "",
@@ -64,6 +65,7 @@ export default function FederationVenueDetailPage() {
   const [selectedSlot, setSelectedSlot] = useState<{ startTime: string; endTime: string } | null>(
     null
   );
+  const applicationPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!federationSlug || !venueId) return;
@@ -83,20 +85,31 @@ export default function FederationVenueDetailPage() {
       const uid = user?.uid;
       if (!uid) {
         setIsManager(false);
-        setIsMember(false);
         return;
       }
       const managers = Array.isArray(d.managers) ? d.managers : [];
-      const members = Array.isArray(d.members) ? d.members : [];
       const ownerId = String(d.ownerId || "");
       setIsManager(ownerId === uid || managers.some((m: unknown) => String(m) === uid));
-      setIsMember(
-        members.some((m: any) => m?.uid === uid || m === uid) ||
-          ownerId === uid ||
-          managers.some((m: unknown) => String(m) === uid)
-      );
     });
   }, [federationSlug, user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setMemberTeamIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    getDocs(collection(db, "users", user.uid, "teamMemberships"))
+      .then((snap) => {
+        if (!cancelled) setMemberTeamIds(new Set(snap.docs.map((item) => item.id)));
+      })
+      .catch(() => {
+        if (!cancelled) setMemberTeamIds(new Set());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!federationSlug) return;
@@ -112,6 +125,7 @@ export default function FederationVenueDetailPage() {
 
   useEffect(() => {
     if (!federationSlug || !venueId || !bookingDate) return;
+    setSlotLoadError(null);
     return subscribeVenueAllocationDay({
       federationSlug,
       venueId,
@@ -119,6 +133,7 @@ export default function FederationVenueDetailPage() {
       viewerTeamId: teamId || null,
       policy: venuePolicy,
       onData: setSlots,
+      onError: () => setSlotLoadError("슬롯 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."),
     });
   }, [federationSlug, venueId, bookingDate, teamId, venuePolicy]);
 
@@ -126,8 +141,33 @@ export default function FederationVenueDetailPage() {
     setSelectedSlot(null);
   }, [venuePolicy]);
 
-  const selectedTeam = teams.find((t) => t.id === teamId);
-  const canRequest = Boolean(user?.uid && (isMember || isManager) && teamId && selectedTeam);
+  useEffect(() => {
+    if (!selectedSlot) return;
+    applicationPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    applicationPanelRef.current?.focus({ preventScroll: true });
+  }, [selectedSlot]);
+
+  const applicantTeams = useMemo(
+    () =>
+      teams.filter(
+        (team) =>
+          isManager ||
+          memberTeamIds.has(team.id) ||
+          (team.platformTeamId ? memberTeamIds.has(team.platformTeamId) : false)
+      ),
+    [isManager, memberTeamIds, teams]
+  );
+  const hasApplicantTeam = applicantTeams.length > 0;
+  const selectedTeam = applicantTeams.find((t) => t.id === teamId);
+  const canRequest = Boolean(user?.uid && teamId && selectedTeam?.platformTeamId);
+
+  useEffect(() => {
+    if (!teamId && applicantTeams.length === 1) {
+      setTeamId(applicantTeams[0].id);
+    } else if (teamId && !applicantTeams.some((team) => team.id === teamId)) {
+      setTeamId("");
+    }
+  }, [applicantTeams, teamId]);
 
   const pricingQuote = useMemo(() => {
     if (!venue || !selectedSlot || !bookingDate) return null;
@@ -161,8 +201,8 @@ export default function FederationVenueDetailPage() {
       setErr("로그인이 필요합니다.");
       return;
     }
-    if (!canRequest || !selectedSlot || !venue || !selectedTeam) {
-      setErr("신청할 팀·시간·권한을 확인해 주세요.");
+    if (!canRequest || !selectedSlot || !venue || !selectedTeam?.platformTeamId) {
+      setErr("YAGO 플랫폼 팀 연결이 확인된 팀·시간·권한을 확인해 주세요.");
       return;
     }
     setBusy(true);
@@ -176,12 +216,12 @@ export default function FederationVenueDetailPage() {
         endTime: selectedSlot.endTime,
         teamId: selectedTeam.id,
         teamName: selectedTeam.name,
-        uid: user.uid,
+        platformTeamId: selectedTeam.platformTeamId,
       });
       setMsg("구장 배정 신청이 접수되었습니다. 협회 심사 후 배정이 확정됩니다.");
       setSelectedSlot(null);
-    } catch (e: any) {
-      setErr(e?.message || "배정 신청에 실패했습니다.");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "배정 신청에 실패했습니다.");
     } finally {
       setBusy(false);
     }
@@ -235,6 +275,11 @@ export default function FederationVenueDetailPage() {
         </div>
 
         <div className="mt-4 space-y-2">
+          {slotLoadError && (
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {slotLoadError}
+            </p>
+          )}
           {slots.map((s) => {
             const selected =
               selectedSlot?.startTime === s.startTime && selectedSlot?.endTime === s.endTime;
@@ -244,11 +289,13 @@ export default function FederationVenueDetailPage() {
                 key={`${s.startTime}-${s.endTime}`}
                 type="button"
                 disabled={!clickable}
+                aria-pressed={selected}
+                title={clickable ? "이 시간으로 배정 신청" : formatAllocationSlotLabel(s.status)}
                 onClick={() => setSelectedSlot({ startTime: s.startTime, endTime: s.endTime })}
                 className={`w-full flex items-center justify-between rounded-lg border px-4 py-3 text-left text-sm ${statusClass(
                   s.status
                 )} ${selected ? "ring-2 ring-primary-500" : ""} ${
-                  clickable ? "cursor-pointer" : "cursor-default opacity-90"
+                  clickable ? "cursor-pointer" : "cursor-not-allowed opacity-60"
                 }`}
               >
                 <span className="font-medium">
@@ -264,7 +311,11 @@ export default function FederationVenueDetailPage() {
         </div>
 
         {selectedSlot && (
-          <div className="mt-6 rounded-xl border border-primary-200 bg-white p-4 space-y-3">
+          <div
+            ref={applicationPanelRef}
+            tabIndex={-1}
+            className="mt-6 rounded-xl border border-primary-200 bg-white p-4 space-y-3"
+          >
             <h2 className="font-semibold text-gray-900">구장 배정 신청</h2>
             <dl className="text-sm text-gray-700 space-y-1">
               <div>
@@ -292,19 +343,19 @@ export default function FederationVenueDetailPage() {
               </p>
             )}
 
-            {user && !(isMember || isManager) && (
+            {user && !hasApplicantTeam && (
               <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                협회 소속(회원/운영진)만 구장 배정을 신청할 수 있습니다.
+                신청 가능한 YAGO 팀 소속이 확인되지 않았습니다. 팀 가입 또는 협회 팀 연결 후 이용해 주세요.
               </p>
             )}
 
-            {(isMember || isManager) && teams.length === 0 && (
+            {user && hasApplicantTeam && teamId && !selectedTeam?.platformTeamId && (
               <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                신청 가능한 팀/클럽 식별자가 없습니다. 협회에 팀 등록 후 이용해 주세요.
+                선택한 협회 팀은 YAGO 플랫폼 팀에 연결되어 있지 않아 현재 신청할 수 없습니다.
               </p>
             )}
 
-            {(isMember || isManager) && teams.length > 0 && (
+            {user && hasApplicantTeam && (
               <label className="block text-sm">
                 <span className="font-medium text-gray-800">신청 팀</span>
                 <select
@@ -313,13 +364,19 @@ export default function FederationVenueDetailPage() {
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
                 >
                   <option value="">선택</option>
-                  {teams.map((t) => (
+                  {applicantTeams.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name}
                     </option>
                   ))}
                 </select>
               </label>
+            )}
+
+            {user && !hasApplicantTeam && teams.length === 0 && (
+              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                신청 가능한 팀/클럽 식별자가 없습니다. 협회에 팀 등록 후 이용해 주세요.
+              </p>
             )}
 
             {err && <p className="text-sm text-red-600">{err}</p>}

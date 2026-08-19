@@ -26,6 +26,7 @@ export type OpsMessageKind =
   | "OTHER";
 
 export type OpsCenterTabId =
+  | "observability"
   | "reservations"
   | "sms-queue"
   | "history"

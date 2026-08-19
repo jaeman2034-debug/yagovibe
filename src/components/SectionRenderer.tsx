@@ -1,11 +1,21 @@
-type Executive = { name: string; role: string };
+import { OrganizationSection } from "@/components/federation/organization/OrganizationSection";
+import type { LegacyFederationExecutive } from "@/types/federationOrganization";
+
+type Executive = LegacyFederationExecutive & { name: string; role: string };
 
 export type RenderSection =
   | { type: "intro"; title?: string; content: string; image?: string; presidentName?: string }
   | { type: "history"; title?: string; content: string }
   | { type: "vision"; title?: string; content: string }
   | { type: "activities"; title?: string; items: string[] }
-  | { type: "organization"; title?: string; summary?: string; executives?: Executive[] }
+  | {
+      type: "organization";
+      title?: string;
+      summary?: string;
+      executives?: Executive[];
+      federationSlug?: string | null;
+      chairpersonPhotoUrl?: string | null;
+    }
   | { type: "text"; title?: string; content: string }
   | { type: "image"; title?: string; image?: string; content?: string }
   | { type: "gallery"; title?: string; images?: string[] };
@@ -69,22 +79,13 @@ export default function SectionRenderer({ section }: { section: RenderSection })
 
   if (section.type === "organization") {
     return (
-      <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-3">{section.title || "조직 구성"}</h2>
-        {section.summary ? <p className="whitespace-pre-line text-gray-700 mb-4">{section.summary}</p> : null}
-        {Array.isArray(section.executives) && section.executives.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {section.executives.map((e, i) => (
-              <div key={i} className="p-4 border border-gray-200 rounded-lg bg-white">
-                <div className="font-semibold text-gray-900">{e.name}</div>
-                <div className="text-sm text-gray-600">{e.role}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500">임원 정보가 없습니다.</p>
-        )}
-      </div>
+      <OrganizationSection
+        title={section.title || "조직 구성"}
+        summary={section.summary}
+        executives={section.executives}
+        federationSlug={section.federationSlug}
+        chairpersonPhotoUrl={section.chairpersonPhotoUrl}
+      />
     );
   }
 

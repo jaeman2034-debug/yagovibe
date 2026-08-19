@@ -7,7 +7,7 @@ import {
   Trophy,
   Calendar,
   Users,
-  BarChart3,
+  MapPinned,
   Bell,
   MoreVertical,
 } from "lucide-react";
@@ -41,11 +41,12 @@ export function FederationHeader({
     { path: `/federations/${federation.slug}/leagues`, label: "리그", icon: Trophy },
     { path: `/federations/${federation.slug}/matches`, label: "경기", icon: Calendar },
     { path: `/federations/${federation.slug}/teams`, label: "팀", icon: Users },
-    { path: `/federations/${federation.slug}/standings`, label: "순위", icon: BarChart3 },
+    { path: `/federations/${federation.slug}/venues`, label: "구장", icon: MapPinned },
     { path: `/federations/${federation.slug}/announcements`, label: "공지", icon: Bell },
   ];
 
   const moreMenuItems = [
+    { path: `/federations/${federation.slug}/standings`, label: "순위" },
     { path: `/federations/${federation.slug}?tab=about`, label: "협회소개" },
     { path: `/federations/${federation.slug}?tab=regulations`, label: "자료실" },
     { path: `/federations/${federation.slug}?tab=youth`, label: "유소년" },
@@ -113,7 +114,7 @@ export function FederationHeader({
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    (window.location.href = `/sports/teams/create?federation=${federation.id}`)
+                    (window.location.href = `/sports/soccer/team/create?federation=${federation.id}`)
                   }
                 >
                   팀 등록
@@ -202,7 +203,7 @@ export function FederationHeader({
                         className="w-full"
                         onClick={() => {
                           setShowMoreMenu(false);
-                          window.location.href = `/sports/teams/create?federation=${federation.id}`;
+                          window.location.href = `/sports/soccer/team/create?federation=${federation.id}`;
                         }}
                       >
                         팀 등록

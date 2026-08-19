@@ -162,12 +162,14 @@ export function PostLoginGate() {
     }
 
     // 🔥 공개 페이지 또는 Admin 페이지에서는 실행하지 않음 (무한 루프 방지)
+    // /invite* 는 카카오 초대 토큰 복귀·Accept UI — PostLoginGate가 /hub로 뺏지 않음
     const publicPaths = ["/login", "/signup", "/start", "/profile/setup", "/qr-login", "/login/qr-phone"];
+    const isInvitePath = location.pathname === "/invite" || location.pathname.startsWith("/invite/");
     const isAdminPath = location.pathname.startsWith("/app/admin") || 
                        location.pathname.startsWith("/admin") ||
                        location.pathname.startsWith("/app/dashboard");
     
-    if (publicPaths.includes(location.pathname) || isAdminPath) {
+    if (publicPaths.includes(location.pathname) || isInvitePath || isAdminPath) {
       return;
     }
 

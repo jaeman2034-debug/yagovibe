@@ -932,7 +932,8 @@ export default function FederationHomePage() {
       </div>
 
       {/* 탭 콘텐츠 */}
-      <div className="max-w-7xl mx-auto px-4 pt-0 pb-8">
+      {/* 탭 콘텐츠 — 조직도 4열을 위해 본문 폭을 충분히 확보 */}
+      <div className="mx-auto w-full max-w-7xl px-4 pt-0 pb-8 sm:px-6 lg:px-8">
         {activeTab === "home" && (
           <>
             <HomeTab

@@ -8,6 +8,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { registerPushNotifications } from "../lib/pushNotifications";
 import { removeDeviceToken } from "../lib/saveDeviceToken";
 import { sanitizePostLoginRedirectTarget } from "@/lib/auth/sanitizePostLoginRedirect";
+import { getPendingInviteReturnPath } from "@/lib/auth/pendingInviteReturn";
 
 interface AuthContextValue {
   user: User | null;
@@ -99,7 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (isAuthPage) {
           const params = new URLSearchParams(locationRef.current.search);
-          const rawNext = params.get("next") ?? params.get("redirect");
+          const rawNext =
+            params.get("next") ?? params.get("redirect") ?? getPendingInviteReturnPath();
           const safeNext = sanitizePostLoginRedirectTarget(rawNext);
           if (
             safeNext &&
@@ -107,11 +109,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             !safeNext.startsWith("//") &&
             safeNext.length < 2048
           ) {
-            console.log("✅ [AuthProvider] 로그인 상태 — next 복귀", safeNext);
+            console.log("✅ [AuthProvider] 로그인 상태 — next/invite 복귀", safeNext);
             navigate(safeNext, { replace: true });
           } else {
-            console.log("✅ [AuthProvider] 로그인 상태 — /hub 복귀");
-            navigate("/hub", { replace: true });
+            const pendingInvite = getPendingInviteReturnPath();
+            if (pendingInvite) {
+              console.log("✅ [AuthProvider] 로그인 상태 — pending invite 복귀", pendingInvite);
+              navigate(pendingInvite, { replace: true });
+            } else {
+              console.log("✅ [AuthProvider] 로그인 상태 — /hub 복귀");
+              navigate("/hub", { replace: true });
+            }
           }
         }
       } else {

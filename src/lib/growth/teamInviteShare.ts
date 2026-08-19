@@ -30,7 +30,7 @@ function normalizePublicAppOrigin(origin: string): string {
 }
 
 /** 로컬 개발 주소 여부 — 카카오/문자로내면 상대방이 열 수 없음 */
-function isLoopbackPublicOrigin(origin: string): boolean {
+export function isLoopbackPublicOrigin(origin: string): boolean {
   if (!origin.trim()) return false;
   try {
     const u = new URL(origin.includes("://") ? origin : `https://${origin}`);
@@ -52,7 +52,8 @@ function isLoopbackPublicOrigin(origin: string): boolean {
  * 카카오·클립보드 초대 등 **외부에 나가는 링크**용 베이스 URL.
  * 루프백에서 실행 중이면 `VITE_PUBLIC_APP_ORIGIN` → 없으면 야고 바이브 기본 공개 호스트.
  */
-const DEFAULT_EXTERNAL_INVITE_ORIGIN = "https://www.yagovibe.com";
+/** Hosting 프로덕션 기본값 (카카오·SMS 수신자용). VITE_PUBLIC_APP_ORIGIN 이 있으면 우선. */
+const DEFAULT_EXTERNAL_INVITE_ORIGIN = "https://yago-vibe-spt.web.app";
 
 export function getPublicAppOriginForExternalInvite(): string {
   const env = (import.meta.env.VITE_PUBLIC_APP_ORIGIN as string | undefined)?.trim().replace(/\/$/, "");
@@ -63,6 +64,12 @@ export function getPublicAppOriginForExternalInvite(): string {
     if (!isLoopbackPublicOrigin(live)) return normalizePublicAppOrigin(live);
   }
   return normalizePublicAppOrigin(DEFAULT_EXTERNAL_INVITE_ORIGIN);
+}
+
+/** 현재 탭이 localhost 등인지 — 카카오 SDK가 링크를 localhost로 치환하는 경우 방지용 */
+export function isRunningOnLoopbackHost(): boolean {
+  if (typeof window === "undefined" || !window.location?.origin) return false;
+  return isLoopbackPublicOrigin(window.location.origin);
 }
 
 function assertExternalUrlHasNoLoopbackHost(fullUrl: string): void {

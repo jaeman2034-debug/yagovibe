@@ -29,12 +29,20 @@ import type { OpsProviderLog } from "@/lib/federation/opsProviderLogTypes";
 import { getOpsSmsProvider } from "@/lib/notifications/opsSmsProvider";
 import { resolveSmsProviderMode } from "@/lib/notifications/smsProviderConfig";
 import { getNotificationProviderFactory } from "@/lib/notifications/notificationProviderFactory";
+import { FederationOpsObservabilityPanel } from "@/components/federation/FederationOpsObservabilityPanel";
+import {
+  listRecentVenueChangeLogs,
+  listTeamsForOpsObservability,
+  type OpsVenueLogRow,
+} from "@/lib/federation/opsObservabilityService";
+import type { TeamObservabilityDoc } from "@/lib/federation/opsObservability";
 
 type Props = {
   federationSlug: string;
 };
 
 const NAV: { id: OpsCenterTabId; label: string }[] = [
+  { id: "observability", label: "관측" },
   { id: "reservations", label: "예약 현황" },
   { id: "sms-queue", label: "문자 발송" },
   { id: "history", label: "발송 이력" },
@@ -77,12 +85,14 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
   const providerMode = resolveSmsProviderMode();
   const outbound = getNotificationProviderFactory();
   const kakaoStatus = outbound.kakaoStatus;
-  const [subTab, setSubTab] = useState<OpsCenterTabId>("stats");
+  const [subTab, setSubTab] = useState<OpsCenterTabId>("observability");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notifs, setNotifs] = useState<OpsNotificationRow[]>([]);
   const [reservations, setReservations] = useState<OpsReservationRow[]>([]);
   const [providerLogs, setProviderLogs] = useState<OpsProviderLog[]>([]);
+  const [obsTeams, setObsTeams] = useState<TeamObservabilityDoc[]>([]);
+  const [venueLogs, setVenueLogs] = useState<OpsVenueLogRow[]>([]);
   const [teamFilter, setTeamFilter] = useState("");
   const [kindFilter, setKindFilter] = useState<OpsMessageKind | "all">("all");
   const [statusFilter, setStatusFilter] = useState<OpsDeliveryFilter | "all">("all");
@@ -95,14 +105,18 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const [n, r, logs] = await Promise.all([
+      const [n, r, logs, teams, vlogs] = await Promise.all([
         listFederationOpsNotifications(federationSlug, { max: 200 }),
         listFederationOpsReservations(federationSlug, 80),
         listFederationOpsProviderLogs(federationSlug, 40),
+        listTeamsForOpsObservability(federationSlug, 40),
+        listRecentVenueChangeLogs(federationSlug, 40),
       ]);
       setNotifs(n);
       setReservations(r);
       setProviderLogs(logs);
+      setObsTeams(teams);
+      setVenueLogs(vlogs);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "운영센터 데이터를 불러오지 못했습니다.");
     } finally {
@@ -209,7 +223,7 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
         <div>
           <h2 className="text-lg font-semibold text-gray-900">운영센터</h2>
           <p className="text-sm text-gray-600">
-            예약·문자/알림톡·발송 이력·실패·재시도를 한곳에서 관리합니다. (Sprint C)
+            관측·예약·문자/알림톡·발송 이력·실패·재시도 (Sprint C + 3-1 Observability)
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -279,6 +293,16 @@ export function FederationOperationsCenterPanel({ federationSlug }: Props) {
             <p className="text-sm text-gray-500">불러오는 중…</p>
           ) : (
             <>
+              {subTab === "observability" && (
+                <FederationOpsObservabilityPanel
+                  notifications={notifs}
+                  reservations={reservations}
+                  teams={obsTeams}
+                  venueLogs={venueLogs}
+                  providerLogs={providerLogs}
+                />
+              )}
+
               {subTab === "stats" && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 space-y-3">

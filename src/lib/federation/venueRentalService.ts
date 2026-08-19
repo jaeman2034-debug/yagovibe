@@ -21,6 +21,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { parseCanonicalVenueDepositAccount } from "@/lib/federation/venueDepositAccount";
 import {
   buildSlotsFromPolicy,
   DEFAULT_VENUE_BOOKING_POLICY,
@@ -119,6 +120,7 @@ function parseVenue(id: string, raw: Record<string, unknown>): FederationVenue {
       typeof raw.depositAccountGuide === "string" && raw.depositAccountGuide.trim()
         ? raw.depositAccountGuide.trim()
         : null,
+    depositAccount: parseCanonicalVenueDepositAccount(raw.depositAccount),
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   };
@@ -152,15 +154,22 @@ async function resolveAdminDisplayName(uid: string): Promise<string | undefined>
   }
 }
 
-/** Hot fix — persist display-only deposit guide on venue doc. */
-export async function saveVenueDepositAccountGuide(input: {
+/** Persist canonical venue-level deposit account plus a compatible display guide. */
+export async function saveVenueDepositAccount(input: {
   federationSlug: string;
   venueId: string;
-  depositAccountGuide: string;
+  depositAccount: {
+    bankName: string;
+    accountNumber: string;
+    accountHolder: string;
+  };
 }): Promise<void> {
-  const guide = input.depositAccountGuide.trim();
+  const account = parseCanonicalVenueDepositAccount(input.depositAccount);
+  if (!account) throw new Error("은행, 계좌번호, 예금주를 모두 입력하세요.");
+  const guide = [account.bankName, account.accountNumber, account.accountHolder].join("\n");
   await updateDoc(doc(db, "federations", input.federationSlug, "venues", input.venueId), {
-    depositAccountGuide: guide || null,
+    depositAccount: account,
+    depositAccountGuide: guide,
     updatedAt: serverTimestamp(),
   });
 }

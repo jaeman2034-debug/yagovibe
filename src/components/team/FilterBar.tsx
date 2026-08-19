@@ -56,58 +56,55 @@ export function FilterBar({
   onKeywordChange,
 }: FilterBarProps) {
   return (
-    <Card variant="info" className="mb-6">
-      <div className="space-y-4">
-        {/* 종목 선택 */}
+    <Card variant="info" className="mx-4 mb-4">
+      <div className="space-y-3">
+        {/* 1) 키워드 — 탐색 최우선 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-            <Filter className="w-4 h-4" />
-            종목
-          </label>
-          <select
-            value={sportType}
-            onChange={(e) => onSportTypeChange(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            {TEAM_SEARCH_SPORT_OPTIONS.map((sport) => (
-              <option key={sport.value} value={sport.value}>
-                {sport.icon} {sport.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* 지역 선택 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            지역
-          </label>
-          <select
-            value={region}
-            onChange={(e) => onRegionChange(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* 키워드 검색 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-            <Search className="w-4 h-4" />
-            키워드
+          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+            <Search className="h-4 w-4" />
+            검색
           </label>
           <input
             type="text"
             value={keyword}
             onChange={(e) => onKeywordChange(e.target.value)}
             placeholder="팀명으로 검색"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">
+              <Filter className="h-3.5 w-3.5" />
+              종목
+            </label>
+            <select
+              value={sportType}
+              onChange={(e) => onSportTypeChange(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            >
+              {TEAM_SEARCH_SPORT_OPTIONS.map((sport) => (
+                <option key={sport.value} value={sport.value}>
+                  {sport.icon} {sport.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">지역</label>
+            <select
+              value={region}
+              onChange={(e) => onRegionChange(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            >
+              {REGIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
     </Card>

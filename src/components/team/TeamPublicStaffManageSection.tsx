@@ -103,31 +103,39 @@ export function TeamPublicStaffManageSection({ teamId, team, dark = false, onUpd
 
   const editingLocked = editingKey !== null;
 
-  const guardEditingLock = () => {
-    if (editingLocked) {
-      toast.message("진행 중인 편집을 저장하거나 취소해 주세요.");
-      return true;
-    }
-    return false;
+  /** 진행 중 신규(신규/수정) 폐기 후 기준 목록 반환 — 수정·삭제 전환용 */
+  const discardDraftSession = (): TeamPublicStaffMember[] => {
+    const base = staffSnapshotOnEditOpen.current
+      ? cloneList(staffSnapshotOnEditOpen.current)
+      : cloneList(staff);
+    staffSnapshotOnEditOpen.current = null;
+    setStaff(base);
+    setEditingKey(null);
+    setEditDraft(null);
+    setTitleOtherMode(false);
+    return base;
   };
 
   const beginEdit = (row: TeamPublicStaffMember) => {
-    if (guardEditingLock()) return;
-    staffSnapshotOnEditOpen.current = cloneList(staff);
-    setEditingKey(row.id);
-    setEditDraft(cloneMember(row));
-    const t = row.title.trim();
+    if (editingKey === row.id) return;
+    const base = editingLocked ? discardDraftSession() : cloneList(staff);
+    const target = base.find((x) => x.id === row.id) ?? row;
+    staffSnapshotOnEditOpen.current = cloneList(base);
+    setEditingKey(target.id);
+    setEditDraft(cloneMember(target));
+    const t = target.title.trim();
     setTitleOtherMode(Boolean(t && !(STAFF_POSITION_PRESETS as readonly string[]).includes(t)));
   };
 
   const beginAdd = () => {
-    if (guardEditingLock()) return;
-    if (staff.length >= MAX_STAFF) {
+    if (editingKey === "new") return;
+    const base = editingLocked ? discardDraftSession() : cloneList(staff);
+    if (base.length >= MAX_STAFF) {
       toast.message(`운영진은 최대 ${MAX_STAFF}명까지 추가할 수 있어요.`);
       return;
     }
-    staffSnapshotOnEditOpen.current = cloneList(staff);
-    const order = staff.length ? Math.max(...staff.map((r) => r.order)) + 10 : 0;
+    staffSnapshotOnEditOpen.current = cloneList(base);
+    const order = base.length ? Math.max(...base.map((r) => r.order)) + 10 : 0;
     setEditingKey("new");
     setEditDraft({
       id: newStaffId(),
@@ -141,13 +149,7 @@ export function TeamPublicStaffManageSection({ teamId, team, dark = false, onUpd
   };
 
   const cancelEdit = () => {
-    if (staffSnapshotOnEditOpen.current) {
-      setStaff(cloneList(staffSnapshotOnEditOpen.current));
-    }
-    staffSnapshotOnEditOpen.current = null;
-    setEditingKey(null);
-    setEditDraft(null);
-    setTitleOtherMode(false);
+    discardDraftSession();
   };
 
   const patchDraft = (patch: Partial<TeamPublicStaffMember>) => {
@@ -227,7 +229,7 @@ export function TeamPublicStaffManageSection({ teamId, team, dark = false, onUpd
     try {
       await setTeamPublicStaffCallable({ teamId: tid, staff: sortStaff(nextList) });
       toast.dismiss(t);
-      toast.success("저장했어요. 아래 「운영진 소개」에 반영됩니다.");
+      toast.success("저장했어요. 공개 페이지 「운영진 소개」에 반영됩니다.");
       await onUpdated();
       return true;
     } catch (e: unknown) {
@@ -258,9 +260,9 @@ export function TeamPublicStaffManageSection({ teamId, team, dark = false, onUpd
   };
 
   const removeRow = async (id: string) => {
-    if (guardEditingLock()) return;
+    const base = editingLocked ? discardDraftSession() : staff;
     if (!window.confirm("이 운영진 항목을 삭제할까요?")) return;
-    const next = staff.filter((r) => r.id !== id);
+    const next = base.filter((r) => r.id !== id);
     await persistStaff(next);
   };
 
@@ -279,15 +281,15 @@ export function TeamPublicStaffManageSection({ teamId, team, dark = false, onUpd
         "relative rounded-2xl border p-4 sm:p-5",
         dark ? "border-slate-600/80 bg-slate-800/30 text-slate-100" : "border-gray-200 bg-white/95 text-gray-900"
       )}
-      aria-label="운영진 소개 관리"
+      aria-label="운영진 관리"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className={cn("text-sm font-semibold tracking-tight", dark ? "text-slate-100" : "text-gray-900")}>
-            운영진 소개 관리
+            운영진 추가 · 수정 · 삭제
           </h3>
           <p className={cn("mt-1 max-w-xl text-xs leading-relaxed", dark ? "text-slate-400" : "text-gray-500")}>
-            대표(회장) 카드와 별도입니다. 목록에서 수정·삭제하고, 추가는 필요할 때만 펼칩니다.
+            편집 도구입니다. 저장하면 공개 페이지 「운영진 소개」에 표시됩니다(회장 제외).
           </p>
         </div>
       </div>
@@ -418,7 +420,7 @@ export function TeamPublicStaffManageSection({ teamId, team, dark = false, onUpd
                         size="sm"
                         variant="outline"
                         className={cn("h-8 gap-1 px-2.5 text-xs", dark ? "border-slate-500 text-slate-100" : "")}
-                        disabled={busy || editingLocked}
+                        disabled={busy}
                         onClick={() => beginEdit(r)}
                       >
                         <Pencil className="h-3 w-3" aria-hidden />
@@ -429,7 +431,7 @@ export function TeamPublicStaffManageSection({ teamId, team, dark = false, onUpd
                         size="sm"
                         variant="ghost"
                         className="h-8 gap-1 px-2.5 text-xs text-red-600 hover:text-red-700"
-                        disabled={busy || editingLocked}
+                        disabled={busy}
                         onClick={() => void removeRow(r.id)}
                       >
                         <Trash2 className="h-3 w-3" aria-hidden />
@@ -486,7 +488,7 @@ export function TeamPublicStaffManageSection({ teamId, team, dark = false, onUpd
               type="button"
               size="sm"
               variant="outline"
-              disabled={busy || editingLocked || staff.length >= MAX_STAFF}
+              disabled={busy || staff.length >= MAX_STAFF}
               className={cn("w-full gap-1 text-xs sm:w-auto", dark ? "border-slate-500 text-slate-100 hover:bg-slate-700" : "")}
               onClick={beginAdd}
             >
@@ -533,6 +535,14 @@ function StaffEditorForm({
   disableMoveDown,
   hideReorder,
 }: StaffEditorFormProps) {
+  const [dragOver, setDragOver] = useState(false);
+  const photoBlocked = busy || photoBusy;
+
+  const openPhotoPicker = () => {
+    if (photoBlocked) return;
+    document.getElementById(`photo-edit-${draft.id}`)?.click();
+  };
+
   return (
     <div className="flex flex-wrap items-start gap-3">
       {!hideReorder ? (
@@ -598,7 +608,7 @@ function StaffEditorForm({
             />
           </div>
         </div>
-        <div className="flex flex-col gap-4 sm:items-end">
+        <div className="flex flex-col gap-3 sm:items-end">
           <div className="flex w-full max-w-xs items-center justify-between gap-3 sm:max-w-none">
             <Label htmlFor={`vis-edit-${draft.id}`} className={cn("text-xs font-medium", dark ? "text-slate-200" : "text-gray-800")}>
               공개 페이지에 표시
@@ -610,27 +620,87 @@ function StaffEditorForm({
               onCheckedChange={(c) => patchDraft({ visible: c })}
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              id={`photo-edit-${draft.id}`}
-              disabled={busy}
-              onChange={(e) => void onPhoto(e.target.files)}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className={cn("gap-1 text-xs", dark ? "border-slate-500 text-slate-100" : "")}
-              disabled={busy || photoBusy}
-              onClick={() => document.getElementById(`photo-edit-${draft.id}`)?.click()}
-              title="가운데 기준 1:1로 잘라 올립니다."
-            >
-              {photoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <ImagePlus className="h-3.5 w-3.5" aria-hidden />}
-              사진 (1:1)
-            </Button>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            id={`photo-edit-${draft.id}`}
+            disabled={photoBlocked}
+            onChange={(e) => void onPhoto(e.target.files)}
+          />
+          <div
+            role="button"
+            tabIndex={photoBlocked ? -1 : 0}
+            aria-label="운영진 사진 — 클릭 또는 이미지 드래그 (1:1)"
+            aria-disabled={photoBlocked}
+            onClick={openPhotoPicker}
+            onKeyDown={(e) => {
+              if (photoBlocked) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                openPhotoPicker();
+              }
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!photoBlocked) setDragOver(true);
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!photoBlocked) setDragOver(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragOver(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragOver(false);
+              if (photoBlocked) return;
+              void onPhoto(e.dataTransfer.files);
+            }}
+            className={cn(
+              "relative flex w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-3 py-4 text-center transition sm:max-w-none",
+              dark
+                ? "border-slate-500 bg-slate-900/50 text-slate-200 hover:border-slate-400"
+                : "border-gray-300 bg-slate-50/80 text-gray-700 hover:border-indigo-300 hover:bg-indigo-50/40",
+              dragOver && (dark ? "border-violet-400 bg-violet-950/40 ring-2 ring-violet-400/50" : "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-300/60"),
+              photoBlocked && "pointer-events-none opacity-70"
+            )}
+            title="가운데 기준 1:1로 잘라 올립니다."
+          >
+            {draft.photoUrl ? (
+              <img
+                src={draft.photoUrl}
+                alt=""
+                className="pointer-events-none h-20 w-20 rounded-full object-cover ring-2 ring-white shadow-sm dark:ring-slate-700"
+              />
+            ) : (
+              <div
+                className={cn(
+                  "flex h-20 w-20 items-center justify-center rounded-full",
+                  dark ? "bg-slate-800 text-slate-400" : "bg-white text-gray-400 shadow-inner"
+                )}
+              >
+                {photoBusy ? (
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                ) : (
+                  <ImagePlus className="h-5 w-5" aria-hidden />
+                )}
+              </div>
+            )}
+            <div className="space-y-0.5">
+              <p className="text-xs font-semibold">
+                {photoBusy ? "사진 처리 중…" : dragOver ? "여기에 놓으면 업로드" : "사진 (1:1)"}
+              </p>
+              <p className={cn("text-[10px] leading-snug", dark ? "text-slate-400" : "text-gray-500")}>
+                클릭하거나 이미지를 끌어다 놓으세요
+              </p>
+            </div>
           </div>
         </div>
       </div>

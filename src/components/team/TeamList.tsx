@@ -1,9 +1,8 @@
 /**
- * 🔥 TeamList - 팀 목록 컴포넌트 (STEP: 팀원 가입 플로우)
- *
- * TeamCard 리스트 표시
- * - 검색/지역 필터 없음 + 목록 비어 있음 → 안내 + 추천 팀 (허브와 동일 소스)
- * - 필터 적용 후 비어 있음 → “결과 없음” + 종목 허브로 이동
+ * TeamList — 팀 탐색 (검색 우선)
+ * 1) FilterBar (키워드·종목·지역)
+ * 2) 협회 연결 추천팀
+ * 3) 전체 활동팀
  */
 
 import { useMemo, useState, useEffect } from "react";
@@ -11,7 +10,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { TeamCard } from "./TeamCard";
 import { FilterBar } from "./FilterBar";
 import { usePublicTeams } from "@/hooks/usePublicTeams";
-import { RecommendedTeamsSection } from "@/features/sports/team/RecommendedTeamsSection";
+import { RecommendedTeamCard } from "@/features/sports/team/RecommendedTeamCard";
 import {
   fetchRecommendedTeamsForSport,
   type RecommendedTeamRow,
@@ -36,34 +35,13 @@ export function TeamList() {
     sportType,
   });
 
-  const filteredTeams = useMemo(() => {
-    return teams.filter((team) => {
-      const matchesRegion = region === "전체" || team.region === region;
-      const matchesKeyword =
-        !keyword.trim() || team.name.toLowerCase().includes(keyword.trim().toLowerCase());
-      return matchesRegion && matchesKeyword;
-    });
-  }, [teams, region, keyword]);
-
-  const hasActiveFilter = keyword.trim().length > 0 || region !== "전체";
-
-  const showBrowseHint =
-    !loading && filteredTeams.length === 0 && !hasActiveFilter;
-  const showFilteredEmpty =
-    !loading && filteredTeams.length === 0 && hasActiveFilter;
-
   const [recommended, setRecommended] = useState<RecommendedTeamRow[]>([]);
-  const [recommendedLoading, setRecommendedLoading] = useState(false);
+  const [recommendedLoading, setRecommendedLoading] = useState(true);
 
   useEffect(() => {
-    if (!showBrowseHint) {
-      setRecommended([]);
-      setRecommendedLoading(false);
-      return;
-    }
     let cancelled = false;
     setRecommendedLoading(true);
-    void fetchRecommendedTeamsForSport(hubSportSlug, { max: 10 })
+    void fetchRecommendedTeamsForSport(hubSportSlug, { max: 16 })
       .then((rows) => {
         if (!cancelled) setRecommended(rows);
       })
@@ -76,7 +54,41 @@ export function TeamList() {
     return () => {
       cancelled = true;
     };
-  }, [showBrowseHint, hubSportSlug]);
+  }, [hubSportSlug]);
+
+  const federationTeams = useMemo(
+    () => recommended.filter((t) => t.source === "federation"),
+    [recommended]
+  );
+
+  const federationIds = useMemo(() => new Set(federationTeams.map((t) => t.id)), [federationTeams]);
+
+  const kw = keyword.trim().toLowerCase();
+
+  const filteredFederation = useMemo(() => {
+    return federationTeams.filter((team) => {
+      const matchesRegion = region === "전체" || team.region === region;
+      const matchesKeyword = !kw || team.name.toLowerCase().includes(kw);
+      return matchesRegion && matchesKeyword;
+    });
+  }, [federationTeams, region, kw]);
+
+  const filteredTeams = useMemo(() => {
+    return teams.filter((team) => {
+      if (federationIds.has(team.id)) return false;
+      const matchesRegion = region === "전체" || team.region === region;
+      const matchesKeyword = !kw || team.name.toLowerCase().includes(kw);
+      return matchesRegion && matchesKeyword;
+    });
+  }, [teams, region, kw, federationIds]);
+
+  const hasActiveFilter = kw.length > 0 || region !== "전체";
+  const showFilteredEmpty =
+    !loading &&
+    !recommendedLoading &&
+    filteredTeams.length === 0 &&
+    filteredFederation.length === 0 &&
+    hasActiveFilter;
 
   const handleSportTypeChange = (newSportType: string) => {
     setSearchParams((prev) => {
@@ -90,8 +102,13 @@ export function TeamList() {
     navigate(`/sports/${encodeURIComponent(hubSportSlug)}?tab=team`);
   };
 
+  const fedTitle =
+    federationTeams[0]?.federationName?.trim() ||
+    (hubSportSlug === "soccer" ? "노원구 축구협회" : "협회");
+
   return (
-    <section className="w-full py-6">
+    <section className="w-full py-4">
+      {/* 1순위: 검색 */}
       <FilterBar
         sportType={sportType}
         region={region}
@@ -101,17 +118,7 @@ export function TeamList() {
         onKeywordChange={setKeyword}
       />
 
-      {loading ? (
-        <div className="py-8 text-center">
-          <p className="text-gray-500">로딩 중...</p>
-        </div>
-      ) : filteredTeams.length > 0 ? (
-        <div className="space-y-4">
-          {filteredTeams.map((team) => (
-            <TeamCard key={team.id} team={team} />
-          ))}
-        </div>
-      ) : showFilteredEmpty ? (
+      {showFilteredEmpty ? (
         <div className="rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-10 text-center dark:border-amber-900/40 dark:bg-amber-950/20">
           <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
             조건에 맞는 팀을 찾을 수 없습니다
@@ -123,33 +130,65 @@ export function TeamList() {
             종목 허브 · 팀 탭으로 이동
           </Button>
         </div>
-      ) : showBrowseHint ? (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-blue-100 bg-blue-50/90 px-4 py-4 dark:border-blue-900/40 dark:bg-blue-950/25">
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              팀 이름으로 검색해 보세요
+      ) : (
+        <div className="space-y-6 px-4">
+          {/* 2순위: 협회 연결 추천팀 */}
+          {(recommendedLoading || filteredFederation.length > 0) && (
+            <div>
+              <h2 className="mb-1 text-base font-bold text-gray-900 dark:text-white">
+                🔥 {fedTitle} 추천팀
+              </h2>
+              <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                협회 CMS에서 홈페이지가 연결된 팀이에요. 카드를 눌러 팀 홈으로 이동할 수 있습니다.
+              </p>
+              {recommendedLoading ? (
+                <div className="flex flex-col gap-2">
+                  {[0, 1].map((i) => (
+                    <div
+                      key={i}
+                      className="h-[110px] animate-pulse rounded-xl bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-800"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {filteredFederation.map((t, i) => (
+                    <RecommendedTeamCard
+                      key={t.id}
+                      team={t}
+                      sport={hubSportSlug}
+                      featured={i === 0}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3순위: 전체 활동팀 */}
+          <div>
+            <h2 className="mb-1 text-base font-bold text-gray-900 dark:text-white">전체 활동팀</h2>
+            <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+              공개된 활동 팀 목록입니다. 검색·지역으로 좁혀 보세요.
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
-              아직 목록에 없어도 아래 추천 팀에서 바로 둘러볼 수 있어요. 종목·지역은 위에서 바꿀 수 있습니다.
-            </p>
-          </div>
-          <RecommendedTeamsSection
-            sport={hubSportSlug}
-            teams={recommended}
-            loading={recommendedLoading}
-          />
-          {!recommendedLoading && recommended.length === 0 ? (
-            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-              추천할 팀이 아직 없습니다. 나중에 다시 확인하거나 팀을 만들어 보세요.
-            </p>
-          ) : null}
-          <div className="flex justify-center pb-4">
-            <Button type="button" variant="outline" onClick={goTeamHub}>
-              종목 허브 팀 탭으로 돌아가기
-            </Button>
+            {loading ? (
+              <p className="py-6 text-center text-sm text-gray-500">로딩 중...</p>
+            ) : filteredTeams.length > 0 ? (
+              <div className="space-y-3">
+                {filteredTeams.map((team) => (
+                  <TeamCard key={team.id} team={team} />
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-gray-200 px-3 py-6 text-center text-sm text-gray-500 dark:border-gray-700">
+                {hasActiveFilter
+                  ? "이 조건의 추가 활동 팀이 없습니다."
+                  : "아직 등록된 활동 팀이 없습니다. 위 협회 추천팀을 먼저 둘러보세요."}
+              </p>
+            )}
           </div>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }

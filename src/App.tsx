@@ -97,6 +97,9 @@ const OrgBillingCenter = lazy(() => import("./pages/admin/OrgBillingCenter"));
 const BillingAnalyticsPage = lazy(() => import("./pages/admin/BillingAnalyticsPage"));
 const BillingCohortPage = lazy(() => import("./pages/admin/BillingCohortPage"));
 const MRRDashboard = lazy(() => import("./pages/admin/MRRDashboard"));
+const AiOperationsDashboard = lazy(() => import("./pages/admin/AiOperationsDashboard"));
+const AiPromptReview = lazy(() => import("./pages/admin/AiPromptReview"));
+const NcpAlimTalkCanaryDryRunPage = lazy(() => import("./pages/admin/NcpAlimTalkCanaryDryRunPage"));
 const ChaosTesting = lazy(() => import("./pages/admin/ChaosTesting"));
 const PilotConsole = lazy(() => import("./pages/admin/PilotConsole"));
 const LaunchReadiness = lazy(() => import("./pages/admin/LaunchReadiness"));
@@ -1726,6 +1729,30 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="ai-operations"
+                element={
+                  <ProtectedRoute>
+                    <AiOperationsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="ai-prompt-review"
+                element={
+                  <ProtectedRoute>
+                    <AiPromptReview />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="ncp-alimtalk-canary"
+                element={
+                  <ProtectedRoute>
+                    <NcpAlimTalkCanaryDryRunPage />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
 
             {/* 🔥 /app/admin/* 라우트들도 MainLayout 밖으로 분리 */}
@@ -1769,6 +1796,8 @@ export default function App() {
               <Route path="mrr" element={<Navigate to="/admin/mrr" replace />} />
               <Route path="billing-analytics" element={<Navigate to="/admin/billing-analytics" replace />} />
               <Route path="billing-cohort" element={<Navigate to="/admin/billing-cohort" replace />} />
+              <Route path="ai-operations" element={<Navigate to="/admin/ai-operations" replace />} />
+              <Route path="ai-prompt-review" element={<Navigate to="/admin/ai-prompt-review" replace />} />
               <Route path="governance-console" element={<AdminGovernanceConsole />} />
               <Route path="chaos-testing" element={<ChaosTesting />} />
               <Route path="pilot-console" element={<PilotConsole />} />

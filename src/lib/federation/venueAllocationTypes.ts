@@ -35,6 +35,52 @@ export type VenueAllocationChangeType =
   | "ALLOCATION_FINALIZE"
   | "ALLOCATION_UNFINALIZE";
 
+/** Immutable, server-authored monetary provenance for an allocatable request. */
+export type CanonicalPricingSnapshot = {
+  pricingStatus: "QUOTED";
+  billingUnit: "BLOCK_2H";
+  blockCount: number;
+  baseAmount: number;
+  lightingAmount: number;
+  surchargeAmount: number;
+  totalAmount: number;
+  policyId: string;
+  policyVersion: number;
+  policyEffectiveFrom: string;
+  lightingScheduleRef: string | null;
+  holidayClassification: "WEEKEND" | "TRUSTED_HOLIDAY" | "WEEKDAY";
+  calculationLines: Array<{
+    code: string;
+    quantity: number;
+    unit: "BLOCK_2H" | "LIGHTING_HOUR";
+    amount: number;
+  }>;
+  calculatedAt: unknown;
+  serverCalculated: true;
+  engineVersion: string;
+};
+
+/** Server-derived non-monetary record that remains non-allocatable. */
+export type ReviewRequiredPricingSnapshot = {
+  pricingStatus: "REVIEW_REQUIRED";
+  reviewReason: string;
+  billingUnit: "BLOCK_2H" | null;
+  blockCount: number | null;
+  baseAmount: null;
+  lightingAmount: null;
+  surchargeAmount: null;
+  totalAmount: null;
+  policyId: string | null;
+  policyVersion: number | null;
+  policyEffectiveFrom: string | null;
+  lightingScheduleRef: string | null;
+  holidayClassification: "WEEKEND" | "TRUSTED_HOLIDAY" | "WEEKDAY" | "UNRESOLVED";
+  calculationLines: [];
+  calculatedAt: unknown;
+  serverCalculated: true;
+  engineVersion: string;
+};
+
 export const VENUE_ALLOCATION_REASON_OPTIONS: Array<{
   code: VenueAllocationChangeReasonCode;
   label: string;
@@ -66,7 +112,7 @@ export type VenueAllocationRequest = {
   paymentStatus: "UNCONFIRMED" | "CONFIRMED";
   pricingStatus?: "QUOTED" | "REVIEW_REQUIRED";
   pricingPolicyId?: string | null;
-  pricingSnapshot?: unknown | null;
+  pricingSnapshot?: CanonicalPricingSnapshot | ReviewRequiredPricingSnapshot | null;
   baseAmount: number;
   lightingAmount: number;
   totalAmount: number;
@@ -92,6 +138,10 @@ export type VenueSlotAllocation = {
   endTime: string;
   allocatedTeamId: string;
   allocatedTeamName?: string;
+  /** PR4-1.5 */
+  teamKind?: "platform" | "guest";
+  guestTeamId?: string | null;
+  platformTeamId?: string | null;
   allocatedRequestId: string;
   allocatedByUid: string;
   allocatedAt?: unknown;

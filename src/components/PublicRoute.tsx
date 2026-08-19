@@ -4,6 +4,7 @@ import { auth } from "@/lib/firebase";
 import { usePostAuthBootstrapGate } from "@/hooks/usePostAuthBootstrapGate";
 import { AuthBootSplash } from "@/components/auth/AuthBootSplash";
 import { sanitizePostLoginRedirectTarget } from "@/lib/auth/sanitizePostLoginRedirect";
+import { getPendingInviteReturnPath } from "@/lib/auth/pendingInviteReturn";
 
 interface PublicRouteProps {
   children: JSX.Element;
@@ -41,7 +42,8 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
 
   if (sessionUser && !sessionUser.isAnonymous) {
     const params = new URLSearchParams(location.search);
-    const rawNext = params.get("next") ?? params.get("redirect");
+    const rawNext =
+      params.get("next") ?? params.get("redirect") ?? getPendingInviteReturnPath();
     const safeNext = sanitizePostLoginRedirectTarget(rawNext);
     if (safeNext && safeNext.startsWith("/") && !safeNext.startsWith("//") && safeNext.length < 2048) {
       return <Navigate to={safeNext} replace />;

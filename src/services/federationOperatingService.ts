@@ -6,6 +6,7 @@
 import {
   addDoc,
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -13,6 +14,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -78,6 +80,9 @@ function parseTeam(id: string, raw: Record<string, unknown>): FederationOperatin
     annualFeeAmount: typeof raw.annualFeeAmount === "number" ? Math.floor(raw.annualFeeAmount) : 2_500_000,
     isActive: raw.isActive !== false,
     createdAt: isoFromFirestoreValue(raw.createdAt),
+    platformTeamId: typeof raw.platformTeamId === "string" && raw.platformTeamId.trim()
+      ? raw.platformTeamId.trim()
+      : undefined,
   };
 }
 
@@ -151,6 +156,324 @@ export function subscribeFederationTeams(
     },
     (e) => onError?.(e)
   );
+}
+
+/** CMS 「공개 홈페이지 연결」용 플랫폼 팀 선택 항목 */
+export type PlatformTeamPickItem = {
+  id: string;
+  name: string;
+  /** 동명 구분용 부제: 지역 · 협회 · 팀장 · 생성일 */
+  subtitle: string;
+  region?: string;
+  federationLabel?: string;
+  captainName?: string;
+  createdAtLabel?: string;
+  /** 이 협회(또는 전달된 맵)에서 이미 다른 협회 팀에 연결됨 */
+  alreadyLinked?: boolean;
+  linkedToFederationTeamName?: string;
+};
+
+export type PlatformTeamLinkOccupancy = {
+  federationTeamId: string;
+  federationTeamName: string;
+};
+
+function platformTeamDisplayName(data: Record<string, unknown>): string {
+  const name = String(data.name || data.teamName || data.title || "").trim();
+  return name || "(이름 없음)";
+}
+
+function pickString(...vals: unknown[]): string | undefined {
+  for (const v of vals) {
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return undefined;
+}
+
+function formatTeamCreatedAt(data: Record<string, unknown>): string | undefined {
+  const raw = data.createdAt;
+  try {
+    if (raw && typeof raw === "object" && "toDate" in raw && typeof (raw as any).toDate === "function") {
+      return (raw as { toDate: () => Date }).toDate().toLocaleDateString("ko-KR");
+    }
+    if (typeof raw === "string" && raw.trim()) {
+      const d = new Date(raw);
+      if (!Number.isNaN(d.getTime())) return d.toLocaleDateString("ko-KR");
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
+function buildPlatformTeamPick(
+  id: string,
+  data: Record<string, unknown>,
+  occupancy?: PlatformTeamLinkOccupancy
+): PlatformTeamPickItem {
+  const name = platformTeamDisplayName(data);
+  const meta = (data.meta && typeof data.meta === "object" ? data.meta : {}) as Record<
+    string,
+    unknown
+  >;
+  const region = pickString(data.region, data.location, data.city, data.area, meta.region);
+  const federationLabel = pickString(
+    data.federationName,
+    data.federationSlug,
+    data.organizationName,
+    data.organizationId,
+    meta.federationName,
+    meta.federationSlug
+  );
+  const captainName = pickString(
+    data.captainName,
+    data.ownerName,
+    data.ownerDisplayName,
+    meta.captainName,
+    meta.captainNickname,
+    (data.aiProfile as any)?.captainName
+  );
+  const createdAtLabel = formatTeamCreatedAt(data);
+  const parts = [region, federationLabel, captainName ? `팀장 ${captainName}` : undefined, createdAtLabel]
+    .filter(Boolean) as string[];
+  const subtitle = parts.length > 0 ? parts.join(" · ") : id.slice(0, 8);
+
+  return {
+    id,
+    name,
+    subtitle,
+    region,
+    federationLabel,
+    captainName,
+    createdAtLabel,
+    alreadyLinked: !!occupancy,
+    linkedToFederationTeamName: occupancy?.federationTeamName,
+  };
+}
+
+/**
+ * 팀명 검색 키 정규화
+ * - 공백/대소문자/구두점 제거
+ * - 흔한 표기 차이: 녘↔녁, FC 접미
+ * 예) "새벽녘FC" ≈ "새벽녁 fc"
+ */
+export function normalizeTeamSearchKey(raw: string): string {
+  return String(raw || "")
+    .normalize("NFC")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[^0-9a-z가-힣]/gi, "")
+    .replace(/녘/g, "녁")
+    .replace(/fc$/i, "fc");
+}
+
+/** 정규화 후 부분일치 (양방향) */
+export function teamNameMatchesQuery(teamName: string, query: string): boolean {
+  const q = normalizeTeamSearchKey(query);
+  if (!q) return true;
+  const n = normalizeTeamSearchKey(teamName);
+  if (!n) return false;
+  if (n.includes(q) || q.includes(n)) return true;
+  const nBase = n.replace(/fc$/, "");
+  const qBase = q.replace(/fc$/, "");
+  if (!nBase || !qBase) return false;
+  return nBase.includes(qBase) || qBase.includes(nBase);
+}
+
+export type PlatformTeamSearchOutcome =
+  | { ok: true; items: PlatformTeamPickItem[]; emptyHint?: string }
+  | {
+      ok: false;
+      errorCode: "permission-denied" | "unavailable" | "unknown";
+      message: string;
+      items: PlatformTeamPickItem[];
+    };
+
+function mapFirestoreSearchError(e: unknown): PlatformTeamSearchOutcome {
+  const code = String((e as any)?.code || "");
+  const msg = String((e as any)?.message || e || "");
+  if (code.includes("permission-denied") || /permission/i.test(msg)) {
+    return {
+      ok: false,
+      errorCode: "permission-denied",
+      message: "조회 권한이 없습니다. 로그인·협회 관리자 권한을 확인해 주세요.",
+      items: [],
+    };
+  }
+  if (code.includes("unavailable") || /network|offline|Failed to get/i.test(msg)) {
+    return {
+      ok: false,
+      errorCode: "unavailable",
+      message: "네트워크 오류로 Firestore 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+      items: [],
+    };
+  }
+  return {
+    ok: false,
+    errorCode: "unknown",
+    message: `Firestore 조회 실패: ${msg.slice(0, 160) || "알 수 없는 오류"}`,
+    items: [],
+  };
+}
+
+/**
+ * 플랫폼 `teams` 를 팀명으로 검색·목록화한다. (운영자는 Team ID를 몰라도 됨)
+ * - 디바운스된 클라이언트 호출 전제 (자동완성)
+ * - 동명 팀: region / 협회 / 팀장 / 생성일로 구분
+ * - alreadyLinkedMap: 현재 협회에서 이미 연결된 platformTeamId
+ * - 표기 정규화: "새벽녘FC" ↔ "새벽녁 fc"
+ */
+export async function searchPlatformTeamsByName(
+  searchQuery: string,
+  options?: {
+    limitCount?: number;
+    /** platformTeamId → 이미 연결한 협회 팀 */
+    alreadyLinkedMap?: Record<string, PlatformTeamLinkOccupancy>;
+    /** 지금 연결 중인 협회 팀 — 자기 링크는 alreadyLinked 로 치지 않음 */
+    currentFederationTeamId?: string;
+  }
+): Promise<PlatformTeamSearchOutcome> {
+  const limitCount = Math.min(Math.max(options?.limitCount ?? 60, 1), 120);
+  const rawQuery = searchQuery.trim();
+  const needleKey = normalizeTeamSearchKey(rawQuery);
+  const byId = new Map<string, PlatformTeamPickItem>();
+  const linkedMap = options?.alreadyLinkedMap || {};
+  const currentFedTeamId = options?.currentFederationTeamId || "";
+
+  const pushDoc = (id: string, data: Record<string, unknown>) => {
+    if (data.isDeleted === true) return;
+    const occ = linkedMap[id];
+    const occupancy =
+      occ && occ.federationTeamId !== currentFedTeamId ? occ : undefined;
+    byId.set(id, buildPlatformTeamPick(id, data, occupancy));
+  };
+
+  try {
+    if (rawQuery) {
+      const exactSnap = await getDocs(
+        query(collection(db, "teams"), where("name", "==", rawQuery), limit(30))
+      );
+      for (const d of exactSnap.docs) {
+        pushDoc(d.id, d.data() as Record<string, unknown>);
+      }
+    }
+
+    // 자동완성용 배치 — 클라이언트 정규화 필터 (표기 차이 흡수)
+    const batchSnap = await getDocs(query(collection(db, "teams"), limit(500)));
+    for (const d of batchSnap.docs) {
+      pushDoc(d.id, d.data() as Record<string, unknown>);
+    }
+
+    let rows = Array.from(byId.values());
+    if (needleKey) {
+      rows = rows.filter(
+        (t) =>
+          teamNameMatchesQuery(t.name, rawQuery) ||
+          (t.region ? teamNameMatchesQuery(t.region, rawQuery) : false) ||
+          (t.federationLabel ? teamNameMatchesQuery(t.federationLabel, rawQuery) : false)
+      );
+      rows.sort((a, b) => {
+        if (!!a.alreadyLinked !== !!b.alreadyLinked) return a.alreadyLinked ? 1 : -1;
+        const an = normalizeTeamSearchKey(a.name);
+        const bn = normalizeTeamSearchKey(b.name);
+        const aExact = an === needleKey ? 0 : an.startsWith(needleKey) ? 1 : 2;
+        const bExact = bn === needleKey ? 0 : bn.startsWith(needleKey) ? 1 : 2;
+        if (aExact !== bExact) return aExact - bExact;
+        return a.name.localeCompare(b.name, "ko") || a.subtitle.localeCompare(b.subtitle, "ko");
+      });
+    } else {
+      rows.sort((a, b) => {
+        if (!!a.alreadyLinked !== !!b.alreadyLinked) return a.alreadyLinked ? 1 : -1;
+        return a.name.localeCompare(b.name, "ko") || a.subtitle.localeCompare(b.subtitle, "ko");
+      });
+    }
+
+    const items = rows.slice(0, limitCount);
+    if (items.length === 0 && rawQuery) {
+      return {
+        ok: true,
+        items: [],
+        emptyHint:
+          "플랫폼에 동일·유사 이름 팀이 없습니다. (표기·공백·FC 대소문자는 무시하고 검색합니다) 먼저 플랫폼에서 팀을 생성한 뒤 다시 연결해 주세요.",
+      };
+    }
+    return { ok: true, items };
+  } catch (e) {
+    console.error("[searchPlatformTeamsByName]", e);
+    return mapFirestoreSearchError(e);
+  }
+}
+
+export async function getPlatformTeamPickById(
+  platformTeamId: string,
+  options?: {
+    alreadyLinkedMap?: Record<string, PlatformTeamLinkOccupancy>;
+    currentFederationTeamId?: string;
+  }
+): Promise<PlatformTeamPickItem | null> {
+  const id = platformTeamId.trim();
+  if (!id) return null;
+  const snap = await getDoc(doc(db, "teams", id));
+  if (!snap.exists()) return null;
+  const data = snap.data() as Record<string, unknown>;
+  if (data.isDeleted === true) return null;
+  const occ = options?.alreadyLinkedMap?.[id];
+  const occupancy =
+    occ && occ.federationTeamId !== (options?.currentFederationTeamId || "")
+      ? occ
+      : undefined;
+  return buildPlatformTeamPick(snap.id, data, occupancy);
+}
+
+/**
+ * 협회 운영 팀을 이미 존재하는 플랫폼 팀 공개 허브에 1:1로 연결한다.
+ * 플랫폼 팀·멤버십을 생성하거나 변경하지 않는다.
+ */
+export async function setFederationTeamPlatformLink(
+  federationSlug: string,
+  federationTeamId: string,
+  platformTeamId: string | null
+): Promise<void> {
+  const linkId = platformTeamId?.trim() ?? "";
+  const federationTeamRef = doc(db, "federations", federationSlug, COL.teams, federationTeamId);
+
+  if (!linkId) {
+    await updateDoc(federationTeamRef, {
+      platformTeamId: deleteField(),
+      platformTeamLinkedAt: deleteField(),
+      updatedAt: serverTimestamp(),
+    });
+    return;
+  }
+
+  const platformTeam = await getDoc(doc(db, "teams", linkId));
+  if (!platformTeam.exists()) {
+    throw new Error("연결할 플랫폼 팀을 찾을 수 없습니다.");
+  }
+
+  const existingLinkQuery = query(
+    fedCol(federationSlug, COL.teams),
+    where("platformTeamId", "==", linkId),
+    limit(2)
+  );
+  const existingLinks = await getDocs(existingLinkQuery);
+  const duplicate = existingLinks.docs.find((team) => team.id !== federationTeamId);
+  if (duplicate) {
+    throw new Error("이미 다른 협회 팀에 연결된 플랫폼 팀입니다.");
+  }
+
+  await runTransaction(db, async (transaction) => {
+    const federationTeam = await transaction.get(federationTeamRef);
+    if (!federationTeam.exists()) {
+      throw new Error("협회 팀을 찾을 수 없습니다.");
+    }
+
+    transaction.update(federationTeamRef, {
+      platformTeamId: linkId,
+      platformTeamLinkedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
 }
 
 export async function listTeamFeeAccounts(federationSlug: string, year: number): Promise<TeamFeeAccount[]> {

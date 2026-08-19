@@ -19,15 +19,19 @@ import {
 import { db } from "@/lib/firebase";
 import { createNotification } from "@/services/platformNotificationService";
 import {
+  buildPaymentApprovedTemplate,
+  buildReservationConfirmedTemplate,
+  VENUE_NOTIFY_TEMPLATE,
+} from "@/lib/notifications/venueNotifyTemplates";
+import { resolveTeamContactNotifyTargets } from "@/lib/team/teamContacts";
+import {
   venueReservationDetailPath,
   type VenueReservation,
 } from "@/lib/federation/venueReservationTypes";
 import {
   GENERIC_DEPOSIT_ACCOUNT_GUIDE,
-  isSuraksanVenue,
-  NOWON_FEDERATION_DEPOSIT_GUIDE,
-  NOWON_SURAKSAN_DEPOSIT_GUIDE,
-  nowonOpsDepositFallback,
+  formatDepositAccountGuide,
+  hasConflictingDepositAccountGuide,
 } from "@/lib/federation/venueDepositAccount";
 import { getFederationVenue } from "@/lib/federation/venueRentalService";
 
@@ -45,6 +49,9 @@ export type EnsureVenueReservationInput = {
   endTime: string;
   teamId: string;
   teamName: string;
+  teamKind?: "platform" | "guest";
+  guestTeamId?: string;
+  platformTeamId?: string;
   createdByUid: string;
   allocatedByUid: string;
   allocationSource?: "REQUEST_SELECTION" | "ADMIN_DIRECT" | null;
@@ -86,6 +93,10 @@ function parseReservation(id: string, raw: Record<string, unknown>): VenueReserv
     endTime: String(raw.endTime || ""),
     teamId: String(raw.teamId || ""),
     teamName: String(raw.teamName || ""),
+    teamKind:
+      raw.teamKind === "guest" || raw.teamKind === "platform" ? raw.teamKind : undefined,
+    guestTeamId: raw.guestTeamId != null ? String(raw.guestTeamId) : null,
+    platformTeamId: raw.platformTeamId != null ? String(raw.platformTeamId) : null,
     createdByUid: String(raw.createdByUid || ""),
     allocatedByUid: String(raw.allocatedByUid || ""),
     allocationSource:
@@ -124,6 +135,12 @@ function parseReservation(id: string, raw: Record<string, unknown>): VenueReserv
     notifyDedupKey: raw.notifyDedupKey != null ? String(raw.notifyDedupKey) : null,
     claimNotifyDedupKey:
       raw.claimNotifyDedupKey != null ? String(raw.claimNotifyDedupKey) : null,
+    latestReceiptId: raw.latestReceiptId != null ? String(raw.latestReceiptId) : null,
+    paymentReceiptVerificationStatus:
+      raw.paymentReceiptVerificationStatus === "MATCH" ||
+      raw.paymentReceiptVerificationStatus === "REVIEW_REQUIRED"
+        ? raw.paymentReceiptVerificationStatus
+        : null,
   };
 }
 
@@ -139,7 +156,7 @@ export async function getVenueReservation(
 
 /**
  * Idempotent: reservationId === slotAllocationId.
- * Safe to call from client after allocate and from CF trigger.
+ * Client creates reservation only — RESERVATION_ASSIGNED notify is CF-owned (PR4-2).
  */
 export async function ensureVenueReservationAfterAllocate(
   input: EnsureVenueReservationInput
@@ -167,6 +184,9 @@ export async function ensureVenueReservationAfterAllocate(
     endTime: input.endTime,
     teamId: input.teamId,
     teamName: input.teamName || input.teamId,
+    teamKind: input.teamKind ?? (input.guestTeamId ? "guest" : "platform"),
+    guestTeamId: input.guestTeamId || null,
+    platformTeamId: input.platformTeamId || null,
     createdByUid: input.createdByUid,
     allocatedByUid: input.allocatedByUid,
     allocationSource: input.allocationSource ?? null,
@@ -219,7 +239,7 @@ export async function ensureVenueReservationAfterAllocate(
     console.warn("[ensureVenueReservationAfterAllocate] winner denorm skipped", e);
   }
 
-  // Append-only audit (best-effort)
+  // Append-only audit (best-effort) — notify audit is CF-owned
   try {
     const logRef = doc(
       collection(db, "federations", input.federationSlug, "venueAllocationChangeLogs")
@@ -233,39 +253,17 @@ export async function ensureVenueReservationAfterAllocate(
       endTime: input.endTime,
       slotAllocationId: input.slotAllocationId,
       reservationId,
+      teamId: input.teamId,
       shortReservationCode,
       allocatedRequestId: input.allocatedRequestId,
+      createdBy: input.allocatedByUid,
       changedByUid: input.allocatedByUid,
+      previousStatus: null,
+      newStatus: "ALLOCATED",
       createdAt: serverTimestamp(),
     });
   } catch (e) {
     console.warn("[ensureVenueReservationAfterAllocate] audit log skipped", e);
-  }
-
-  // In-app + FCM enqueue (existing pipeline) — only on first create
-  if (input.createdByUid) {
-    try {
-      await createNotification({
-        userId: input.createdByUid,
-        type: "SYSTEM_NOTICE",
-        title: "구장 배정이 완료되었습니다",
-        message: `예약번호 ${shortReservationCode} · ${input.venueName || input.venueId} ${input.bookingDate} ${input.startTime}–${input.endTime}`,
-        body: `입금 기한: ${DEFAULT_DEADLINE_LABEL}. 예약 상세에서 계좌·금액을 확인하세요.`,
-        link: detailPath,
-        status: "queued",
-        pushDedupKey: notifyDedupKey,
-        teamId: input.teamId,
-        teamName: input.teamName,
-        priority: "high",
-        payload: {
-          reservationId,
-          shortReservationCode,
-          federationSlug: input.federationSlug,
-        },
-      });
-    } catch (e) {
-      console.warn("[ensureVenueReservationAfterAllocate] notify skipped", e);
-    }
   }
 
   return {
@@ -283,56 +281,31 @@ export async function resolveFederationBankAccountGuide(
 
 /**
  * Venue-first deposit guide for Reservation snapshot / Detail display.
- * Priority:
- * 1) venue.depositAccountGuide (CMS)
- * 2) Nowon ops: 수락산 전용 vs 협회 계좌
- * 3) federation doc default
- * 4) generic placeholder
+ * Reads only the canonical venue-level depositAccount SoT.
+ * Missing or conflicting configuration falls back to a display-only generic guide;
+ * outbound AlimTalk remains fail-closed on the Functions path.
  */
 export async function resolveVenueDepositAccountGuide(input: {
   federationSlug: string;
   venueId: string;
   venueName?: string | null;
 }): Promise<string> {
-  let venueName = input.venueName || "";
   if (input.venueId) {
     try {
       const venue = await getFederationVenue(input.federationSlug, input.venueId);
-      if (venue?.depositAccountGuide?.trim()) return venue.depositAccountGuide.trim();
-      if (!venueName && venue?.name) venueName = venue.name;
+      if (
+        venue?.depositAccount &&
+        !hasConflictingDepositAccountGuide({
+          account: venue.depositAccount,
+          depositAccountGuide: venue.depositAccountGuide,
+        })
+      ) {
+        return formatDepositAccountGuide(venue.depositAccount) || DEFAULT_BANK_GUIDE;
+      }
     } catch {
       /* ignore */
     }
   }
-
-  if (input.federationSlug === "nowon-football") {
-    if (isSuraksanVenue(input.venueId, venueName)) return NOWON_SURAKSAN_DEPOSIT_GUIDE;
-    // non-수락산: prefer federation doc, else ops federation account
-  }
-
-  try {
-    const snap = await getDoc(doc(db, "federations", input.federationSlug));
-    if (snap.exists()) {
-      const d = snap.data() as Record<string, unknown>;
-      const meta = (d.meta && typeof d.meta === "object" ? d.meta : {}) as Record<string, unknown>;
-      const candidates = [
-        d.bankAccountGuide,
-        d.venueBankAccountGuide,
-        meta.bankAccountGuide,
-        meta.depositAccount,
-        d.bankAccount,
-      ];
-      for (const c of candidates) {
-        if (typeof c === "string" && c.trim()) return c.trim();
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-
-  if (input.federationSlug === "nowon-football") return NOWON_FEDERATION_DEPOSIT_GUIDE;
-  const ops = nowonOpsDepositFallback(input.federationSlug, input.venueId, venueName);
-  if (ops) return ops;
   return DEFAULT_BANK_GUIDE;
 }
 
@@ -387,6 +360,11 @@ export type ClaimVenueReservationInput = {
   claimantUid: string;
   /** Optional member-reported deposit datetime (local ISO or `YYYY-MM-DDTHH:mm`) */
   depositedAtLocal?: string | null;
+  /** PR4-1 — link receipt evidence (does not confirm payment) */
+  latestReceiptId?: string | null;
+  paymentReceiptVerificationStatus?: "MATCH" | "REVIEW_REQUIRED" | null;
+  /** When receipt flow already notifies managers */
+  skipManagerNotify?: boolean;
 };
 
 /**
@@ -429,7 +407,19 @@ export async function claimVenueReservationPayment(
       throw new Error("이미 확정된 예약입니다.");
     }
 
+    const receiptPatch: Record<string, unknown> = {};
+    if (input.latestReceiptId) {
+      receiptPatch.latestReceiptId = input.latestReceiptId;
+    }
+    if (input.paymentReceiptVerificationStatus) {
+      receiptPatch.paymentReceiptVerificationStatus =
+        input.paymentReceiptVerificationStatus;
+    }
+
     if (claimStatus === "REQUESTED") {
+      if (Object.keys(receiptPatch).length > 0) {
+        tx.update(ref, { ...receiptPatch, updatedAt: serverTimestamp() });
+      }
       return { already: true as const, raw };
     }
 
@@ -441,6 +431,7 @@ export async function claimVenueReservationPayment(
       paymentClaimedAt: serverTimestamp(),
       paymentClaimDepositedAt: depositedAt,
       claimNotifyDedupKey,
+      ...receiptPatch,
       updatedAt: serverTimestamp(),
     });
     return { already: false as const, raw };
@@ -502,34 +493,36 @@ export async function claimVenueReservationPayment(
     console.warn("[claimVenueReservationPayment] audit log skipped", e);
   }
 
-  try {
-    const managers = await listFederationManagerUids(input.federationSlug);
-    const targets = managers.filter((uid) => uid !== input.claimantUid);
-    await Promise.all(
-      targets.map((userId) =>
-        createNotification({
-          userId,
-          type: "SYSTEM_NOTICE",
-          title: "입금 확인 요청",
-          message: `${reservation.teamName} · ${reservation.venueName} ${reservation.bookingDate} ${reservation.startTime}–${reservation.endTime}`,
-          body: `예약번호 ${reservation.shortReservationCode}. 통장 확인 후 입금 완료 처리하세요.`,
-          link: reservation.detailPath,
-          status: "queued",
-          pushDedupKey: `${claimNotifyDedupKey}_${userId}`,
-          teamId: reservation.teamId,
-          teamName: reservation.teamName,
-          priority: "high",
-          payload: {
-            reservationId: reservation.reservationId,
-            shortReservationCode: reservation.shortReservationCode,
-            federationSlug: input.federationSlug,
-            paymentClaimStatus: "REQUESTED",
-          },
-        })
-      )
-    );
-  } catch (e) {
-    console.warn("[claimVenueReservationPayment] manager notify skipped", e);
+  if (!input.skipManagerNotify) {
+    try {
+      const managers = await listFederationManagerUids(input.federationSlug);
+      const targets = managers.filter((uid) => uid !== input.claimantUid);
+      await Promise.all(
+        targets.map((userId) =>
+          createNotification({
+            userId,
+            type: "SYSTEM_NOTICE",
+            title: "입금 확인 요청",
+            message: `${reservation.teamName} · ${reservation.venueName} ${reservation.bookingDate} ${reservation.startTime}–${reservation.endTime}`,
+            body: `예약번호 ${reservation.shortReservationCode}. 통장 확인 후 입금 완료 처리하세요.`,
+            link: reservation.detailPath,
+            status: "queued",
+            pushDedupKey: `${claimNotifyDedupKey}_${userId}`,
+            teamId: reservation.teamId,
+            teamName: reservation.teamName,
+            priority: "high",
+            payload: {
+              reservationId: reservation.reservationId,
+              shortReservationCode: reservation.shortReservationCode,
+              federationSlug: input.federationSlug,
+              paymentClaimStatus: "REQUESTED",
+            },
+          })
+        )
+      );
+    } catch (e) {
+      console.warn("[claimVenueReservationPayment] manager notify skipped", e);
+    }
   }
 
   return { reservation, claimed: true };
@@ -595,27 +588,39 @@ async function notifyReservationMember(input: {
   message: string;
   body: string;
   pushDedupKey: string;
+  templateKey?: string;
 }): Promise<void> {
-  const uid = input.reservation.createdByUid;
-  if (!uid) return;
-  await createNotification({
-    userId: uid,
-    type: "SYSTEM_NOTICE",
-    title: input.title,
-    message: input.message,
-    body: input.body,
-    link: input.reservation.detailPath,
-    status: "queued",
-    pushDedupKey: input.pushDedupKey,
+  const resolved = await resolveTeamContactNotifyTargets({
     teamId: input.reservation.teamId,
-    teamName: input.reservation.teamName,
-    priority: "high",
-    payload: {
-      reservationId: input.reservation.reservationId,
-      shortReservationCode: input.reservation.shortReservationCode,
-      federationSlug: input.reservation.federationSlug,
-    },
+    fallbackUids: [input.reservation.createdByUid],
   });
+  if (resolved.targets.length === 0) return;
+  await Promise.all(
+    resolved.targets.map((target) =>
+      createNotification({
+        userId: target.uid,
+        type: "SYSTEM_NOTICE",
+        title: input.title,
+        message: input.message,
+        body: input.body,
+        link: input.reservation.detailPath,
+        status: "queued",
+        pushDedupKey: `${input.pushDedupKey}_${target.role}_${target.uid}`,
+        teamId: input.reservation.teamId,
+        teamName: input.reservation.teamName,
+        priority: "high",
+        payload: {
+          reservationId: input.reservation.reservationId,
+          shortReservationCode: input.reservation.shortReservationCode,
+          federationSlug: input.reservation.federationSlug,
+          ...(input.templateKey ? { templateKey: input.templateKey } : {}),
+          recipientUid: target.uid,
+          recipientRole: target.role,
+          notifyTargetSource: resolved.source,
+        },
+      })
+    )
+  );
 }
 
 async function denormWinnerAndRequest(input: {
@@ -708,12 +713,18 @@ export async function confirmVenueReservationPayment(
   }
 
   try {
+    const t = buildPaymentApprovedTemplate({
+      shortReservationCode: reservation.shortReservationCode,
+      venueName: reservation.venueName,
+      bookingDate: reservation.bookingDate,
+    });
     await notifyReservationMember({
       reservation,
-      title: "입금이 확인되었습니다",
-      message: `예약번호 ${reservation.shortReservationCode} · ${reservation.venueName} ${reservation.bookingDate}`,
-      body: "협회에서 입금을 확인했습니다. 예약 확정은 별도로 진행됩니다.",
+      title: t.title,
+      message: t.message,
+      body: t.body,
       pushDedupKey: `venue_payment_confirm_${input.federationSlug}_${input.reservationId}`,
+      templateKey: t.templateKey,
     });
   } catch (e) {
     console.warn("[confirmVenueReservationPayment] notify skipped", e);
@@ -840,12 +851,20 @@ export async function finalizeVenueReservation(
   }
 
   try {
+    const t = buildReservationConfirmedTemplate({
+      shortReservationCode: reservation.shortReservationCode,
+      venueName: reservation.venueName,
+      bookingDate: reservation.bookingDate,
+      startTime: reservation.startTime,
+      endTime: reservation.endTime,
+    });
     await notifyReservationMember({
       reservation,
-      title: "예약이 최종 확정되었습니다",
-      message: `예약번호 ${reservation.shortReservationCode} · ${reservation.venueName} ${reservation.bookingDate} ${reservation.startTime}–${reservation.endTime}`,
-      body: "구장 이용이 확정되었습니다. 예약 상세에서 확인해 주세요.",
+      title: t.title,
+      message: t.message,
+      body: t.body,
       pushDedupKey: `venue_reservation_finalize_${input.federationSlug}_${input.reservationId}`,
+      templateKey: t.templateKey,
     });
   } catch (e) {
     console.warn("[finalizeVenueReservation] notify skipped", e);

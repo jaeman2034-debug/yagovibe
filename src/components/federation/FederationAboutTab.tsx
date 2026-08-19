@@ -47,12 +47,15 @@ import {
 } from "@/services/federationBatchAutoBuild";
 import { useFederationBatchAutoBuild } from "@/hooks/useFederationBatchAutoBuild";
 import BatchAutoBuildProgress from "@/components/federation/BatchAutoBuildProgress";
+import { OrganizationSection } from "@/components/federation/organization/OrganizationSection";
+import { OrganizationCmsModal } from "@/components/federation/organization/OrganizationCmsModal";
 import type {
   ContentTone,
   GeneratedContentVariant,
   ImageContentPackage,
   RecommendedUse,
 } from "@/types/imageContentPackage";
+import type { LegacyFederationExecutive } from "@/types/federationOrganization";
 
 const TONE_LABELS: Record<ContentTone, string> = {
   official: "공식·신뢰형",
@@ -359,7 +362,7 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+    <div className="w-full bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
       <div className="flex items-start justify-between gap-3 mb-4">
         <h2 className="text-xl font-bold text-gray-900">{title}</h2>
         {canEdit && (
@@ -439,7 +442,7 @@ export function FederationAboutTab({
     new URLSearchParams(window.location.search).get("devEdit") === "1";
   const canEditUI = canEdit || debugForce;
 
-  type Executive = { name: string; role: string };
+  type Executive = LegacyFederationExecutive & { name: string; role: string };
   type DynamicSectionType = "text" | "image" | "gallery";
   type DynamicSection = {
     type: DynamicSectionType;
@@ -871,20 +874,37 @@ export function FederationAboutTab({
   }, [pendingChairPreviewUrl]);
 
   useEffect(() => {
-    if (!isDraftEditMode) {
-      setExecutives([]);
-      return;
-    }
     const load = async () => {
       try {
         const snap = await getDocs(collection(db, "federations", federationSlug, "executives"));
-        setExecutives(snap.docs.map((d) => ({ name: d.data().name || "", role: d.data().role || "" })));
+        setExecutives(
+          snap.docs.map((d) => {
+            const data = d.data() as Record<string, unknown>;
+            return {
+              id: d.id,
+              name: String(data.name || ""),
+              role: String(data.role || data.position || ""),
+              position: data.position != null ? String(data.position) : undefined,
+              department: data.department != null ? String(data.department) : undefined,
+              photo:
+                (typeof data.photo === "string" && data.photo) ||
+                (typeof data.photoUrl === "string" && data.photoUrl) ||
+                null,
+              description: data.description != null ? String(data.description) : null,
+              duties: data.duties != null ? String(data.duties) : null,
+              email: data.email != null ? String(data.email) : null,
+              phone: data.phone != null ? String(data.phone) : null,
+              career: data.career != null ? String(data.career) : null,
+              order: typeof data.order === "number" ? data.order : undefined,
+            } satisfies Executive;
+          })
+        );
       } catch {
         setExecutives([]);
       }
     };
-    load();
-  }, [federationSlug, isDraftEditMode]);
+    void load();
+  }, [federationSlug]);
 
   // executives 변경 시 organization.content에 동기화 (content 단일 소스)
   useEffect(() => {
@@ -900,7 +920,28 @@ export function FederationAboutTab({
   const refreshLocal = async () => {
     try {
       const snap = await getDocs(collection(db, "federations", federationSlug, "executives"));
-      setExecutives(snap.docs.map((d) => ({ name: d.data().name || "", role: d.data().role || "" })));
+      setExecutives(
+        snap.docs.map((d) => {
+          const data = d.data() as Record<string, unknown>;
+          return {
+              id: d.id,
+              name: String(data.name || ""),
+              role: String(data.role || data.position || ""),
+              position: data.position != null ? String(data.position) : undefined,
+              department: data.department != null ? String(data.department) : undefined,
+              photo:
+                (typeof data.photo === "string" && data.photo) ||
+                (typeof data.photoUrl === "string" && data.photoUrl) ||
+                null,
+              description: data.description != null ? String(data.description) : null,
+              duties: data.duties != null ? String(data.duties) : null,
+              email: data.email != null ? String(data.email) : null,
+              phone: data.phone != null ? String(data.phone) : null,
+              career: data.career != null ? String(data.career) : null,
+              order: typeof data.order === "number" ? data.order : undefined,
+            } satisfies Executive;
+        })
+      );
     } catch {
       /* ignore */
     }
@@ -2571,9 +2612,11 @@ export function FederationAboutTab({
         type: "organization" as const,
         title: "조직 구성",
         summary: sections.organization.content.summary,
-        executives: isDraftEditMode
-          ? executives
-          : (Array.isArray(sourceRoot?.organization?.executives) ? sourceRoot.organization.executives : []),
+        // 서브컬렉션 executives를 공개/Draft 모두에서 사용 (임베드 배열 의존 제거)
+        executives,
+        federationSlug,
+        chairpersonPhotoUrl:
+          sourceRoot?.chairpersonPhotoUrl || sourceRoot?.president?.photoUrl || null,
       };
     }
     const dyn = dynamicSections[key];
@@ -2595,10 +2638,10 @@ export function FederationAboutTab({
     };
   };
 
-  // Viewer 모드: 저장된 섹션 순서/데이터만 렌더 (Editor UI 분리)
+  // Viewer: 부모(FederationHomePage max-w-7xl) 폭을 그대로 사용 — 추가 max-w 중첩 금지
   if (!canEditUI || previewMode === "published") {
     return (
-      <div className="max-w-5xl mx-auto py-2 space-y-8">
+      <div className="w-full py-2 space-y-8">
         {previewToggle}
         {canEditUI && previewMode === "published" ? (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
@@ -2608,8 +2651,16 @@ export function FederationAboutTab({
         {sectionOrder.map((key) => {
           const section = getRenderSection(key);
           if (!section) return null;
+          const isOrganization = key === "organization" || section.type === "organization";
           return (
-            <div key={key} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+            <div
+              key={key}
+              className={
+                isOrganization
+                  ? "w-full bg-white border border-gray-200 rounded-xl p-4 shadow-sm sm:p-6"
+                  : "w-full max-w-3xl mx-auto bg-white border border-gray-200 rounded-xl p-4 shadow-sm sm:p-6"
+              }
+            >
               <SectionRenderer section={section} />
             </div>
           );
@@ -2619,7 +2670,7 @@ export function FederationAboutTab({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       {previewToggle}
       {canEditUI ? (
         <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -2765,7 +2816,7 @@ export function FederationAboutTab({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
-          <div className="space-y-6">
+          <div className="w-full space-y-6">
             {sectionOrder.map((key) => (
               <SortableItem key={key} id={key}>
                 {key === "intro" ? (
@@ -3607,25 +3658,17 @@ export function FederationAboutTab({
           </Button>
         }
       >
-                        <div className="space-y-3">
-        {orgSummaryText ? (
-                            <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{orgSummaryText}</p>
-        ) : (
-                            <p className="text-gray-500">조직 운영 개요가 아직 없습니다.</p>
-        )}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {executives.length > 0 ? (
-                              executives.map((e, i) => (
-                                <div key={i} className="border rounded-xl p-4 bg-gray-50">
-                                  <p className="font-semibold text-gray-900">{e.name || "이름 미정"}</p>
-                                  <p className="text-sm text-gray-600">{e.role || "직책"}</p>
-              </div>
-                              ))
-        ) : (
-                              <p className="text-gray-500">임원 정보가 아직 없습니다.</p>
-        )}
-                          </div>
-                        </div>
+                        <OrganizationSection
+                          showTitle={false}
+                          summary={orgSummaryText || undefined}
+                          executives={executives}
+                          federationSlug={federationSlug}
+                          chairpersonPhotoUrl={
+                            sourceRoot?.chairpersonPhotoUrl ||
+                            sourceRoot?.president?.photoUrl ||
+                            null
+                          }
+                        />
       </SectionCard>
                     );
                   })()
@@ -4273,12 +4316,17 @@ export function FederationAboutTab({
         }}
       />
 
-      <ExecutivesEditModal
+      <OrganizationCmsModal
         open={modal === "executives"}
         onClose={() => setModal(null)}
+        federationSlug={federationSlug}
         initial={executives}
         initialOrgSummary={federation?.organization?.summary || ""}
+        chairpersonPhotoUrl={
+          sourceRoot?.chairpersonPhotoUrl || sourceRoot?.president?.photoUrl || null
+        }
         saving={saving}
+        onSynced={refreshLocal}
         onSave={async (payload) => {
           setSaving(true);
           try {
@@ -4471,109 +4519,6 @@ function ActivitiesEditModal({
         value={raw}
         onChange={(e) => setRaw(e.target.value)}
       />
-    </OverlayModal>
-  );
-}
-
-function ExecutivesEditModal({
-  open,
-  onClose,
-  initial,
-  initialOrgSummary,
-  saving,
-  onSave,
-}: {
-  open: boolean;
-  onClose: () => void;
-  initial: { name: string; role: string }[];
-  initialOrgSummary: string;
-  saving: boolean;
-  onSave: (payload: {
-    executives: { name: string; role: string }[];
-    organizationSummary: string;
-  }) => Promise<void>;
-}) {
-  const [rows, setRows] = useState(initial);
-  const [orgSummary, setOrgSummary] = useState(initialOrgSummary);
-  useEffect(() => {
-    if (open) {
-      setRows(initial.length ? initial : [{ name: "", role: "" }]);
-      setOrgSummary(initialOrgSummary);
-    }
-  }, [open, initial, initialOrgSummary]);
-
-  return (
-    <OverlayModal
-      open={open}
-      onClose={onClose}
-      title="조직 구성 수정"
-      footer={
-        <>
-          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
-            취소
-          </Button>
-          <Button
-            type="button"
-            onClick={() =>
-              onSave({
-                executives: rows,
-                organizationSummary: orgSummary.trim(),
-              })
-            }
-            disabled={saving}
-          >
-            {saving ? "저장 중…" : "저장"}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">조직 운영 개요 (organization.summary)</label>
-          <textarea
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[100px]"
-            placeholder="사무국·분과 역할 등 한두 문단으로 작성"
-            value={orgSummary}
-            onChange={(e) => setOrgSummary(e.target.value)}
-          />
-        </div>
-        <p className="text-xs text-gray-500">임원 명단 (역할 · 이름)</p>
-        {rows.map((row, i) => (
-          <div key={i} className="flex gap-2 flex-wrap">
-            <input
-              placeholder="역할 (예: 사무국장)"
-              className="flex-1 min-w-[120px] rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-              value={row.role}
-              onChange={(e) => {
-                const next = [...rows];
-                next[i] = { ...next[i], role: e.target.value };
-                setRows(next);
-              }}
-            />
-            <input
-              placeholder="이름"
-              className="flex-1 min-w-[120px] rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-              value={row.name}
-              onChange={(e) => {
-                const next = [...rows];
-                next[i] = { ...next[i], name: e.target.value };
-                setRows(next);
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setRows(rows.filter((_, j) => j !== i))}
-            >
-              삭제
-            </Button>
-          </div>
-        ))}
-        <Button type="button" variant="secondary" size="sm" onClick={() => setRows([...rows, { name: "", role: "" }])}>
-          행 추가
-        </Button>
-      </div>
     </OverlayModal>
   );
 }

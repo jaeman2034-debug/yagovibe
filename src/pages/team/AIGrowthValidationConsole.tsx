@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ConfidenceBadge } from "@/components/ai-growth/ConfidenceBadge";
 import {
   GrowthTrendCard,
+  LastSessionComparisonCard,
 } from "@/components/ai-growth/GrowthComparisonCards";
 import { ParentGrowthHeroCard } from "@/components/ai-growth/ParentGrowthHeroCard";
 import { Step5GrowthTimelineCard } from "@/components/ai-growth/Step5GrowthTimelineCard";
@@ -2194,14 +2195,63 @@ function Step5Panel({
     const baseline = buildComparisonBaselineFromSessions(historySessions, videoId);
     const delta = compareGrowthScoreToHistory(growthScore.snapshot.overall, baseline);
     if (import.meta.env.DEV) {
+      const comparisonDebug = debugGrowthComparisonBaseline(historySessions, videoId);
       console.info("[playerGrowthHistory] comparison baseline", {
-        ...debugGrowthComparisonBaseline(historySessions, videoId),
+        ...comparisonDebug,
         currentOverall: growthScore.snapshot.overall,
+        baseline,
         delta,
       });
+      if (comparisonDebug.strategy === "skip-newest-same-video") {
+        const baselineSession = historySessions.find(
+          (session) => session.generatedAt === baseline[0]?.generatedAt
+        );
+        console.info("[playerGrowthHistory] skip-newest-same-video reason", {
+          currentVideoId: videoId ?? null,
+          newestSavedVideoId: comparisonDebug.newestSavedVideoId,
+          baselineVideoId: baselineSession?.videoId ?? null,
+          baselineSessionId: baselineSession?.sessionId ?? null,
+          skippedReason: "현재 영상과 가장 최근 저장 세션의 영상 ID가 같아, 그 다음 최신 세션을 baseline으로 선택했습니다.",
+        });
+      }
     }
     return delta;
   }, [growthScore, historySessions, videoId]);
+  const showLastSessionComparison =
+    historySessions.length >= 2 &&
+    growthScore != null &&
+    growthScoreDelta?.previousOverall != null;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.info("RENDER CONDITION EFFECT MOUNT");
+    console.info("[playerGrowthHistory] LastSessionComparisonCard render condition", {
+      historySessionsLength: historySessions.length,
+      hasGrowthScore: growthScore != null,
+      previousOverall: growthScoreDelta?.previousOverall ?? null,
+      showLastSessionComparison,
+    });
+  }, [growthScore, growthScoreDelta, historySessions.length, showLastSessionComparison]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || historySessions.length < 2) return;
+
+    const latestTwo = [...historySessions]
+      .sort((a, b) => b.generatedAt - a.generatedAt)
+      .slice(0, 2);
+
+    console.info("[playerGrowthHistory] latest two snapshot logger executed");
+    console.table(
+      latestTwo.map((session) => ({
+        firestoreDocId: session.firestoreDocId,
+        generatedAt: session.generatedAt,
+        overall: session.metrics.growthScore?.overall ?? null,
+        visionScan: session.metrics.growthScore?.visionScan ?? null,
+        pressureResistance: session.metrics.growthScore?.pressureResistance ?? null,
+        recoverySpeed: session.metrics.growthScore?.recoverySpeed ?? null,
+      }))
+    );
+  }, [growthPlayerId, historySessions]);
 
   const monthlyTimeline = useMemo(
     () => buildMonthlyGrowthTimeline(historySessions),
@@ -2286,6 +2336,21 @@ function Step5Panel({
     ])
       .then(([history, ovr, avatar, timeline]) => {
         if (cancelled) return;
+        if (import.meta.env.DEV) {
+          console.info("[playerGrowthHistory] loaded sessions", {
+            teamId,
+            playerId: growthPlayerId,
+            source: history.source,
+            historySessionsLength: history.sessions.length,
+            sessions: history.sessions.map((session) => ({
+              firestoreDocId: session.firestoreDocId,
+              playerId: session.playerId,
+              videoId: session.videoId,
+              generatedAt: session.generatedAt,
+              overall: session.metrics.growthScore?.overall ?? null,
+            })),
+          });
+        }
         setHistorySessions(history.sessions);
         setHistorySource(history.source);
         setOvrProfile(ovr);
@@ -2751,6 +2816,15 @@ function Step5Panel({
           monthlyPdfExportNotice={monthlyPdfExportNotice}
           onExportMonthlyPdf={() => void handleExportMonthlyPdf()}
         />
+        {showLastSessionComparison ? (
+          <LastSessionComparisonCard
+            playerName={playerName}
+            growthScore={growthScore}
+            delta={growthScoreDelta}
+            historySessions={historySessions}
+            historyLoading={historyLoading}
+          />
+        ) : null}
         {growthScore ? (
           <GrowthScorePanel
             growthScore={growthScore}

@@ -22,6 +22,8 @@ export type ImproveTeamPublicTextSelectionResult = {
   ok?: boolean;
   improvedText?: string;
   source?: "openai" | "template";
+  /** true면 재시도 후에도 원문과 동일 — UI 안내 */
+  unchanged?: boolean;
 };
 
 const ALLOWED_STYLES: readonly TeamPublicImprovementStyle[] = ["natural", "recruiting", "short", "serious"];

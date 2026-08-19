@@ -960,7 +960,7 @@ export default function TeamHome() {
 
   return (
     <div className="w-full pb-8">
-      <div className="sticky top-0 z-10 bg-gray-50/95 pb-2 pt-4 backdrop-blur">
+      <div className="pb-2 pt-4">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -1113,7 +1113,8 @@ export default function TeamHome() {
         )}
 
         {isMember && teamCaps.showQuickActionGrid && !teamCaps.showOwnerSummary && teamHomeQuickGrid}
-
+      </div>
+      <div className="sticky top-0 z-10 bg-gray-50/95 pb-2 backdrop-blur">
         <SegmentTabs tabs={segmentItems} activeId={activeTab} onChange={setTab} className="mt-3 rounded-t-xl" />
       </div>
 

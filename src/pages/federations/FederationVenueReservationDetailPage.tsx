@@ -1,6 +1,7 @@
 /**
  * PR1 — Reservation Detail (read-only fields).
  * PR2 — Member 「입금 확인 요청」 CTA (claim ≠ CONFIRMED).
+ * PR4-1 / Sprint 2-2 — Receipt upload + ops status timeline + refund policy copy.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -9,6 +10,8 @@ import { ArrowLeft } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { doc, getDoc } from "firebase/firestore";
 import { FederationHeader } from "@/components/federation/FederationHeader";
+import { VenuePaymentReceiptUpload } from "@/components/federation/VenuePaymentReceiptUpload";
+import { VenueRefundPolicyNote } from "@/components/federation/VenueRefundPolicyNote";
 import { useAuth } from "@/context/AuthProvider";
 import { db } from "@/lib/firebase";
 import {
@@ -20,7 +23,13 @@ import {
   isPaymentClaimed,
   type VenueReservation,
 } from "@/lib/federation/venueReservationTypes";
+import {
+  buildVenueOpsTimeline,
+  resolveVenueOpsStatus,
+} from "@/lib/federation/venueReservationOpsStatus";
 import { isGenericDepositAccountGuide } from "@/lib/federation/venueDepositAccount";
+import { getVenuePaymentReceipt } from "@/lib/federation/venuePaymentReceiptService";
+import type { VenuePaymentReceipt } from "@/lib/federation/venuePaymentReceiptTypes";
 
 function formatWon(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return "협회 안내 / 확정 예정";
@@ -40,6 +49,8 @@ export default function FederationVenueReservationDetailPage() {
   const [busy, setBusy] = useState(false);
   const [depositedAtLocal, setDepositedAtLocal] = useState("");
   const [displayBankGuide, setDisplayBankGuide] = useState("");
+  const [latestReceipt, setLatestReceipt] = useState<VenuePaymentReceipt | null>(null);
+  const [showLegacyClaim, setShowLegacyClaim] = useState(false);
   const [fedMeta, setFedMeta] = useState<{ name: string; region: string; logoUrl?: string }>({
     name: federationSlug,
     region: "",
@@ -89,7 +100,6 @@ export default function FederationVenueReservationDetailPage() {
     };
   }, [federationSlug, reservationId]);
 
-  // Hot fix: if snapshot is generic, resolve venue-scoped account for Detail display
   useEffect(() => {
     let cancelled = false;
     if (!reservation) {
@@ -116,20 +126,51 @@ export default function FederationVenueReservationDetailPage() {
     };
   }, [reservation, federationSlug]);
 
+  // Sprint 2-2 — load latest receipt for member display
+  useEffect(() => {
+    let cancelled = false;
+    const rid = reservation?.latestReceiptId?.trim();
+    if (!federationSlug || !rid) {
+      setLatestReceipt(null);
+      return;
+    }
+    getVenuePaymentReceipt(federationSlug, rid)
+      .then((r) => {
+        if (!cancelled) setLatestReceipt(r);
+      })
+      .catch(() => {
+        if (!cancelled) setLatestReceipt(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [federationSlug, reservation?.latestReceiptId]);
+
   const qrUrl = useMemo(() => {
     if (!reservation?.detailPath) return "";
     if (typeof window === "undefined") return reservation.detailPath;
     return `${window.location.origin.replace(/\/$/, "")}${reservation.detailPath}`;
   }, [reservation?.detailPath]);
 
+  const ops = useMemo(
+    () =>
+      reservation
+        ? resolveVenueOpsStatus(reservation)
+        : null,
+    [reservation]
+  );
+  const timeline = useMemo(
+    () => (reservation ? buildVenueOpsTimeline(reservation) : []),
+    [reservation]
+  );
+
   const claimed = reservation ? isPaymentClaimed(reservation) : false;
-  const canClaim =
+  const canUploadReceipt =
     !!user &&
     !!reservation &&
     reservation.paymentStatus === "UNCONFIRMED" &&
-    reservation.confirmStatus !== "FINALIZED" &&
-    !claimed &&
-    reservation.paymentStatus !== "CONFIRMED";
+    reservation.confirmStatus !== "FINALIZED";
+  const canClaim = canUploadReceipt && !claimed;
 
   async function onClaim() {
     if (!user || !reservation) return;
@@ -146,7 +187,7 @@ export default function FederationVenueReservationDetailPage() {
       setReservation(next);
       setMsg(
         didClaim
-          ? "입금 확인 요청을 보냈습니다. 협회 확인 전까지는 입금 완료로 처리되지 않습니다."
+          ? "입금 확인 요청을 보냈습니다. 협회 통장 확인 전까지는 입금 완료가 아닙니다."
           : "이미 입금 확인 요청이 접수된 예약입니다."
       );
     } catch (e) {
@@ -191,7 +232,7 @@ export default function FederationVenueReservationDetailPage() {
           </p>
         )}
 
-        {reservation && !loading && (
+        {reservation && !loading && ops && (
           <div className="mt-6 space-y-6">
             <dl className="space-y-3 text-sm">
               <div>
@@ -246,47 +287,147 @@ export default function FederationVenueReservationDetailPage() {
               </div>
               <div>
                 <dt className="text-slate-500">입금·확정 상태</dt>
-                <dd className="mt-0.5 font-medium text-slate-900">
-                  {reservation.confirmStatus === "FINALIZED"
-                    ? "예약 확정"
-                    : reservation.paymentStatus === "CONFIRMED"
-                      ? "입금 완료 (확정 대기)"
-                      : claimed
-                        ? "입금 확인 요청됨 (협회 확인 대기)"
-                        : "미입금"}
-                </dd>
+                <dd className="mt-0.5 font-medium text-slate-900">{ops.memberLabel}</dd>
+                <p className="mt-1 text-xs text-slate-500">{ops.memberHint}</p>
               </div>
             </dl>
 
-            {canClaim && (
-              <div className="space-y-3 border-t border-slate-200 pt-6">
-                <label className="block text-sm">
-                  <span className="text-slate-600">입금 시각 (선택)</span>
-                  <input
-                    type="datetime-local"
-                    value={depositedAtLocal}
-                    onChange={(e) => setDepositedAtLocal(e.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-                  />
-                </label>
+            <ol className="flex flex-wrap gap-2" aria-label="예약 진행 단계">
+              {timeline.map((step) => (
+                <li
+                  key={step.id}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                    step.done
+                      ? step.current
+                        ? "bg-slate-900 text-white"
+                        : "bg-emerald-100 text-emerald-900"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {step.label}
+                </li>
+              ))}
+            </ol>
+
+            {latestReceipt && (
+              <section
+                className="rounded-md border border-slate-200 bg-white p-3"
+                aria-label="제출된 영수증"
+              >
+                <h2 className="text-sm font-semibold text-slate-900">제출된 영수증</h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  증거 자료입니다. 검증 결과만으로 입금·예약이 자동 승인되지 않습니다.
+                </p>
+                <div className="mt-2 flex flex-wrap items-start gap-3">
+                  {latestReceipt.receiptImageUrl ? (
+                    <a
+                      href={latestReceipt.receiptImageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block shrink-0"
+                    >
+                      {/\.pdf($|\?)/i.test(latestReceipt.receiptImageUrl) ? (
+                        <span className="inline-flex h-20 w-20 items-center justify-center rounded border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700">
+                          PDF
+                        </span>
+                      ) : (
+                        <img
+                          src={latestReceipt.receiptImageUrl}
+                          alt="제출 영수증"
+                          className="h-20 w-20 rounded border border-slate-200 object-cover"
+                        />
+                      )}
+                    </a>
+                  ) : null}
+                  <div className="min-w-0 flex-1 text-xs text-slate-700">
+                    <p>
+                      검증:{" "}
+                      <span
+                        className={
+                          latestReceipt.verificationStatus === "MATCH"
+                            ? "font-semibold text-emerald-700"
+                            : "font-semibold text-amber-700"
+                        }
+                      >
+                        {latestReceipt.verificationStatus}
+                      </span>
+                      {" · "}상태 {latestReceipt.status}
+                    </p>
+                    {latestReceipt.ocrResult.amount != null ? (
+                      <p className="mt-0.5">
+                        OCR 금액 {latestReceipt.ocrResult.amount.toLocaleString("ko-KR")}원
+                      </p>
+                    ) : null}
+                    <a
+                      href={latestReceipt.receiptImageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 inline-block font-semibold text-sky-800 underline"
+                    >
+                      원본 열기
+                    </a>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {canUploadReceipt && user && (
+              <VenuePaymentReceiptUpload
+                federationSlug={federationSlug}
+                reservation={reservation}
+                uploadedBy={user.uid}
+                onDone={({ reservation: next, receipt }) => {
+                  setReservation(next);
+                  setLatestReceipt(receipt);
+                  setMsg(
+                    `영수증이 접수되었습니다 (검증 ${receipt.verificationStatus}). 협회 승인 전까지 입금·예약은 확정되지 않습니다.`
+                  );
+                }}
+              />
+            )}
+
+            {canClaim && user && (
+              <div className="space-y-2">
                 <button
                   type="button"
-                  disabled={busy}
-                  onClick={() => void onClaim()}
-                  className="w-full rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                  className="text-xs text-slate-500 underline"
+                  onClick={() => setShowLegacyClaim((v) => !v)}
                 >
-                  {busy ? "요청 중…" : "입금 확인 요청"}
+                  {showLegacyClaim
+                    ? "영수증 없이 요청 접기"
+                    : "영수증 없이 입금 확인만 요청"}
                 </button>
-                <p className="text-xs text-slate-500">
-                  이 요청은 입금 완료가 아닙니다. 협회가 통장을 확인하기 전까지 미입금으로
-                  유지됩니다.
-                </p>
+                {showLegacyClaim && (
+                  <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3">
+                    <label className="block text-sm">
+                      <span className="text-slate-600">입금 시각 (선택)</span>
+                      <input
+                        type="datetime-local"
+                        value={depositedAtLocal}
+                        onChange={(e) => setDepositedAtLocal(e.target.value)}
+                        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void onClaim()}
+                      className="w-full rounded-md border border-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-900 disabled:opacity-50"
+                    >
+                      {busy ? "요청 중…" : "입금 확인 요청"}
+                    </button>
+                    <p className="text-xs text-slate-500">
+                      이 요청은 입금 신고일 뿐입니다. 협회가 통장을 확인하기 전까지 입금
+                      완료로 처리되지 않습니다.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
-            {!user && reservation.paymentStatus === "UNCONFIRMED" && !claimed && (
+            {!user && reservation.paymentStatus === "UNCONFIRMED" && (
               <p className="border-t border-slate-200 pt-4 text-sm text-slate-600">
-                입금 확인 요청을 보내려면{" "}
+                영수증 등록·입금 확인 요청을 보내려면{" "}
                 <Link to="/login" className="underline">
                   로그인
                 </Link>
@@ -294,11 +435,14 @@ export default function FederationVenueReservationDetailPage() {
               </p>
             )}
 
-            {claimed && (
+            {ops.stage === "CLAIMED" && (
               <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-                입금 확인 요청이 접수되었습니다. 협회 관리자 확인 후 입금 완료로 바뀝니다.
+                입금 확인 요청이 접수되었습니다. 협회 관리자가 통장을 확인하기 전까지 입금
+                완료가 아닙니다.
               </p>
             )}
+
+            <VenueRefundPolicyNote variant="member" />
 
             {qrUrl && (
               <div className="border-t border-slate-200 pt-6">

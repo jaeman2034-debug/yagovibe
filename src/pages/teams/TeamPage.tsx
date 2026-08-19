@@ -11,8 +11,13 @@
  */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { fetchTeamByIdOrSlug, fetchTeamByIdOrSlugFromServer } from "@/services/teamService";
+import {
+  buildTeamPublicPath,
+  getTeamPublicSlug,
+  shouldReplaceTeamPublicParamWithSlug,
+} from "@/lib/team/teamPublicCanonicalUrl";
 import { getTeamSummary, getTeamMatchHistory, getTeamAwards } from "@/services/teamSummaryService";
 import { getTeamMembers } from "@/services/teamPlayerService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,7 +87,24 @@ import {
   getTeamCaptainPublicView,
   getTeamCaptainManagementView,
   getTeamCoverPhotoUrl,
+  getSocialPost,
+  getEventMessage,
+  getLayoutPreset,
+  type TeamPublicLayoutPreset,
 } from "@/lib/team/resolveTeamPublicProfile";
+import { computePublicHomeCompleteness } from "@/lib/team/publicHomeCompleteness";
+import { useTeamPublicSeo } from "@/lib/team/useTeamPublicSeo";
+import { setTeamLayoutPresetCallable } from "@/lib/team/setTeamLayoutPresetClient";
+import {
+  getPublishedClubIntro,
+  getClubIntroForManagerPreview,
+  getTeamClubIntro,
+} from "@/lib/team/resolveClubIntroProfile";
+import { generateClubCaptainMessageCallable } from "@/lib/team/generateClubCaptainMessageClient";
+import { generateClubRecruitMessageCallable } from "@/lib/team/generateClubRecruitMessageClient";
+import { generateClubSocialPostCallable } from "@/lib/team/generateClubSocialPostClient";
+import { generateClubEventMessageCallable } from "@/lib/team/generateClubEventMessageClient";
+import { clubIntroFactsFingerprint } from "@/lib/team/clubIntroFactsFingerprint";
 import {
   Dialog,
   DialogContent,
@@ -94,17 +116,22 @@ import {
 import { PublicProfileTextareaWithAi } from "@/components/team/PublicProfileTextareaWithAi";
 import { updateTeamPublicCopyCallable } from "@/lib/team/updateTeamPublicCopyClient";
 import { setTeamCaptainMessageCallable } from "@/lib/team/setTeamCaptainMessageClient";
+import { setTeamSocialPostCallable } from "@/lib/team/setTeamSocialPostClient";
+import { setTeamEventMessageCallable } from "@/lib/team/setTeamEventMessageClient";
 import { revertTeamPublicFieldCallable } from "@/lib/team/revertTeamPublicFieldClient";
 import { regenerateTeamPublicFieldCallable } from "@/lib/team/regenerateTeamPublicFieldClient";
 import { buildTextDiffSegments, renderDiffHighlightedLine } from "@/lib/team/textDiffHighlight";
 import { computeTeamProfileScore, suggestionsForField } from "@/lib/team/profileScore";
 import { TeamProfileScoreCard } from "@/components/team/TeamProfileScoreCard";
 import { TeamCaptainMessageCard } from "@/components/team/TeamCaptainMessageCard";
-import { TeamCoverPhotoUploader } from "@/components/team/TeamCoverPhotoUploader";
+import { TeamSocialPostShareCard } from "@/components/team/TeamSocialPostShareCard";
+import { TeamEventMessageCard } from "@/components/team/TeamEventMessageCard";
+import { AiContentVocPanel } from "@/components/team/AiContentVocPanel";
+import { AI_CONTENT_PROMPT_VERSION } from "@/lib/team/aiContentPromptVersions";
+import { TeamHeroCoverManage } from "@/components/team/TeamCoverPhotoUploader";
 import { TeamPublicStaffManageSection } from "@/components/team/TeamPublicStaffManageSection";
-import { TeamPublicStaffShowcase } from "@/components/team/TeamPublicStaffShowcase";
 import { TeamStaffDirectorySection } from "@/components/team/TeamStaffDirectorySection";
-import { getVisibleTeamPublicStaff } from "@/lib/team/resolveTeamPublicStaff";
+import { TeamClubIntroPublicSections } from "@/components/team/TeamClubIntroPublicSections";
 import { TeamHubMediaPreview } from "@/components/team/TeamHubMediaPreview";
 import { TeamHubUpcomingSchedulePreview } from "@/components/team/TeamHubUpcomingSchedulePreview";
 import { TeamHubMembersPreview } from "@/components/team/TeamHubMembersPreview";
@@ -185,6 +212,7 @@ function buildBrandingRegeneratePayload(team: unknown, resolvedTeamId: string): 
 
 export default function TeamPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { teamId } = useParams<{ teamId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
@@ -205,6 +233,32 @@ export default function TeamPage() {
   const [captainMessageEditOpen, setCaptainMessageEditOpen] = useState(false);
   const [draftCaptainMessage, setDraftCaptainMessage] = useState("");
   const [captainMessageSaveBusy, setCaptainMessageSaveBusy] = useState(false);
+  const [socialPostEditOpen, setSocialPostEditOpen] = useState(false);
+  const [draftSocialPost, setDraftSocialPost] = useState("");
+  const [socialPostSaveBusy, setSocialPostSaveBusy] = useState(false);
+  const [eventMessageEditOpen, setEventMessageEditOpen] = useState(false);
+  const [draftEventMessage, setDraftEventMessage] = useState("");
+  const [eventMessageSaveBusy, setEventMessageSaveBusy] = useState(false);
+  const [draftEventName, setDraftEventName] = useState("");
+  const [draftEventPurpose, setDraftEventPurpose] = useState("");
+  const [draftEventSchedule, setDraftEventSchedule] = useState("");
+  const [draftEventPlace, setDraftEventPlace] = useState("");
+  type AiVocSession = {
+    promptVersion: string;
+    generatedAtIso: string;
+    regenerateCount: number;
+    baselineDraft: string;
+  };
+  const [vocCaptain, setVocCaptain] = useState<AiVocSession | null>(null);
+  const [vocRecruit, setVocRecruit] = useState<AiVocSession | null>(null);
+  const [vocSocial, setVocSocial] = useState<AiVocSession | null>(null);
+  const [vocEvent, setVocEvent] = useState<AiVocSession | null>(null);
+  const [captainMessageAiMeta, setCaptainMessageAiMeta] = useState<{
+    generatedAt: string;
+    source: "openai" | "template";
+    factsFingerprint: string;
+    humanEditedAt?: string;
+  } | null>(null);
   const [saveProfileBusy, setSaveProfileBusy] = useState(false);
   const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
   const [revertFieldBusy, setRevertFieldBusy] = useState<
@@ -215,6 +269,7 @@ export default function TeamPage() {
   >(null);
   const [hubShareBusy, setHubShareBusy] = useState(false);
   const [ownerPanelOpen, setOwnerPanelOpen] = useState(false);
+  const [layoutPresetBusy, setLayoutPresetBusy] = useState(false);
   /**  �?UI?� ?�| ?�t?�X � ] � )�? ??0� ?��?, ?�� ???��? */
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -277,13 +332,29 @@ export default function TeamPage() {
 
   const playMemberOnlyHint = searchParams.get("hint") === "playMember";
   const firstTeamWelcome = searchParams.get("firstTeam") === "1";
+  const federationHandoffSlug = searchParams.get("federation")?.trim() || "";
 
   const profileHighlights = getProfileHighlights(team);
   const profileDescription = getProfileDescription(team);
+  const publishedClubIntro = useMemo(() => getPublishedClubIntro(team), [team]);
+  const managerClubIntroPreview = useMemo(() => {
+    if (!canManageTeamHub) return null;
+    const intro = getClubIntroForManagerPreview(team);
+    if (!intro || intro.status === "PUBLISHED") return null;
+    return intro;
+  }, [team, canManageTeamHub]);
   const recruitCta = getRecruitMessage(team);
   const profileCaptainMessage = getCaptainMessage(team);
+  const profileSocialPost = getSocialPost(team);
+  const profileEventMessage = getEventMessage(team);
   const publicCtaShort = getPublicCtaShort(team);
   const profileThemeDark = getThemePreset(team) === "dark";
+  const layoutPreset = useMemo(() => getLayoutPreset(team), [team]);
+  const publicHomeCompleteness = useMemo(
+    () => (team && canManageTeamHub ? computePublicHomeCompleteness(team as Record<string, unknown>) : null),
+    [team, canManageTeamHub]
+  );
+  useTeamPublicSeo({ team: team as Record<string, unknown> | null, teamId: effectiveTeamId, enabled: Boolean(team) });
   const heroSlogan = getSlogan(team);
   const heroPlayStyle = getPlayStyle(team);
   const profileDiffFlags = getPublicProfileDiffFlags(team);
@@ -408,6 +479,7 @@ export default function TeamPage() {
     try {
       const r = await sharePublicTeamHubKakaoOrWebShare({
         teamId: effectiveTeamId,
+        slug: typeof team.slug === "string" ? team.slug : null,
         teamName: name,
         blurb: blurb || null,
         imageUrl: img,
@@ -520,6 +592,13 @@ export default function TeamPage() {
       const resolvedTeam = await fetchTeamByIdOrSlug(teamId);
       const resolvedId = resolvedTeam?.id || teamId;
 
+      // Sprint 1-3: teamId URL → slug canonical (only when slug exists; replace, no loop)
+      const publicSlug = getTeamPublicSlug(resolvedTeam);
+      if (shouldReplaceTeamPublicParamWithSlug(teamId, publicSlug) && publicSlug) {
+        navigate(buildTeamPublicPath(publicSlug, location.search, location.hash), { replace: true });
+        return;
+      }
+
       const [teamData, summaryData, matchHistoryData, awardsData, playersData] = await Promise.all([
         Promise.resolve(resolvedTeam),
         getTeamSummary(resolvedId),
@@ -555,7 +634,25 @@ export default function TeamPage() {
     }
   };
 
-  const openProfileEdit = () => {
+  
+  const handleLayoutPresetChange = useCallback(
+    async (preset: TeamPublicLayoutPreset) => {
+      if (!effectiveTeamId || !canManageTeamHub || layoutPresetBusy) return;
+      setLayoutPresetBusy(true);
+      try {
+        await setTeamLayoutPresetCallable({ teamId: effectiveTeamId, layoutPreset: preset });
+        await refreshTeamSnapshot();
+        toast.success(preset === "modern" ? "Modern 레이아웃을 적용했어요." : "Classic 레이아웃을 적용했어요.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "레이아웃 변경에 실패했어요.");
+      } finally {
+        setLayoutPresetBusy(false);
+      }
+    },
+    [effectiveTeamId, canManageTeamHub, layoutPresetBusy]
+  );
+
+const openProfileEdit = () => {
     if (!team) return;
     setDraftDescription(getProfileDescription(team));
     setDraftHighlightsText(getProfileHighlights(team).join("\n"));
@@ -571,6 +668,288 @@ export default function TeamPage() {
     setOwnerPanelOpen(true);
   };
 
+  const handleAiCaptainMessageDraft = async () => {
+    if (!canManageCaptainPhoto || !effectiveTeamId || !team || regenerateFieldBusy) return;
+    setRegenerateFieldBusy("captainMessage");
+    const t = toast.loading("AI 회장 인사말 초안 생성 중…");
+    try {
+      const clubIntro = getTeamClubIntro(team);
+      const captainView = getTeamCaptainManagementView(team) ?? getTeamCaptainPublicView(team);
+      const chairmanName =
+        clubIntro?.chairmanName?.trim() ||
+        (typeof captainView?.nickname === "string" ? captainView.nickname.trim() : "") ||
+        undefined;
+      const teamName =
+        clubIntro?.teamName?.trim() ||
+        (typeof team.name === "string" ? team.name.trim() : "") ||
+        "팀";
+      const facts = {
+        teamName,
+        chairmanName,
+        foundedYear: clubIntro?.foundedYear,
+        foundedDate: clubIntro?.foundedDate,
+        memberCountLabel: clubIntro?.memberCountLabel,
+        homeGrounds: clubIntro?.homeGrounds,
+        ageRange: clubIntro?.ageRange,
+        activityDay: clubIntro?.activityDay,
+        teamValues: clubIntro?.teamValues,
+        achievements: clubIntro?.achievements,
+      };
+      const { captainMessageDraft, source, promptVersion } = await generateClubCaptainMessageCallable({
+        teamId: effectiveTeamId,
+        facts,
+      });
+      setDraftCaptainMessage(captainMessageDraft);
+      setCaptainMessageAiMeta({
+        generatedAt: new Date().toISOString(),
+        source: source === "template" ? "template" : "openai",
+        factsFingerprint: clubIntroFactsFingerprint(facts),
+      });
+      setVocCaptain((prev) => ({
+        promptVersion: promptVersion || AI_CONTENT_PROMPT_VERSION.captainMessage,
+        generatedAtIso: new Date().toISOString(),
+        regenerateCount: prev ? prev.regenerateCount + 1 : 0,
+        baselineDraft: captainMessageDraft,
+      }));
+      setCaptainMessageEditOpen(true);
+      setOwnerPanelOpen(true);
+      toast.dismiss(t);
+      toast.success(
+        source === "template"
+          ? "템플릿 초안을 편집창에 채웠어요. 수정 후 저장하세요."
+          : "AI 초안을 편집창에 채웠어요. 수정 후 저장하세요. (아직 공개되지 않습니다)"
+      );
+      void track("team_captain_message_ai_draft", {
+        team_id: effectiveTeamId,
+        source: source ?? "unknown",
+      });
+    } catch (e: unknown) {
+      toast.dismiss(t);
+      toast.error(callableErrorMessage(e) || "회장 인사말 초안 생성에 실패했어요.");
+      console.error("[TeamPage] AI captain draft", e);
+    } finally {
+      setRegenerateFieldBusy(null);
+    }
+  };
+
+  const handleAiRecruitMessageDraft = async () => {
+    if (!isTeamOwner || !canManageTeamHub || !effectiveTeamId || !team || regenerateFieldBusy) return;
+    setRegenerateFieldBusy("recruitMessage");
+    const t = toast.loading("AI 회원 모집 글 초안 생성 중…");
+    try {
+      const clubIntro = getTeamClubIntro(team);
+      const regionRaw = team.region ?? team.baseRegion;
+      const region =
+        typeof regionRaw === "string" && regionRaw.trim()
+          ? regionRaw.trim()
+          : undefined;
+      const teamName =
+        clubIntro?.teamName?.trim() ||
+        (typeof team.name === "string" ? team.name.trim() : "") ||
+        "팀";
+      const facts = {
+        teamName,
+        foundedYear: clubIntro?.foundedYear,
+        foundedDate: clubIntro?.foundedDate,
+        homeGrounds: clubIntro?.homeGrounds,
+        region,
+        introSummary: clubIntro?.introSummary?.trim() || undefined,
+        teamValues: clubIntro?.teamValues,
+        activityDay: clubIntro?.activityDay,
+        ageRange: clubIntro?.ageRange,
+      };
+      const { recruitMessageDraft, source, promptVersion } = await generateClubRecruitMessageCallable({
+        teamId: effectiveTeamId,
+        facts,
+      });
+      setDraftDescription(getProfileDescription(team));
+      setDraftHighlightsText(getProfileHighlights(team).join("\n"));
+      setDraftRecruitMessage(recruitMessageDraft.slice(0, 600));
+      setVocRecruit((prev) => ({
+        promptVersion: promptVersion || AI_CONTENT_PROMPT_VERSION.recruitMessage,
+        generatedAtIso: new Date().toISOString(),
+        regenerateCount: prev ? prev.regenerateCount + 1 : 0,
+        baselineDraft: recruitMessageDraft.slice(0, 600),
+      }));
+      setProfileEditMode(true);
+      setOwnerPanelOpen(true);
+      toast.dismiss(t);
+      toast.success(
+        source === "template"
+          ? "템플릿 초안을 편집창에 채웠어요. 수정 후 저장하세요."
+          : "AI 초안을 편집창에 채웠어요. 수정 후 저장하세요. (아직 공개되지 않습니다)"
+      );
+      void track("team_recruit_message_ai_draft", {
+        team_id: effectiveTeamId,
+        source: source ?? "unknown",
+      });
+    } catch (e: unknown) {
+      toast.dismiss(t);
+      toast.error(callableErrorMessage(e) || "회원 모집 글 초안 생성에 실패했어요.");
+      console.error("[TeamPage] AI recruit draft", e);
+    } finally {
+      setRegenerateFieldBusy(null);
+    }
+  };
+
+  const handleAiSocialPostDraft = async () => {
+    if (!canManageCaptainPhoto || !effectiveTeamId || !team || socialPostSaveBusy || fieldDiffBusy) return;
+    setSocialPostSaveBusy(true);
+    const t = toast.loading("AI SNS 홍보문 초안 생성 중…");
+    try {
+      const clubIntro = getTeamClubIntro(team);
+      const regionRaw = team.region ?? team.baseRegion;
+      const region =
+        typeof regionRaw === "string" && regionRaw.trim() ? regionRaw.trim() : undefined;
+      const teamName =
+        clubIntro?.teamName?.trim() ||
+        (typeof team.name === "string" ? team.name.trim() : "") ||
+        "팀";
+      const highlights = getProfileHighlights(team);
+      const facts = {
+        teamName,
+        region,
+        foundedYear: clubIntro?.foundedYear,
+        homeGrounds: clubIntro?.homeGrounds,
+        introSummary: clubIntro?.introSummary?.trim() || undefined,
+        teamValues: clubIntro?.teamValues,
+        recruitMessage: getRecruitMessage(team) || undefined,
+        recommendFor: highlights.length ? highlights : undefined,
+        activityDay: clubIntro?.activityDay,
+      };
+      const { socialPostDraft, source, promptVersion } = await generateClubSocialPostCallable({
+        teamId: effectiveTeamId,
+        facts,
+      });
+      setDraftSocialPost(socialPostDraft.slice(0, 500));
+      setVocSocial((prev) => ({
+        promptVersion: promptVersion || AI_CONTENT_PROMPT_VERSION.socialPost,
+        generatedAtIso: new Date().toISOString(),
+        regenerateCount: prev ? prev.regenerateCount + 1 : 0,
+        baselineDraft: socialPostDraft.slice(0, 500),
+      }));
+      setSocialPostEditOpen(true);
+      setOwnerPanelOpen(true);
+      toast.dismiss(t);
+      toast.success(
+        source === "template"
+          ? "템플릿 초안을 편집창에 채웠어요. 수정 후 저장하세요."
+          : "AI 초안을 편집창에 채웠어요. 수정 후 저장하세요. (아직 공개되지 않습니다)"
+      );
+      void track("team_social_post_ai_draft", {
+        team_id: effectiveTeamId,
+        source: source ?? "unknown",
+      });
+    } catch (e: unknown) {
+      toast.dismiss(t);
+      toast.error(callableErrorMessage(e) || "SNS 홍보문 초안 생성에 실패했어요.");
+      console.error("[TeamPage] AI social post draft", e);
+    } finally {
+      setSocialPostSaveBusy(false);
+    }
+  };
+
+  const saveSocialPostDirect = async () => {
+    if (!effectiveTeamId || socialPostSaveBusy) return;
+    setSocialPostSaveBusy(true);
+    const t = toast.loading("저장하는 중…");
+    try {
+      await setTeamSocialPostCallable({
+        teamId: effectiveTeamId,
+        socialPost: draftSocialPost,
+      });
+      await refreshTeamSnapshot();
+      toast.dismiss(t);
+      toast.success("SNS 홍보문을 저장했어요.");
+      setSocialPostEditOpen(false);
+    } catch (e: unknown) {
+      toast.dismiss(t);
+      toast.error(callableErrorMessage(e) || "저장에 실패했어요. 다시 시도해 주세요.");
+      console.error("[TeamPage] save social post", e);
+    } finally {
+      setSocialPostSaveBusy(false);
+    }
+  };
+
+  const handleAiEventMessageDraft = async () => {
+    if (!canManageCaptainPhoto || !effectiveTeamId || !team || eventMessageSaveBusy || fieldDiffBusy) return;
+    setEventMessageSaveBusy(true);
+    const t = toast.loading("AI 행사 소개 멘트 초안 생성 중…");
+    try {
+      const clubIntro = getTeamClubIntro(team);
+      const regionRaw = team.region ?? team.baseRegion;
+      const region =
+        typeof regionRaw === "string" && regionRaw.trim() ? regionRaw.trim() : undefined;
+      const teamName =
+        clubIntro?.teamName?.trim() ||
+        (typeof team.name === "string" ? team.name.trim() : "") ||
+        "팀";
+      const facts = {
+        teamName,
+        region,
+        foundedYear: clubIntro?.foundedYear,
+        homeGrounds: clubIntro?.homeGrounds,
+        introSummary: clubIntro?.introSummary?.trim() || undefined,
+        teamValues: clubIntro?.teamValues,
+        eventName: draftEventName.trim() || undefined,
+        eventPurpose: draftEventPurpose.trim() || undefined,
+        eventSchedule: draftEventSchedule.trim() || undefined,
+        eventPlace: draftEventPlace.trim() || undefined,
+      };
+      const { eventMessageDraft, source, promptVersion } = await generateClubEventMessageCallable({
+        teamId: effectiveTeamId,
+        facts,
+      });
+      setDraftEventMessage(eventMessageDraft.slice(0, 400));
+      setVocEvent((prev) => ({
+        promptVersion: promptVersion || AI_CONTENT_PROMPT_VERSION.eventMessage,
+        generatedAtIso: new Date().toISOString(),
+        regenerateCount: prev ? prev.regenerateCount + 1 : 0,
+        baselineDraft: eventMessageDraft.slice(0, 400),
+      }));
+      setEventMessageEditOpen(true);
+      setOwnerPanelOpen(true);
+      toast.dismiss(t);
+      toast.success(
+        source === "template"
+          ? "템플릿 초안을 편집창에 채웠어요. 수정 후 저장하세요."
+          : "AI 초안을 편집창에 채웠어요. 수정 후 저장하세요. (아직 공개되지 않습니다)"
+      );
+      void track("team_event_message_ai_draft", {
+        team_id: effectiveTeamId,
+        source: source ?? "unknown",
+      });
+    } catch (e: unknown) {
+      toast.dismiss(t);
+      toast.error(callableErrorMessage(e) || "행사 소개 멘트 초안 생성에 실패했어요.");
+      console.error("[TeamPage] AI event message draft", e);
+    } finally {
+      setEventMessageSaveBusy(false);
+    }
+  };
+
+  const saveEventMessageDirect = async () => {
+    if (!effectiveTeamId || eventMessageSaveBusy) return;
+    setEventMessageSaveBusy(true);
+    const t = toast.loading("저장하는 중…");
+    try {
+      await setTeamEventMessageCallable({
+        teamId: effectiveTeamId,
+        eventMessage: draftEventMessage,
+      });
+      await refreshTeamSnapshot();
+      toast.dismiss(t);
+      toast.success("행사 소개 멘트를 저장했어요.");
+      setEventMessageEditOpen(false);
+    } catch (e: unknown) {
+      toast.dismiss(t);
+      toast.error(callableErrorMessage(e) || "저장에 실패했어요. 다시 시도해 주세요.");
+      console.error("[TeamPage] save event message", e);
+    } finally {
+      setEventMessageSaveBusy(false);
+    }
+  };
+
   const saveCaptainMessageDirect = async () => {
     if (!effectiveTeamId || captainMessageSaveBusy) return;
     setCaptainMessageSaveBusy(true);
@@ -584,6 +963,7 @@ export default function TeamPage() {
       toast.dismiss(t);
       toast.success("대표 인사말을 저장했어요.");
       setCaptainMessageEditOpen(false);
+      setCaptainMessageAiMeta(null);
     } catch (e: unknown) {
       devError("[captainMessage] save failed", e);
       toast.dismiss(t);
@@ -808,6 +1188,10 @@ export default function TeamPage() {
           profileEditMode,
           saveProfileBusy,
           profileScoreResult: profileEditMode ? profileScoreResult : null,
+          publicHomeCompleteness,
+          layoutPreset,
+          layoutPresetBusy,
+          onLayoutPresetChange: (preset) => void handleLayoutPresetChange(preset),
           selectionAiToneHint,
           draftDescription,
           setDraftDescription,
@@ -821,15 +1205,120 @@ export default function TeamPage() {
           setDraftCaptainMessage,
           captainMessageSaveBusy,
           onSaveCaptainMessage: () => void saveCaptainMessageDirect(),
+          captainMessageAiMeta,
+          captainMessageFactsStale: (() => {
+            if (!captainMessageAiMeta?.factsFingerprint || !team) return false;
+            const clubIntro = getTeamClubIntro(team);
+            if (!clubIntro) return false;
+            const fp = clubIntroFactsFingerprint({
+              teamName: clubIntro.teamName,
+              chairmanName: clubIntro.chairmanName,
+              foundedYear: clubIntro.foundedYear,
+              foundedDate: clubIntro.foundedDate,
+              memberCountLabel: clubIntro.memberCountLabel,
+              homeGrounds: clubIntro.homeGrounds,
+              ageRange: clubIntro.ageRange,
+              activityDay: clubIntro.activityDay,
+              teamValues: clubIntro.teamValues,
+              achievements: clubIntro.achievements,
+            });
+            return fp !== captainMessageAiMeta.factsFingerprint;
+          })(),
+          onCaptainMessageDraftChange: (v: string) => {
+            setDraftCaptainMessage(v);
+            setCaptainMessageAiMeta((prev) =>
+              prev ? { ...prev, humanEditedAt: new Date().toISOString() } : prev
+            );
+          },
           canUseOwnerAiCopy: isTeamOwner,
           brandingBusy,
           fieldDiffBusy,
           onAiFillAll: () => setRegenerateConfirmOpen(true),
           onAiIntro: () => void handleRegeneratePublicField("description"),
-          onAiRecruit: () => void handleRegeneratePublicField("recruitMessage"),
-          onAiCaptain: () => void handleRegeneratePublicField("captainMessage"),
+          onAiRecruit: () => void handleAiRecruitMessageDraft(),
+          onAiCaptain: () => void handleAiCaptainMessageDraft(),
+          onAiSocialPost: () => void handleAiSocialPostDraft(),
+          onAiEventMessage: () => void handleAiEventMessageDraft(),
           onNavigateMemberManage: () => navigate(`/team/${encodeURIComponent(effectiveTeamId)}/overview`),
           canManageCaptainPhoto,
+          socialPostEditOpen,
+          setSocialPostEditOpen: (open: boolean) => {
+            if (open && team) {
+              setDraftSocialPost(getSocialPost(team));
+            }
+            setSocialPostEditOpen(open);
+          },
+          draftSocialPost,
+          setDraftSocialPost,
+          socialPostSaveBusy,
+          onSaveSocialPost: () => void saveSocialPostDirect(),
+          eventMessageEditOpen,
+          setEventMessageEditOpen: (open: boolean) => {
+            if (open && team) {
+              setDraftEventMessage(getEventMessage(team));
+            }
+            setEventMessageEditOpen(open);
+          },
+          draftEventMessage,
+          setDraftEventMessage,
+          eventMessageSaveBusy,
+          onSaveEventMessage: () => void saveEventMessageDirect(),
+          draftEventName,
+          setDraftEventName,
+          draftEventPurpose,
+          setDraftEventPurpose,
+          draftEventSchedule,
+          setDraftEventSchedule,
+          draftEventPlace,
+          setDraftEventPlace,
+          captainVocSlot: vocCaptain ? (
+            <AiContentVocPanel
+              key={`captain-${vocCaptain.generatedAtIso}`}
+              teamId={effectiveTeamId}
+              featureType="captainMessage"
+              promptVersion={vocCaptain.promptVersion}
+              generatedAtIso={vocCaptain.generatedAtIso}
+              regenerateCount={vocCaptain.regenerateCount}
+              edited={draftCaptainMessage.trim() !== vocCaptain.baselineDraft.trim()}
+              dark={profileThemeDark}
+            />
+          ) : null,
+          recruitVocSlot: vocRecruit ? (
+            <AiContentVocPanel
+              key={`recruit-${vocRecruit.generatedAtIso}`}
+              teamId={effectiveTeamId}
+              featureType="recruitMessage"
+              promptVersion={vocRecruit.promptVersion}
+              generatedAtIso={vocRecruit.generatedAtIso}
+              regenerateCount={vocRecruit.regenerateCount}
+              edited={draftRecruitMessage.trim() !== vocRecruit.baselineDraft.trim()}
+              dark={profileThemeDark}
+            />
+          ) : null,
+          socialVocSlot: vocSocial ? (
+            <AiContentVocPanel
+              key={`social-${vocSocial.generatedAtIso}`}
+              teamId={effectiveTeamId}
+              featureType="socialPost"
+              promptVersion={vocSocial.promptVersion}
+              generatedAtIso={vocSocial.generatedAtIso}
+              regenerateCount={vocSocial.regenerateCount}
+              edited={draftSocialPost.trim() !== vocSocial.baselineDraft.trim()}
+              dark={profileThemeDark}
+            />
+          ) : null,
+          eventVocSlot: vocEvent ? (
+            <AiContentVocPanel
+              key={`event-${vocEvent.generatedAtIso}`}
+              teamId={effectiveTeamId}
+              featureType="eventMessage"
+              promptVersion={vocEvent.promptVersion}
+              generatedAtIso={vocEvent.generatedAtIso}
+              regenerateCount={vocEvent.regenerateCount}
+              edited={draftEventMessage.trim() !== vocEvent.baselineDraft.trim()}
+              dark={profileThemeDark}
+            />
+          ) : null,
           isAcademyTeam,
           viewerMemberRole,
           isTeamOwner,
@@ -838,7 +1327,14 @@ export default function TeamPage() {
 
 
   return (
-    <div className="w-full space-y-6">
+    <div
+      className={cn(
+        "w-full",
+        layoutPreset === "modern" ? "space-y-4 sm:space-y-7" : "space-y-5 sm:space-y-6",
+        layoutPreset === "modern" && "team-public-layout-modern"
+      )}
+      data-layout={layoutPreset}
+    >
         {playMemberOnlyHint ? (
           <div
             className="mb-6 overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/90 p-5 text-sm text-amber-950 shadow-md dark:border-amber-800/60 dark:from-amber-950/50 dark:to-orange-950/30 dark:text-amber-50"
@@ -896,6 +1392,36 @@ export default function TeamPage() {
                 AI 건너뛰기로 만들었어요. 아래에서 직접 수정할 수 있어요.
               </p>
             ) : null}
+            {federationHandoffSlug ? (
+              <div className="mt-3 rounded-lg border border-emerald-200 bg-white/70 p-3 text-sm text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-50">
+                <p className="font-semibold">협회 참가팀 연결 안내</p>
+                <p className="mt-1">
+                  플랫폼 팀 생성과 협회 참가팀 등록은 별도입니다. 협회 관리자에게 아래 팀 ID를 전달해 홈페이지 연결을 요청하세요.
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <code className="rounded bg-emerald-100 px-2 py-1 text-xs dark:bg-emerald-900/60">
+                    {effectiveTeamId}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (!navigator.clipboard) {
+                        toast.error("이 브라우저에서는 팀 ID를 자동으로 복사할 수 없습니다.");
+                        return;
+                      }
+                      void navigator.clipboard
+                        .writeText(effectiveTeamId)
+                        .then(() => toast.success("팀 ID를 복사했습니다."))
+                        .catch(() => toast.error("팀 ID 복사에 실패했습니다."));
+                    }}
+                  >
+                    팀 ID 복사
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -929,10 +1455,61 @@ export default function TeamPage() {
                   className="h-24 w-24 shrink-0 self-center rounded-xl object-cover shadow-md sm:self-start"
                 />
               ) : null}
-                {/* 1) Hero ??� ?��?� ?�� �|?�t??*/}
+                {/* 1) Hero — 대표 이미지 단일 관리 */}
+                {canManageTeamHub && effectiveTeamId ? (
+                  <TeamHeroCoverManage
+                    teamId={effectiveTeamId}
+                    coverUrl={coverPhotoUrl}
+                    onUpdated={refreshTeamSnapshot}
+                    className="team-public-hero overflow-hidden rounded-xl shadow-md"
+                  >
+                    {({ displayUrl }) => (
+                      <div
+                        className={cn(
+                          "relative min-h-[200px] sm:min-h-[260px] md:min-h-[300px]",
+                          !displayUrl &&
+                            (profileThemeDark
+                              ? "bg-gradient-to-r from-violet-800 via-indigo-900 to-slate-900"
+                              : "bg-gradient-to-r from-indigo-500 to-violet-600")
+                        )}
+                      >
+                        {displayUrl ? (
+                          <>
+                            <img
+                              src={displayUrl}
+                              alt=""
+                              className="absolute inset-0 h-full w-full object-cover [filter:none]"
+                              loading="eager"
+                              decoding="async"
+                            />
+                            <div
+                              className="absolute inset-0 bg-gradient-to-t from-black/[0.18] via-black/[0.22] to-black/[0.28]"
+                              aria-hidden
+                            />
+                          </>
+                        ) : null}
+                        <div className="team-public-hero-inner relative z-10 flex min-h-[200px] flex-col justify-end p-4 sm:min-h-[260px] md:min-h-[300px] sm:p-6">
+                          <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:text-3xl">
+                            {teamNameForUi}
+                          </h1>
+                          {heroSlogan ? (
+                            <p className="team-public-hero-slogan mt-2 text-base font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-lg">
+                              {heroSlogan}
+                            </p>
+                          ) : null}
+                          {heroPlayStyle ? (
+                            <p className="mt-2 text-xs font-medium uppercase tracking-wide text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)]">
+                              {heroPlayStyle}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+                  </TeamHeroCoverManage>
+                ) : (
                 <div
                   className={cn(
-                    "relative min-h-[200px] overflow-hidden rounded-xl shadow-md sm:min-h-[260px] md:min-h-[300px]",
+                    "team-public-hero relative min-h-[200px] overflow-hidden rounded-xl shadow-md sm:min-h-[260px] md:min-h-[300px]",
                     !coverPhotoUrl &&
                       (profileThemeDark
                         ? "bg-gradient-to-r from-violet-800 via-indigo-900 to-slate-900"
@@ -967,10 +1544,10 @@ export default function TeamPage() {
                       브랜딩 적용
                     </div>
                   ) : null}
-                  <div className="relative z-10 flex min-h-[200px] flex-col justify-end p-5 sm:min-h-[260px] md:min-h-[300px] sm:p-6">
+                  <div className="team-public-hero-inner relative z-10 flex min-h-[200px] flex-col justify-end p-4 sm:min-h-[260px] md:min-h-[300px] sm:p-6">
                   <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:text-3xl">{teamNameForUi}</h1>
                   {heroSlogan ? (
-                    <p className="mt-2 text-base font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-lg">{heroSlogan}</p>
+                    <p className="team-public-hero-slogan mt-2 text-base font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-lg">{heroSlogan}</p>
                   ) : null}
                   {heroPlayStyle ? (
                     <p className="mt-2 text-xs font-medium uppercase tracking-wide text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)]">
@@ -979,12 +1556,12 @@ export default function TeamPage() {
                   ) : null}
                   </div>
                 </div>
+                )}
 
-
-                {/* T�? */}
+                {/* Visitor flow: Hero → intro → captain → staff → schedule → join → media */}
                 <div
                   className={cn(
-                    "flex flex-wrap items-center gap-4 text-sm",
+                    "flex flex-wrap items-center gap-2 text-sm sm:gap-4",
                     profileThemeDark ? "text-slate-300" : "text-gray-600"
                   )}
                 >
@@ -997,18 +1574,9 @@ export default function TeamPage() {
                   {foundedYearForUi ? <div>창단 {foundedYearForUi}</div> : null}
                 </div>
 
-                {effectiveTeamId ? (
-                  <div className="mb-4">
-                    <TeamDashboardStats
-                      teamId={effectiveTeamId}
-                      isActiveMember={isActiveMember}
-                      showStaffMetrics={canManageCaptainPhoto}
-                      dark={profileThemeDark}
-                    />
-                  </div>
-                ) : null}
-
-                {profileDescription ? (
+                {publishedClubIntro ? (
+                  <TeamClubIntroPublicSections intro={publishedClubIntro} dark={profileThemeDark} />
+                ) : profileDescription ? (
                   <section>
                     <h2
                       className={cn(
@@ -1058,55 +1626,91 @@ export default function TeamPage() {
                   </section>
                 ) : null}
 
+                {managerClubIntroPreview ? (
+                  <TeamClubIntroPublicSections
+                    intro={managerClubIntroPreview}
+                    dark={profileThemeDark}
+                    previewBadge
+                  />
+                ) : null}
+
                 {captainCardView ? (
                   <TeamCaptainMessageCard
                     view={captainCardView}
                     dark={profileThemeDark}
+                    manage={
+                      canManageCaptainPhoto && effectiveTeamId
+                        ? {
+                            teamId: effectiveTeamId,
+                            aiBusy: regenerateFieldBusy === "captainMessage",
+                            siblingBusy: brandingBusy || captainMessageSaveBusy,
+                            onAiCaptainMessage: () => void handleAiCaptainMessageDraft(),
+                            onDirectEdit: openCaptainMessageDirectEdit,
+                            onAfterPhotoChange: refreshTeamSnapshot,
+                          }
+                        : undefined
+                    }
                   />
                 ) : null}
 
+                {/* PUBLIC: 운영진 소개 — CMS 접기와 무관하게 항상 렌더 (publicStaff 읽기 전용) */}
                 {team ? (
-                  <div className="mt-5 sm:mt-6">
-                    <TeamPublicStaffShowcase staff={getVisibleTeamPublicStaff(team)} dark={profileThemeDark} />
-                  </div>
-                ) : null}
-                {effectiveTeamId ? (
-                  <div className="mt-4 sm:mt-5">
-                    <TeamStaffDirectorySection teamId={effectiveTeamId} dark={profileThemeDark} />
+                  <div id="team-public-staff-directory" className="mt-0.5 scroll-mt-4 sm:mt-2">
+                    <TeamStaffDirectorySection team={team} dark={profileThemeDark} />
                   </div>
                 ) : null}
 
-                  {effectiveTeamId ? (
-                    <div className="mt-4 space-y-4 sm:mt-5">
-                      <TeamHubMediaPreview
-                        teamId={effectiveTeamId}
-                        dark={profileThemeDark}
-                        onViewAll={() => setActiveTab("media")}
-                      />
-                      <TeamHubUpcomingSchedulePreview
+                {effectiveTeamId ? (
+                  <div className="mt-3 space-y-3 sm:mt-5 sm:space-y-4">
+                    <TeamHubUpcomingSchedulePreview
+                      teamId={effectiveTeamId}
+                      isActiveMember={isActiveMember}
+                      canManage={canManageCaptainPhoto}
+                      dark={profileThemeDark}
+                      onViewAll={openMatchesTabAndSchedule}
+                      onCreateSchedule={openMatchesTabCreateSchedule}
+                    />
+                    {(isActiveMember || canManageCaptainPhoto) ? (
+                      <TeamDashboardStats
                         teamId={effectiveTeamId}
                         isActiveMember={isActiveMember}
-                        canManage={canManageCaptainPhoto}
+                        showStaffMetrics={canManageCaptainPhoto}
                         dark={profileThemeDark}
-                        onViewAll={openMatchesTabAndSchedule}
-                        onCreateSchedule={openMatchesTabCreateSchedule}
                       />
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
+                ) : null}
 
                 {effectiveTeamId ? (
-                  <div className="mt-4 space-y-3 sm:mt-5">
+                  <div className="team-public-cta mt-3 space-y-3 sm:mt-5">
                     {!isActiveMember && recruitCta && !profileEditMode ? (
-                      <div
+                      <section
                         className={cn(
-                          "rounded-lg border px-4 py-3 text-sm leading-relaxed sm:text-base",
+                          "rounded-lg border px-4 py-3 sm:px-5 sm:py-4",
                           profileThemeDark
                             ? "border-slate-600/80 bg-slate-800/50 text-slate-100"
                             : "border-slate-200 bg-slate-50 text-slate-800"
                         )}
+                        aria-label="회원 모집"
                       >
-                        {recruitCta}
-                      </div>
+                        <h3
+                          className={cn(
+                            "text-sm font-semibold tracking-tight",
+                            profileThemeDark ? "text-slate-100" : "text-gray-900"
+                          )}
+                        >
+                          회원 모집
+                        </h3>
+                        <p className="mt-2 text-sm leading-relaxed sm:text-base whitespace-pre-wrap">
+                          {recruitCta}
+                        </p>
+                      </section>
+                    ) : null}
+                    {profileSocialPost && !profileEditMode ? (
+                      <TeamSocialPostShareCard socialPost={profileSocialPost} dark={profileThemeDark} />
+                    ) : null}
+                    {profileEventMessage && !profileEditMode ? (
+                      <TeamEventMessageCard eventMessage={profileEventMessage} dark={profileThemeDark} />
                     ) : null}
                     <TeamHubPrimaryActionStrip
                       teamId={effectiveTeamId}
@@ -1119,26 +1723,38 @@ export default function TeamPage() {
                       hubShareBusy={hubShareBusy}
                       onKakaoInquiry={handlePublicHubKakaoInquiry}
                     />
-                    {canManageTeamHub && effectiveTeamId && ownerPanelTabs ? (
-                      <div ref={ownerManagementRef} className="scroll-mt-4">
-                        <TeamOwnerManagementPanel
-                          dark={profileThemeDark}
-                          open={ownerPanelOpen}
-                          onOpenChange={setOwnerPanelOpen}
-                          score={ownerPublicScoreResult?.score ?? null}
-                          setupChecklist={ownerSetupChecklist}
-                          profileEditMode={profileEditMode}
-                          saveProfileBusy={saveProfileBusy}
-                          onCancelProfileEdit={cancelProfileEdit}
-                          onSaveProfile={() => void savePublicProfile()}
-                          canUseOwnerAiCopy={isTeamOwner}
-                          contentTab={ownerPanelTabs.contentTab}
-                          membersTab={ownerPanelTabs.membersTab}
-                          mediaTab={ownerPanelTabs.mediaTab}
-                          aiTab={ownerPanelTabs.aiTab}
-                        />
-                      </div>
-                    ) : null}
+                  </div>
+                ) : null}
+
+                {effectiveTeamId ? (
+                  <div className="mt-4 sm:mt-5">
+                    <TeamHubMediaPreview
+                      teamId={effectiveTeamId}
+                      dark={profileThemeDark}
+                      onViewAll={() => setActiveTab("media")}
+                    />
+                  </div>
+                ) : null}
+
+                {/* CMS only — 편집 도구. 접어도 위 공개「운영진 소개」는 유지 */}
+                {canManageTeamHub && effectiveTeamId && ownerPanelTabs ? (
+                  <div ref={ownerManagementRef} className="mt-4 scroll-mt-4 sm:mt-5">
+                    <TeamOwnerManagementPanel
+                      dark={profileThemeDark}
+                      open={ownerPanelOpen}
+                      onOpenChange={setOwnerPanelOpen}
+                      score={ownerPublicScoreResult?.score ?? null}
+                      setupChecklist={ownerSetupChecklist}
+                      profileEditMode={profileEditMode}
+                      saveProfileBusy={saveProfileBusy}
+                      onCancelProfileEdit={cancelProfileEdit}
+                      onSaveProfile={() => void savePublicProfile()}
+                      canUseOwnerAiCopy={isTeamOwner}
+                      contentTab={ownerPanelTabs.contentTab}
+                      membersTab={ownerPanelTabs.membersTab}
+                      mediaTab={ownerPanelTabs.mediaTab}
+                      aiTab={ownerPanelTabs.aiTab}
+                    />
                   </div>
                 ) : null}
             </div>
@@ -1148,7 +1764,7 @@ export default function TeamPage() {
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as TabType)}
-          className="mt-5 w-full space-y-5 border-t border-slate-200/80 pt-5 dark:border-slate-700/80 sm:mt-6 sm:pt-6"
+          className="mt-4 w-full space-y-4 border-t border-slate-200/80 pt-4 dark:border-slate-700/80 sm:mt-6 sm:space-y-5 sm:pt-6"
         >
           <TabsList>
             <TabsTrigger value="overview">개요</TabsTrigger>

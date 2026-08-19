@@ -20,6 +20,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { updateTeamDocument } from "@/lib/team/updateTeamDocument";
+import { normalizeTeamIdOrSlugParam } from "@/lib/team/resolveTeamIdOrSlugKey";
 import type { TeamOperationalSettings } from "@/types/teamOperationalSettings";
 
 /**
@@ -102,30 +103,45 @@ export async function updateTeamSettings(teamId: string, patch: TeamOperationalS
   await updateTeamDocument(teamId, { settings: nextSettings });
 }
 
+type TeamDocRow = Record<string, unknown> & { id: string };
+
 /**
- * 🔥 팀 조회 (ID 또는 슬러그 유추)
- * - 먼저 문서 ID로 조회
- * - 없으면 slug/팀 식별자 필드로 조회 후 첫 번째 결과 반환
+ * Resolve team by canonical doc id, then derived slugLower (Sprint 1-2).
+ * Does not change routes — callers already pass URL param into this helper.
+ *
+ * Order:
+ * 1) teams/{idOrSlug} document id (canonical)
+ * 2) teams where slugLower == normalized
+ * 3) teams where slug == raw (legacy / exact display form)
  */
-export async function fetchTeamByIdOrSlug(idOrSlug: string) {
-  if (!idOrSlug) return null;
+async function resolveTeamByIdOrSlug(
+  idOrSlug: string,
+  opts: { fromServer: boolean }
+): Promise<TeamDocRow | null> {
+  const { raw, slugLower } = normalizeTeamIdOrSlugParam(idOrSlug);
+  if (!raw) return null;
 
-  // 1) 문서 ID로 직접 조회
-  const byId = await fetchTeam(idOrSlug);
-  if (byId) return byId;
+  const byId = opts.fromServer ? await fetchTeamFromServer(raw) : await fetchTeam(raw);
+  if (byId) return byId as TeamDocRow;
 
-  // 2) 슬러그 유추 필드로 조회 (필드가 없으면 결과 0 → 안전)
-  const candidateFields = ["slug", "teamSlug", "nameId", "handle"];
-  for (const field of candidateFields) {
-    const q = query(
-      collection(db, "teams"),
-      where(field, "==", idOrSlug),
-      fsLimit(1)
-    );
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      const docSnap = snap.docs[0];
-      return { ...docSnap.data(), id: docSnap.id };
+  const teamsCol = collection(db, "teams");
+
+  const bySlugLowerQ = query(teamsCol, where("slugLower", "==", slugLower), fsLimit(1));
+  const bySlugLowerSnap = opts.fromServer
+    ? await getDocsFromServer(bySlugLowerQ)
+    : await getDocs(bySlugLowerQ);
+  if (!bySlugLowerSnap.empty) {
+    const docSnap = bySlugLowerSnap.docs[0];
+    return { ...docSnap.data(), id: docSnap.id } as TeamDocRow;
+  }
+
+  // Exact slug match when input casing differs from slugLower normalization edge cases
+  if (raw !== slugLower) {
+    const bySlugQ = query(teamsCol, where("slug", "==", raw), fsLimit(1));
+    const bySlugSnap = opts.fromServer ? await getDocsFromServer(bySlugQ) : await getDocs(bySlugQ);
+    if (!bySlugSnap.empty) {
+      const docSnap = bySlugSnap.docs[0];
+      return { ...docSnap.data(), id: docSnap.id } as TeamDocRow;
     }
   }
 
@@ -133,29 +149,19 @@ export async function fetchTeamByIdOrSlug(idOrSlug: string) {
 }
 
 /**
+ * 팀 조회 (canonical teamId 또는 public slug)
+ * - teamId SoT 문서 ID 우선
+ * - 없으면 slugLower (Sprint 1-1 발급 필드)
+ */
+export async function fetchTeamByIdOrSlug(idOrSlug: string) {
+  return resolveTeamByIdOrSlug(idOrSlug, { fromServer: false });
+}
+
+/**
  * `fetchTeamByIdOrSlug`와 동일하되 Firestore 서버에서만 읽음 (저장 직후 스냅샷 갱신용).
  */
 export async function fetchTeamByIdOrSlugFromServer(idOrSlug: string) {
-  if (!idOrSlug) return null;
-
-  const byId = await fetchTeamFromServer(idOrSlug);
-  if (byId) return byId;
-
-  const candidateFields = ["slug", "teamSlug", "nameId", "handle"];
-  for (const field of candidateFields) {
-    const q = query(
-      collection(db, "teams"),
-      where(field, "==", idOrSlug),
-      fsLimit(1)
-    );
-    const snap = await getDocsFromServer(q);
-    if (!snap.empty) {
-      const docSnap = snap.docs[0];
-      return { ...docSnap.data(), id: docSnap.id };
-    }
-  }
-
-  return null;
+  return resolveTeamByIdOrSlug(idOrSlug, { fromServer: true });
 }
 
 /**

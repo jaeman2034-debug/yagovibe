@@ -57,20 +57,58 @@ export function LastSessionComparisonCard({
   historySessions,
   historyLoading,
 }: LastSessionComparisonCardProps) {
+  if (import.meta.env.DEV) {
+    console.info("[LastSessionComparisonCard] mounted");
+  }
   const previousSession = findSessionByGeneratedAt(
     historySessions,
     delta?.previousSessionAt ?? null
   );
   const previousSnapshot = previousSession?.metrics.growthScore;
-  const dimensionRows = growthScore
-    ? buildDimensionComparisonRows(growthScore.snapshot, previousSnapshot)
+  const currentSnapshot = growthScore?.snapshot;
+  const canCompareSnapshots =
+    currentSnapshot != null &&
+    previousSnapshot != null &&
+    Number.isFinite(currentSnapshot.overall) &&
+    Number.isFinite(previousSnapshot.overall);
+  const dimensionRows = canCompareSnapshots
+    ? buildDimensionComparisonRows(currentSnapshot, previousSnapshot)
     : [];
-  const summary = growthScore ? buildParentComparisonSummary(delta, dimensionRows) : null;
+  const summary = canCompareSnapshots ? buildParentComparisonSummary(delta, dimensionRows) : null;
   const hasComparison =
-    growthScore != null &&
+    canCompareSnapshots &&
     delta?.previousOverall != null &&
-    delta.delta !== null &&
-    delta.previousSessionAt != null;
+    Number.isFinite(delta.previousOverall) &&
+    delta.delta != null &&
+    Number.isFinite(delta.delta) &&
+    delta.previousSessionAt != null &&
+    Number.isFinite(delta.previousSessionAt);
+
+  if (import.meta.env.DEV) {
+    console.info("[LastSessionComparisonCard] props", {
+      playerName,
+      growthScore,
+      delta,
+      historySessionsLength: historySessions.length,
+    });
+    console.table(
+      [...historySessions]
+        .sort((a, b) => b.generatedAt - a.generatedAt)
+        .slice(0, 2)
+        .map((session) => ({
+          firestoreDocId: session.firestoreDocId,
+          generatedAt: session.generatedAt,
+          overall: session.metrics.growthScore?.overall ?? null,
+          visionScan: session.metrics.growthScore?.visionScan ?? null,
+          pressureResistance: session.metrics.growthScore?.pressureResistance ?? null,
+          recoverySpeed: session.metrics.growthScore?.recoverySpeed ?? null,
+        }))
+    );
+    console.log(
+      "[playerGrowthHistory] latest two raw sessions",
+      JSON.stringify(historySessions.slice(0, 2), null, 2)
+    );
+  }
 
   return (
     <div
@@ -89,7 +127,7 @@ export function LastSessionComparisonCard({
 
       {historyLoading ? (
         <p className="mt-3 text-xs text-teal-800">이전 훈련 기록을 불러오는 중…</p>
-      ) : !growthScore ? (
+      ) : !currentSnapshot ? (
         <p className="mt-3 rounded-lg border border-teal-200 bg-white/80 px-3 py-3 text-sm text-teal-900">
           코치가 훈련 장면을 확인·승인하면 항목별 비교가 표시됩니다.
         </p>
@@ -105,25 +143,23 @@ export function LastSessionComparisonCard({
                 {summary}
               </p>
               <p className="mt-3 text-2xl font-black tabular-nums text-teal-950 sm:text-3xl">
-                {delta!.previousOverall}
+                {delta.previousOverall}
                 <span className="text-lg font-bold">점</span>
                 <span className="mx-2 text-teal-600" aria-hidden>
                   →
                 </span>
-                {growthScore.snapshot.overall}
+                {currentSnapshot.overall}
                 <span className="text-lg font-bold">점</span>
               </p>
-              {delta!.delta !== null ? (
-                <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-                  <span className="inline-flex rounded-full bg-teal-100 px-3 py-1 text-sm font-bold text-teal-900">
-                    {delta!.delta > 0 ? "+" : ""}
-                    {delta!.delta}점 {delta!.delta > 0 ? "향상" : delta!.delta < 0 ? "변화" : ""}
-                  </span>
-                  {delta!.delta === 0 ? (
-                    <span className="text-sm font-semibold text-teal-800">꾸준히 유지 중</span>
-                  ) : null}
-                </div>
-              ) : null}
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <span className="inline-flex rounded-full bg-teal-100 px-3 py-1 text-sm font-bold text-teal-900">
+                  {delta.delta > 0 ? "+" : ""}
+                  {delta.delta}점 {delta.delta > 0 ? "향상" : delta.delta < 0 ? "변화" : ""}
+                </span>
+                {delta.delta === 0 ? (
+                  <span className="text-sm font-semibold text-teal-800">꾸준히 유지 중</span>
+                ) : null}
+              </div>
             </div>
           ) : null}
           <DimensionDeltaList rows={dimensionRows} />

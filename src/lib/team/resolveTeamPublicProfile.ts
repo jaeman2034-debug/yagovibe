@@ -106,6 +106,34 @@ export function getRecruitMessage(team: { aiProfile?: unknown } | null | undefin
   return str(p.recruitMessage);
 }
 
+/** Phase 4 — SNS 홍보문 (`aiProfile.edited.socialPost` 우선) */
+export function getSocialPost(team: { aiProfile?: unknown } | null | undefined): string {
+  if (!team?.aiProfile || typeof team.aiProfile !== "object" || Array.isArray(team.aiProfile)) return "";
+  const p = team.aiProfile as Record<string, unknown>;
+  if (isV2AiProfile(p)) {
+    const v = p as { edited?: { socialPost?: unknown }; generated?: { socialPost?: unknown } };
+    if (v.edited && Object.prototype.hasOwnProperty.call(v.edited, "socialPost")) {
+      if (typeof v.edited.socialPost === "string") return v.edited.socialPost.trim();
+    }
+    return str(v.generated?.socialPost);
+  }
+  return str(p.socialPost);
+}
+
+/** Phase 5 — 행사 소개 멘트 (`aiProfile.edited.eventMessage` 우선) */
+export function getEventMessage(team: { aiProfile?: unknown } | null | undefined): string {
+  if (!team?.aiProfile || typeof team.aiProfile !== "object" || Array.isArray(team.aiProfile)) return "";
+  const p = team.aiProfile as Record<string, unknown>;
+  if (isV2AiProfile(p)) {
+    const v = p as { edited?: { eventMessage?: unknown }; generated?: { eventMessage?: unknown } };
+    if (v.edited && Object.prototype.hasOwnProperty.call(v.edited, "eventMessage")) {
+      if (typeof v.edited.eventMessage === "string") return v.edited.eventMessage.trim();
+    }
+    return str(v.generated?.eventMessage);
+  }
+  return str(p.eventMessage);
+}
+
 export function getPublicCtaShort(team: { aiProfile?: unknown } | null | undefined): string {
   if (!team?.aiProfile || typeof team.aiProfile !== "object" || Array.isArray(team.aiProfile)) return "";
   const p = team.aiProfile as Record<string, unknown>;
@@ -156,6 +184,17 @@ export function getThemePreset(team: { aiProfile?: unknown } | null | undefined)
     return t === "dark" ? "dark" : "light";
   }
   return p.themePreset === "dark" ? "dark" : "light";
+}
+
+/** Sprint 2-1 — fixed layout presets (not a page builder) */
+export type TeamPublicLayoutPreset = "classic" | "modern";
+
+export function getLayoutPreset(team: { aiProfile?: unknown } | null | undefined): TeamPublicLayoutPreset {
+  if (!team?.aiProfile || typeof team.aiProfile !== "object" || Array.isArray(team.aiProfile)) return "classic";
+  const p = team.aiProfile as Record<string, unknown>;
+  const meta = isV2AiProfile(p) ? (p as { meta?: { layoutPreset?: unknown } }).meta : p;
+  const raw = meta && typeof meta === "object" ? (meta as { layoutPreset?: unknown }).layoutPreset : undefined;
+  return raw === "modern" ? "modern" : "classic";
 }
 
 export function getAiSkipped(team: { aiProfile?: unknown } | null | undefined): boolean {
@@ -329,11 +368,28 @@ export function getTeamCaptainManagementView(
   };
 }
 
-/** 팀 공개 허브 히어로 커버 — v2 `meta.coverPhotoUrl` 우선, 레거시·teamBranding 폴백 */
+/** 팀 공개 허브 히어로 커버 — Firestore URL 우선, 없으면 null(UI 기본 그라데이션) */
 export function getTeamCoverPhotoUrl(
-  team: { aiProfile?: unknown; teamBranding?: unknown } | null | undefined
+  team:
+    | {
+        heroImage?: unknown;
+        coverImage?: unknown;
+        coverImageUrl?: unknown;
+        aiProfile?: unknown;
+        teamBranding?: unknown;
+      }
+    | null
+    | undefined
 ): string | null {
   if (!team) return null;
+
+  // 1) 루트 heroImage / coverImage (CMS·레거시 호환)
+  for (const key of ["heroImage", "coverImageUrl", "coverImage"] as const) {
+    const v = team[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+
+  // 2) v2 aiProfile.meta.coverPhotoUrl
   const p = team.aiProfile;
   if (p && typeof p === "object" && !Array.isArray(p)) {
     if (isV2AiProfile(p)) {
@@ -348,6 +404,8 @@ export function getTeamCoverPhotoUrl(
       if (typeof u === "string" && u.trim()) return u.trim();
     }
   }
+
+  // 3) teamBranding.coverPhotoUrl
   const b = team.teamBranding;
   if (b && typeof b === "object" && !Array.isArray(b)) {
     const u = (b as Record<string, unknown>).coverPhotoUrl;

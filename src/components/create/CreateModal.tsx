@@ -80,22 +80,22 @@ export function CreateModal({ open, onOpenChange, sport }: CreateModalProps) {
       {
         key: "match",
         icon: "🏆",
-        title: "경기",
+        title: "경기 만들기",
         description: "경기 매칭 글 작성",
         action: "match" as const,
       },
       {
         key: "recruit",
         icon: "⚡",
-        title: "활동",
-        description: "모집·활동 글 작성",
+        title: "모집글 작성",
+        description: "팀원·활동 모집 글 작성",
         action: "recruit" as const,
       },
       {
         key: "team",
         icon: "👥",
-        title: "팀",
-        description: "팀 만들기",
+        title: "팀 만들기",
+        description: "새 팀 생성 (탐색은 팀 탭)",
         action: "team" as const,
       },
     ];

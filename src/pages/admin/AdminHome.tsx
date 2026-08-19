@@ -666,6 +666,18 @@ export default function AdminHome() {
             desc="리텐션·코호트"
           />
           <Tool href="/app/admin/growth-console" icon={<Sparkles className="h-4 w-4" />} title="성장 콘솔" desc="그로스" />
+          <Tool
+            href="/admin/ai-operations"
+            icon={<Sparkles className="h-4 w-4" />}
+            title="AI 운영"
+            desc="VOC·Prompt Version 통계"
+          />
+          <Tool
+            href="/admin/ai-prompt-review"
+            icon={<Sparkles className="h-4 w-4" />}
+            title="AI Prompt Review"
+            desc="VOC 기반 프롬프트 개선 검토"
+          />
           <Tool href="/app/admin/sre-dashboard" icon={<Shield className="h-4 w-4" />} title="SRE" desc="안정성" />
         </div>
       </section>

@@ -9,15 +9,33 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { updateTeamDocument } from "@/lib/team/updateTeamDocument";
+import {
+  parseTeamContacts,
+  setTeamContacts,
+  TEAM_CONTACT_ROLES,
+  TEAM_CONTACT_ROLE_LABEL,
+  type TeamContactPerson,
+  type TeamContactRole,
+  type TeamContacts,
+} from "@/lib/team/teamContacts";
 import { useAuth } from "@/context/AuthProvider";
 import { canEditTeam, canDeleteTeam } from "@/lib/team/permissions";
 import { uploadTeamImage } from "@/lib/team/uploadTeamImage";
 import { deleteTeam } from "@/lib/team/deleteTeam";
-import { X, Upload, Trash2, Save, Loader2, Image as ImageIcon } from "lucide-react";
+import { X, Trash2, Save, Loader2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+
+type MemberOption = { uid: string; label: string; phone?: string };
+
+const EMPTY_PERSON = (): TeamContactPerson => ({
+  name: "",
+  phone: "",
+  uid: "",
+  fcmToken: null,
+});
 
 interface TeamSettingsModalProps {
   teamId: string;
@@ -46,7 +64,14 @@ export function TeamSettingsModal({
   const [region, setRegion] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
-  
+  const [members, setMembers] = useState<MemberOption[]>([]);
+  const [savingContacts, setSavingContacts] = useState(false);
+  const [contacts, setContacts] = useState<TeamContacts>({
+    chairman: EMPTY_PERSON(),
+    manager: EMPTY_PERSON(),
+    coach: EMPTY_PERSON(),
+  });
+
   // 이미지 업로드
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,6 +113,32 @@ export function TeamSettingsModal({
         setRegion(teamData.region || "");
         setImageUrl(teamData.imageUrl || "");
         setVisibility(teamData.visibility || "public");
+
+        const parsed = parseTeamContacts(teamData.contacts);
+        setContacts({
+          chairman: parsed.chairman || EMPTY_PERSON(),
+          manager: parsed.manager || EMPTY_PERSON(),
+          coach: parsed.coach || EMPTY_PERSON(),
+        });
+
+        const memSnap = await getDocs(collection(db, "teams", teamId, "members"));
+        const opts: MemberOption[] = [];
+        memSnap.forEach((m) => {
+          const d = m.data() as Record<string, unknown>;
+          const status = String(d.status ?? "active").toLowerCase();
+          if (status !== "active") return;
+          const label =
+            (typeof d.displayName === "string" && d.displayName.trim()) ||
+            (typeof d.name === "string" && d.name.trim()) ||
+            m.id;
+          opts.push({
+            uid: m.id,
+            label,
+            phone: typeof d.phone === "string" ? d.phone : undefined,
+          });
+        });
+        opts.sort((a, b) => a.label.localeCompare(b.label, "ko"));
+        setMembers(opts);
       } catch (error) {
         console.error("❌ [TeamSettingsModal] 팀 데이터 로드 실패:", error);
         toast.error("팀 정보를 불러오는데 실패했습니다.");
@@ -98,6 +149,41 @@ export function TeamSettingsModal({
 
     loadTeam();
   }, [isOpen, teamId, user?.uid, onClose]);
+
+  const patchContact = (
+    role: TeamContactRole,
+    patch: Partial<TeamContactPerson>
+  ) => {
+    setContacts((prev) => ({
+      ...prev,
+      [role]: { ...(prev[role] || EMPTY_PERSON()), ...patch },
+    }));
+  };
+
+  const handleSaveTeamContacts = async () => {
+    setSavingContacts(true);
+    try {
+      const res = await setTeamContacts({
+        teamId,
+        contacts: {
+          chairman: contacts.chairman,
+          manager: contacts.manager,
+          coach: contacts.coach,
+        },
+      });
+      setContacts({
+        chairman: res.contacts.chairman || EMPTY_PERSON(),
+        manager: res.contacts.manager || EMPTY_PERSON(),
+        coach: res.contacts.coach || EMPTY_PERSON(),
+      });
+      toast.success("회장·총무·감독 연락처가 저장되었습니다.");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "연락처 저장에 실패했습니다.";
+      toast.error(msg);
+    } finally {
+      setSavingContacts(false);
+    }
+  };
 
   // 저장
   const handleSave = async () => {
@@ -357,6 +443,94 @@ export function TeamSettingsModal({
                   />
                 </div>
               )}
+            </div>
+
+            {/* PR4-1.2 — 회장·총무·감독 Contact Table (수신자 선택 UI 없음) */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900">
+                  대관 연락처 (회장·총무·감독)
+                </label>
+                <p className="mt-1 text-xs text-gray-600">
+                  협회 명부는 관리자 「연락처 일괄 등록」으로 가져오는 것을 권장합니다.
+                  여기서는 수정만 하면 됩니다. 앱 푸시는 전화번호 가입 후 UID가 자동
+                  연결되거나, 아래에서 앱 계정을 연결한 역할에만 갑니다.
+                </p>
+              </div>
+              <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-100 text-left text-xs text-slate-600">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">역할</th>
+                      <th className="px-3 py-2 font-semibold">이름</th>
+                      <th className="px-3 py-2 font-semibold">휴대폰</th>
+                      <th className="px-3 py-2 font-semibold">앱 계정</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TEAM_CONTACT_ROLES.map((role) => {
+                      const row = contacts[role] || EMPTY_PERSON();
+                      return (
+                        <tr key={role} className="border-t border-slate-100">
+                          <td className="px-3 py-2 font-medium text-slate-800 whitespace-nowrap">
+                            {TEAM_CONTACT_ROLE_LABEL[role]}
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              value={row.name}
+                              onChange={(e) =>
+                                patchContact(role, { name: e.target.value })
+                              }
+                              className="w-full min-w-[6rem] rounded border border-slate-200 px-2 py-1"
+                              placeholder="이름"
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="tel"
+                              value={row.phone}
+                              onChange={(e) =>
+                                patchContact(role, { phone: e.target.value })
+                              }
+                              className="w-full min-w-[7rem] rounded border border-slate-200 px-2 py-1"
+                              placeholder="010-"
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <select
+                              value={row.uid}
+                              onChange={(e) => {
+                                const m = members.find((x) => x.uid === e.target.value);
+                                patchContact(role, {
+                                  uid: e.target.value,
+                                  name: row.name || m?.label || "",
+                                  phone: row.phone || m?.phone || "",
+                                });
+                              }}
+                              className="w-full min-w-[8rem] rounded border border-slate-200 px-2 py-1"
+                            >
+                              <option value="">미연결</option>
+                              {members.map((m) => (
+                                <option key={m.uid} value={m.uid}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <button
+                type="button"
+                disabled={savingContacts}
+                onClick={() => void handleSaveTeamContacts()}
+                className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {savingContacts ? "저장 중…" : "연락처 저장"}
+              </button>
             </div>
 
             {/* 공개 여부 */}

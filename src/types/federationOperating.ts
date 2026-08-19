@@ -11,6 +11,8 @@ export interface FederationOperatingTeam {
   annualFeeAmount: number;
   isActive: boolean;
   createdAt: string;
+  /** Optional one-to-one link to the platform team's public hub. */
+  platformTeamId?: string;
 }
 
 export type TeamFeePaymentPlan = "lump_sum" | "monthly";

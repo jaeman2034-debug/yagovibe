@@ -13,6 +13,7 @@ export type UploadTeamCoverPhotoPayload = {
 export type UploadTeamCoverPhotoResult = {
   ok: boolean;
   coverPhotoUrl?: string;
+  heroImage?: string;
   cleared?: boolean;
 };
 

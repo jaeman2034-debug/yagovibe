@@ -20,6 +20,7 @@ import { fetchRecommendedTeamsForSport, type RecommendedTeamRow } from "@/servic
 import { RecommendedTeamsSection } from "./RecommendedTeamsSection";
 import { cn } from "@/lib/utils";
 import { markTeamPlayEntryFromAppNav, teamPlayEntryPath } from "@/lib/team/teamPlayRoutes";
+import { useAuth } from "@/context/AuthProvider";
 
 interface TeamPost {
   id: string;
@@ -63,7 +64,7 @@ function activitySubtitle(summary: TeamSummary | null): string {
   return "요약 경기가 없습니다. 팀 플레이에서 첫 기록을 남겨보세요.";
 }
 
-/** `?teamId` 없음 — 팀 가입·생성 유도 (HUD는 teamId 있을 때만) */
+/** `?teamId` 없음 — 팀 탐색·가입 유도 (생성은 FAB(+)만) */
 function TeamJoinOnboardingBanner({ sport }: { sport: string }) {
   const navigate = useNavigate();
 
@@ -71,25 +72,17 @@ function TeamJoinOnboardingBanner({ sport }: { sport: string }) {
     <div className="mb-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm dark:border-slate-700 dark:from-slate-900/40 dark:to-gray-900">
       <p className="text-base font-semibold text-gray-900 dark:text-white">팀에 가입하면 플레이가 시작됩니다</p>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        모집을 둘러보거나 팀을 만들면 경기·MVP·성장 루프가 이어져요.
+        추천·협회 연결 팀을 둘러보고 가입하세요. 새 팀 만들기는 우측 하단 + 에서 할 수 있어요.
       </p>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      <div className="mt-4">
         <Button
           type="button"
-          variant="outline"
-          className="w-full border-emerald-300 text-emerald-800 hover:bg-emerald-50 sm:w-auto dark:border-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-950/40"
+          className="w-full bg-emerald-600 font-semibold text-white hover:bg-emerald-700 sm:w-auto"
           onClick={() =>
             navigate(`/team/search?sport=${encodeURIComponent(sport)}`)
           }
         >
           팀 찾기
-        </Button>
-        <Button
-          type="button"
-          className="w-full bg-emerald-600 font-semibold text-white hover:bg-emerald-700 sm:w-auto"
-          onClick={() => navigate(`/sports/${encodeURIComponent(sport)}/team/create`)}
-        >
-          팀 만들기
         </Button>
       </div>
     </div>
@@ -173,6 +166,7 @@ function TeamPlayHudCard({
 export default function SportTeamFeed({ sport }: SportTeamFeedProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const teamId = parseTeamIdFromSearch(searchParams.get("teamId"));
 
   const [posts, setPosts] = useState<TeamPost[]>([]);
@@ -184,9 +178,10 @@ export default function SportTeamFeed({ sport }: SportTeamFeedProps) {
   const [recommendedLoading, setRecommendedLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
     let cancelled = false;
     setRecommendedLoading(true);
-    void fetchRecommendedTeamsForSport(sport, { max: 10 })
+    void fetchRecommendedTeamsForSport(sport, { max: 20 })
       .then((rows) => {
         if (!cancelled) setRecommendedTeams(rows);
       })
@@ -199,7 +194,7 @@ export default function SportTeamFeed({ sport }: SportTeamFeedProps) {
     return () => {
       cancelled = true;
     };
-  }, [sport]);
+  }, [sport, authLoading, user?.uid]);
 
   useEffect(() => {
     if (!teamId) {
@@ -289,6 +284,13 @@ export default function SportTeamFeed({ sport }: SportTeamFeedProps) {
     <TeamJoinOnboardingBanner sport={sport} />
   );
 
+  const authHint =
+    !authLoading && !user && !recommendedLoading && recommendedTeams.length === 0 ? (
+      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        팀·협회 연결 목록을 보려면 로그인이 필요합니다. (teams 컬렉션 읽기 권한)
+      </div>
+    ) : null;
+
   const recruitSectionTitle = (
     <h2 className="mb-3 text-base font-bold text-gray-900 dark:text-white">모집 중</h2>
   );
@@ -297,6 +299,7 @@ export default function SportTeamFeed({ sport }: SportTeamFeedProps) {
     return (
       <div className="px-4 py-4">
         {topBanner}
+        {authHint}
         <RecommendedTeamsSection sport={sport} teams={recommendedTeams} loading={recommendedLoading} />
         {recruitSectionTitle}
         <FeedSkeletonGrid />
@@ -308,6 +311,7 @@ export default function SportTeamFeed({ sport }: SportTeamFeedProps) {
     return (
       <div className="px-4 py-4">
         {topBanner}
+        {authHint}
         <RecommendedTeamsSection sport={sport} teams={recommendedTeams} loading={recommendedLoading} />
         {recruitSectionTitle}
         <FeedEmptyState
@@ -324,6 +328,7 @@ export default function SportTeamFeed({ sport }: SportTeamFeedProps) {
     return (
       <div className="px-4 py-4">
         {topBanner}
+        {authHint}
         <RecommendedTeamsSection sport={sport} teams={recommendedTeams} loading={recommendedLoading} />
         {recruitSectionTitle}
         <FeedEmptyState
@@ -341,6 +346,7 @@ export default function SportTeamFeed({ sport }: SportTeamFeedProps) {
   return (
     <div className="space-y-3 px-4 py-4">
       {topBanner}
+      {authHint}
       <RecommendedTeamsSection sport={sport} teams={recommendedTeams} loading={recommendedLoading} />
       {recruitSectionTitle}
       {posts.map((post) => (

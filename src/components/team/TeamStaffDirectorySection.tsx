@@ -1,206 +1,164 @@
-import { useEffect, useState } from "react";
-import { Loader2, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getPublicTeamStaffCallable, type PublicTeamStaffRow } from "@/lib/team/getPublicTeamStaffClient";
+import type { TeamPublicStaffMember } from "@/types/teamPublicStaff";
+import {
+  getVisibleTeamPublicStaff,
+  groupTeamPublicStaffByRole,
+  type TeamPublicStaffRoleGroup,
+} from "@/lib/team/resolveTeamPublicStaff";
 
 export type TeamStaffDirectorySectionProps = {
-  teamId: string;
+  /** teams 문서 — `aiProfile.meta.publicStaff` 기반 */
+  team: { aiProfile?: unknown } | null | undefined;
   dark?: boolean;
 };
 
-function staffBadgeClass(roleKey: string, dark: boolean): string {
-  const k = roleKey.toLowerCase();
-  if (k === "owner") {
-    return dark
-      ? "bg-violet-600/90 text-white ring-1 ring-violet-400/40"
-      : "bg-violet-600 text-white ring-1 ring-violet-300/80";
-  }
-  if (k === "vice") {
-    return dark
-      ? "bg-fuchsia-900/55 text-fuchsia-100 ring-1 ring-fuchsia-400/30"
-      : "bg-fuchsia-100 text-fuchsia-900 ring-1 ring-fuchsia-200/90";
-  }
-  if (k === "manager") {
-    return dark
-      ? "bg-amber-900/50 text-amber-100 ring-1 ring-amber-500/25"
-      : "bg-amber-100 text-amber-950 ring-1 ring-amber-200/90";
-  }
-  return dark
-    ? "bg-slate-600/90 text-slate-100 ring-1 ring-slate-400/25"
-    : "bg-slate-200 text-slate-900 ring-1 ring-slate-300/80";
+function StaffMemberRow({
+  member,
+  dark,
+}: {
+  member: TeamPublicStaffMember;
+  dark: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-[72px] w-full min-w-0 items-center gap-3 rounded-lg border p-2 sm:h-20 sm:p-2.5",
+        dark
+          ? "border-slate-600/60 bg-slate-900/40"
+          : "border-gray-100 bg-gray-50/80"
+      )}
+    >
+      <div
+        className={cn(
+          "h-12 w-12 shrink-0 overflow-hidden rounded-full ring-1 sm:h-14 sm:w-14",
+          dark ? "bg-slate-700 ring-slate-600" : "bg-gray-100 ring-gray-100"
+        )}
+      >
+        {member.photoUrl ? (
+          <img
+            src={member.photoUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className={cn(
+              "flex h-full w-full items-center justify-center text-sm font-semibold",
+              dark ? "bg-slate-700 text-slate-200" : "bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500"
+            )}
+            aria-hidden
+          >
+            {member.name.trim().slice(0, 1) || "?"}
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <p
+          className={cn(
+            "truncate text-xs font-semibold sm:text-sm",
+            dark ? "text-slate-50" : "text-gray-900"
+          )}
+        >
+          {member.name}
+        </p>
+        {member.intro ? (
+          <p
+            className={cn(
+              "mt-0.5 truncate text-[11px] leading-snug sm:text-xs",
+              dark ? "text-slate-400" : "text-gray-600"
+            )}
+          >
+            {member.intro}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
-/**
- * 공개 팀 허브 — 클럽 운영진(회장·부회장·운영진·총무)
- */
-export function TeamStaffDirectorySection({ teamId, dark = false }: TeamStaffDirectorySectionProps) {
-  const [rows, setRows] = useState<PublicTeamStaffRow[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const tid = teamId.trim();
-    if (!tid) {
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(false);
-    void (async () => {
-      try {
-        const staff = await getPublicTeamStaffCallable(tid);
-        if (!cancelled) setRows(staff);
-      } catch {
-        if (!cancelled) {
-          setRows([]);
-          setError(true);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [teamId]);
-
-  if (loading) {
-    return (
-      <section
-        className={cn(
-          "rounded-2xl border p-5 sm:p-6",
-          dark ? "border-slate-600/80 bg-slate-800/25 text-slate-200" : "border-gray-200 bg-white/95"
-        )}
-        aria-busy="true"
-        aria-label="클럽 운영진"
-      >
-        <div className="flex items-center gap-2 text-sm opacity-80">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          운영진 정보를 불러오는 중…
-        </div>
-      </section>
-    );
-  }
-
-  const showDirectoryShell = !loading && rows !== null;
-
-  if (!showDirectoryShell) {
-    return null;
-  }
-
-  const list = rows ?? [];
+/** 직책 1개 = 카드 1개 (협회 본부 카드와 동일 톤, 그룹 키는 role) */
+function ClubStaffRoleCard({
+  group,
+  dark,
+}: {
+  group: TeamPublicStaffRoleGroup;
+  dark: boolean;
+}) {
+  if (!group.members.length) return null;
 
   return (
     <section
+      className={cn(
+        "flex h-full w-full flex-col rounded-xl border p-4 shadow-sm md:p-5",
+        dark ? "border-slate-600/70 bg-slate-900/55" : "border-gray-200 bg-white"
+      )}
+      aria-labelledby={`club-staff-role-${group.roleKey}`}
+    >
+      <h3
+        id={`club-staff-role-${group.roleKey}`}
+        className={cn(
+          "mb-3 border-b pb-2 text-base font-semibold",
+          dark ? "border-slate-700 text-slate-50" : "border-gray-100 text-gray-900"
+        )}
+      >
+        {group.roleLabel}
+      </h3>
+      <ul
+        className={cn(
+          "grid w-full gap-2 sm:gap-3",
+          group.members.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"
+        )}
+      >
+        {group.members.map((member) => (
+          <li key={member.id}>
+            <StaffMemberRow member={member} dark={dark} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * 공개 콘텐츠 — 운영진 소개 (읽기 전용).
+ * CMS(팀 운영 모드)와 분리: 접기/펼침과 무관하게 항상 렌더.
+ * publicStaff → 직책별 카드. 회장 제외. 빈 그룹 없음.
+ */
+export function TeamStaffDirectorySection({ team, dark = false }: TeamStaffDirectorySectionProps) {
+  const groups = groupTeamPublicStaffByRole(getVisibleTeamPublicStaff(team));
+
+  if (!groups.length) return null;
+
+  return (
+    <section
+      data-public-content="staff-directory"
       className={cn(
         "rounded-2xl border p-5 shadow-lg sm:p-6",
         dark
           ? "border-slate-600/70 bg-gradient-to-b from-slate-800/90 to-slate-900/85 text-slate-100"
           : "border-gray-200/90 bg-gradient-to-b from-white to-slate-50/90 text-gray-900"
       )}
-      aria-label="클럽 운영진"
+      aria-label="운영진 소개"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <Users className={cn("h-5 w-5 shrink-0", dark ? "text-slate-300" : "text-gray-600")} aria-hidden />
-            <h2 className={cn("text-base font-bold tracking-tight", dark ? "text-slate-50" : "text-gray-900")}>
-              클럽 운영진
-            </h2>
-          </div>
-          <p className={cn("mt-1.5 max-w-xl text-xs leading-relaxed sm:text-sm", dark ? "text-slate-400" : "text-gray-500")}>
-            팀 운영을 돕는 주요 멤버입니다.
-          </p>
-        </div>
+      <div className="flex items-center gap-2">
+        <Users className={cn("h-5 w-5 shrink-0", dark ? "text-slate-300" : "text-gray-600")} aria-hidden />
+        <h2 className={cn("text-base font-bold tracking-tight", dark ? "text-slate-50" : "text-gray-900")}>
+          운영진 소개
+        </h2>
       </div>
+      <p className={cn("mt-1.5 max-w-xl text-xs leading-relaxed sm:text-sm", dark ? "text-slate-400" : "text-gray-500")}>
+        등록된 직책만 표시됩니다. 회장은 인사말에서 소개합니다.
+      </p>
 
-      {error ? (
-        <p
-          className={cn(
-            "mt-5 rounded-xl border border-dashed px-4 py-6 text-center text-sm",
-            dark ? "border-amber-700/50 bg-amber-950/20 text-amber-100/90" : "border-amber-200 bg-amber-50/80 text-amber-950"
-          )}
-          role="status"
-        >
-          운영진 목록을 불러오지 못했어요. 잠시 후 다시 열어 주세요.
-        </p>
-      ) : list.length === 0 ? (
-        <ul className="mt-5 grid gap-3 sm:grid-cols-2" aria-label="운영진 목록 비어 있음">
-          <li
-            className={cn(
-              "flex min-h-[6rem] flex-col items-center justify-center gap-1 rounded-xl border border-dashed px-4 py-6 text-center sm:col-span-2",
-              dark ? "border-slate-600/80 bg-slate-900/30 text-slate-400" : "border-gray-200 bg-gray-50/90 text-gray-600"
-            )}
-          >
-            <span className="text-sm font-semibold">표시할 운영진이 아직 없어요</span>
-            <span className="text-xs leading-relaxed opacity-90">
-              회장(owner)·부회장(vice)·운영진(admin)·총무(manager)로 등록된 멤버가 여기에 나타납니다.
-            </span>
-          </li>
-        </ul>
-      ) : (
-        <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-          {list.map((r) => (
-            <li
-              key={r.uid}
-              className={cn(
-                "flex gap-4 rounded-xl border p-4 sm:p-5",
-                dark ? "border-slate-600/70 bg-slate-900/45 shadow-inner" : "border-gray-100 bg-white shadow-sm"
-              )}
-            >
-              <div className="shrink-0 pt-0.5">
-                {r.photoUrl ? (
-                  <img
-                    src={r.photoUrl}
-                    alt=""
-                    className={cn(
-                      "h-16 w-16 rounded-full object-cover shadow-md ring-2 ring-offset-2 sm:h-[4.5rem] sm:w-[4.5rem]",
-                      dark ? "ring-violet-500/35 ring-offset-slate-900" : "ring-indigo-200/90 ring-offset-white"
-                    )}
-                  />
-                ) : (
-                  <div
-                    className={cn(
-                      "flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold shadow-inner ring-2 ring-offset-2 sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl",
-                      dark
-                        ? "bg-slate-700 text-slate-100 ring-slate-500/40 ring-offset-slate-900"
-                        : "bg-indigo-100 text-indigo-800 ring-indigo-200/80 ring-offset-white"
-                    )}
-                    aria-hidden
-                  >
-                    {r.displayName.slice(0, 1)}
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                  <span className="text-base font-bold leading-tight tracking-tight sm:text-lg">{r.displayName}</span>
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide",
-                      staffBadgeClass(r.roleKey, dark)
-                    )}
-                  >
-                    {r.roleLabel}
-                  </span>
-                </div>
-                {r.subtitle ? (
-                  <p
-                    className={cn(
-                      "text-sm leading-snug sm:text-[15px]",
-                      dark ? "text-slate-300" : "text-gray-600"
-                    )}
-                  >
-                    {r.subtitle}
-                  </p>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Desktop·Tablet 2열 / Mobile 1열 — 직책 카드 그리드 */}
+      <div className="mt-5 grid w-full grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+        {groups.map((group) => (
+          <ClubStaffRoleCard key={group.roleKey} group={group} dark={dark} />
+        ))}
+      </div>
     </section>
   );
 }

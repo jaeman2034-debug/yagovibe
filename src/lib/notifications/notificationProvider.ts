@@ -85,20 +85,25 @@ export class KakaoNotificationProvider implements NotificationProvider {
         ? mapVenueKeyToAlimTalkId(msg.payload.templateKey)
         : null;
     const templateId =
-      msg.alimTalkTemplateId || fromPayload || ("RESERVATION_COMPLETE" as const);
+      msg.alimTalkTemplateId || fromPayload || ("RESERVATION_APPROVED" as const);
     await sendAlimTalk({
       recipientPhone: phone,
       templateId,
       templateVariables: {
         team: msg.teamName || "",
-        link: msg.link || "https://yago-vibe.com",
+        reservationUrl: msg.link || "https://yago-vibe.com",
         venue: "",
         date: "",
         time: "",
         price: "",
         deadline: "",
-        contact: "노원구축구협회",
-        name: "",
+        reservationNo: "",
+        player: "",
+        reportUrl: msg.link || "",
+        noticeTitle: msg.title || "",
+        noticeUrl: msg.link || "",
+        coach: "",
+        paymentStatus: "",
       },
     });
   }

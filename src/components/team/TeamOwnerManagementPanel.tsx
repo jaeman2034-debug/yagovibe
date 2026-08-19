@@ -56,7 +56,7 @@ export function TeamOwnerManagementPanel({
     onOpenChange?.(next);
   };
 
-  const manageHint = "콘텐츠/멤버 관리";
+  const manageHint = "편집 도구 · 공개 페이지와 별개";
 
   const shell = cn(
     "w-full rounded-lg border text-xs",

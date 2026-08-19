@@ -64,6 +64,28 @@ function openKakaoExternalOnIOS(url: string): boolean {
   }
 }
 
+const PRODUCTION_ORIGIN = "https://yago-vibe-spt.web.app";
+
+/** 카카오/인앱이 localhost 링크를 열면 수신 폰에서 연결 거부 → 프로덕션으로 치환 */
+function rewriteLoopbackToProduction(url: string): string {
+  try {
+    const u = new URL(url, PRODUCTION_ORIGIN);
+    const h = u.hostname.toLowerCase();
+    const isLoopback =
+      h === "localhost" ||
+      h === "127.0.0.1" ||
+      h === "[::1]" ||
+      h.endsWith(".local");
+    if (!isLoopback) return url;
+    return `${PRODUCTION_ORIGIN}${u.pathname}${u.search}${u.hash}`;
+  } catch {
+    if (/localhost|127\.0\.0\.1/i.test(url)) {
+      return PRODUCTION_ORIGIN;
+    }
+    return url;
+  }
+}
+
 /**
  * 외부 브라우저로 강제 리디렉션
  */
@@ -75,9 +97,13 @@ export function openExternalBrowser(
   }
 ): void {
   try {
-    const targetUrl =
+    const raw =
       url ||
-      (typeof window !== "undefined" ? window.location.href : "https://www.yagovibe.com");
+      (typeof window !== "undefined" ? window.location.href : PRODUCTION_ORIGIN);
+    const targetUrl = rewriteLoopbackToProduction(raw);
+    if (targetUrl !== raw) {
+      console.warn("[openExternalBrowser] localhost → production rewrite", { raw, targetUrl });
+    }
 
     const fallbackDelay = options?.fallbackDelay ?? 1000;
     const useSafariOnIOS = options?.useSafariOnIOS ?? true;

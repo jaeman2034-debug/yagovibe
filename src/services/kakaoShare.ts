@@ -1,5 +1,7 @@
 import { initKakao } from "@/lib/kakaoAuth";
 import { buildTeamInviteShareMessage } from "@/lib/team/buildTeamInviteShareMessage";
+import { resolveTeamPublicUrlKey } from "@/lib/team/createTeamResultParse";
+import { federationInviteAbsoluteUrl } from "@/services/inviteService";
 import {
   buildExternalUrl,
   teamInviteAbsoluteUrlForKakaoShare,
@@ -54,10 +56,27 @@ export async function shareFederationInviteViaKakao(input: {
     );
   }
 
-  const link = input.link;
+  /** localhost·잘못된 CF base 제거 — 카카오 수신자는 공개 Hosting만 열 수 있음 */
+  const link = federationInviteAbsoluteUrl(input.link);
+  if (!link || /localhost|127\.0\.0\.1/i.test(link)) {
+    throw new Error(
+      "초대 링크가 localhost입니다. https://yago-vibe-spt.web.app 에서 초대를 다시 생성하세요."
+    );
+  }
+  if (!link.startsWith("https://yago-vibe-spt.web.app/")) {
+    throw new Error(
+      `초대 링크 도메인이 올바르지 않습니다: ${link}\n카카오 Developers > 앱 > 제품 설정 > 카카오톡 공유에\nyago-vibe-spt.web.app 도메인이 등록돼 있어야 합니다.`
+    );
+  }
+  console.log("[shareFederationInviteViaKakao] invite URL:", link);
   const title = `${input.federationName} 관리자 초대`;
-  const description = "관리자로 초대되었습니다. 아래 링크를 눌러 참여하세요.";
-  const imageUrl = input.imageUrl || buildExternalUrl("/icons/icon-maskable-512.png");
+  const description =
+    "관리자로 초대되었습니다. 「참여하기」를 누르면 야고 플랫폼으로 이동합니다.";
+  // 이미지도 동일 Hosting origin (미등록 도메인 이미지로 공유 실패 방지)
+  const imageUrl =
+    input.imageUrl && input.imageUrl.startsWith("https://yago-vibe-spt.web.app/")
+      ? input.imageUrl
+      : "https://yago-vibe-spt.web.app/icons/icon-maskable-512.png";
 
   window.Kakao.Share.sendDefault({
     objectType: "feed",
@@ -80,6 +99,7 @@ export async function shareFederationInviteViaKakao(input: {
       },
     ],
   });
+  return link;
 }
 
 /** 팀 초대 링크 (/invite/:id) — Kakao Talk 공유 */
@@ -221,6 +241,8 @@ export type PublicTeamHubShareChannel = "kakao" | "web_share" | "clipboard" | "c
 /** 공개 팀 허브 URL(`/team/:id/public`) — 카카오·공유·복사 */
 export async function sharePublicTeamHubKakaoOrWebShare(input: {
   teamId: string;
+  /** Sprint 1/2 — prefer human-readable slug when present */
+  slug?: string | null;
   teamName: string;
   blurb?: string | null;
   imageUrl?: string | null;
@@ -228,7 +250,8 @@ export async function sharePublicTeamHubKakaoOrWebShare(input: {
   const tid = input.teamId.trim();
   if (!tid) throw new Error("teamId가 필요합니다.");
 
-  const pageUrl = buildExternalUrl(`/team/${encodeURIComponent(tid)}/public`);
+  const urlKey = resolveTeamPublicUrlKey(tid, input.slug);
+  const pageUrl = buildExternalUrl(`/team/${encodeURIComponent(urlKey)}/public`);
   const title = `${(input.teamName || "팀").trim() || "팀"} — 함께해요`;
   const blurb = (input.blurb ?? "").trim().replace(/\s+/g, " ");
   const description =

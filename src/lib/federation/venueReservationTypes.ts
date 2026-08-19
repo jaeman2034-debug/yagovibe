@@ -6,6 +6,8 @@
  *   alias for paymentClaimStatus=REQUESTED ∧ paymentStatus=UNCONFIRMED
  *   ≠ admin CONFIRMED (PR3)
  */
+import type { CanonicalPricingSnapshot } from "./venueAllocationTypes";
+
 
 export type VenuePaymentClaimStatus = "NONE" | "REQUESTED";
 export type VenueAllocationConfirmStatus = "PENDING_PAYMENT" | "FINALIZED";
@@ -27,6 +29,10 @@ export type VenueReservation = {
   endTime: string;
   teamId: string;
   teamName: string;
+  /** PR4-1.5 */
+  teamKind?: "platform" | "guest";
+  guestTeamId?: string | null;
+  platformTeamId?: string | null;
   createdByUid: string;
   allocatedByUid: string;
   allocationSource?: "REQUEST_SELECTION" | "ADMIN_DIRECT" | null;
@@ -50,6 +56,9 @@ export type VenueReservation = {
   baseAmount: number;
   lightingAmount: number;
   totalAmount: number;
+  /** Copied verbatim from the immutable QUOTED request snapshot. */
+  pricingStatus: "QUOTED";
+  pricingSnapshot: CanonicalPricingSnapshot;
   /** Display guide only — not a payment rail */
   bankAccountGuide: string;
   /** Q3 copy — 사용 전월까지 */
@@ -63,6 +72,9 @@ export type VenueReservation = {
   notifyDedupKey?: string | null;
   /** Idempotent notify marker (claim → managers) */
   claimNotifyDedupKey?: string | null;
+  /** PR4-1 — latest uploaded receipt (evidence only; ≠ CONFIRMED) */
+  latestReceiptId?: string | null;
+  paymentReceiptVerificationStatus?: "MATCH" | "REVIEW_REQUIRED" | null;
 };
 
 /** UX/ops alias — never treat as paymentStatus=CONFIRMED */

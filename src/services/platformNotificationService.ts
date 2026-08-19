@@ -67,8 +67,25 @@ export async function createNotification(
   params: CreateNotificationParams
 ): Promise<void> {
   try {
+    const recipientUid =
+      typeof params.payload?.recipientUid === "string"
+        ? params.payload.recipientUid
+        : params.userId;
+    const recipientRole =
+      typeof params.payload?.recipientRole === "string"
+        ? params.payload.recipientRole
+        : undefined;
+    const notificationType =
+      typeof params.payload?.notificationType === "string"
+        ? params.payload.notificationType
+        : typeof params.payload?.templateKey === "string"
+          ? params.payload.templateKey
+          : undefined;
     const doc = omitUndefinedDeep({
       userId: params.userId,
+      recipientUid,
+      ...(recipientRole ? { recipientRole } : {}),
+      ...(notificationType ? { notificationType } : {}),
       type: params.type,
       title: params.title,
       message: params.message,

@@ -143,6 +143,11 @@ export function PublicProfileTextareaWithAi({
         setPreviewImproved(improved);
         setPreviewSource(out.source === "openai" ? "openai" : "template");
         setPreviewOpen(true);
+        if (out.unchanged || selected.replace(/\s+/g, " ").trim() === improved.replace(/\s+/g, " ").trim()) {
+          toast.message("변경할 표현이 거의 없습니다.", {
+            description: "다른 스타일을 고르거나 ‘다시 생성’을 눌러 보세요.",
+          });
+        }
         void track("team_public_selection_ai_improved", {
           team_id: teamId,
           field,
@@ -151,6 +156,7 @@ export function PublicProfileTextareaWithAi({
           regenerated: Boolean(opts.isRegenerate),
           source: out.source ?? "unknown",
           style: styleUsed,
+          unchanged: Boolean(out.unchanged),
         });
       } catch (err: unknown) {
         const code = err && typeof err === "object" && "code" in err ? String((err as { code?: string }).code) : "";

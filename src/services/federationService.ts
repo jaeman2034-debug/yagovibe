@@ -9,12 +9,14 @@ import {
   writeBatch,
   serverTimestamp,
   updateDoc,
+  setDoc,
   getDoc,
   getDocs,
   addDoc,
   query,
   orderBy,
   limit,
+  deleteField,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth } from "firebase/auth";
@@ -1431,9 +1433,25 @@ export async function tryLoadFederationHistorySourceBlob(
   return null;
 }
 
+export type FederationExecutiveWrite = {
+  id?: string;
+  name: string;
+  role: string;
+  position?: string;
+  department?: string;
+  photo?: string | null;
+  photoUrl?: string | null;
+  description?: string | null;
+  duties?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  career?: string | null;
+  order?: number;
+};
+
 export type FederationOrganizationPayload = {
   summary: string;
-  executives: { name: string; role: string }[];
+  executives: FederationExecutiveWrite[];
 };
 
 /** 조직 요약 + 임원 목록만 생성 (Callable) */
@@ -1487,25 +1505,92 @@ export async function regenerateFederationOrganization(
   return data;
 }
 
+function buildExecutiveDocData(
+  e: FederationExecutiveWrite,
+  index: number,
+  now: ReturnType<typeof serverTimestamp>
+): Record<string, unknown> {
+  const role = (e.role || e.position || "").trim();
+  const photo =
+    (typeof e.photo === "string" && e.photo.trim()) ||
+    (typeof e.photoUrl === "string" && e.photoUrl.trim()) ||
+    null;
+  return {
+    name: e.name.trim(),
+    role,
+    ...(e.position != null && String(e.position).trim()
+      ? { position: String(e.position).trim() }
+      : {}),
+    ...(e.department != null && String(e.department).trim()
+      ? { department: String(e.department).trim() }
+      : {}),
+    ...(photo ? { photo } : {}),
+    ...(e.description != null && String(e.description).trim()
+      ? { description: String(e.description).trim() }
+      : {}),
+    ...(e.duties != null && String(e.duties).trim() ? { duties: String(e.duties).trim() } : {}),
+    ...(e.email != null && String(e.email).trim() ? { email: String(e.email).trim() } : {}),
+    ...(e.phone != null && String(e.phone).trim() ? { phone: String(e.phone).trim() } : {}),
+    ...(e.career != null && String(e.career).trim() ? { career: String(e.career).trim() } : {}),
+    order: typeof e.order === "number" ? e.order : index + 1,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/** 조직 구성 임원 단건 upsert — 사진 업로드 직후 반영용 (id 유지) */
+export async function upsertFederationExecutive(
+  federationSlug: string,
+  executive: FederationExecutiveWrite & { id: string }
+): Promise<void> {
+  const id = String(executive.id || "").trim();
+  if (!id) throw new Error("executive id가 필요합니다.");
+  const now = serverTimestamp();
+  const exRef = doc(db, "federations", federationSlug, "executives", id);
+  await setDoc(exRef, buildExecutiveDocData(executive, executive.order ?? 1, now), { merge: true });
+}
+
+/** CMS 사진만 제거 — PHOTO_MAP/Avatar 폴백으로 돌아감 */
+export async function clearFederationExecutivePhoto(
+  federationSlug: string,
+  memberId: string
+): Promise<void> {
+  const id = String(memberId || "").trim();
+  if (!id) throw new Error("executive id가 필요합니다.");
+  const exRef = doc(db, "federations", federationSlug, "executives", id);
+  await setDoc(
+    exRef,
+    {
+      photo: deleteField(),
+      photoUrl: deleteField(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
 /** 조직 구성(임원) 전체 교체 — AI 생성 후 사용자 수정에 사용 */
 export async function replaceFederationExecutives(
   federationSlug: string,
-  executives: { name: string; role: string }[]
+  executives: FederationExecutiveWrite[]
 ): Promise<void> {
   const col = collection(db, "federations", federationSlug, "executives");
   const snap = await getDocs(col);
   const now = serverTimestamp();
   const batch = writeBatch(db);
-  snap.docs.forEach((d) => batch.delete(d.ref));
+  const keepIds = new Set<string>();
   executives
-    .filter((e) => e.name.trim() || e.role.trim())
-    .forEach((e) => {
-      const exRef = doc(collection(db, "federations", federationSlug, "executives"));
-      batch.set(exRef, {
-        name: e.name.trim(),
-        role: e.role.trim(),
-        createdAt: now,
-      });
+    .filter((e) => e.name.trim() || e.role.trim() || String(e.position || "").trim())
+    .forEach((e, index) => {
+      const rawId = typeof e.id === "string" ? e.id.trim() : "";
+      const exRef = rawId
+        ? doc(db, "federations", federationSlug, "executives", rawId)
+        : doc(collection(db, "federations", federationSlug, "executives"));
+      keepIds.add(exRef.id);
+      batch.set(exRef, buildExecutiveDocData(e, index, now));
     });
+  snap.docs.forEach((d) => {
+    if (!keepIds.has(d.id)) batch.delete(d.ref);
+  });
   await batch.commit();
 }

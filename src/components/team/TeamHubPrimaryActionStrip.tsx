@@ -18,7 +18,7 @@ export type TeamHubPrimaryActionStripProps = {
 };
 
 const primaryClass =
-  "gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-xs font-bold text-white shadow-md hover:from-violet-700 hover:to-indigo-700 sm:text-sm";
+  "min-h-11 w-full gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-xs font-bold text-white shadow-md hover:from-violet-700 hover:to-indigo-700 sm:min-h-9 sm:w-auto sm:text-sm";
 
 /**
  * 공개 팀 허브 CTA — 역할별 우선순위.
@@ -39,11 +39,11 @@ export function TeamHubPrimaryActionStrip({
   if (!tid) return null;
 
   const btnOutline = cn(
-    "gap-1.5 text-xs font-semibold sm:text-sm",
+    "min-h-11 w-full gap-1.5 text-xs font-semibold sm:min-h-9 sm:w-auto sm:text-sm",
     dark ? "border-slate-500 bg-slate-900/40 text-slate-100 hover:bg-slate-800" : ""
   );
   const btnSecondary = cn(
-    "gap-1.5 text-xs font-semibold sm:text-sm",
+    "min-h-11 w-full gap-1.5 text-xs font-semibold sm:min-h-9 sm:w-auto sm:text-sm",
     dark ? "border-slate-500 text-slate-100 hover:bg-white/10" : "border-gray-300"
   );
 
@@ -74,9 +74,9 @@ export function TeamHubPrimaryActionStrip({
 
   if (isActiveMember) {
     return (
-      <div className="flex flex-wrap gap-2" role="group" aria-label="팀 활동">
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap" role="group" aria-label="팀 활동">
         <Button type="button" size="sm" className={primaryClass} onClick={goTeamPlayLobby}>
-          플레이 라운지 입장
+          ▶ PLAY NOW
         </Button>
         <Button type="button" size="sm" variant="outline" className={btnOutline} onClick={onViewMatchesSchedule}>
           <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
@@ -91,7 +91,7 @@ export function TeamHubPrimaryActionStrip({
   }
 
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="팀 탐색">
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap" role="group" aria-label="팀 탐색">
       <Button type="button" size="sm" className={primaryClass} onClick={goPlayground}>
         운동장 입장
       </Button>

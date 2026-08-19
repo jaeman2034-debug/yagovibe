@@ -17,7 +17,7 @@ import SportActivityFeed from "./SportActivityFeed";
 import SportTeamFeed from "./SportTeamFeed";
 import SportEventFeed from "./SportEventFeed";
 import { SportHeader } from "@/components/sports/SportHeader";
-import { isFirstSportHubVisit, markSportHubVisited } from "@/utils/sportVisit";
+import { markSportHubVisited } from "@/utils/sportVisit";
 import { track } from "@/lib/analytics";
 import { sportMarketListUrl } from "@/utils/sportHubHref";
 import { cn } from "@/lib/utils";
@@ -27,23 +27,24 @@ type HubContentTab = "match" | "activity" | "team" | "event";
 type DefaultTabChoice = "market" | HubContentTab;
 
 const VALID_HUB_TABS: HubContentTab[] = ["match", "activity", "team", "event"];
+/** Hub → Sport 진입 시 기본 콘텐츠 탭 (마켓은 `/market` 명시 진입만) */
 const DEFAULT_TAB_BY_SPORT: Record<string, DefaultTabChoice> = {
   baseball: "team",
   soccer: "team",
-  basketball: "market",
-  volleyball: "market",
-  badminton: "market",
-  tennis: "market",
-  golf: "market",
-  billiards: "market",
+  basketball: "activity",
+  volleyball: "activity",
+  badminton: "activity",
+  tennis: "activity",
+  golf: "activity",
+  billiards: "activity",
   running: "event",
   hiking: "event",
   climbing: "event",
   cycling: "event",
   yoga: "event",
-  fitness: "market",
+  fitness: "activity",
   swimming: "match",
-  "table-tennis": "market",
+  "table-tennis": "activity",
   martial: "event",
   winter: "event",
 };
@@ -65,7 +66,7 @@ export default function SportHubPage() {
 
   const tabParam = searchParams.get("tab");
   const sport = normalizeSportId(sportParam) ?? "soccer";
-  const defaultTabBySport = DEFAULT_TAB_BY_SPORT[sport] ?? "market";
+  const defaultTabBySport = DEFAULT_TAB_BY_SPORT[sport] ?? "activity";
 
   const hubTabFromUrl: HubContentTab | null =
     tabParam && VALID_HUB_TABS.includes(tabParam as HubContentTab)
@@ -131,8 +132,9 @@ export default function SportHubPage() {
     if (hubTabFromUrl !== null) return;
 
     if (!tabParam) {
+      // 축구: 팀 탭 / 그 외: 종목별 기본(activity·team·event) — market 강제 진입 금지
       const initialTab: DefaultTabChoice =
-        sport === "soccer" ? "team" : isFirstSportHubVisit() ? "match" : defaultTabBySport;
+        sport === "soccer" ? "team" : defaultTabBySport;
       markSportHubVisited();
       if (initialTab === "market") {
         navigate(sportMarketListUrl(sport), { replace: true });

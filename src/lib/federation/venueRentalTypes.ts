@@ -53,6 +53,13 @@ export type VenueBaselineAllocation = {
 /** Occupancy row kind for admin/read merge */
 export type VenueSlotOccupancyKind = "BOOKING_REQUEST" | "BASELINE_ALLOCATION";
 
+/** Canonical venue-level deposit account SoT. */
+export type VenueDepositAccount = {
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+};
+
 export type FederationVenue = {
   id: string;
   name: string;
@@ -71,6 +78,8 @@ export type FederationVenue = {
    * Snapshot onto venueReservations.bankAccountGuide at allocate time.
    */
   depositAccountGuide?: string | null;
+  /** Canonical source for reservation and NCP AlimTalk account routing. */
+  depositAccount?: VenueDepositAccount | null;
   createdAt?: unknown;
   updatedAt?: unknown;
 };

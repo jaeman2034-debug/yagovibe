@@ -46,7 +46,7 @@ export function activityFocusToSportHubTab(focus: ActivityFocus): SportHubTab {
     case "events":
       return "event";
     default:
-      return "market";
+      return "activity";
   }
 }
 

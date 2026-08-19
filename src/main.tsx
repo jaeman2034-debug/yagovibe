@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
 import "./styles/layout.css";
+import "./styles/team-public-home.css";
 import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
 import { initSentry } from "@/lib/sentry";
 import { initPush } from "./lib/pushNotifications";

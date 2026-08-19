@@ -29,6 +29,10 @@ import { finalizeTeamBrandingCallable } from "@/lib/team/finalizeTeamBrandingCli
 import { cn } from "@/lib/utils";
 import { getSportLabel, normalizeSportId } from "@/constants/sports";
 import { track } from "@/lib/analytics";
+import {
+  parseSlugFromCallableResult,
+  resolveTeamPublicUrlKey,
+} from "@/lib/team/createTeamResultParse";
 
 function isValidTeamId(id: string | null | undefined): id is string {
   return !!id && id !== "null" && id !== "undefined";
@@ -141,11 +145,12 @@ function extractTeamIdFromError(error: any): string | null {
   }
 }
 
-function buildTeamHomeAfterCreateQuery(isAnonymous: boolean): string {
+function buildTeamHomeAfterCreateQuery(isAnonymous: boolean, federationSlug?: string | null): string {
   const q = new URLSearchParams();
   q.set("onboarding", "1");
   q.set("firstTeam", "1");
   if (isAnonymous) q.set("linkAccount", "1");
+  if (federationSlug?.trim()) q.set("federation", federationSlug.trim());
   return q.toString();
 }
 
@@ -333,7 +338,7 @@ export default function TeamCreateForm({ mode }: TeamCreateFormProps) {
       }
 
       console.log("[TeamCreateForm] httpsCallable(createTeam) 시작…");
-      const createTeamCallable = httpsCallable<CreateTeamRequest, { teamId: string }>(
+      const createTeamCallable = httpsCallable<CreateTeamRequest, { teamId: string; slug?: string }>(
         functions,
         "createTeam"
       );
@@ -344,6 +349,7 @@ export default function TeamCreateForm({ mode }: TeamCreateFormProps) {
       console.log("[TeamCreateForm] createTeam callable result", result);
 
       let teamId = parseTeamIdFromCallableResult(result);
+      const slug = parseSlugFromCallableResult(result);
       const message =
         result?.data && typeof result.data === "object" && "message" in result.data
           ? String((result.data as { message?: unknown }).message ?? "")
@@ -365,7 +371,7 @@ export default function TeamCreateForm({ mode }: TeamCreateFormProps) {
         throw err;
       }
 
-      console.log("✅ [TeamCreateForm] 팀 생성 성공:", teamId);
+      console.log("✅ [TeamCreateForm] 팀 생성 성공:", { teamId, slug });
 
       let brandingOk = false;
       const brandingToast = toast.loading("AI가 팀 소개를 만들고 있어요…");
@@ -405,6 +411,7 @@ export default function TeamCreateForm({ mode }: TeamCreateFormProps) {
 
       void track("team_created", {
         team_id: teamId,
+        team_slug: slug || undefined,
         sport_type: sportType,
         brand_style: brandStyle,
         ai_onboarding_skipped: opts?.aiSkipped === true,
@@ -436,8 +443,13 @@ export default function TeamCreateForm({ mode }: TeamCreateFormProps) {
 
       toast.success("팀이 생성되었습니다! 🎉");
 
-      const afterQs = buildTeamHomeAfterCreateQuery(Boolean(user?.isAnonymous));
-      navigate(`/team/${encodeURIComponent(teamId)}/public?${afterQs}`, { replace: true });
+      const afterQs = buildTeamHomeAfterCreateQuery(
+        Boolean(user?.isAnonymous),
+        searchParams.get("federation")
+      );
+      // Sprint 1-4: slug public URL when present; teamId fallback
+      const publicUrlKey = resolveTeamPublicUrlKey(teamId, slug);
+      navigate(`/team/${encodeURIComponent(publicUrlKey)}/public?${afterQs}`, { replace: true });
       setLoading(false);
     } catch (error: any) {
       // 🔥 진짜 생성 실패만 여기서 처리

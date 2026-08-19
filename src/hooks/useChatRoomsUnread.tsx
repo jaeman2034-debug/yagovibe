@@ -111,6 +111,7 @@ function ChatRoomsUnreadProviderInner({ children }: { children: ReactNode }) {
       return;
     }
 
+    let cancelled = false;
     const CHATS_LIST_LIMIT = 100;
     const qParticipants = query(
       collection(db, "chats"),
@@ -124,6 +125,7 @@ function ChatRoomsUnreadProviderInner({ children }: { children: ReactNode }) {
     );
 
     const onErr = (err: unknown) => {
+      if (cancelled) return;
       const code = (err as { code?: string })?.code;
       if (code === "permission-denied" || code === "unavailable") return;
       if (import.meta.env.DEV) {
@@ -134,27 +136,50 @@ function ChatRoomsUnreadProviderInner({ children }: { children: ReactNode }) {
     const unsubP = onSnapshot(
       qParticipants,
       (snap) => {
-        chatsByParticipantsRef.current = new Map(
-          snap.docs.map((d) => [d.id, unreadForDirectChatDoc(d, uid)])
-        );
-        recomputeTradeDirectUnread();
+        if (cancelled) return;
+        try {
+          chatsByParticipantsRef.current = new Map(
+            snap.docs.map((d) => [d.id, unreadForDirectChatDoc(d, uid)])
+          );
+          recomputeTradeDirectUnread();
+        } catch (e) {
+          if (import.meta.env.DEV) {
+            console.warn("[ChatRoomsUnread] chats participants snap:", e);
+          }
+        }
       },
       onErr
     );
     const unsubU = onSnapshot(
       qUsers,
       (snap) => {
-        chatsByUsersRef.current = new Map(
-          snap.docs.map((d) => [d.id, unreadForDirectChatDoc(d, uid)])
-        );
-        recomputeTradeDirectUnread();
+        if (cancelled) return;
+        try {
+          chatsByUsersRef.current = new Map(
+            snap.docs.map((d) => [d.id, unreadForDirectChatDoc(d, uid)])
+          );
+          recomputeTradeDirectUnread();
+        } catch (e) {
+          if (import.meta.env.DEV) {
+            console.warn("[ChatRoomsUnread] chats users snap:", e);
+          }
+        }
       },
       onErr
     );
 
     return () => {
-      unsubP();
-      unsubU();
+      cancelled = true;
+      try {
+        unsubP();
+      } catch {
+        /* Firestore teardown race */
+      }
+      try {
+        unsubU();
+      } catch {
+        /* Firestore teardown race */
+      }
     };
   }, [uid, recomputeTradeDirectUnread]);
 
@@ -166,25 +191,30 @@ function ChatRoomsUnreadProviderInner({ children }: { children: ReactNode }) {
       return;
     }
 
+    let cancelled = false;
     setLoading(true);
     const q = query(
       collection(db, "chatRooms"),
       where("members", "array-contains", uid)
     );
 
-    return onSnapshot(
+    /** onSnapshot은 동기 콜백이어야 함 — async/await는 Firestore INTERNAL ASSERTION을 유발할 수 있음 */
+    const unsub = onSnapshot(
       q,
-      async (snap) => {
-        setRooms(
-          snap.docs.map((d) => ({
-            id: d.id,
-            ...(d.data() as Omit<ChatRoomSummary, "id">),
-          }))
-        );
-        setLoading(false);
-
+      (snap) => {
+        if (cancelled) return;
         try {
+          setRooms(
+            snap.docs.map((d) => ({
+              id: d.id,
+              ...(d.data() as Omit<ChatRoomSummary, "id">),
+            }))
+          );
+          setLoading(false);
+
           const { pathname: p, search: s } = toastLocRef.current;
+          const toastJobs: Array<{ title: string; preview: string }> = [];
+
           for (const ch of snap.docChanges()) {
             if (ch.type === "removed") {
               delete prevUnreadRef.current[ch.doc.id];
@@ -216,39 +246,68 @@ function ChatRoomsUnreadProviderInner({ children }: { children: ReactNode }) {
               typeof last === "string"
                 ? last
                 : (last as { text?: string } | undefined)?.text || "새 메시지";
-            const preview = String(raw).slice(0, 40);
+            toastJobs.push({ title, preview: String(raw).slice(0, 40) });
+          }
 
-            const { toast } = await import("@/lib/notify").catch(() => ({
-              toast: null as {
-                message?: (m: string) => void;
-                success?: (m: string) => void;
-              } | null,
-            }));
-            if (toast?.message) {
-              toast.message(`${title}: ${preview}`);
-            } else if (toast?.success) {
-              toast.success(`${title}: ${preview}`);
-            }
-            if (
-              typeof navigator !== "undefined" &&
-              (navigator as Navigator & { vibrate?: (n: number) => void }).vibrate
-            ) {
+          if (toastJobs.length === 0) return;
+
+          // Firestore 스냅샷 콜백 밖에서 비동기 처리 (SDK 내부 상태 보호)
+          queueMicrotask(() => {
+            if (cancelled) return;
+            void (async () => {
               try {
-                (navigator as Navigator & { vibrate?: (n: number) => void }).vibrate?.(10);
+                const { toast } = await import("@/lib/notify").catch(() => ({
+                  toast: null as {
+                    message?: (m: string) => void;
+                    success?: (m: string) => void;
+                  } | null,
+                }));
+                for (const job of toastJobs) {
+                  if (cancelled) return;
+                  const msg = `${job.title}: ${job.preview}`;
+                  if (toast?.message) toast.message(msg);
+                  else if (toast?.success) toast.success(msg);
+                }
+                if (
+                  typeof navigator !== "undefined" &&
+                  (navigator as Navigator & { vibrate?: (n: number) => void }).vibrate
+                ) {
+                  try {
+                    (navigator as Navigator & { vibrate?: (n: number) => void }).vibrate?.(10);
+                  } catch {
+                    /* noop */
+                  }
+                }
               } catch {
                 /* noop */
               }
-            }
+            })();
+          });
+        } catch (e) {
+          if (import.meta.env.DEV) {
+            console.warn("[ChatRoomsUnread] chatRooms snap:", e);
           }
-        } catch {
-          /* noop */
+          setLoading(false);
         }
       },
-      () => {
+      (err) => {
+        if (cancelled) return;
+        if (import.meta.env.DEV) {
+          console.warn("[ChatRoomsUnread] chatRooms listener:", err);
+        }
         setRooms([]);
         setLoading(false);
       }
     );
+
+    return () => {
+      cancelled = true;
+      try {
+        unsub();
+      } catch {
+        /* Firestore teardown race — INTERNAL ASSERTION 완화 */
+      }
+    };
   }, [uid]);
 
   const getRoomByTeamId = useCallback(

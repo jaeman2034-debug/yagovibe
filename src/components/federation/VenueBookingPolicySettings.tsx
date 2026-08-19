@@ -23,14 +23,10 @@ import {
 import {
   listVenueBookingPolicyHistory,
   saveVenueBookingPolicy,
-  saveVenueDepositAccountGuide,
+  saveVenueDepositAccount,
 } from "@/lib/federation/venueRentalService";
 import type { FederationVenue } from "@/lib/federation/venueRentalTypes";
-import {
-  NOWON_FEDERATION_DEPOSIT_GUIDE,
-  NOWON_SURAKSAN_DEPOSIT_GUIDE,
-  isSuraksanVenue,
-} from "@/lib/federation/venueDepositAccount";
+import { formatDepositAccountGuide } from "@/lib/federation/venueDepositAccount";
 
 type Props = {
   federationSlug: string;
@@ -126,9 +122,11 @@ export function VenueBookingPolicySettings({
   const [draft, setDraft] = useState<VenueBookingPolicy>(() =>
     getEffectiveVenueBookingPolicy(venue.bookingPolicy ?? null)
   );
-  const [depositGuide, setDepositGuide] = useState(
-    () => venue.depositAccountGuide?.trim() || ""
-  );
+  const [depositAccount, setDepositAccount] = useState(() => ({
+    bankName: venue.depositAccount?.bankName || "",
+    accountNumber: venue.depositAccount?.accountNumber || "",
+    accountHolder: venue.depositAccount?.accountHolder || "",
+  }));
   const [busy, setBusy] = useState(false);
   const [depositBusy, setDepositBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -143,10 +141,14 @@ export function VenueBookingPolicySettings({
 
   useEffect(() => {
     setDraft(getEffectiveVenueBookingPolicy(venue.bookingPolicy ?? null));
-    setDepositGuide(venue.depositAccountGuide?.trim() || "");
+    setDepositAccount({
+      bankName: venue.depositAccount?.bankName || "",
+      accountNumber: venue.depositAccount?.accountNumber || "",
+      accountHolder: venue.depositAccount?.accountHolder || "",
+    });
     setErr(null);
     setMsg(null);
-  }, [venue.id, venue.bookingPolicy, venue.depositAccountGuide]);
+  }, [venue.id, venue.bookingPolicy, venue.depositAccount]);
 
   async function refreshHistory() {
     setHistoryLoading(true);
@@ -244,14 +246,13 @@ export function VenueBookingPolicySettings({
     setErr(null);
     setMsg(null);
     try {
-      const guide = depositGuide.trim();
-      await saveVenueDepositAccountGuide({
+      await saveVenueDepositAccount({
         federationSlug,
         venueId: venue.id,
-        depositAccountGuide: guide,
+        depositAccount,
       });
       setMsg("입금계좌 저장됨 · 이후 배정 Reservation에 반영됩니다");
-      onDepositSaved?.(guide);
+      onDepositSaved?.(formatDepositAccountGuide(depositAccount) || "");
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "입금계좌 저장에 실패했습니다.");
     } finally {
@@ -299,20 +300,35 @@ export function VenueBookingPolicySettings({
           <div className="rounded-xl border border-emerald-200 bg-white p-3 space-y-2">
             <p className="text-sm font-bold text-gray-900">입금계좌 (Reservation Detail)</p>
             <p className="text-xs text-gray-500">
-              비우면 노원 운영 기본값 사용 — 수락산 전용 / 그 외 협회 계좌. 은행·계좌·예금주를
-              줄바꿈으로 입력하세요.
+              이 구장 문서의 계좌 정보가 예약·알림톡의 단일 기준입니다. 은행, 계좌번호, 예금주를
+              모두 입력하세요.
             </p>
-            <textarea
-              value={depositGuide}
-              onChange={(e) => setDepositGuide(e.target.value)}
-              rows={4}
-              placeholder={
-                isSuraksanVenue(venue.id, venue.name)
-                  ? NOWON_SURAKSAN_DEPOSIT_GUIDE
-                  : NOWON_FEDERATION_DEPOSIT_GUIDE
-              }
-              className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm font-mono"
-            />
+            <div className="grid gap-2 sm:grid-cols-3">
+              <input
+                value={depositAccount.bankName}
+                onChange={(e) =>
+                  setDepositAccount((prev) => ({ ...prev, bankName: e.target.value }))
+                }
+                placeholder="은행"
+                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              />
+              <input
+                value={depositAccount.accountNumber}
+                onChange={(e) =>
+                  setDepositAccount((prev) => ({ ...prev, accountNumber: e.target.value }))
+                }
+                placeholder="계좌번호"
+                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm font-mono"
+              />
+              <input
+                value={depositAccount.accountHolder}
+                onChange={(e) =>
+                  setDepositAccount((prev) => ({ ...prev, accountHolder: e.target.value }))
+                }
+                placeholder="예금주"
+                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              />
+            </div>
             <button
               type="button"
               disabled={depositBusy}

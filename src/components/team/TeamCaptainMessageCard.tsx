@@ -1,3 +1,8 @@
+/**
+ * 공개 팀 홈 — 대표 인사말
+ * Desktop: 좌측 대표 사진(~30%) + 우측 이름·직책·인사말(~70%)
+ * Mobile: 사진 상단 → 텍스트
+ */
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,11 +15,12 @@ import { callableErrorMessage } from "@/lib/errors/callableErrorMessage";
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 
+/** 디자인 토큰 — 원형/사각형 전환 시 이 클래스만 교체 */
+const CAPTAIN_PHOTO_SHAPE = "rounded-2xl";
+
 export type TeamCaptainMessageCardManageProps = {
   teamId: string;
-  /** AI 인사 재생성 중(부모 `regenerateFieldBusy === "captainMessage"` 등) */
   aiBusy: boolean;
-  /** 사진·AI·직접 수정 외 전역 바쁨(되돌리기 등) */
   siblingBusy?: boolean;
   onAiCaptainMessage: () => void | Promise<void>;
   onDirectEdit: () => void;
@@ -24,7 +30,6 @@ export type TeamCaptainMessageCardManageProps = {
 export type TeamCaptainMessageCardProps = {
   view: TeamCaptainPublicView;
   dark?: boolean;
-  /** 회장·운영진 — 카드 헤더에 사진·AI·편집 */
   manage?: TeamCaptainMessageCardManageProps;
 };
 
@@ -40,18 +45,15 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-/**
- * 공개 팀 홈 — 회장 신뢰 카드(단일 인물). 운영진 목록과 역할 분리.
- * 사진·AI 인사·직접 수정은 `manage`가 있을 때 카드 헤더에만 노출.
- */
 export function TeamCaptainMessageCard({ view, dark = false, manage }: TeamCaptainMessageCardProps) {
   const message = typeof view.message === "string" ? view.message : String(view.message ?? "");
   const nickname = typeof view.nickname === "string" ? view.nickname : String(view.nickname ?? "");
   const roleLabel = typeof view.roleLabel === "string" ? view.roleLabel : String(view.roleLabel ?? "");
-  const photoUrl = view.photoUrl ?? null;
+  const photoUrl = typeof view.photoUrl === "string" && view.photoUrl.trim() ? view.photoUrl.trim() : null;
   const sectionTitle = captainTrustSectionTitle(roleLabel);
   const inputRef = useRef<HTMLInputElement>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const busy = Boolean(manage?.aiBusy || manage?.siblingBusy || photoBusy);
 
   const pickPhoto = () => inputRef.current?.click();
@@ -79,12 +81,13 @@ export function TeamCaptainMessageCard({ view, dark = false, manage }: TeamCapta
       });
       toast.dismiss(t);
       toast.success("대표 사진을 반영했어요.");
-      if (manage) await manage.onAfterPhotoChange();
+      await manage.onAfterPhotoChange();
     } catch (e: unknown) {
       toast.dismiss(t);
       toast.error(callableErrorMessage(e) || "업로드에 실패했어요.");
     } finally {
       setPhotoBusy(false);
+      setDragOver(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   };
@@ -110,23 +113,21 @@ export function TeamCaptainMessageCard({ view, dark = false, manage }: TeamCapta
   return (
     <section
       className={cn(
-        "rounded-2xl border p-6 shadow-lg sm:p-8",
-        dark
-          ? "border-slate-500/80 bg-gradient-to-br from-slate-800/95 via-slate-900/90 to-slate-950/90 text-slate-100"
-          : "border-gray-200/80 bg-gradient-to-br from-white via-white to-indigo-50/50 text-gray-900"
+        "overflow-hidden rounded-2xl border shadow-sm",
+        dark ? "border-slate-600/80 bg-slate-900/40 text-slate-100" : "border-gray-200 bg-white text-gray-900"
       )}
       aria-label={sectionTitle}
     >
       <div
         className={cn(
-          "flex flex-col gap-3 border-b pb-3 sm:flex-row sm:items-center sm:justify-between",
-          dark ? "border-slate-600/90" : "border-gray-200"
+          "flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5",
+          dark ? "border-slate-700" : "border-gray-100"
         )}
       >
         <h2
           className={cn(
-            "text-[11px] font-bold uppercase tracking-[0.12em]",
-            dark ? "text-slate-400" : "text-gray-500"
+            "text-sm font-semibold tracking-tight",
+            dark ? "text-slate-100" : "text-gray-900"
           )}
         >
           {sectionTitle}
@@ -146,16 +147,13 @@ export function TeamCaptainMessageCard({ view, dark = false, manage }: TeamCapta
               size="sm"
               variant="outline"
               disabled={busy}
-              className={cn(
-                "h-8 gap-1 text-[11px] font-medium",
-                dark ? "border-slate-500 text-slate-100 hover:bg-slate-700" : ""
-              )}
+              className={cn("h-8 gap-1 text-[11px]", dark ? "border-slate-500 text-slate-100 hover:bg-slate-700" : "")}
               onClick={pickPhoto}
             >
               {photoBusy ? (
-                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
               ) : (
-                <ImagePlus className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                <ImagePlus className="h-3.5 w-3.5" aria-hidden />
               )}
               사진 변경
             </Button>
@@ -164,104 +162,175 @@ export function TeamCaptainMessageCard({ view, dark = false, manage }: TeamCapta
               size="sm"
               variant="outline"
               disabled={busy || !photoUrl}
-              className={cn(
-                "h-8 gap-1 text-[11px] font-medium",
-                dark ? "border-slate-500 text-slate-100 hover:bg-slate-700" : ""
-              )}
+              className={cn("h-8 gap-1 text-[11px]", dark ? "border-slate-500 text-slate-100 hover:bg-slate-700" : "")}
               onClick={() => void handleRemovePhoto()}
             >
-              <Trash2 className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-              사진 제거
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+              사진 삭제
             </Button>
             <Button
               type="button"
               size="sm"
               variant="secondary"
               disabled={busy}
-              className={cn(
-                "h-8 gap-1 text-[11px] font-medium",
-                dark ? "border-violet-400/50 bg-violet-950/50 text-violet-100 hover:bg-violet-900/50" : ""
-              )}
+              className="h-8 gap-1 text-[11px]"
               onClick={() => void manage.onAiCaptainMessage()}
             >
               {manage.aiBusy ? (
-                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
               ) : (
-                <Sparkles className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                <Sparkles className="h-3.5 w-3.5" aria-hidden />
               )}
-              AI 회장 인사말
+              AI 인사말
             </Button>
             <Button
               type="button"
               size="sm"
               variant="ghost"
               disabled={busy}
-              className={cn(
-                "h-8 gap-1 text-[11px] font-medium",
-                dark ? "text-slate-200 hover:bg-white/10" : "text-indigo-800 hover:bg-indigo-50"
-              )}
+              className={cn("h-8 gap-1 text-[11px]", dark ? "text-slate-200 hover:bg-white/10" : "")}
               onClick={manage.onDirectEdit}
             >
-              <Pencil className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+              <Pencil className="h-3.5 w-3.5" aria-hidden />
               직접 수정
             </Button>
           </div>
         ) : null}
       </div>
 
-      <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
-        <div className="shrink-0 sm:pt-1">
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt=""
-              className={cn(
-                "h-28 w-28 rounded-full object-cover shadow-xl ring-offset-2 sm:h-32 sm:w-32",
-                dark ? "ring-4 ring-violet-500/40 ring-offset-slate-900" : "ring-4 ring-indigo-200/90 ring-offset-white"
-              )}
-            />
-          ) : (
-            <div
-              className={cn(
-                "flex h-28 w-28 items-center justify-center rounded-full text-3xl font-bold shadow-inner ring-2 ring-offset-2 sm:h-32 sm:w-32 sm:text-4xl",
-                dark
-                  ? "bg-slate-700 text-slate-100 ring-slate-500/50 ring-offset-slate-900"
-                  : "bg-indigo-100 text-indigo-800 ring-indigo-200/80 ring-offset-white"
-              )}
-              aria-hidden
-            >
-              {nickname.slice(0, 1)}
-            </div>
-          )}
-        </div>
+      {/* Mobile·Desktop 동일: 좌측 고정 사진 + 우측 텍스트 */}
+      <div className="flex flex-row items-start gap-3 p-4 sm:gap-5 sm:p-5 md:gap-6 md:p-6">
+        {manage ? (
+          <div
+            role="button"
+            tabIndex={busy ? -1 : 0}
+            aria-label="대표 사진 변경 — 클릭 또는 이미지 드래그"
+            aria-disabled={busy}
+            onClick={() => {
+              if (!busy) pickPhoto();
+            }}
+            onKeyDown={(e) => {
+              if (busy) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                pickPhoto();
+              }
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!busy) setDragOver(true);
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!busy) setDragOver(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragOver(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragOver(false);
+              if (busy) return;
+              void handlePhotoFile(e.dataTransfer.files);
+            }}
+            className={cn(
+              "relative h-[88px] w-[88px] shrink-0 cursor-pointer overflow-hidden sm:h-[120px] sm:w-[120px] md:h-[144px] md:w-[144px]",
+              CAPTAIN_PHOTO_SHAPE,
+              dark ? "bg-slate-800 hover:ring-2 hover:ring-slate-500" : "bg-slate-100 hover:ring-2 hover:ring-indigo-300",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
+              dragOver && (dark ? "ring-2 ring-violet-400" : "ring-2 ring-indigo-400"),
+              busy && "pointer-events-none opacity-70"
+            )}
+          >
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={`${nickname} ${roleLabel}`.trim() || "대표 사진"}
+                className="pointer-events-none h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div
+                className={cn(
+                  "flex h-full w-full flex-col items-center justify-center gap-1 px-1 text-center text-[10px] font-medium sm:text-xs",
+                  dark ? "text-slate-400" : "text-slate-500"
+                )}
+              >
+                <ImagePlus className="h-4 w-4 opacity-80" aria-hidden />
+                {dragOver ? "여기에 놓기" : "클릭·드래그"}
+              </div>
+            )}
+            {dragOver ? (
+              <div
+                className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50 text-[10px] font-semibold text-white sm:text-xs"
+                aria-hidden
+              >
+                놓으면 업로드
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "relative h-[88px] w-[88px] shrink-0 overflow-hidden sm:h-[120px] sm:w-[120px] md:h-[144px] md:w-[144px]",
+              CAPTAIN_PHOTO_SHAPE,
+              dark ? "bg-slate-800" : "bg-slate-100"
+            )}
+          >
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={`${nickname} ${roleLabel}`.trim() || "대표 사진"}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div
+                className={cn(
+                  "flex h-full w-full items-center justify-center text-[10px] font-medium sm:text-xs",
+                  dark ? "text-slate-500" : "text-slate-400"
+                )}
+                aria-hidden
+              >
+                사진
+              </div>
+            )}
+          </div>
+        )}
 
-        <div className="min-w-0 flex-1 space-y-3 sm:space-y-4">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-            <span className="text-xl font-bold leading-tight tracking-tight sm:text-2xl">{nickname}</span>
-            <span
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
-                dark ? "bg-violet-900/55 text-violet-100" : "bg-indigo-100 text-indigo-900"
-              )}
-            >
-              {roleLabel}
-            </span>
+        <div className="min-w-0 flex-1">
+          <div className="space-y-1">
+            <p className={cn("text-lg font-bold tracking-tight sm:text-xl md:text-2xl", dark ? "text-white" : "text-gray-900")}>
+              {nickname || "대표"}
+            </p>
+            {roleLabel ? (
+              <p className={cn("text-xs font-medium sm:text-sm", dark ? "text-slate-300" : "text-gray-500")}>
+                {roleLabel}
+              </p>
+            ) : null}
           </div>
 
           {message.trim() ? (
             <p
               className={cn(
-                "whitespace-pre-line text-[15px] leading-[1.65] sm:text-base sm:leading-relaxed",
+                "mt-2 whitespace-pre-line text-sm leading-[1.65] sm:mt-3 sm:text-[15px] sm:leading-[1.7] md:text-base",
                 dark ? "text-slate-200" : "text-gray-700"
               )}
             >
               {message}
             </p>
           ) : (
-            <p className={cn("text-sm italic leading-relaxed", dark ? "text-slate-400" : "text-gray-500")}>
+            <p className={cn("mt-2 text-sm italic leading-relaxed sm:mt-3", dark ? "text-slate-400" : "text-gray-500")}>
               {manage
-                ? "인사말이 비어 있어요. 「AI 회장 인사말」으로 초안을 만들거나 「직접 수정」에서 문구를 입력해 주세요."
-                : "클럽을 함께 이끌고 있어요. 인사말을 추가하면 방문자에게 더 잘 전해져요."}
+                ? "인사말이 비어 있어요. AI 인사말 또는 직접 수정으로 작성해 주세요."
+                : "인사말을 준비 중입니다."}
             </p>
           )}
         </div>
@@ -273,7 +342,6 @@ export function TeamCaptainMessageCard({ view, dark = false, manage }: TeamCapta
 export type TeamCaptainMessageOwnerHintProps = {
   dark?: boolean;
   onOpenProfileEdit?: () => void;
-  /** 편집 모드일 때 문구만 달리함 */
   variant?: "preview" | "edit";
 };
 
@@ -291,11 +359,11 @@ export function TeamCaptainMessageOwnerHint({
       )}
       aria-label="회장 소개 안내"
     >
-      <p className="font-semibold">회장 인사말을 추가해 보세요</p>
+      <p className="font-semibold">대표 인사말을 추가해 보세요</p>
       <p className={cn("mt-1.5 leading-relaxed", dark ? "text-slate-300" : "text-gray-600")}>
         {variant === "edit"
-          ? "클럽 소개·추천·참여 문구를 저장한 뒤, 회장 인사말과 사진을 프로필에 반영하면 이 카드가 채워져요."
-          : "회장 인사말과 사진이 있으면 신뢰와 가입 문의가 늘기 쉬워요. 준비되면 이 자리에 자동으로 표시됩니다."}
+          ? "소개 문구를 저장한 뒤 대표 사진·인사말을 반영하면 이 영역에 표시됩니다."
+          : "대표 사진과 인사말이 있으면 방문자가 팀을 더 신뢰하기 쉬워요."}
       </p>
       {onOpenProfileEdit ? (
         <button
