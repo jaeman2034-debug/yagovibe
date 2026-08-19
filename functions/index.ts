@@ -56,6 +56,13 @@ attachLazyModuleExports(
   ["onVenueSlotAllocationWritten"] as const
 );
 
+/** RA-only controlled canary: reservation-scoped, exact two-recipient path. */
+attachLazyModuleExports(
+  module.exports,
+  modulePathFromLibSrc("federation/executeReservationAssignedControlledCanary"),
+  ["executeReservationAssignedControlledCanary"] as const
+);
+
 /** Nowon venue PR3 — Confirm/Finalize member notify (Admin SDK; client-path fallback) */
 attachLazyModuleExports(
   module.exports,

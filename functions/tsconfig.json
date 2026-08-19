@@ -95,6 +95,8 @@
     "src/notifications/sendPushOnNotificationCreate.handler.ts",
     "src/federation/onVenueSlotAllocationWritten.ts",
     "src/federation/onVenueReservationWritten.ts",
+    "src/federation/executeReservationAssignedControlledCanary.ts",
+    "src/federation/reservationAssignedControlledCanaryCore.ts",
     "src/billing/createTeamStripeCheckoutSession.ts",
     "src/billing/stripeBillingWebhook.ts",
     "src/game/applyGameProgressionEvent.ts",
