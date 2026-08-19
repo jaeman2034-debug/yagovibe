@@ -6,7 +6,6 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -15,7 +14,8 @@ import {
   where,
   type Unsubscribe,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "@/lib/firebase";
 import {
   assertAllocationReason,
   type AdminCalendarDaySummary,
@@ -40,18 +40,42 @@ import {
   DEFAULT_VENUE_BOOKING_POLICY,
   getEffectiveVenueBookingPolicy,
   intervalsOverlap,
-  isSlotAllowedByPolicy,
   type VenueBookingPolicy,
 } from "@/lib/federation/venueBookingPolicy";
 import {
-  getFederationVenue,
   venueBaselineAllocationDocId,
   venueSlotBookingDocId,
 } from "@/lib/federation/venueRentalService";
-import {
-  ensureVenueReservationAfterAllocate,
-  resolveVenueDepositAccountGuide,
-} from "@/lib/federation/venueReservationService";
+import { runAdminPreAllocation } from "./venueAllocationOrchestration";
+
+type CreateVenueAllocationRequestIntent = {
+  federationSlug: string;
+  venueId: string;
+  venueName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  teamId: string;
+  teamName: string;
+  platformTeamId: string;
+};
+
+type CreateVenueAllocationRequestResult = {
+  requestId: string;
+  pricingStatus: "QUOTED";
+  totalAmount: number;
+};
+
+type AllocateVenueRequestIntent = {
+  federationSlug: string;
+  requestId: string;
+};
+
+type AllocateVenueRequestResult = {
+  reservationId: string;
+  slotAllocationId: string;
+  totalAmount: number;
+};
 
 /** One active request per club per venue+date+slot */
 export function venueAllocationRequestDocId(
@@ -127,6 +151,14 @@ function parseSlotAllocation(id: string, raw: Record<string, unknown>): VenueSlo
     allocatedTeamId: String(raw.allocatedTeamId || ""),
     allocatedTeamName:
       raw.allocatedTeamName != null ? String(raw.allocatedTeamName) : undefined,
+    teamKind:
+      raw.teamKind === "guest" || raw.teamKind === "platform"
+        ? raw.teamKind
+        : raw.guestTeamId
+          ? "guest"
+          : undefined,
+    guestTeamId: raw.guestTeamId != null ? String(raw.guestTeamId) : null,
+    platformTeamId: raw.platformTeamId != null ? String(raw.platformTeamId) : null,
     allocatedRequestId: String(raw.allocatedRequestId || ""),
     allocatedByUid: String(raw.allocatedByUid || ""),
     allocatedAt: raw.allocatedAt,
@@ -373,55 +405,6 @@ export function buildAllocationSlotViews(input: {
   });
 }
 
-async function loadVenueBookingPolicy(
-  federationSlug: string,
-  venueId: string
-): Promise<VenueBookingPolicy> {
-  const venue = await getFederationVenue(federationSlug, venueId);
-  return getEffectiveVenueBookingPolicy(venue?.bookingPolicy ?? null);
-}
-
-async function assertSlotMatchesVenuePolicy(input: {
-  federationSlug: string;
-  venueId: string;
-  startTime: string;
-  endTime: string;
-}): Promise<VenueBookingPolicy> {
-  const policy = await loadVenueBookingPolicy(input.federationSlug, input.venueId);
-  if (!isSlotAllowedByPolicy(policy, input.startTime, input.endTime)) {
-    throw new Error("선택한 시간은 현재 구장 예약 정책에서 허용되지 않습니다.");
-  }
-  return policy;
-}
-
-/** Reject allocate/direct when another ALLOCATED winner overlaps the interval. */
-async function assertNoOverlappingWinner(input: {
-  federationSlug: string;
-  venueId: string;
-  bookingDate: string;
-  startTime: string;
-  endTime: string;
-  exceptWinnerId?: string;
-}): Promise<void> {
-  const snap = await getDocs(
-    query(
-      collection(db, "federations", input.federationSlug, "venueSlotAllocations"),
-      where("venueId", "==", input.venueId),
-      where("bookingDate", "==", input.bookingDate)
-    )
-  );
-  for (const d of snap.docs) {
-    if (input.exceptWinnerId && d.id === input.exceptWinnerId) continue;
-    const raw = d.data() as Record<string, unknown>;
-    if (String(raw.status || "") !== "ALLOCATED") continue;
-    const wStart = String(raw.startTime || "");
-    const wEnd = String(raw.endTime || "");
-    if (intervalsOverlap(input.startTime, input.endTime, wStart, wEnd)) {
-      throw new Error(`이미 배정된 시간과 겹칩니다 (${wStart}–${wEnd}).`);
-    }
-  }
-}
-
 export { formatAllocationSlotLabel };
 
 export async function createVenueAllocationRequest(input: {
@@ -433,96 +416,32 @@ export async function createVenueAllocationRequest(input: {
   endTime: string;
   teamId: string;
   teamName: string;
-  uid: string;
+  platformTeamId: string;
 }): Promise<string> {
-  if (!input.teamId.trim()) {
-    throw new Error("신청 팀 식별자가 필요합니다.");
+  const result = await createVenueAllocationRequestWithQuote(input);
+  return result.requestId;
+}
+
+export async function createVenueAllocationRequestWithQuote(input: {
+  federationSlug: string;
+  venueId: string;
+  venueName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  teamId: string;
+  teamName: string;
+  platformTeamId: string;
+}): Promise<CreateVenueAllocationRequestResult> {
+  if (!input.teamId.trim() || !input.platformTeamId.trim()) {
+    throw new Error("YAGO 플랫폼 팀 연결이 확인된 팀만 신청할 수 있습니다.");
   }
-  await assertSlotMatchesVenuePolicy({
-    federationSlug: input.federationSlug,
-    venueId: input.venueId,
-    startTime: input.startTime,
-    endTime: input.endTime,
-  });
-
-  const requestId = venueAllocationRequestDocId(
-    input.venueId,
-    input.bookingDate,
-    input.startTime,
-    input.teamId
-  );
-  const requestRef = doc(
-    db,
-    "federations",
-    input.federationSlug,
-    "venueAllocationRequests",
-    requestId
-  );
-  const winnerId = venueSlotAllocationDocId(
-    input.venueId,
-    input.bookingDate,
-    input.startTime
-  );
-  const winnerRef = doc(
-    db,
-    "federations",
-    input.federationSlug,
-    "venueSlotAllocations",
-    winnerId
-  );
-
-  // Legacy APPROVED on old booking path still blocks
-  const legacyBookingRef = doc(
-    db,
-    "federations",
-    input.federationSlug,
-    "venueBookings",
-    winnerId
-  );
-
-  await runTransaction(db, async (tx) => {
-    const winnerSnap = await tx.get(winnerRef);
-    if (winnerSnap.exists() && String(winnerSnap.data()?.status) === "ALLOCATED") {
-      throw new Error("이미 배정된 시간입니다.");
-    }
-    const legacy = await tx.get(legacyBookingRef);
-    if (legacy.exists() && String(legacy.data()?.bookingStatus) === "APPROVED") {
-      throw new Error("이미 배정된 시간입니다.");
-    }
-
-    const existing = await tx.get(requestRef);
-    if (existing.exists()) {
-      const st = String(existing.data()?.requestStatus || "");
-      if (st === "REQUESTED" || st === "ALLOCATED") {
-        throw new Error("이미 해당 슬롯에 배정 신청이 있습니다.");
-      }
-      // NOT_ALLOCATED / WITHDRAWN → allow re-request overwrite
-    }
-
-    tx.set(requestRef, {
-      federationId: input.federationSlug,
-      venueId: input.venueId,
-      venueName: input.venueName,
-      bookingDate: input.bookingDate,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      teamId: input.teamId,
-      teamName: input.teamName,
-      createdByUid: input.uid,
-      requestStatus: "REQUESTED",
-      paymentStatus: "UNCONFIRMED",
-      pricingStatus: "REVIEW_REQUIRED",
-      pricingPolicyId: null,
-      pricingSnapshot: null,
-      baseAmount: 0,
-      lightingAmount: 0,
-      totalAmount: 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  });
-
-  return requestId;
+  const callable = httpsCallable<
+    CreateVenueAllocationRequestIntent,
+    CreateVenueAllocationRequestResult
+  >(functions, "createVenueAllocationRequest");
+  const result = await callable(input);
+  return result.data;
 }
 
 /**
@@ -532,157 +451,17 @@ export async function createVenueAllocationRequest(input: {
 export async function allocateVenueSlotToTeam(input: {
   federationSlug: string;
   requestId: string;
-  adminUid: string;
-}): Promise<void> {
-  const requestsCol = collection(
-    db,
-    "federations",
-    input.federationSlug,
-    "venueAllocationRequests"
+  adminUid?: string;
+}): Promise<AllocateVenueRequestResult> {
+  const callable = httpsCallable<AllocateVenueRequestIntent, AllocateVenueRequestResult>(
+    functions,
+    "allocateVenueRequest"
   );
-  const requestRef = doc(requestsCol, input.requestId);
-  const pre = await getDoc(requestRef);
-  if (!pre.exists()) throw new Error("배정 신청을 찾을 수 없습니다.");
-  const preData = pre.data() as Record<string, unknown>;
-  if (String(preData.requestStatus) !== "REQUESTED") {
-    throw new Error("배정 심사 중 상태가 아닙니다.");
-  }
-
-  const venueId = String(preData.venueId || "");
-  const bookingDate = String(preData.bookingDate || "");
-  const startTime = String(preData.startTime || "");
-  const endTime = String(preData.endTime || "");
-  const teamId = String(preData.teamId || "");
-  const teamName = preData.teamName != null ? String(preData.teamName) : "";
-
-  await assertNoOverlappingWinner({
+  const result = await callable({
     federationSlug: input.federationSlug,
-    venueId,
-    bookingDate,
-    startTime,
-    endTime,
+    requestId: input.requestId,
   });
-
-  const winnerId = venueSlotAllocationDocId(venueId, bookingDate, startTime);
-  const winnerRef = doc(
-    db,
-    "federations",
-    input.federationSlug,
-    "venueSlotAllocations",
-    winnerId
-  );
-
-  const peersSnap = await getDocs(
-    query(
-      requestsCol,
-      where("venueId", "==", venueId),
-      where("bookingDate", "==", bookingDate),
-      where("startTime", "==", startTime),
-      where("requestStatus", "==", "REQUESTED")
-    )
-  );
-  const peerRefs = peersSnap.docs
-    .filter((d) => {
-      if (d.id === input.requestId) return false;
-      return String(d.data()?.endTime) === endTime;
-    })
-    .map((d) => d.ref);
-
-  await runTransaction(db, async (tx) => {
-    // All reads first
-    const winnerSnap = await tx.get(winnerRef);
-    if (winnerSnap.exists() && String(winnerSnap.data()?.status) === "ALLOCATED") {
-      throw new Error("이미 배정된 시간입니다.");
-    }
-
-    const snap = await tx.get(requestRef);
-    if (!snap.exists()) throw new Error("배정 신청을 찾을 수 없습니다.");
-    if (String(snap.data()?.requestStatus) !== "REQUESTED") {
-      throw new Error("배정 심사 중 상태가 아닙니다.");
-    }
-
-    const peerSnaps = [];
-    for (const peerRef of peerRefs) {
-      peerSnaps.push({ ref: peerRef, snap: await tx.get(peerRef) });
-    }
-    for (const p of peerSnaps) {
-      if (p.snap.exists() && String(p.snap.data()?.requestStatus) === "ALLOCATED") {
-        throw new Error("이미 배정된 시간입니다.");
-      }
-    }
-
-    // Writes
-    tx.set(winnerRef, {
-      federationId: input.federationSlug,
-      venueId,
-      bookingDate,
-      startTime,
-      endTime,
-      allocatedTeamId: teamId,
-      allocatedTeamName: teamName || null,
-      allocatedRequestId: input.requestId,
-      allocatedByUid: input.adminUid,
-      allocatedAt: serverTimestamp(),
-      allocationSource: "REQUEST_SELECTION",
-      status: "ALLOCATED",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    tx.update(requestRef, {
-      requestStatus: "ALLOCATED",
-      allocationSource: "REQUEST_SELECTION",
-      paymentStatus: "UNCONFIRMED",
-      allocatedByUid: input.adminUid,
-      allocatedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    for (const p of peerSnaps) {
-      if (p.snap.exists() && String(p.snap.data()?.requestStatus) === "REQUESTED") {
-        tx.update(p.ref, {
-          requestStatus: "NOT_ALLOCATED",
-          updatedAt: serverTimestamp(),
-          allocatedByUid: input.adminUid,
-          allocatedAt: serverTimestamp(),
-        });
-      }
-    }
-  });
-
-  // PR1 — first ALLOCATED → idempotent reservation + notify (best-effort; CF mirrors)
-  try {
-    const venueName =
-      preData.venueName != null && String(preData.venueName).trim()
-        ? String(preData.venueName)
-        : venueId;
-    const bankAccountGuide = await resolveVenueDepositAccountGuide({
-      federationSlug: input.federationSlug,
-      venueId,
-      venueName,
-    });
-    await ensureVenueReservationAfterAllocate({
-      federationSlug: input.federationSlug,
-      slotAllocationId: winnerId,
-      allocatedRequestId: input.requestId,
-      venueId,
-      venueName,
-      bookingDate,
-      startTime,
-      endTime,
-      teamId,
-      teamName,
-      createdByUid: String(preData.createdByUid || ""),
-      allocatedByUid: input.adminUid,
-      allocationSource: "REQUEST_SELECTION",
-      baseAmount: typeof preData.baseAmount === "number" ? preData.baseAmount : 0,
-      lightingAmount: typeof preData.lightingAmount === "number" ? preData.lightingAmount : 0,
-      totalAmount: typeof preData.totalAmount === "number" ? preData.totalAmount : 0,
-      bankAccountGuide,
-    });
-  } catch (e) {
-    console.warn("[allocateVenueSlotToTeam] ensureVenueReservation skipped", e);
-  }
+  return result.data;
 }
 
 /**
@@ -697,14 +476,45 @@ export async function adminDirectAllocateVenueSlot(input: {
   bookingDate: string;
   startTime: string;
   endTime: string;
-  /** Canonical federation team id — never free-text invent */
+  /** Federation operating team id OR guestTeamId */
   teamId: string;
   teamName: string;
   adminUid: string;
   acknowledgePendingOverride?: boolean;
+  /** PR4-1.5 — default platform (가입 클럽) */
+  teamKind?: "platform" | "guest";
+  guestTeamId?: string;
+  platformTeamId?: string;
 }): Promise<{ requestId: string; slotAllocationId: string; overriddenPendingCount: number }> {
+  return runAdminPreAllocation(input, {
+    create: createVenueAllocationRequestWithQuote,
+    allocate: allocateVenueSlotToTeam,
+  });
+  /*
   if (!input.teamId.trim()) {
-    throw new Error("협회 가입 클럽을 선택해야 합니다.");
+    throw new Error(
+      input.teamKind === "guest"
+        ? "비가입팀을 선택하거나 생성해야 합니다."
+        : "협회 가입 클럽을 선택해야 합니다."
+    );
+  }
+  const teamKind = input.teamKind === "guest" ? "guest" : "platform";
+  const guestTeamId =
+    teamKind === "guest"
+      ? (input.guestTeamId || input.teamId).trim()
+      : "";
+  const platformTeamId =
+    teamKind === "platform"
+      ? (input.platformTeamId || "").trim()
+      : "";
+  if (teamKind === "platform" && !platformTeamId) {
+    throw new Error("가입 클럽의 platformTeamId가 필요합니다.");
+  }
+  if (teamKind === "platform") {
+    const platformTeamSnap = await getDoc(doc(db, "teams", platformTeamId));
+    if (!platformTeamSnap.exists()) {
+      throw new Error("가입 클럽의 플랫폼 팀을 찾을 수 없습니다.");
+    }
   }
   await assertSlotMatchesVenuePolicy({
     federationSlug: input.federationSlug,
@@ -720,6 +530,8 @@ export async function adminDirectAllocateVenueSlot(input: {
     endTime: input.endTime,
   });
 
+  const partyId = teamKind === "guest" ? guestTeamId : input.teamId;
+
   const requestsCol = collection(
     db,
     "federations",
@@ -730,7 +542,7 @@ export async function adminDirectAllocateVenueSlot(input: {
     input.venueId,
     input.bookingDate,
     input.startTime,
-    input.teamId
+    partyId
   );
   const requestRef = doc(requestsCol, requestId);
   const winnerId = venueSlotAllocationDocId(
@@ -794,8 +606,11 @@ export async function adminDirectAllocateVenueSlot(input: {
       bookingDate: input.bookingDate,
       startTime: input.startTime,
       endTime: input.endTime,
-      allocatedTeamId: input.teamId,
+      allocatedTeamId: partyId,
       allocatedTeamName: input.teamName || null,
+      teamKind,
+      guestTeamId: guestTeamId || null,
+      platformTeamId: platformTeamId || null,
       allocatedRequestId: requestId,
       allocatedByUid: input.adminUid,
       allocatedAt: serverTimestamp(),
@@ -812,8 +627,11 @@ export async function adminDirectAllocateVenueSlot(input: {
       bookingDate: input.bookingDate,
       startTime: input.startTime,
       endTime: input.endTime,
-      teamId: input.teamId,
+      teamId: partyId,
       teamName: input.teamName,
+      teamKind,
+      guestTeamId: guestTeamId || null,
+      platformTeamId: platformTeamId || null,
       createdByUid: existingReq.exists()
         ? String(existingReq.data()?.createdByUid || input.adminUid)
         : input.adminUid,
@@ -857,43 +675,12 @@ export async function adminDirectAllocateVenueSlot(input: {
     }
   });
 
-  // PR1 — first ALLOCATED → idempotent reservation + notify (best-effort; CF mirrors)
-  try {
-    const reqSnap = await getDoc(requestRef);
-    const reqData = (reqSnap.data() || {}) as Record<string, unknown>;
-    const bankAccountGuide = await resolveVenueDepositAccountGuide({
-      federationSlug: input.federationSlug,
-      venueId: input.venueId,
-      venueName: input.venueName,
-    });
-    await ensureVenueReservationAfterAllocate({
-      federationSlug: input.federationSlug,
-      slotAllocationId: winnerId,
-      allocatedRequestId: requestId,
-      venueId: input.venueId,
-      venueName: input.venueName,
-      bookingDate: input.bookingDate,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      teamId: input.teamId,
-      teamName: input.teamName,
-      createdByUid: String(reqData.createdByUid || input.adminUid),
-      allocatedByUid: input.adminUid,
-      allocationSource: "ADMIN_DIRECT",
-      baseAmount: typeof reqData.baseAmount === "number" ? reqData.baseAmount : 0,
-      lightingAmount: typeof reqData.lightingAmount === "number" ? reqData.lightingAmount : 0,
-      totalAmount: typeof reqData.totalAmount === "number" ? reqData.totalAmount : 0,
-      bankAccountGuide,
-    });
-  } catch (e) {
-    console.warn("[adminDirectAllocateVenueSlot] ensureVenueReservation skipped", e);
-  }
-
   return {
     requestId,
     slotAllocationId: winnerId,
     overriddenPendingCount: pendingPeers.length,
   };
+  */
 }
 
 /** Pending REQUESTED clubs for a slot (admin override warning). */
@@ -1408,6 +1195,7 @@ export async function reallocateVenueSlotAllocation(input: {
   endTime: string;
   toTeamId: string;
   toTeamName: string;
+  toPlatformTeamId: string;
   adminUid: string;
   reasonCode: VenueAllocationChangeReasonCode;
   reasonText?: string | null;
@@ -1416,11 +1204,18 @@ export async function reallocateVenueSlotAllocation(input: {
   winningRequestId?: string | null;
   acknowledgePendingOverride?: boolean;
 }): Promise<void> {
+  void input;
+  throw new Error(
+    "재배정은 권한 있는 서버 호출이 준비될 때까지 사용할 수 없습니다. 기존 배정을 취소한 뒤 정식 신청을 심사해 주세요."
+  );
+  /*
   const { reasonCode, reasonText } = assertAllocationReason(
     input.reasonCode,
     input.reasonText
   );
-  if (!input.toTeamId.trim()) throw new Error("협회 가입 클럽을 선택해야 합니다.");
+  if (!input.toTeamId.trim() || !input.toPlatformTeamId.trim()) {
+    throw new Error("홈페이지 연결된 협회 가입 클럽을 선택해야 합니다.");
+  }
 
   const requestsCol = collection(
     db,
@@ -1517,6 +1312,8 @@ export async function reallocateVenueSlotAllocation(input: {
       endTime: input.endTime,
       teamId: input.toTeamId,
       teamName: input.toTeamName,
+      teamKind: "platform" as const,
+      platformTeamId: input.toPlatformTeamId,
       requestStatus: "ALLOCATED",
       allocationSource: input.allocationSource,
       paymentStatus: "UNCONFIRMED",
@@ -1549,6 +1346,8 @@ export async function reallocateVenueSlotAllocation(input: {
       endTime: input.endTime,
       allocatedTeamId: input.toTeamId,
       allocatedTeamName: input.toTeamName || null,
+      teamKind: "platform",
+      platformTeamId: input.toPlatformTeamId,
       allocatedRequestId: newRequestId,
       allocatedByUid: input.adminUid,
       allocatedAt: serverTimestamp(),
@@ -1588,6 +1387,7 @@ export async function reallocateVenueSlotAllocation(input: {
       createdAt: serverTimestamp(),
     });
   });
+  */
 }
 
 export function subscribeAllVenueSlotAllocations(

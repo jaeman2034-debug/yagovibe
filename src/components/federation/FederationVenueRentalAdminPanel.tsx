@@ -30,12 +30,22 @@ import {
 import type { FederationVenue, VenueBooking, VenueBookingStatus } from "@/lib/federation/venueRentalTypes";
 import { listFederationTeams } from "@/services/federationOperatingService";
 import type { FederationOperatingTeam } from "@/types/federationOperating";
+import {
+  archiveFederationGuestTeam,
+  createFederationGuestTeam,
+  listFederationGuestTeams,
+  updateFederationGuestTeam,
+  type FederationGuestTeam,
+} from "@/lib/federation/guestTeamService";
+import { FederationTeamContactsImportPanel } from "@/components/federation/FederationTeamContactsImportPanel";
 import { VenueBookingPolicySettings } from "@/components/federation/VenueBookingPolicySettings";
+import { VenuePricingEstimateSummary } from "@/components/federation/VenuePricingEstimateSummary";
 import {
   buildSlotsFromPolicy,
   getEffectiveVenueBookingPolicy,
   type VenueBookingPolicy,
 } from "@/lib/federation/venueBookingPolicy";
+import { calculateVenuePricing } from "@/lib/federation/venuePricingEngine";
 import {
   confirmVenueReservationPayment,
   finalizeVenueReservation,
@@ -44,12 +54,26 @@ import {
   unfinalizeVenueReservation,
 } from "@/lib/federation/venueReservationService";
 import type { VenueReservation } from "@/lib/federation/venueReservationTypes";
+import {
+  resolveVenueOpsStatus,
+  venueOpsAdminActions,
+  type VenueOpsStage,
+} from "@/lib/federation/venueReservationOpsStatus";
+import {
+  listPendingPaymentReceiptReviews,
+  venuePaymentService,
+} from "@/lib/federation/venuePaymentReceiptService";
+import type { VenuePaymentReceipt } from "@/lib/federation/venuePaymentReceiptTypes";
+import { VenueRefundPolicyNote } from "@/components/federation/VenueRefundPolicyNote";
 import { Link } from "react-router-dom";
 
 type Props = {
   federationSlug: string;
   adminUid: string;
 };
+
+/** Sentinel: dropdown 「+ 새 비가입팀 등록」 */
+const GUEST_SELECT_NEW = "__new__";
 
 function currentYearMonth(): string {
   const d = new Date();
@@ -105,6 +129,16 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
   const [legacyRows, setLegacyRows] = useState<VenueBooking[]>([]);
   const [venues, setVenues] = useState<FederationVenue[]>([]);
   const [teams, setTeams] = useState<FederationOperatingTeam[]>([]);
+  const [guestTeams, setGuestTeams] = useState<FederationGuestTeam[]>([]);
+  const [assignPartyKind, setAssignPartyKind] = useState<"platform" | "guest">("platform");
+  const [guestTeamName, setGuestTeamName] = useState("");
+  const [guestChairmanName, setGuestChairmanName] = useState("");
+  const [guestChairmanPhone, setGuestChairmanPhone] = useState("");
+  const [guestManagerName, setGuestManagerName] = useState("");
+  const [guestManagerPhone, setGuestManagerPhone] = useState("");
+  const [guestCoachName, setGuestCoachName] = useState("");
+  const [guestCoachPhone, setGuestCoachPhone] = useState("");
+  const [existingGuestId, setExistingGuestId] = useState("");
   const [yearMonth, setYearMonth] = useState(currentYearMonth);
   const [venueFilter, setVenueFilter] = useState("");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -126,6 +160,23 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     "ALL" | "OPEN" | "REQUEST_POOL" | "ADMIN_DIRECT" | "ALLOCATED"
   >("ALL");
   const [claimQueue, setClaimQueue] = useState<VenueReservation[]>([]);
+  const [receiptQueue, setReceiptQueue] = useState<VenuePaymentReceipt[]>([]);
+  const [receiptBusyId, setReceiptBusyId] = useState<string | null>(null);
+  const joinedTeams = useMemo(
+    () =>
+      teams.filter(
+        (team): team is FederationOperatingTeam & { platformTeamId: string } =>
+          Boolean(team.platformTeamId?.trim())
+      ),
+    [teams]
+  );
+  const editingGuestTeam = useMemo(
+    () =>
+      existingGuestId && existingGuestId !== GUEST_SELECT_NEW
+        ? guestTeams.find((guest) => guest.id === existingGuestId) ?? null
+        : null,
+    [existingGuestId, guestTeams]
+  );
 
   const selectedVenue = useMemo(
     () => venues.find((v) => v.id === venueFilter) || null,
@@ -189,6 +240,9 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     listFederationTeams(federationSlug)
       .then((rows) => setTeams(rows.filter((t) => t.isActive)))
       .catch(() => setTeams([]));
+    listFederationGuestTeams(federationSlug)
+      .then(setGuestTeams)
+      .catch(() => setGuestTeams([]));
     return () => {
       u1();
       u2();
@@ -196,7 +250,29 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     };
   }, [federationSlug]);
 
+  useEffect(() => {
+    if (existingGuestId === GUEST_SELECT_NEW) {
+      setGuestTeamName("");
+      setGuestChairmanName("");
+      setGuestChairmanPhone("");
+      setGuestManagerName("");
+      setGuestManagerPhone("");
+      setGuestCoachName("");
+      setGuestCoachPhone("");
+      return;
+    }
+    if (!editingGuestTeam) return;
+    setGuestTeamName(editingGuestTeam.teamName);
+    setGuestChairmanName(editingGuestTeam.contacts.chairman?.name ?? "");
+    setGuestChairmanPhone(editingGuestTeam.contacts.chairman?.phone ?? "");
+    setGuestManagerName(editingGuestTeam.contacts.manager?.name ?? "");
+    setGuestManagerPhone(editingGuestTeam.contacts.manager?.phone ?? "");
+    setGuestCoachName(editingGuestTeam.contacts.coach?.name ?? "");
+    setGuestCoachPhone(editingGuestTeam.contacts.coach?.phone ?? "");
+  }, [existingGuestId, editingGuestTeam]);
+
   // PR2 — 입금 확인 요청 대기열 (winner denorm + reservation claim)
+  // PR4-1 — 영수증 OCR 검토 대기열
   useEffect(() => {
     let cancelled = false;
     listPaymentClaimQueue(federationSlug)
@@ -206,10 +282,17 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
       .catch(() => {
         if (!cancelled) setClaimQueue([]);
       });
+    listPendingPaymentReceiptReviews(federationSlug)
+      .then((rows) => {
+        if (!cancelled) setReceiptQueue(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setReceiptQueue([]);
+      });
     return () => {
       cancelled = true;
     };
-  }, [federationSlug, winners]);
+  }, [federationSlug, winners, msg]);
 
   const boardRows = useMemo(() => {
     if (!venueFilter) return [];
@@ -254,6 +337,39 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     (selectedDate && daySummaries.get(selectedDate)) ||
     (selectedDate ? emptyDaySummary(selectedDate) : null);
 
+  /** 선택 슬롯 기준 예상 대관료 (ESTIMATE — 결제 확정 아님) */
+  const selectedSlotPricingQuote = useMemo(() => {
+    if (!selected) return null;
+    try {
+      return calculateVenuePricing({
+        venueId: selected.venueId,
+        bookingDate: selected.bookingDate,
+        slotStart: selected.startTime,
+        slotEnd: selected.endTime,
+      });
+    } catch {
+      return null;
+    }
+  }, [selected]);
+
+  /** 빠른 선배정 폼 기준 예상 대관료 */
+  const directAssignPricingQuote = useMemo(() => {
+    const bookingDate = selectedDate || directDate;
+    if (!venueFilter || !bookingDate || !directSlot.includes("|")) return null;
+    const [slotStart, slotEnd] = directSlot.split("|");
+    if (!slotStart || !slotEnd) return null;
+    try {
+      return calculateVenuePricing({
+        venueId: venueFilter,
+        bookingDate,
+        slotStart,
+        slotEnd,
+      });
+    } catch {
+      return null;
+    }
+  }, [venueFilter, selectedDate, directDate, directSlot]);
+
   useEffect(() => {
     if (!selected || !showLogs) {
       setLogs([]);
@@ -283,16 +399,131 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     }
   }
 
-  async function runInlineDirect(acknowledgePendingOverride: boolean) {
-    if (!selected) return;
-    const team = teams.find((t) => t.id === directTeamId);
-    if (!team) {
-      setError("가입 클럽을 선택하세요.");
-      return;
+  async function saveNewGuestTeam(): Promise<string | null> {
+    if (!guestTeamName.trim()) {
+      setError("비가입 팀명을 입력하세요.");
+      return null;
     }
     setBusy(true);
     setError(null);
     try {
+      const created = await createFederationGuestTeam({
+        federationSlug,
+        teamName: guestTeamName.trim(),
+        contacts: {
+          chairman: { name: guestChairmanName, phone: guestChairmanPhone },
+          manager: { name: guestManagerName, phone: guestManagerPhone },
+          coach: { name: guestCoachName, phone: guestCoachPhone },
+        },
+      });
+      const refreshed = await listFederationGuestTeams(federationSlug);
+      setGuestTeams(refreshed);
+      const selectedId =
+        refreshed.find((g) => g.guestTeamId === created.guestTeamId)?.id ||
+        created.guestTeamId;
+      setExistingGuestId(selectedId);
+      setGuestTeamName("");
+      setGuestChairmanName("");
+      setGuestChairmanPhone("");
+      setGuestManagerName("");
+      setGuestManagerPhone("");
+      setGuestCoachName("");
+      setGuestCoachPhone("");
+      setMsg(`비가입팀 등록 완료 · ${created.teamName}`);
+      return selectedId;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "비가입팀 등록 실패");
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveExistingGuestTeam() {
+    if (!editingGuestTeam || !guestTeamName.trim()) {
+      setError("수정할 비가입팀과 팀명을 확인하세요.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMsg(null);
+    try {
+      const updated = await updateFederationGuestTeam({
+        federationSlug,
+        guestTeamId: editingGuestTeam.guestTeamId,
+        teamName: guestTeamName.trim(),
+        contacts: {
+          chairman: { name: guestChairmanName, phone: guestChairmanPhone },
+          manager: { name: guestManagerName, phone: guestManagerPhone },
+          coach: { name: guestCoachName, phone: guestCoachPhone },
+        },
+      });
+      const refreshed = await listFederationGuestTeams(federationSlug);
+      setGuestTeams(refreshed);
+      setExistingGuestId(
+        refreshed.find((guest) => guest.guestTeamId === updated.guestTeamId)?.id ??
+          updated.guestTeamId
+      );
+      setMsg(`비가입팀 수정 완료 · ${updated.teamName}`);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "비가입팀 수정 실패");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function archiveExistingGuestTeam() {
+    if (!editingGuestTeam) return;
+    if (!window.confirm(`「${editingGuestTeam.teamName}」을(를) 보관할까요? 과거 예약 이력은 유지됩니다.`)) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMsg(null);
+    try {
+      await archiveFederationGuestTeam({
+        federationSlug,
+        guestTeamId: editingGuestTeam.guestTeamId,
+      });
+      const refreshed = await listFederationGuestTeams(federationSlug);
+      setGuestTeams(refreshed);
+      setExistingGuestId("");
+      setMsg(`비가입팀 보관 완료 · ${editingGuestTeam.teamName}`);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "비가입팀 보관 실패");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runInlineDirect(acknowledgePendingOverride: boolean) {
+    if (!selected) return;
+    setBusy(true);
+    setError(null);
+    try {
+      let teamId = "";
+      let teamName = "";
+      let teamKind: "platform" | "guest" = "platform";
+      let guestTeamId: string | undefined;
+
+      if (assignPartyKind === "guest") {
+        teamKind = "guest";
+        if (!existingGuestId || existingGuestId === GUEST_SELECT_NEW) {
+          throw new Error("비가입팀을 선택하세요. 새 팀은 「+ 새 비가입팀 등록」으로 먼저 저장하세요.");
+        }
+        const g = guestTeams.find((x) => x.id === existingGuestId);
+        if (!g) throw new Error("비가입팀을 선택하세요.");
+        teamId = g.guestTeamId;
+        teamName = g.teamName;
+        guestTeamId = g.guestTeamId;
+      } else {
+        const team = joinedTeams.find((t) => t.platformTeamId === directTeamId);
+        if (!team) throw new Error("홈페이지 연결된 가입 클럽을 선택하세요.");
+        teamId = team.id;
+        teamName = team.name;
+        teamKind = "platform";
+      }
+
       await adminDirectAllocateVenueSlot({
         federationSlug,
         venueId: selected.venueId,
@@ -300,13 +531,16 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
         bookingDate: selected.bookingDate,
         startTime: selected.startTime,
         endTime: selected.endTime,
-        teamId: team.id,
-        teamName: team.name,
+        teamId,
+        teamName,
         adminUid,
         acknowledgePendingOverride,
+        teamKind,
+        guestTeamId,
+        platformTeamId: teamKind === "platform" ? directTeamId : undefined,
       });
       setPendingOverride(null);
-      setMsg(`선배정 완료 · ${team.name}`);
+      setMsg(`선배정 완료 · ${teamName}`);
     } catch (e: unknown) {
       const m = e instanceof Error ? e.message : "";
       if (m.startsWith("PENDING_OVERRIDE_REQUIRED:")) {
@@ -356,8 +590,8 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
         setMsg("예약 확정 취소 완료");
       } else {
         const { row, toTeamId, allocationSource, winningRequestId } = reasonModal;
-        const team = teams.find((t) => t.id === toTeamId);
-        if (!team) throw new Error("가입 클럽을 선택하세요.");
+        const team = joinedTeams.find((t) => t.platformTeamId === toTeamId);
+        if (!team) throw new Error("홈페이지 연결된 가입 클럽을 선택하세요.");
         await reallocateVenueSlotAllocation({
           federationSlug,
           venueId: row.venueId,
@@ -367,6 +601,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
           endTime: row.endTime,
           toTeamId: team.id,
           toTeamName: team.name,
+          toPlatformTeamId: team.platformTeamId,
           adminUid,
           reasonCode,
           reasonText,
@@ -406,7 +641,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
         reservationId,
         adminUid,
       });
-      setMsg("입금 확인 완료");
+      setMsg("입금 확인 완료 (paymentStatus=CONFIRMED · 예약 확정은 별도)");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "입금 확인 실패");
     } finally {
@@ -426,7 +661,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
         reservationId,
         adminUid,
       });
-      setMsg("입금 확인 해제 완료");
+      setMsg("입금 확인 해제 완료 (UNCONFIRMED · 확정 전만 가능)");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "입금 해제 실패");
     } finally {
@@ -446,7 +681,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
         reservationId,
         adminUid,
       });
-      setMsg("예약 확정 완료");
+      setMsg("예약 확정 완료 (confirmStatus=FINALIZED)");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "예약 확정 실패");
     } finally {
@@ -487,29 +722,37 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
     return m;
   }, [claimQueue]);
 
-  const paymentSignal = (
-    row: AdminMonthlyBoardRow
-  ): "FINALIZED" | "CONFIRMED" | "CLAIMED" | "UNCONFIRMED" | null => {
+  /** Board signal — maps to VenueOpsStage (+ null when not ALLOCATED). */
+  const paymentSignal = (row: AdminMonthlyBoardRow): VenueOpsStage | null => {
     if (row.status !== "ALLOCATED" || !row.winner) return null;
-    if (row.winner.confirmStatus === "FINALIZED") return "FINALIZED";
-    if (row.winner.paymentStatus === "CONFIRMED") return "CONFIRMED";
+    const fromAxes = resolveVenueOpsStatus({
+      paymentStatus: row.winner.paymentStatus,
+      paymentClaimStatus: row.winner.paymentClaimStatus,
+      confirmStatus: row.winner.confirmStatus,
+    }).stage;
+    // Claim queue denorm can lag — surface CLAIMED when reservation is in queue
     if (
-      (row.winner.paymentClaimStatus === "REQUESTED" && row.winner.paymentStatus !== "CONFIRMED") ||
-      claimBySlotId.has(row.winner.id)
+      fromAxes === "UNPAID" &&
+      claimBySlotId.has(row.winner.id) &&
+      row.winner.paymentStatus !== "CONFIRMED"
     ) {
       return "CLAIMED";
     }
-    return "UNCONFIRMED";
+    return fromAxes;
   };
 
   const statusBadge = (row: AdminMonthlyBoardRow) => {
-    if (row.status === "ALLOCATED") {
-      const base = row.winner?.allocationSource === "ADMIN_DIRECT" ? "선배정" : "배정완료";
+    if (row.status === "ALLOCATED" && row.winner) {
+      const base = row.winner.allocationSource === "ADMIN_DIRECT" ? "선배정" : "배정완료";
       const sig = paymentSignal(row);
-      if (sig === "FINALIZED") return `${base} · ✅ 예약 확정`;
-      if (sig === "CONFIRMED") return `${base} · 🟢 입금 완료`;
-      if (sig === "CLAIMED") return `${base} · 🟠 입금 확인 요청`;
-      return `${base} · 🔴 미입금`;
+      if (!sig) return base;
+      const ops = resolveVenueOpsStatus({
+        paymentStatus: row.winner.paymentStatus,
+        paymentClaimStatus:
+          sig === "CLAIMED" ? "REQUESTED" : row.winner.paymentClaimStatus,
+        confirmStatus: row.winner.confirmStatus,
+      });
+      return `${base} · ${ops.adminLabel}`;
     }
     if (row.status === "REQUEST_POOL") return `신청중(${row.requestCount})`;
     return "신청가능";
@@ -518,7 +761,7 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
   const rowBadgeClass = (row: AdminMonthlyBoardRow) => {
     const sig = paymentSignal(row);
     if (sig === "FINALIZED") return "bg-emerald-100 text-emerald-950";
-    if (sig === "CONFIRMED") return "bg-green-100 text-green-900";
+    if (sig === "PAYMENT_CONFIRMED") return "bg-green-100 text-green-900";
     if (sig === "CLAIMED") return "bg-orange-100 text-orange-950";
     if (row.status === "ALLOCATED") {
       return row.winner?.allocationSource === "ADMIN_DIRECT"
@@ -534,9 +777,127 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
       <div>
         <h2 className="text-lg font-semibold text-gray-900">월간 배정 캘린더</h2>
         <p className="text-sm text-gray-600">
-          왼쪽 달력 · 오른쪽 상세 작업 · 하단 빠른 선배정 · 입금 확인 요청 큐 · 입금확인/예약확정(PR3)
+          왼쪽 달력 · 오른쪽 상세 작업 · 하단 빠른 선배정 · 입금 확인 요청 큐 · 입금확인/예약확정
         </p>
+        <VenueRefundPolicyNote variant="admin" className="mt-3" />
       </div>
+
+      <FederationTeamContactsImportPanel federationSlug={federationSlug} />
+
+      {receiptQueue.length > 0 && (
+        <div className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-sky-950">
+              영수증 검토 대기 ({receiptQueue.length})
+            </h3>
+            <span className="text-xs text-sky-800">OCR 보조 · 자동 승인 없음</span>
+          </div>
+          <ul className="divide-y divide-sky-100 rounded-lg border border-sky-100 bg-white max-h-72 overflow-auto">
+            {receiptQueue.map((r) => (
+              <li key={r.id} className="space-y-2 px-3 py-3 text-sm">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {r.teamName} · {r.shortReservationCode}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {r.venueName} · {r.bookingDate} {r.startTime}–{r.endTime}
+                    </div>
+                    <div className="mt-1 text-xs text-gray-700">
+                      금액{" "}
+                      {r.ocrResult.amount != null
+                        ? `${r.ocrResult.amount.toLocaleString("ko-KR")}원`
+                        : "미추출"}{" "}
+                      · 시간 {r.ocrResult.depositedAt?.slice(11, 16) || "미추출"} · 검증{" "}
+                      <span
+                        className={
+                          r.verificationStatus === "MATCH"
+                            ? "font-semibold text-emerald-700"
+                            : "font-semibold text-amber-700"
+                        }
+                      >
+                        {r.verificationStatus}
+                      </span>
+                    </div>
+                    {r.verificationReasons.length > 0 && (
+                      <ul className="mt-1 list-disc pl-4 text-[11px] text-amber-900">
+                        {r.verificationReasons.slice(0, 3).map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <a
+                    href={r.receiptImageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-semibold text-sky-900 underline"
+                  >
+                    영수증 보기
+                  </a>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={busy || receiptBusyId === r.id}
+                    onClick={() => void (async () => {
+                      setReceiptBusyId(r.id);
+                      setError(null);
+                      setMsg(null);
+                      try {
+                        await venuePaymentService.reviewDepositEvidence({
+                          federationSlug,
+                          receiptId: r.id,
+                          adminUid,
+                          decision: "APPROVE",
+                        });
+                        setMsg(
+                          `${r.teamName} 영수증 승인 → 입금 확인(CONFIRMED)·예약 확정(FINALIZED) 완료`
+                        );
+                      } catch (e: unknown) {
+                        setError(e instanceof Error ? e.message : "영수증 승인 실패");
+                      } finally {
+                        setReceiptBusyId(null);
+                      }
+                    })()}
+                    className="rounded-lg border border-emerald-600 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-950 disabled:opacity-50"
+                  >
+                    승인
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy || receiptBusyId === r.id}
+                    onClick={() => void (async () => {
+                      const reason =
+                        window.prompt("반려 사유", "영수증 확인 불가") || "영수증 확인 불가";
+                      setReceiptBusyId(r.id);
+                      setError(null);
+                      setMsg(null);
+                      try {
+                        await venuePaymentService.reviewDepositEvidence({
+                          federationSlug,
+                          receiptId: r.id,
+                          adminUid,
+                          decision: "REJECT",
+                          rejectReason: reason,
+                        });
+                        setMsg(`${r.teamName} 영수증 반려`);
+                      } catch (e: unknown) {
+                        setError(e instanceof Error ? e.message : "영수증 반려 실패");
+                      } finally {
+                        setReceiptBusyId(null);
+                      }
+                    })()}
+                    className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-800 disabled:opacity-50"
+                  >
+                    반려
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {claimQueue.length > 0 && (
         <div className="rounded-xl border border-orange-200 bg-orange-50/80 p-4 space-y-2">
@@ -830,6 +1191,12 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                           type="button"
                           onClick={() => {
                             setSelectedKey(row.key);
+                            // Slot selection is the authoritative context for the
+                            // fast allocation form. Keep the selected team intact.
+                            setVenueFilter(row.venueId);
+                            setSelectedDate(row.bookingDate);
+                            setDirectDate(row.bookingDate);
+                            setDirectSlot(`${row.startTime}|${row.endTime}`);
                             setShowLogs(false);
                             setError(null);
                             setPendingOverride(null);
@@ -868,6 +1235,17 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                     {selected.winnerTeamName ? ` · ${selected.winnerTeamName}` : ""}
                   </span>
                 </p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-gray-800">예상 대관료</p>
+                {selectedSlotPricingQuote ? (
+                  <VenuePricingEstimateSummary quote={selectedSlotPricingQuote} compact />
+                ) : (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    이 구장·시간대는 요금 확인이 필요합니다.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -935,15 +1313,26 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                   </div>
                   <div className="text-xs font-semibold">
                     입금 시그널:{" "}
-                    {paymentSignal(selected) === "FINALIZED" ? (
-                      <span className="text-emerald-800">✅ 예약 확정</span>
-                    ) : paymentSignal(selected) === "CONFIRMED" ? (
-                      <span className="text-green-800">🟢 입금 완료</span>
-                    ) : paymentSignal(selected) === "CLAIMED" ? (
-                      <span className="text-orange-800">🟠 입금 확인 요청</span>
-                    ) : (
-                      <span className="text-red-700">🔴 미입금</span>
-                    )}
+                    {(() => {
+                      const sig = paymentSignal(selected);
+                      const ops = resolveVenueOpsStatus({
+                        paymentStatus: selected.winner!.paymentStatus,
+                        paymentClaimStatus:
+                          sig === "CLAIMED"
+                            ? "REQUESTED"
+                            : selected.winner!.paymentClaimStatus,
+                        confirmStatus: selected.winner!.confirmStatus,
+                      });
+                      const color =
+                        ops.stage === "FINALIZED"
+                          ? "text-emerald-800"
+                          : ops.stage === "PAYMENT_CONFIRMED"
+                            ? "text-green-800"
+                            : ops.stage === "CLAIMED"
+                              ? "text-orange-800"
+                              : "text-red-700";
+                      return <span className={color}>{ops.adminLabel}</span>;
+                    })()}
                   </div>
                   {(selected.winner.reservationId || selected.winner.id) && (
                     <Link
@@ -958,21 +1347,120 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
 
               <div className="border-t pt-3 space-y-2">
                 <p className="text-xs font-semibold text-gray-800">④ 배정 작업</p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setAssignPartyKind("platform")}
+                    className={`rounded-lg border px-2 py-1 font-semibold ${
+                      assignPartyKind === "platform"
+                        ? "border-primary-700 bg-primary-50 text-primary-900"
+                        : "border-gray-300 text-gray-700"
+                    }`}
+                  >
+                    가입팀
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssignPartyKind("guest")}
+                    className={`rounded-lg border px-2 py-1 font-semibold ${
+                      assignPartyKind === "guest"
+                        ? "border-primary-700 bg-primary-50 text-primary-900"
+                        : "border-gray-300 text-gray-700"
+                    }`}
+                  >
+                    비가입팀
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {selected.status !== "ALLOCATED" && (
                     <>
-                      <select
-                        value={directTeamId}
-                        onChange={(e) => setDirectTeamId(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-                      >
-                        <option value="">가입 클럽 선택 (선배정)</option>
-                        {teams.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
+                      {assignPartyKind === "platform" ? (
+                        <select
+                          value={directTeamId}
+                          onChange={(e) => setDirectTeamId(e.target.value)}
+                          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                        >
+                          <option value="">가입 클럽 선택 (선배정)</option>
+                          {joinedTeams.map((t) => (
+                            <option key={t.id} value={t.platformTeamId}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="w-full space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs">
+                          <select
+                            value={existingGuestId}
+                            onChange={(e) => setExistingGuestId(e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                          >
+                            <option value="">비가입팀 선택</option>
+                            {guestTeams.map((g) => (
+                              <option key={g.id} value={g.id}>
+                                {g.teamName}
+                              </option>
+                            ))}
+                            <option value={GUEST_SELECT_NEW}>+ 새 비가입팀 등록</option>
+                          </select>
+                          {existingGuestId === GUEST_SELECT_NEW && (
+                            <div className="space-y-2">
+                              <div className="grid gap-1 sm:grid-cols-2">
+                                <input
+                                  className="rounded border px-2 py-1"
+                                  placeholder="팀명"
+                                  value={guestTeamName}
+                                  onChange={(e) => setGuestTeamName(e.target.value)}
+                                />
+                                <span className="hidden sm:block" />
+                                <input
+                                  className="rounded border px-2 py-1"
+                                  placeholder="회장"
+                                  value={guestChairmanName}
+                                  onChange={(e) => setGuestChairmanName(e.target.value)}
+                                />
+                                <input
+                                  className="rounded border px-2 py-1"
+                                  placeholder="회장전화"
+                                  value={guestChairmanPhone}
+                                  onChange={(e) => setGuestChairmanPhone(e.target.value)}
+                                />
+                                <input
+                                  className="rounded border px-2 py-1"
+                                  placeholder="총무"
+                                  value={guestManagerName}
+                                  onChange={(e) => setGuestManagerName(e.target.value)}
+                                />
+                                <input
+                                  className="rounded border px-2 py-1"
+                                  placeholder="총무전화"
+                                  value={guestManagerPhone}
+                                  onChange={(e) => setGuestManagerPhone(e.target.value)}
+                                />
+                                <input
+                                  className="rounded border px-2 py-1"
+                                  placeholder="감독"
+                                  value={guestCoachName}
+                                  onChange={(e) => setGuestCoachName(e.target.value)}
+                                />
+                                <input
+                                  className="rounded border px-2 py-1"
+                                  placeholder="감독전화"
+                                  value={guestCoachPhone}
+                                  onChange={(e) => setGuestCoachPhone(e.target.value)}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void saveNewGuestTeam()}
+                                className="w-full rounded-lg border border-emerald-600 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-950 disabled:opacity-50"
+                              >
+                                비가입팀 저장
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {pendingOverride && pendingOverride.length > 0 ? (
                         <div className="w-full rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs space-y-2">
                           <p className="font-semibold">
@@ -995,7 +1483,12 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                       ) : (
                         <button
                           type="button"
-                          disabled={busy || !directTeamId}
+                          disabled={
+                            busy ||
+                            (assignPartyKind === "platform"
+                              ? !directTeamId
+                              : !existingGuestId || existingGuestId === GUEST_SELECT_NEW)
+                          }
                           onClick={() => void runInlineDirect(false)}
                           className="rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm font-semibold disabled:opacity-50"
                         >
@@ -1057,18 +1550,26 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                   )}
                   {selected.status === "ALLOCATED" && selected.winner && (
                     <>
-                      {paymentSignal(selected) !== "CONFIRMED" &&
-                        paymentSignal(selected) !== "FINALIZED" && (
+                      {(() => {
+                        const actions = venueOpsAdminActions({
+                          paymentStatus: selected.winner!.paymentStatus,
+                          paymentClaimStatus: selected.winner!.paymentClaimStatus,
+                          confirmStatus: selected.winner!.confirmStatus,
+                        });
+                        return (
+                          <>
+                      {actions.canConfirmPayment && (
                           <button
                             type="button"
                             disabled={busy}
+                            title={actions.confirmPaymentDisabledReason ?? "통장 확인 후 입금 완료(CONFIRMED)"}
                             onClick={() => void runConfirmPayment(selected)}
                             className="rounded-lg border border-green-600 bg-green-50 text-green-900 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
                           >
                             입금 확인
                           </button>
                         )}
-                      {paymentSignal(selected) === "CONFIRMED" && (
+                      {actions.canUnconfirmPayment && (
                         <button
                           type="button"
                           disabled={busy}
@@ -1080,21 +1581,19 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                       )}
                       <button
                         type="button"
-                        disabled={
-                          busy ||
-                          paymentSignal(selected) === "FINALIZED" ||
-                          paymentSignal(selected) !== "CONFIRMED"
-                        }
+                        disabled={busy || !actions.canFinalize}
                         title={
-                          paymentSignal(selected) === "CONFIRMED"
-                            ? "입금 확인된 예약을 최종 확정"
-                            : "입금 확인 후에만 예약 확정 가능"
+                          actions.finalizeDisabledReason ??
+                          "입금 확인된 예약을 최종 확정(FINALIZED)"
                         }
                         onClick={() => void runFinalize(selected)}
                         className="rounded-lg border border-emerald-700 bg-emerald-50 text-emerald-950 px-3 py-1.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         예약 확정
                       </button>
+                          </>
+                        );
+                      })()}
                       {paymentSignal(selected) === "FINALIZED" && (
                         <button
                           type="button"
@@ -1149,6 +1648,13 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
       <div className="rounded-xl border border-primary-200 bg-white p-4 space-y-3">
         <h3 className="font-semibold text-gray-900">빠른 선배정</h3>
         <p className="text-xs text-gray-500">날짜는 달력에서 선택한 값이 자동 반영됩니다 (수정 불가).</p>
+        {directAssignPricingQuote ? (
+          <VenuePricingEstimateSummary quote={directAssignPricingQuote} compact />
+        ) : venueFilter && (selectedDate || directDate) && directSlot ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            이 구장·시간대는 요금 확인이 필요합니다.
+          </p>
+        ) : null}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
           <label>
             구장
@@ -1193,83 +1699,234 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
             </select>
           </label>
           <label>
-            가입 클럽
-            <select
-              value={directTeamId}
-              onChange={(e) => setDirectTeamId(e.target.value)}
-              className="mt-1 w-full rounded-lg border px-2 py-1.5"
-            >
-              <option value="">선택</option>
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
+            배정 대상
+            <div className="mt-1 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAssignPartyKind("platform")}
+                className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold ${
+                  assignPartyKind === "platform"
+                    ? "border-primary-700 bg-primary-50"
+                    : "border-gray-300"
+                }`}
+              >
+                가입팀
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssignPartyKind("guest")}
+                className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold ${
+                  assignPartyKind === "guest"
+                    ? "border-primary-700 bg-primary-50"
+                    : "border-gray-300"
+                }`}
+              >
+                비가입팀
+              </button>
+            </div>
           </label>
+          {assignPartyKind === "platform" ? (
+            <label>
+              가입 클럽
+              <select
+                value={directTeamId}
+                onChange={(e) => setDirectTeamId(e.target.value)}
+                className="mt-1 w-full rounded-lg border px-2 py-1.5"
+              >
+                <option value="">선택</option>
+                {joinedTeams.map((t) => (
+                  <option key={t.id} value={t.platformTeamId}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label>
+              비가입팀
+              <select
+                value={existingGuestId}
+                onChange={(e) => setExistingGuestId(e.target.value)}
+                className="mt-1 w-full rounded-lg border px-2 py-1.5"
+              >
+                <option value="">선택</option>
+                {guestTeams.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.teamName}
+                  </option>
+                ))}
+                <option value={GUEST_SELECT_NEW}>+ 새 비가입팀 등록</option>
+              </select>
+            </label>
+          )}
         </div>
+        {assignPartyKind === "guest" && (existingGuestId === GUEST_SELECT_NEW || editingGuestTeam) && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-gray-700">
+              {editingGuestTeam ? `비가입팀 수정 · ${editingGuestTeam.guestTeamId}` : "새 비가입팀 등록"}
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+              <input
+                className="rounded-lg border px-2 py-1.5"
+                placeholder="팀명 *"
+                value={guestTeamName}
+                onChange={(e) => setGuestTeamName(e.target.value)}
+              />
+              <span className="hidden lg:block" />
+              <input
+                className="rounded-lg border px-2 py-1.5"
+                placeholder="회장"
+                value={guestChairmanName}
+                onChange={(e) => setGuestChairmanName(e.target.value)}
+              />
+              <input
+                className="rounded-lg border px-2 py-1.5"
+                placeholder="회장전화"
+                value={guestChairmanPhone}
+                onChange={(e) => setGuestChairmanPhone(e.target.value)}
+              />
+              <input
+                className="rounded-lg border px-2 py-1.5"
+                placeholder="총무"
+                value={guestManagerName}
+                onChange={(e) => setGuestManagerName(e.target.value)}
+              />
+              <input
+                className="rounded-lg border px-2 py-1.5"
+                placeholder="총무전화"
+                value={guestManagerPhone}
+                onChange={(e) => setGuestManagerPhone(e.target.value)}
+              />
+              <input
+                className="rounded-lg border px-2 py-1.5"
+                placeholder="감독"
+                value={guestCoachName}
+                onChange={(e) => setGuestCoachName(e.target.value)}
+              />
+              <input
+                className="rounded-lg border px-2 py-1.5"
+                placeholder="감독전화"
+                value={guestCoachPhone}
+                onChange={(e) => setGuestCoachPhone(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void (editingGuestTeam ? saveExistingGuestTeam() : saveNewGuestTeam())
+                }
+                className="rounded-lg border border-emerald-600 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-950 disabled:opacity-50"
+              >
+                {editingGuestTeam ? "수정 저장" : "비가입팀 저장"}
+              </button>
+              {editingGuestTeam && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void archiveExistingGuestTeam()}
+                  className="rounded-lg border border-amber-500 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-950 disabled:opacity-50"
+                >
+                  보관
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         <button
           type="button"
-          disabled={busy}
+          disabled={
+            busy ||
+            (assignPartyKind === "platform"
+              ? !directTeamId
+              : !existingGuestId || existingGuestId === GUEST_SELECT_NEW)
+          }
           onClick={() => {
-            const venue = venues.find((v) => v.id === venueFilter);
-            const team = teams.find((t) => t.id === directTeamId);
-            const [startTime, endTime] = directSlot.split("|");
-            const bookingDate = selectedDate || directDate;
-            if (!venue || !team || !bookingDate || !startTime || !endTime) {
-              setError("구장·날짜·시간·클럽을 선택하세요. (날짜는 달력에서 선택)");
-              return;
-            }
-            setBusy(true);
-            setError(null);
-            adminDirectAllocateVenueSlot({
-              federationSlug,
-              venueId: venue.id,
-              venueName: venue.name,
-              bookingDate,
-              startTime,
-              endTime,
-              teamId: team.id,
-              teamName: team.name,
-              adminUid,
-              acknowledgePendingOverride: false,
-            })
-              .then(() => setMsg(`선배정 완료 · ${team.name} · ${bookingDate}`))
-              .catch(async (e: unknown) => {
-                const m = e instanceof Error ? e.message : "";
-                if (m.startsWith("PENDING_OVERRIDE_REQUIRED:")) {
-                  const pending = await listPendingRequestsForSlot({
+            void (async () => {
+              const venue = venues.find((v) => v.id === venueFilter);
+              const [startTime, endTime] = directSlot.split("|");
+              const bookingDate = selectedDate || directDate;
+              if (!venue || !bookingDate || !startTime || !endTime) {
+                setError("구장·날짜·시간을 선택하세요. (날짜는 달력에서 선택)");
+                return;
+              }
+              setBusy(true);
+              setError(null);
+              try {
+                let teamId = "";
+                let teamName = "";
+                let teamKind: "platform" | "guest" = "platform";
+                let guestTeamId: string | undefined;
+
+                if (assignPartyKind === "guest") {
+                  teamKind = "guest";
+                  if (!existingGuestId || existingGuestId === GUEST_SELECT_NEW) {
+                    throw new Error(
+                      "비가입팀을 선택하세요. 새 팀은 「+ 새 비가입팀 등록」으로 먼저 저장하세요."
+                    );
+                  }
+                  const g = guestTeams.find((x) => x.id === existingGuestId);
+                  if (!g) throw new Error("비가입팀을 선택하세요.");
+                  teamId = g.guestTeamId;
+                  teamName = g.teamName;
+                  guestTeamId = g.guestTeamId;
+                } else {
+                  const team = joinedTeams.find((t) => t.platformTeamId === directTeamId);
+                  if (!team) throw new Error("홈페이지 연결된 가입 클럽을 선택하세요.");
+                  teamId = team.id;
+                  teamName = team.name;
+                }
+
+                const runAlloc = (ack: boolean) =>
+                  adminDirectAllocateVenueSlot({
                     federationSlug,
                     venueId: venue.id,
+                    venueName: venue.name,
                     bookingDate,
                     startTime,
                     endTime,
+                    teamId,
+                    teamName,
+                    adminUid,
+                    acknowledgePendingOverride: ack,
+                    teamKind,
+                    guestTeamId,
+                    platformTeamId: teamKind === "platform" ? directTeamId : undefined,
                   });
-                  const ok = window.confirm(
-                    `현재 ${pending.length}팀 신청이 있습니다.\n${pending
-                      .map((p) => p.teamName || p.teamId)
-                      .join(", ")}\n\n신청하지 않은 ${team.name}을 선배정할까요?`
-                  );
-                  if (ok) {
-                    await adminDirectAllocateVenueSlot({
+
+                try {
+                  await runAlloc(false);
+                  setMsg(`선배정 완료 · ${teamName} · ${bookingDate}`);
+                } catch (e: unknown) {
+                  const m = e instanceof Error ? e.message : "";
+                  if (m.startsWith("PENDING_OVERRIDE_REQUIRED:")) {
+                    const pending = await listPendingRequestsForSlot({
                       federationSlug,
                       venueId: venue.id,
-                      venueName: venue.name,
                       bookingDate,
                       startTime,
                       endTime,
-                      teamId: team.id,
-                      teamName: team.name,
-                      adminUid,
-                      acknowledgePendingOverride: true,
                     });
-                    setMsg(`선배정 완료 · ${team.name}`);
+                    const ok = window.confirm(
+                      `현재 ${pending.length}팀 신청이 있습니다.\n${pending
+                        .map((p) => p.teamName || p.teamId)
+                        .join(", ")}\n\n${teamName}을 선배정할까요?`
+                    );
+                    if (ok) {
+                      await runAlloc(true);
+                      setMsg(`선배정 완료 · ${teamName}`);
+                    }
+                  } else {
+                    setError(m || "선배정 실패");
                   }
-                } else {
-                  setError(m || "선배정 실패");
                 }
-              })
-              .finally(() => setBusy(false));
+              } catch (e: unknown) {
+                setError(e instanceof Error ? e.message : "선배정 실패");
+              } finally {
+                setBusy(false);
+              }
+            })();
           }}
           className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold disabled:opacity-50"
         >
@@ -1303,8 +1960,8 @@ export function FederationVenueRentalAdminPanel({ federationSlug, adminUid }: Pr
                   className="mt-1 w-full rounded-lg border px-2 py-1.5"
                 >
                   <option value="">가입 클럽 선택</option>
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>
+                  {joinedTeams.map((t) => (
+                    <option key={t.id} value={t.platformTeamId}>
                       {t.name}
                     </option>
                   ))}
