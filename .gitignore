@@ -28,6 +28,10 @@ functions/functions/
 serviceAccountKey.json
 *.serviceAccountKey.json
 
+# Stage verification evidence JSON (repo root) — local/generated artifacts only.
+# Canonical SoT = docs/operations Run Board + workflow alignment docs; do not commit.
+/STAGE_*.json
+
 # Capacitor
 android/
 ios/

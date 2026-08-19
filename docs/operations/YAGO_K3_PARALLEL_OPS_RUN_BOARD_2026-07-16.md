@@ -370,15 +370,13 @@ DELIVERY_CONFIRMATION: NOT VERIFIED / SEPARATE OPTIONAL TRACK 🔒
 RA_AUTO_DISPATCH: OFF 🔒
 GENERIC_OUTBOUND_GATES: OFF 🔒
 
-SoT evidence artifacts (repo root, read-only):
-  STAGE_12M_R2_READBACK.json
-  STAGE_12L_HF_REPORT.json
-  STAGE_12N_REPORT.json
-  STAGE_13D_REPORT.json
-  STAGE_13E_REPORT.json
-  STAGE_13F_REPORT.json
-  STAGE_13G_REPORT.json
-  STAGE_13H_REPORT.json
+SoT (canonical): this Run Board + docs/YAGO_NOWON_VENUE_ALLOCATION_WORKFLOW_ALIGNMENT.md
+
+Local stage evidence JSON (/STAGE_*.json, gitignored): operator read-back artifacts only — e.g.
+  STAGE_12M_R2_READBACK.json · STAGE_13F_REPORT.json · STAGE_13G_REPORT.json · STAGE_13H_REPORT.json
+  (not Git SoT; do not commit)
+
+Other local artifacts (gitignored unless separately tracked):
   HOSTING_MIGRATION_PREFLIGHT.json
 
 Canonical Hosting source SHA:
@@ -540,8 +538,11 @@ Evidence: `STAGE_13D_REPORT.json` · `STAGE_13E_REPORT.json`
 | 13F | PASS (dryRun) | **9/8** new candidate |
 | 13G | **PASS** (live) | ACCEPTED 2/2 |
 | 13H | **CLOSE** | governance · docs only |
+| 13I | **PASS** | source/runtime alignment · commit `d18a63c` · no deploy |
 
 ```text
+Stage evidence JSON (/STAGE_*.json) = local generated artifact (gitignored).
+Canonical SoT for verified stages = this Run Board + workflow alignment docs only.
 DO NOT enable RA auto-dispatch or generic outbound gates because Canary passed.
 ```
 
