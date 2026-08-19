@@ -1,7 +1,7 @@
 # YAGO Nowon Federation — Venue Allocation Workflow Alignment
 
 ```text
-DATE: 2026-07-16 (domain) · Production close: 2026-08-19 (Stage 12O)
+DATE: 2026-07-16 (domain) · Production close: 2026-08-19 (Stage 12O) · RA Canary close: 2026-08-19 (Stage 13H)
 BOARD UI: PRESERVED
 CALENDAR UX / PAYMENT / SPRINT 4: HOLD
 PRODUCTION PREALLOCATION: VERIFIED COMPLETE 🔒 (Stage 12M-R2 / 12O)
@@ -10,7 +10,10 @@ PM JUDGMENT (2026-08-19):
   PRODUCTION PREALLOCATION E2E = VERIFIED COMPLETE ✅
   HOSTING_MIGRATION = COMPLETE ✅
   AUTHORITATIVE PRICING = PRODUCTION VERIFIED ✅
-  RA_ALIMTALK_LIVE_SEND = NOT VERIFIED — SEPARATE TRACK 🔒
+  RA_ALIMTALK_CONTROLLED_CANARY = VERIFIED COMPLETE ✅ (Stage 13G / 13H)
+  PROVIDER_ACCEPTANCE = VERIFIED 2/2 🔒
+  DELIVERY_CONFIRMATION = NOT VERIFIED / SEPARATE OPTIONAL TRACK 🔒
+  RA_AUTO_DISPATCH = OFF · GENERIC_OUTBOUND_GATES = OFF 🔒
 
 Prior PM JUDGMENT (2026-07-16) superseded for deploy/preallocation scope only.
 ```
@@ -362,7 +365,7 @@ HOSTING_MIGRATION = COMPLETE 🔒
 | Field-level public redaction of `allocatedTeamId` | Optional hardening |
 | Payment | HOLD |
 | Allocation dashboard redesign | HOLD |
-| **RA AlimTalk live send** | **NOT VERIFIED — separate track; RA gate OFF** |
+| **RA AlimTalk controlled Canary** | **VERIFIED COMPLETE (Stage 13H) · ACCEPTED 2/2 · delivery NOT VERIFIED · gates OFF** |
 
 **Removed as blockers (closed 2026-08-19):** Local ADMIN_DIRECT verify · Rules deploy GO for Path A+B preallocation · Hosting deploy GO for admin 선배정 UI · Production functional verification.
 
@@ -408,10 +411,11 @@ RUN BOARD: docs/operations/YAGO_K3_PARALLEL_OPS_RUN_BOARD_2026-07-16.md § Stage
 |------|-------|
 | 2026-08-26 historical Canary | Do not reuse |
 | 2026-09-03 10:00–12:00 Stage 12M | `app/no-app` · server writes **0** · retry **NO** · **not** in verified volume |
+| 2026-09-07 10:00–12:00 Stage 13D | controlled Canary **FAIL** · `templateVariables:{}` contract mismatch · ACCEPTED **0** · guard consumed · retry **NO** · **DO NOT REUSE** |
 
 ---
 
-## 27. Notification Contract (Verified Case)
+## 27. Notification Contract (Preallocation Verified Case)
 
 Post-commit only: **+3** `RESERVATION_ASSIGNED` queue docs (chairman / coach / manager).
 
@@ -419,7 +423,63 @@ Post-commit only: **+3** `RESERVATION_ASSIGNED` queue docs (chairman / coach / m
 
 ```text
 QUEUE CREATED != PROVIDER SENT
-RA_ALIMTALK_LIVE_SEND = NOT VERIFIED / SEPARATE TRACK
+```
+
+(Preallocation case `2026-09-04` — provider sends **0**. See §25.)
+
+---
+
+## 28. RA AlimTalk Controlled Canary — VERIFIED COMPLETE (Stage 13H)
+
+```text
+RA_ALIMTALK_CONTROLLED_CANARY: VERIFIED COMPLETE 🔒
+PROVIDER_ACCEPTANCE: VERIFIED 2/2 🔒
+DELIVERY_CONFIRMATION: NOT VERIFIED / SEPARATE OPTIONAL TRACK 🔒
+RA_AUTO_DISPATCH: OFF 🔒
+GENERIC_OUTBOUND_GATES: OFF 🔒
+
+EVIDENCE: STAGE_13F_REPORT.json · STAGE_13G_REPORT.json · STAGE_13H_REPORT.json
+RUN BOARD: docs/operations/YAGO_K3_PARALLEL_OPS_RUN_BOARD_2026-07-16.md § Stage 13H
+```
+
+### Verified controlled Canary case — FROZEN / DO NOT REUSE
+
+| Field | Value |
+|-------|-------|
+| Status | **VERIFIED COMPLETE / FROZEN / DO NOT REUSE** |
+| Reservation ID | `slot_nowon-suraksan_2026-09-08_1000` |
+| Date / Time | `2026-09-08` · `10:00–12:00` |
+| Venue | `nowon-suraksan` |
+| Team | 상천FC · `hBLnzeMYOU62Rg94ocmG` |
+| Authoritative total | `55,000` KRW · `QUOTED` |
+| Template | `RESERVATION_APPROVED` / `NOWONRESERVATIONNOTICE01` |
+| Send scope | chairman + manager · **exact 2** |
+| Chairman | **ACCEPTED** (`A000`) |
+| Manager | **ACCEPTED** (`A000`) |
+| Coach provider calls | **0** |
+| Total provider calls | **2** · duplicate **0** · SMS fallback **0** · retry **NO** |
+
+### Acceptance vs delivery (LOCK)
+
+```text
+NCP ACCEPTED ≠ DELIVERED
+PROVIDER_ACCEPTANCE: VERIFIED 2/2
+DELIVERY_CONFIRMATION: NOT VERIFIED / SEPARATE OPTIONAL TRACK
+Do not record DELIVERED without separate receipt evidence.
+```
+
+### Failed historical Canary (preserved)
+
+Stage **13D** on `slot_nowon-suraksan_2026-09-07_1000`: FAIL · templateVariables contract mismatch · ACCEPTED **0** · guard consumed · **DO NOT REUSE**. Fixed in Stage **13E**; success on **9/8** new case (Stages **13F** dryRun · **13G** live).
+
+---
+
+## 29. Canary Track Close
+
+```text
+RA AlimTalk controlled Canary verification track = CLOSED ✅
+Do NOT enable RA auto-dispatch or generic outbound gates because Canary passed.
+Optional future: Delivery Receipt Stage (separate PM re-GO) — not required for Canary close.
 ```
 
 ---
@@ -431,12 +491,15 @@ VENUE ALLOCATION WORKFLOW = LOCAL VERIFIED ✅ (Path A + Path B LOCK)
 PRODUCTION PREALLOCATION E2E = VERIFIED COMPLETE ✅ (Stage 12M-R2 / 12O) 🔒
 HOSTING MIGRATION = COMPLETE ✅ (Stage 12L + 12L-HF) 🔒
 AUTHORITATIVE PRICING (Production) = VERIFIED ✅ (QUOTED 55,000 · v2 BLOCK_2H) 🔒
-RA ALIMTALK LIVE SEND = NOT VERIFIED — SEPARATE TRACK 🔒
+RA ALIMTALK CONTROLLED CANARY = VERIFIED COMPLETE ✅ (Stage 13G / 13H close) 🔒
+  PROVIDER_ACCEPTANCE = VERIFIED 2/2 (9/8 case · chairman+manager)
+  DELIVERY_CONFIRMATION = NOT VERIFIED / SEPARATE OPTIONAL TRACK
+  RA_AUTO_DISPATCH = OFF · GENERIC_OUTBOUND_GATES = OFF
 
 Deferred (policy/UX — not blockers for verified preallocation):
   application deadline · auto priority recommend · monthly alloc counts
   non-alloc counts · adjustment reason · BUG-003 filter UX
 
-Recommended next (separate PM re-GO):
-  RA AlimTalk controlled Canary — new date/slot/case only
+Optional future (separate PM re-GO only):
+  Delivery receipt confirmation track — not mixed with Canary acceptance
 ```

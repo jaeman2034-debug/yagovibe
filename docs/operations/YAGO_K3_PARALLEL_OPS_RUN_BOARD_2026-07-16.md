@@ -364,12 +364,21 @@ PRIOR NOTE: operator-verified Hosting UI flow (calendar → allocation → readb
 PRODUCTION_PREALLOCATION: VERIFIED COMPLETE 🔒
 HOSTING_MIGRATION: COMPLETE 🔒
 AUTHORITATIVE_PRICING: PRODUCTION VERIFIED 🔒
-RA_ALIMTALK_LIVE_SEND: NOT VERIFIED — SEPARATE TRACK 🔒
+RA_ALIMTALK_CONTROLLED_CANARY: VERIFIED COMPLETE 🔒  ← Stage 13H (2026-08-19)
+PROVIDER_ACCEPTANCE: VERIFIED 2/2 🔒
+DELIVERY_CONFIRMATION: NOT VERIFIED / SEPARATE OPTIONAL TRACK 🔒
+RA_AUTO_DISPATCH: OFF 🔒
+GENERIC_OUTBOUND_GATES: OFF 🔒
 
 SoT evidence artifacts (repo root, read-only):
   STAGE_12M_R2_READBACK.json
   STAGE_12L_HF_REPORT.json
   STAGE_12N_REPORT.json
+  STAGE_13D_REPORT.json
+  STAGE_13E_REPORT.json
+  STAGE_13F_REPORT.json
+  STAGE_13G_REPORT.json
+  STAGE_13H_REPORT.json
   HOSTING_MIGRATION_PREFLIGHT.json
 
 Canonical Hosting source SHA:
@@ -432,19 +441,109 @@ QUEUE CREATED != PROVIDER SENT
 |------|----------------|---------|---------------|-------|
 | Historical Canary | 2026-08-26 | failed Canary | — | — |
 | Stage 12M attempt | 2026-09-03 · nowon-suraksan · 10:00–12:00 · 상천FC | `app/no-app` (`createVenueAllocationRequest`) | **0** | **NO** |
+| Stage 13D controlled Canary | 2026-09-07 · nowon-suraksan · 10:00–12:00 · 상천FC | FAIL · `templateVariables:{}` contract mismatch · ACCEPTED **0** · guard consumed | partial invocation writes | **NO** |
 
-Neither case counts toward Production preallocation verified volume.
+Neither case counts toward Production preallocation verified volume or controlled Canary verified volume.
 
 ### Scope close
 
 ```text
 PRODUCTION_PREALLOCATION functional E2E = CLOSED ✅
-Next separate track (PM re-GO required):
-  RA AlimTalk live send / controlled Canary — new case only
-Do NOT reuse 2026-09-04 verified case or 2026-09-03 failed attempt.
+RA ALIMTALK CONTROLLED CANARY = VERIFIED COMPLETE ✅ (Stage 13H) 🔒
+  Verified case: slot_nowon-suraksan_2026-09-08_1000 (9/8 · chairman+manager · ACCEPTED 2/2)
+  Failed preserved: slot_nowon-suraksan_2026-09-07_1000 (13D · DO NOT REUSE)
+  Fix path: 13E contract alignment → 13F dryRun → 13G live PASS
+  NCP ACCEPTED ≠ DELIVERED — delivery receipt = separate optional track
+Do NOT reuse 2026-09-04 preallocation case, 2026-09-03 failed attempt, or 2026-09-07 failed Canary.
+Do NOT enable RA auto-dispatch or generic outbound gates because Canary passed.
 ```
 
-Detail: `docs/YAGO_NOWON_VENUE_ALLOCATION_WORKFLOW_ALIGNMENT.md` §25–27
+Detail: `docs/YAGO_NOWON_VENUE_ALLOCATION_WORKFLOW_ALIGNMENT.md` §25–29
+
+---
+
+## Stage 13H — RA AlimTalk Controlled Canary VERIFIED COMPLETE (2026-08-19)
+
+```text
+RA_ALIMTALK_CONTROLLED_CANARY: VERIFIED COMPLETE 🔒
+PROVIDER_ACCEPTANCE: VERIFIED 2/2 🔒
+DELIVERY_CONFIRMATION: NOT VERIFIED / SEPARATE OPTIONAL TRACK 🔒
+RA_AUTO_DISPATCH: OFF 🔒
+GENERIC_OUTBOUND_GATES: OFF 🔒
+
+Canary verification track = CLOSED ✅
+Dedicated callable (live): executeReservationAssignedControlledCanary
+Revision at verified live send: executereservationassignedcontrolledcanary-00004-met
+Live invocation count: exactly 1 · retry: NO
+```
+
+### Acceptance vs delivery (LOCK)
+
+```text
+NCP ACCEPTED ≠ DELIVERED
+This track verified provider acceptance only.
+DELIVERY_CONFIRMATION requires a separate optional receipt track — not in scope here.
+```
+
+### Verified controlled Canary case — FROZEN / DO NOT REUSE
+
+| Field | Value |
+|-------|-------|
+| Status | **VERIFIED COMPLETE / FROZEN / DO NOT REUSE** |
+| Reservation / Slot ID | `slot_nowon-suraksan_2026-09-08_1000` |
+| Request ID | `req_nowon-suraksan_2026-09-08_1000_hBLnzeMYOU62Rg94ocmG` |
+| Venue | `nowon-suraksan` (수락산구장) |
+| Date / Time | `2026-09-08` · `10:00–12:00` |
+| Team | 상천FC · `hBLnzeMYOU62Rg94ocmG` |
+| pricingStatus | `QUOTED` |
+| Authoritative total | `55,000` KRW |
+| Policy | `nowon-pricing-v2-2026-09-01--nowon-suraksan` · v2 |
+| Template | `RESERVATION_APPROVED` / `NOWONRESERVATIONNOTICE01` |
+| Recipients (send scope) | chairman + manager · **exact 2** |
+| Coach | queue only · `CANARY_SCOPE_EXCLUDED` · provider calls **0** |
+| Invocation ID | `dc18fc07-3429-48e0-9c42-44990cf19560` |
+| Chairman provider result | **ACCEPTED** (`A000`) · message evidence YES |
+| Manager provider result | **ACCEPTED** (`A000`) · message evidence YES |
+| Total provider calls | **2** |
+| Duplicate sends | **0** |
+| SMS fallback | **0** |
+| Unrelated sends | **0** |
+| Global gates changed | **0** |
+| Retry | **NO** |
+
+Evidence: `STAGE_13F_REPORT.json` (dryRun) · `STAGE_13G_REPORT.json` (live)
+
+### Failed historical controlled Canary — preserved (DO NOT REUSE)
+
+| Field | Value |
+|-------|-------|
+| Reservation | `slot_nowon-suraksan_2026-09-07_1000` |
+| Stage | **13D FAIL** |
+| Root cause | live path passed `templateVariables:{}` · adapter required 6/6 |
+| Provider ACCEPTED | **0** |
+| Guard | **consumed** — no reset |
+| Retry | **NO** |
+| Fix | Stage **13E** canonical variable builder · success on **9/8** new case (13F/13G) |
+
+Evidence: `STAGE_13D_REPORT.json` · `STAGE_13E_REPORT.json`
+
+### Stage trail (Stages 13A–13H)
+
+| Stage | Result | Notes |
+|-------|--------|-------|
+| 13A | BLOCKED | coach scope + no dryRun |
+| 13B | READY | contract fix |
+| 13B-D | PASS | dedicated deploy |
+| 13C | PASS (dryRun) | 9/7 candidate · later 13D live FAIL |
+| 13D | **FAIL** | 9/7 · templateVariables mismatch |
+| 13E | **READY** | canonical builder · deploy 00004-met |
+| 13F | PASS (dryRun) | **9/8** new candidate |
+| 13G | **PASS** (live) | ACCEPTED 2/2 |
+| 13H | **CLOSE** | governance · docs only |
+
+```text
+DO NOT enable RA auto-dispatch or generic outbound gates because Canary passed.
+```
 
 ---
 
