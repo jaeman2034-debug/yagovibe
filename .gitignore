@@ -18,6 +18,7 @@ dist-ssr
 .env.production
 .env.development
 .env.*.local
+.env.production.tmp
 functions/.env
 functions/.env.*
 
@@ -28,7 +29,10 @@ functions/functions/
 serviceAccountKey.json
 *.serviceAccountKey.json
 
-# Stage verification evidence JSON (repo root) — local/generated artifacts only.
+# Stage 16D contact intake (PII — local only)
+.cursor/tmp/stage-16d-2-hanmaeum-contacts.env
+.cursor/tmp/*-contacts.env
+
 # Canonical SoT = docs/operations Run Board + workflow alignment docs; do not commit.
 /STAGE_*.json
 

@@ -6,6 +6,7 @@ import { YagoCard, YagoStatCard } from "@/components/ui/YagoComponents";
 import YagoLayout from "@/layouts/YagoLayout";
 import dayjs from "dayjs";
 import { generateWeeklyReport, generateAndShareReport } from "@/api/generateReport";
+import { getFunctionsOrigin } from "@/lib/functions/functionsOrigin";
 import { exportReportPDF } from "@/lib/pdf";
 import { sendSlackReport } from "@/api/shareSlack";
 
@@ -264,7 +265,7 @@ export default function Dashboard() {
       const loadingAlert = alert("📊 주간 리포트 생성 중... 잠시만 기다려주세요!");
 
       // 주간 리포트 API 호출
-      const response = await fetch('/api/generateWeeklyReport', {
+      const response = await fetch(`${getFunctionsOrigin()}/generateWeeklyReport`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -275,16 +276,12 @@ export default function Dashboard() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // PDF 파일 다운로드
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `YAGO_VIBE_Weekly_Report_${dayjs().format("YYYY-MM-DD")}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      const result = await response.json();
+      if (result.pdfUrl) {
+        window.open(result.pdfUrl, '_blank');
+      } else {
+        alert(result.summary || '서버 리포트 생성이 완료되었습니다.');
+      }
 
       console.log("✅ 주간 리포트 생성 완료");
       alert("✅ 주간 리포트가 성공적으로 생성되었습니다!\n\n📄 PDF 파일이 다운로드되었습니다.\n📱 Slack으로도 자동 전송되었습니다.");

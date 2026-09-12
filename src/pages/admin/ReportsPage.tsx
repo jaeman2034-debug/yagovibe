@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { FileText, Download, RefreshCcw, Volume2, Calendar, BarChart3, MessageSquare, CheckCircle, XCircle } from "lucide-react";
 import YagoLayout from "@/layouts/YagoLayout";
 import { YagoButton, YagoCard } from "@/components/ui/YagoComponents";
+import { getFunctionsOrigin } from "@/lib/functions/functionsOrigin";
 import dayjs from "dayjs";
 
 interface WeeklyReport {
@@ -69,26 +70,26 @@ export default function ReportsPage() {
             console.log("📄 리포트 다운로드 시작:", report.id);
 
             // PDF 다운로드
-            const response = await fetch('/api/generateWeeklyReport', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+            if (report.pdfUrl) {
+                window.open(report.pdfUrl, "_blank");
+                return;
+            }
+
+            const response = await fetch(`${getFunctionsOrigin()}/generateWeeklyReport`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
             });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `YAGO_VIBE_Weekly_Report_${dayjs(report.date).format("YYYY-MM-DD")}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+            const body = await response.json();
+            if (body.pdfUrl) {
+                window.open(body.pdfUrl, "_blank");
+            } else {
+                alert(body.summary || "리포트 생성 요청이 완료되었습니다.");
+            }
 
             console.log("✅ 리포트 다운로드 완료");
 
@@ -109,29 +110,15 @@ export default function ReportsPage() {
             // 이전 음성 중단
             speechSynthesis.cancel();
 
-            const res = await fetch("/api/summarizeReport", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    summary: report.summary,
-                    insights: report.insights,
-                    recommendations: report.recommendations,
-                    metrics: report.metrics,
-                    totalLogs: report.totalLogs,
-                    geoCount: report.geoCount,
-                    deviceTypes: report.deviceTypes,
-                    actionTypes: report.actionTypes,
-                }),
-            });
+            const brief = [
+                report.summary,
+                ...(report.insights || []).slice(0, 2),
+                ...(report.recommendations || []).slice(0, 1),
+            ]
+                .filter(Boolean)
+                .join(". ");
 
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            }
-
-            const data = await res.json();
-            console.log("✅ GPT 요약 생성 완료:", data.brief);
-
-            const utter = new SpeechSynthesisUtterance(data.brief);
+            const utter = new SpeechSynthesisUtterance(brief || "요약 내용이 없습니다.");
             utter.lang = "ko-KR";
             utter.rate = 1.05; // 적당한 속도로 설정
             utter.pitch = 1.0;

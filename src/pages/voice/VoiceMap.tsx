@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { logVoiceEvent, logPosition, logSearchResult } from "@/lib/logging";
 import { loadGoogleMapsAPI } from "@/utils/googleMapsLoader";
+import { resolveVoiceMapIntent } from "@/lib/voice/resolveVoiceMapIntent";
+import { callRouteVoiceCommandForMap } from "@/lib/voice/routeVoiceCommandClient";
 // ✅ Google Maps API는 중앙 집중식 로더를 통해 로드합니다
 
 declare global {
@@ -245,60 +247,18 @@ export default function VoiceMap() {
 
     // 🧠 명령 처리
     const processCommand = async (text: string) => {
-        const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
-        if (!openaiKey) return patternBasedNLU(text); // fallback
-
-        try {
-            const res = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${openaiKey}`,
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o-mini",
-                    messages: [
-                        {
-                            role: "system",
-                            content:
-                                "너는 지도 제어 NLU야. 사용자의 말을 intent/action으로 해석해. 가능한 intent: 지도열기, 근처검색, 위치이동, 홈이동. 결과는 예: intent=근처검색 keyword=카페",
-                        },
-                        { role: "user", content: text },
-                    ],
-                }),
-            });
-
-            const data = await res.json();
-            const msg = data.choices?.[0]?.message?.content || "";
-            const intent = (msg.match(/intent=([^\s]+)/)?.[1] ?? "미확인") as string;
-            const keyword =
-                msg.match(/keyword=([^\s]+)/)?.[1] ??
-                (text.match(/편의점|식당|카페|약국|병원/)?.[0] ?? "");
-
-            console.log("🧠 GPT NLU:", msg);
-            await routeByIntent({ intent, text, keyword });
-        } catch (err) {
-            console.error("GPT 오류:", err);
-            patternBasedNLU(text);
-        }
+        const resolved = await resolveVoiceMapIntent(text, {
+            callServer: callRouteVoiceCommandForMap,
+        });
+        await routeByIntent({
+            intent: resolved.intent,
+            text,
+            keyword: resolved.keyword,
+        });
     };
 
-    // 🎯 패턴 기반 NLU 확장 버전
-    const patternBasedNLU = async (text: string) => {
-        let intent: string = "미확인";
-        let keyword = "";
-
-        if (text.match(/지도|맵|열어|보여|띄워/)) intent = "지도열기";
-        else if (text.match(/현재 위치|내 위치|지금 위치|위치 이동/)) intent = "위치이동";
-        else if (text.match(/홈|처음|메인/)) intent = "홈이동";
-        else if (text.match(/근처|주변|가까운/)) {
-            intent = "근처검색";
-            keyword =
-                text.match(/편의점|식당|카페|약국|병원|마트|공원|주유소/)?.[0] ?? "편의점";
-        }
-
-        await routeByIntent({ intent, text, keyword });
-    };
+    // legacy name kept for stack traces
+    const patternBasedNLU = processCommand;
 
     // 🧭 Intent 실행
     const routeByIntent = async ({
@@ -330,6 +290,10 @@ export default function VoiceMap() {
                 speak("홈으로 이동할게요.");
                 await logVoiceEvent({ text, intent, action: "go_home" });
                 navigate("/");
+                break;
+            case "ops_안내":
+                speak("운영 안내 요청을 접수했습니다. 관리자 화면에서 확인해 주세요.");
+                await logVoiceEvent({ text, intent, action: "ops_notice" });
                 break;
             default:
                 speak("명령을 이해하지 못했습니다.");

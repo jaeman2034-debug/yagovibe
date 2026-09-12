@@ -7,6 +7,7 @@
 export { generateWeeklyReportJob as generateWeeklyReportJobOld } from "../reportAutoGenerator";
 export { generateWeeklyReportJob } from "../weeklyReportAI";
 export { generateWeeklyReportAndEmail } from "../weeklyReportWithEmail";
+export { generateWeeklyReport } from "../generateWeeklyReport";
 export { generateMonthlyReportAndEmail } from "../monthlyReportAI";
 export { generateAndSendMonthlyTeamReport } from "../teamReportAutomation";
 export { generateVoiceAndPdfReport } from "../monthlyVoiceReportJob";

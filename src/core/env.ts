@@ -15,8 +15,7 @@ export const firebaseConfig = {
 // ✅ Google Maps API 키 (보호됨)
 export const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-// ✅ OpenAI API 키 (보호됨)
-export const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+// OpenAI: 프론트엔드에서 사용하지 않음 (Functions / Worker Secret Manager)
 
 // ✅ 환경 변수 검증 (보호됨)
 export const validateEnvironment = () => {

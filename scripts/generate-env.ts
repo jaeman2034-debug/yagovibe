@@ -35,10 +35,8 @@ VITE_FIREBASE_VAPID_KEY=<YOUR_VAPID_PUBLIC_KEY>
 VITE_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 VITE_KAKAO_API_KEY=your-kakao-api-key
 
-# 🧠 OpenAI / Voice Assistant 관련
-# ⚠️ 실제 OpenAI API 키로 교체하세요 (https://platform.openai.com/api-keys)
-VITE_OPENAI_API_KEY=sk-your-openai-api-key-here
-VITE_ASSISTANT_VOICE_MODEL=gpt-4o-mini
+# 🧠 OpenAI — 프론트엔드 VITE_ 키 사용 금지 (Functions/Worker Secret Manager)
+# VITE_ASSISTANT_VOICE_MODEL=gpt-4o-mini
 
 # 🔗 Slack / n8n Webhook (선택)
 VITE_N8N_WEBHOOK_URL=https://n8n.yagovibe.ai/webhook/ai-report
@@ -69,7 +67,7 @@ try {
     console.log("📄 경로:", targetPath);
     console.log("\n📝 다음 단계:");
     console.log("   1. .env.local 파일을 열어서 실제 Firebase 설정 값으로 교체하세요");
-    console.log("   2. OpenAI API 키 등 필요한 값들을 입력하세요");
+    console.log("   2. Firebase·Maps 등 필요한 VITE_ 값만 입력하세요 (OpenAI 키는 클라이언트에 두지 않음)");
     console.log("   3. 개발 서버 재시작: npm run dev");
 } catch (error) {
     console.error("❌ .env.local 생성 중 오류 발생:", error);

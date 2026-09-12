@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { aggregateLogs } from "@/utils/aggregateLogs";
 import { motion } from "framer-motion";
 import { Loader2, RefreshCcw, Volume2, Share2, BarChart2 } from "lucide-react";
 import YagoLayout from "@/layouts/YagoLayout";
 import { YagoButton, YagoCard } from "@/components/ui/YagoComponents";
+import { buildHeuristicInsightFromAgg } from "@/lib/admin/buildHeuristicInsightFromAgg";
+import { aggregateVoiceLogsFromFirestore } from "@/lib/admin/voiceLogsAgg";
+import { generateAdminVoiceLogsInsightCallable } from "@/lib/admin/adminVoiceLogsInsightClient";
+import { sendSlackReport } from "@/api/shareSlack";
 import {
   PieChart,
   Pie,
@@ -29,29 +32,30 @@ export default function InsightsPage() {
   const generateInsight = async () => {
     setLoading(true);
     try {
-      console.log("🔮 AI 인사이트 생성 시작...");
-
-      const logs = await aggregateLogs();
-      console.log("📊 집계된 로그 데이터:", logs);
+      const logs = await aggregateVoiceLogsFromFirestore();
       setLogData(logs);
-
-      const res = await fetch("/api/generateInsight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(logs),
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      try {
+        const server = await generateAdminVoiceLogsInsightCallable(logs);
+        setInsight({
+          title: server.summary,
+          bullets: [
+            ...server.causes.map((c) => `원인: ${c}`),
+            ...server.anomalies.map((a) => `이상: ${a}`),
+          ],
+          actions: server.recommendations,
+        });
+      } catch (serverErr) {
+        console.warn("Server insight fallback:", serverErr);
+        const h = buildHeuristicInsightFromAgg(logs);
+        setInsight({
+          title: h.title,
+          bullets: h.bullets,
+          actions: h.actions,
+        });
       }
-
-      const data = await res.json();
-      console.log("✅ AI 인사이트 생성 완료:", data);
-      setInsight(data);
-
     } catch (e) {
       console.error("❌ 인사이트 생성 실패:", e);
-      alert(`인사이트 생성에 실패했습니다:\n${e instanceof Error ? e.message : 'Unknown error'}`);
+      alert(`인사이트 생성에 실패했습니다:\n${e instanceof Error ? e.message : "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -72,28 +76,14 @@ export default function InsightsPage() {
   // Slack 공유
   const shareToSlack = async () => {
     if (!insight) return;
-
     try {
-      console.log("📱 Slack 공유 시작...");
-
-      const res = await fetch("/api/shareSlack", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(insight),
-      });
-
-      const result = await res.json();
-      console.log("📱 Slack 공유 결과:", result);
-
-      if (result.success) {
-        alert("✅ Slack으로 성공적으로 전송되었습니다!");
-      } else {
-        alert(`❌ Slack 전송 실패: ${result.message}`);
-      }
-
+      await sendSlackReport(
+        `*${insight.title}*\n${(insight.bullets || []).map((b: string) => `• ${b}`).join("\n")}\n\n→ ${(insight.actions || []).join(", ")}`
+      );
+      alert("✅ Slack으로 전송했습니다 (Webhook 설정 시).");
     } catch (e) {
       console.error("❌ Slack 공유 실패:", e);
-      alert(`Slack 공유에 실패했습니다:\n${e instanceof Error ? e.message : 'Unknown error'}`);
+      alert(`Slack 공유에 실패했습니다:\n${e instanceof Error ? e.message : "Unknown error"}`);
     }
   };
 
@@ -340,7 +330,7 @@ export default function InsightsPage() {
             <p><strong>3. 음성 리포트:</strong> 생성된 인사이트를 음성으로 들을 수 있습니다</p>
             <p><strong>4. Slack 공유:</strong> 인사이트를 Slack 채널로 자동 전송합니다</p>
             <p className="text-xs text-gray-500 mt-4">
-              * OpenAI API 키가 필요합니다. 환경 변수에서 VITE_OPENAI_API_KEY를 설정해주세요.
+              * 인사이트는 로그 집계 기반 휴리스틱입니다. OpenAI API 키는 Functions Secret Manager에서만 사용합니다.
             </p>
           </div>
         </YagoCard>

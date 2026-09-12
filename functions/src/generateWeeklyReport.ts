@@ -5,17 +5,13 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
 import { getDefaultStorageBucket } from "./lib/defaultStorageBucket";
 import PDFDocument from "pdfkit";
-import OpenAI from "openai";
-
+import { getOpenAIClient, resolveOpenAIApiKey } from "./lib/openaiClient";
 // Firebase Admin 초기화
 if (!getApps().length) {
   initializeApp();
 }
 
 const db = getFirestore();
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
 
 type MarketStat = {
   productId: string;
@@ -41,6 +37,7 @@ async function generateReportLogic(): Promise<{
   date?: string;
   totalSales?: number;
   avgRating?: number;
+  summary?: string;
   error?: string;
   message?: string;
 }> {
@@ -48,13 +45,15 @@ async function generateReportLogic(): Promise<{
     logger.info("📊 주간 리포트 생성 시작");
 
     // OpenAI API 키 확인
-    if (!process.env.OPENAI_API_KEY) {
+    if (!resolveOpenAIApiKey()) {
       logger.warn("⚠️ OPENAI_API_KEY가 설정되지 않음");
       return {
         ok: false,
         error: "OPENAI_API_KEY not configured",
       };
     }
+
+    const openai = getOpenAIClient();
 
     // 1) 데이터 수집
     const statsSnap = await db.collection("marketStats").get();
@@ -255,6 +254,7 @@ async function generateReportLogic(): Promise<{
       date: dateLabel,
       totalSales,
       avgRating: Number(avgRating),
+      summary,
     };
   } catch (error: any) {
     logger.error("❌ 리포트 생성 오류:", error);
@@ -275,7 +275,8 @@ export const generateWeeklyReport = onRequest(
     region: "asia-northeast3",
     cors: true,
     maxInstances: 5,
-    timeoutSeconds: 300, // PDF + TTS 생성 시간 고려
+    timeoutSeconds: 300,
+    secrets: ["OPENAI_API_KEY"],
   },
   async (req, res) => {
     try {

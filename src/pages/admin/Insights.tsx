@@ -4,13 +4,15 @@ import { db } from "@/lib/firebase";
 import YagoLayout from "@/layouts/YagoLayout";
 import { YagoButton, YagoCard, YagoStatCard } from "@/components/ui/YagoComponents";
 import dayjs from "dayjs";
-import { aggregateLogs } from "@/utils/aggregateLogs";
 import AIWeeklySummary from "@/components/AIWeeklySummary";
 import AdminSummaryChart from "@/components/AdminSummaryChart";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { buildHeuristicInsightFromAgg } from "@/lib/admin/buildHeuristicInsightFromAgg";
+import { buildVoiceLogsAggFromRows } from "@/lib/admin/voiceLogsAgg";
+import { generateAdminVoiceLogsInsightCallable } from "@/lib/admin/adminVoiceLogsInsightClient";
 
 type Insight = {
     headline: string;
@@ -45,14 +47,10 @@ export default function Insights() {
         return () => unsub();
     }, []);
 
-    // 2) 집계
+    // 2) 집계 (voice_logs read model)
     useEffect(() => {
-        const loadAggregation = async () => {
-            const result = await aggregateLogs();
-            setAgg(result);
-        };
-        loadAggregation();
-    }, []);
+        setAgg(buildVoiceLogsAggFromRows(raw));
+    }, [raw]);
 
     // 3) AI 주간 리포트 구독
     useEffect(() => {
@@ -69,52 +67,25 @@ export default function Insights() {
         if (!agg) return;
         setLoading(true);
         try {
-            const key = import.meta.env.VITE_OPENAI_API_KEY;
-            if (!key) {
-                alert("OpenAI 키가 없습니다. VITE_OPENAI_API_KEY 설정을 확인하세요.");
-                setLoading(false);
-                return;
-            }
-
-            const payload = {
-                date: agg.date,
-                total: agg.total,
-                intents: agg.intents,
-                keywords: agg.keywords,
-                hours: agg.hours,
-                // 지오샘플은 토큰 절약을 위해 30개만 전송
-                geoSample: agg.geoSample.slice(0, 30),
-            };
-
-            const res = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${key}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o-mini",
-                    messages: [
-                        {
-                            role: "system",
-                            content:
-                                "너는 데이터 분석 인사이트 생성기야. 주어진 로그 요약에서 비즈니스/운영 측면의 통찰 3~5개와 실행 액션 1개를 한국어로 간결하게 만들어줘. 형식은 JSON으로만 출력해: {\"headline\":\"...\",\"bullets\":[\"...\",\"...\"],\"action\":\"...\"}",
-                        },
-                        { role: "user", content: JSON.stringify(payload) },
+            try {
+                const server = await generateAdminVoiceLogsInsightCallable(agg);
+                setInsight({
+                    headline: server.summary,
+                    bullets: [
+                        ...server.causes.map((c) => `원인: ${c}`),
+                        ...server.anomalies.map((a) => `이상: ${a}`),
                     ],
-                    temperature: 0.3,
-                }),
-            });
-
-            const data = await res.json();
-            const text = data?.choices?.[0]?.message?.content ?? "";
-
-            // 모델이 JSON만 내도록 요청했지만 혹시 대비
-            const parsed = JSON.parse(
-                text.trim().replace(/```json/g, "").replace(/```/g, "")
-            ) as Insight;
-
-            setInsight(parsed);
+                    action: server.recommendations.join(" · ") || "권고 없음",
+                });
+            } catch (serverErr) {
+                console.warn("Server insight fallback to heuristic:", serverErr);
+                const parsed = buildHeuristicInsightFromAgg(agg);
+                setInsight({
+                    headline: parsed.headline,
+                    bullets: parsed.bullets,
+                    action: parsed.action,
+                });
+            }
         } catch (e) {
             console.error(e);
             alert("인사이트 생성 실패: " + (e instanceof Error ? e.message : "알 수 없는 오류"));

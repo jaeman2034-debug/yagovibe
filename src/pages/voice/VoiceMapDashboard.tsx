@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query, limit } from "firebase/firestore";
 import { db } from "@/core/firebase"; // ✅ 실제 파일 위치에 맞게 수정
+import { buildVoiceLogSummary } from "@/lib/voice/buildVoiceLogSummary";
 import { saveAs } from "file-saver";
 import YagoLayout from "@/layouts/YagoLayout";
 import { YagoButton, YagoCard, YagoStatCard } from "@/components/ui/YagoComponents";
@@ -131,39 +132,7 @@ export default function VoiceMapDashboard() {
     };
 
     const summarizeWithAI = async () => {
-        try {
-            const key = import.meta.env.VITE_OPENAI_API_KEY;
-            if (!key) return alert("OpenAI API 키가 없습니다.");
-            const payload = filtered.slice(0, 100).map((r) => ({
-                text: r.text,
-                intent: r.intent,
-                keyword: r.keyword,
-                result: r.resultCount ?? 0,
-            }));
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${key}`,
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o-mini",
-                    messages: [
-                        {
-                            role: "system",
-                            content:
-                                "너는 데이터 요약가야. intent별 비율, 많이 사용된 키워드, 평균 검색결과 등을 간결하게 한국어로 요약해줘.",
-                        },
-                        { role: "user", content: JSON.stringify(payload) },
-                    ],
-                }),
-            });
-            const data = await response.json();
-            setAiSummary(data.choices?.[0]?.message?.content || "요약 생성 실패");
-        } catch (e) {
-            console.error(e);
-            setAiSummary("요약 실패 (네트워크 오류)");
-        }
+        setAiSummary(buildVoiceLogSummary(filtered.slice(0, 100)));
     };
 
     return (
