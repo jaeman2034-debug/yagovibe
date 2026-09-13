@@ -2259,7 +2259,10 @@ service cloud.firestore {
         allow read: if federationSensitiveSubpath(federationCatchAllDocPath())
           ? isFederationManager(fedSlug)
           : true;
-        allow write: if firstSegment != 'venueBookings'
+        // Legacy match documents remain readable, but may no longer be written by clients.
+        allow write: if firstSegment != 'matches'
+          && !(firstSegment == 'leagues' && string(rest).matches('^/?[^/]+/matches/[^/]+$'))
+          && firstSegment != 'venueBookings'
           && firstSegment != 'venueBaselineAllocations'
           && firstSegment != 'venueAllocationRequests'
           && firstSegment != 'venueSlotAllocations'
