@@ -1,0 +1,156 @@
+---
+description: YAGO VIBE Zero-Input Tournament & Field Operations — duplication-first master directive (17C/17D/Field Hub/MatchOps reuse)
+alwaysApply: true
+---
+
+# FINAL MASTER DIRECTIVE — YAGO VIBE ZERO-INPUT SPORTS OS
+
+**목표:** 카탈로그 업로드 1회 → 대회 준비 → 현장 실시간 운영 → 운영일지/심판일지 → 협회/클럽 자동 배포까지 이어지는 **Zero-Input Sports OS** 완성.
+
+## Core principles (LOCKED)
+
+- 새 기능 전 **기존 기능/SoT/UI/Function/Hook/Projection 전수 audit** 필수.
+- 동일 목적이면 **신규 기능 생성 금지**.
+- 중복 collection / SoT / projection / Function / UI panel / hook **금지**.
+- 입력은 **현장 1회**. 이후 협회/CMS/클럽 surface는 **projection/read model** 자동 반영.
+- **수기 재입력 금지** · **fuzzy team matching 금지**.
+- **EXACT_LINKED만** 자동 분기.
+- DISPLAY_ONLY / participant missing / ambiguous source → **자동 연결 금지** → REVIEW_REQUIRED 또는 HOLD.
+- Production write/deploy는 **stage audit 후 승인** 받고 실행.
+
+## Architecture pipeline
+
+```text
+Catalog Upload → AI Extraction → Tournament Ops (matches/participants/MatchOps/public)
+→ Accounting → Team/Participant (EXACT_LINK / DISPLAY_ONLY)
+→ Field Ops (hub/guest/lineup/eligibility)
+→ Field Real-Time Ingestion (photo/voice/text/quick actions)
+→ AI Normalization/Review → Distribution (MatchOps OFFICIAL / public / club projections / notices / venue)
+→ Public / CMS / Club surfaces
+```
+
+**ONE EVENT → MULTIPLE READ VIEWS.** 운영일지·심판일지·timeline·event를 각각 별도 SoT로 저장하지 않는다.
+
+## PHASE 0 — Duplication-first audit (MANDATORY before code)
+
+**WRITE 0. REPORT ONLY.** 중복 발견 시 구현 중단.
+
+### Audit domains
+
+| Domain | Investigate |
+|--------|-------------|
+| A Tournament/MatchOps | catalog parser, matches/publicMatches, syncFederationPublicMatchView, bracket propagation, PK, OFFICIAL flow |
+| B Accounting | competitions, entries, payments, ledger, insurance, sponsorship |
+| C Team/Participant | master team, platformTeamId, EXACT_LINKED, DISPLAY_ONLY, recovery logic |
+| D Field Access | FieldGuestEntryPanel, fieldGuestSessions, REFEREE/OPERATOR |
+| E Field Logs | 17C-8 normalization, fieldLogRecords, revisions, review queue |
+| F Voice | STT, inline voice, confirm-before-save |
+| G Lineup/Roster | masterRoster, matchLineup, approvedMatchLineups, eligibility |
+| H Club Distribution | clubMatchProjections, clubTournamentNotices, venueReservations, useClubMatchProjections |
+| I CMS | dashboard, 운영센터, AI 운영, 보고서, 리그/팀/공지/대관/회계 |
+
+### Audit report columns (required)
+
+Feature · Existing File/Path · Existing SoT · Existing Function · Existing UI · Reusable Y/N · Gap · Proposed Extension · Duplicate Risk · New Collection Y/N · New Function Y/N · New Component Y/N
+
+## CMS role split (reuse existing menus — no new top-level apps)
+
+- **대시보드** — 오늘 현황, REVIEW_REQUIRED, quick links
+- **운영센터** — 현장 입력 허브 (timeline, 경기, 심판, 사진, 구장, 의료, 검토)
+- **AI 운영** — OCR/STT 추출·confidence·confirm/reject (**자동 Publish 금지**)
+- **대회 운영 보고서** — event aggregation → 공식 보고서
+- **리그 관리** — MatchOps SoT (**별도 score SoT 금지**)
+- **팀 관리** — master/participant/exact link 상태
+- **공지** — 협회 공지 (**현장 event 원본 복제 금지**)
+- **축구장 대관** — venueReservations SoT
+- **회계** — 대회 회계 SoT
+
+## Field ingestion
+
+카메라·업로드·음성·텍스트·quick action → **fieldLogRecords 단일 pipeline**.
+
+Photo types: MATCH_RECORD, REFEREE_RECORD, OPERATIONS_REPORT, VENUE_STATUS, MEDICAL, MATCH_PHOTO, AWARD, OTHER_EVIDENCE.
+
+원본 immutable · revision+audit · **soft delete only · hard delete 0**. 일반 사진 OCR 강제 금지.
+
+## AI normalization
+
+AI = 추출/분류/추천 (**확정자 아님**). confidence 낮음 / exact bind 실패 → REVIEW_REQUIRED. **자동 OFFICIAL·징계 확정 금지**.
+
+## Exact binding (LOCKED)
+
+자동 처리: `participant EXACT_LINKED + federationTeamId + platformTeamId`.
+
+**금지:** fuzzy · partial string · display-only auto-link · name-similarity auto-link.
+
+**SOURCE CONFLICT → HOLD** (예: catalog "중계" vs MatchOps "중평FC" → AUTO RECOVERY BLOCKED).
+
+## Match result flow
+
+Field event → normalized candidate → operator confirmation → MatchOps → OFFICIAL → syncFederationPublicMatchView → publicMatches → clubMatchProjections. **별도 club score SoT 금지.**
+
+## Lineup flow
+
+MASTER ROSTER → match lineup photo → AI extraction → master exact bind → eligibility → REVIEW or PASS → APPROVED MATCH LINEUP. **수기 임의 선수 자동 생성 금지.**
+
+## Distribution visibility
+
+- PUBLIC — 시작/진행/공식 결과/공개 구장·사진·시상
+- TEAM_ONLY — 해당 팀 경기·결과·안내·사진·구장배정
+- TEAM_MANAGER_ONLY — eligibility·출전정지·민감 선수 정보
+- FED_ADMIN_ONLY — raw AI, review queue, 의료 상세, debug
+
+## Club distribution (reuse 17C — COMPLETE)
+
+- 경기 → `clubMatchProjections`
+- 안내 → `clubTournamentNotices`
+- 구장 → `venueReservations`
+- Affiliated + EXACT_LINKED → own-team auto-load
+- DISPLAY_ONLY / CANARY / TWO-DEVICE → club projection **금지**
+- Wrong-team Delivery **0** · Manual Re-entry **0**
+
+## 17C-7 locked policies (do not bypass)
+
+```text
+17C-7 Production Policy Chain: COMPLETE
+rts7AlMS…  → DISPLAY_ONLY 영구 제외
+KsKjRje…   → SOURCE CONFLICT · OPS EVIDENCE 전 HOLD · AUTO RECOVERY BLOCKED
+CANARY/TWO-DEVICE → club surface 제외
+GwGT/ZSme → exact recovery 완료
+```
+
+위 policy를 깨거나 우회하는 **신규 resolver 생성 금지**.
+
+## Duplicate guards
+
+sourceEventId · sourceRevision · event hash/idempotency · photo hash · matchId duplicate result guard · projection id reuse · same event multi-surface copy 금지 · existing component/hook/function reuse.
+
+**Target: duplicate collection/SoT/projection/UI/function = 0**
+
+## Implementation order
+
+1. PHASE 0 duplication audit (WRITE 0)
+2. Architecture gap report
+3. 기존 커버 vs gap 분리
+4. 최소 신규 코드만 구현
+5. unit test → emulator/security → deploy plan → **승인 후 deploy** → canary
+
+**구현 전 PHASE 0 audit + WRITE 0 보고 후 STOP. 승인 없이 구현 금지.**
+
+## Pass criteria (summary)
+
+Reuse existing features · Duplicate Collection/SoT/Projection/Function/UI = 0 · Fuzzy Match = 0 · Wrong-team Delivery = 0 · Medical/Internal leak = 0 · Review-required auto publish = 0 · Manual federation/club re-entry = 0 · Hard delete = 0
+
+## Final report must include
+
+Reused/Extended Features · New Files/Collections/Functions/Components · Duplicate Check · Data SoT Map · Event/Distribution Flow · Security · Tests · Production Gate · HOLD Items
+
+신규 생성 시 **“왜 기존 기능으로 불가능했는지”** 필수 설명.
+
+## Product definition
+
+YAGO VIBE ≠ 단순 대회 홈페이지.
+
+**카탈로그 1회 → 준비 자동화 → 현장 운영 → AI 정규화 → 운영/심판일지 → 협회/CMS/클럽 자동 배포**
+
+입력은 한 번. SoT는 하나. 화면은 projection. 사람은 **예외 확인과 공식 확정**만.
