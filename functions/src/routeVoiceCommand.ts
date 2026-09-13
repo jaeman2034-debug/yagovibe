@@ -51,6 +51,10 @@ Return ONLY JSON: {"intent":"...","keyword":"..."}`;
 export const routeVoiceCommand = onCall(
   { region: REGION, maxInstances: 15, secrets: ["OPENAI_API_KEY"] },
   async (req) => {
+    if (!req.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
     const text = (req.data.text || "").trim();
     const surface = (req.data.surface || "admin") as string;
     logger.info("🎤 Voice Command Received:", { text, surface });
