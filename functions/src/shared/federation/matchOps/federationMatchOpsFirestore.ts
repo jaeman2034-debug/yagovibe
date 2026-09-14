@@ -30,6 +30,8 @@ export function parseFederationMatch(id: string, raw: Record<string, unknown>): 
     homeTeamName: typeof raw.homeTeamName === "string" ? raw.homeTeamName : undefined,
     awayTeamName: typeof raw.awayTeamName === "string" ? raw.awayTeamName : undefined,
     scheduledAt: typeof raw.scheduledAt === "string" ? raw.scheduledAt : undefined,
+    isCanary: typeof raw.isCanary === "boolean" ? raw.isCanary : undefined,
+    hiddenFromFieldHub: typeof raw.hiddenFromFieldHub === "boolean" ? raw.hiddenFromFieldHub : undefined,
   };
 }
 

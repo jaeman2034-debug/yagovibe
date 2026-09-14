@@ -29,6 +29,9 @@ export type FederationMatch = {
   homeTeamName?: string;
   awayTeamName?: string;
   scheduledAt?: string;
+  /** Read-through compatibility flags; absence does not mean false. */
+  isCanary?: boolean;
+  hiddenFromFieldHub?: boolean;
   homeSource?: BracketSource | null;
   awaySource?: BracketSource | null;
   winnerSide?: MatchSide | null;
