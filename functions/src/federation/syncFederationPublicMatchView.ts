@@ -4,6 +4,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { parseFederationMatch } from "../shared/federation/matchOps/federationMatchOpsFirestore";
 import type { ProjectionIdentity } from "../shared/federation/publicProjection/canonicalProjectionContract";
 import { planSetA, type ClubRow } from "./syncFederationPublicMatchViewCore";
+import { syncStoryFromCanonical } from "./syncFederationPublicMatchStoryOnEvent";
 
 const segment = (value: string): string => {
   if (!/^[A-Za-z0-9_-]{1,120}$/.test(value)) throw new Error("Invalid projection path segment");
@@ -57,4 +58,6 @@ export const syncFederationPublicMatchView = onDocumentWritten({
       publicRow: publicSnap.data() ?? null, clubRows });
     for (const write of plan.writes) tx.set(db.doc(write.path), { ...write.patch, projectedAt: FieldValue.serverTimestamp() }, { merge: true });
   });
+  // Reconcile events that arrived before the public document was created.
+  await syncStoryFromCanonical(db, federationId, tournamentId, matchId);
 });

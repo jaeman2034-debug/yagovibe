@@ -71,12 +71,15 @@ describe("Batch 1B Set A real Firestore transaction", () => {
   });
 
   it("hides existing projections and keeps public story fields on visibility loss", async () => {
-    const r = refs(); await seed(r); await r.run();
-    await r.publicDoc.set({ publicStoryEvents: [{ publicSafeText: "safe" }] }, { merge: true });
+    const r = refs(); await seed(r);
+    await r.match.collection("events").doc("e1").set({ status: "CONFIRMED", type: "GOAL",
+      teamSide: "home", minute: 12, playerName: "Private Name" });
+    await r.run();
+    const storyBefore = (await r.publicDoc.get()).data()?.publicStoryEvents;
     await r.match.update({ isCanary: true });
     await r.run();
-    expect((await r.publicDoc.get()).data()).toMatchObject({ publicVisible: false,
-      publicStoryEvents: [{ publicSafeText: "safe" }] });
+    expect((await r.publicDoc.get()).data()?.publicVisible).toBe(false);
+    expect((await r.publicDoc.get()).data()?.publicStoryEvents).toEqual(storyBefore);
     const rows = await r.club.where("matchId", "==", r.matchId).get();
     expect(rows.docs.every(d => d.data().visible === false)).toBe(true);
     expect(rows.size).toBe(2);
