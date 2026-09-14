@@ -40,6 +40,11 @@ export function barrelPathFromLibIndex(
   return path.join(__dirname, bundleName);
 }
 
+/** Resolve a single module beside the exports directory in source or compiled output. */
+export function modulePathFromLibSrc(relativePath: string): string {
+  return path.join(__dirname, "..", relativePath);
+}
+
 /**
  * 단일 모듈의 named export를 getter로 노출 (첫 접근 시에만 require)
  */

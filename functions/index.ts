@@ -9,6 +9,19 @@ import {
   modulePathFromLibSrc,
 } from "./src/exports/attachLazyBarrels";
 
+/** Canonical MatchOps OFFICIAL confirmation; isolated from public sync exports. */
+attachLazyModuleExports(
+  module.exports,
+  modulePathFromLibSrc("federation/confirmFederationMatchOfficial"),
+  ["confirmFederationMatchOfficial"] as const
+);
+
+attachLazyModuleExports(
+  module.exports,
+  modulePathFromLibSrc("federation/propagateFederationOfficialBracket"),
+  ["propagateFederationOfficialBracket"] as const
+);
+
 /** rootBundle 전체 로드 방지 — match telemetry만 격리 */
 attachLazyModuleExports(module.exports, modulePathFromLibSrc("telemetry/appendMatchEvent"), [
   "appendMatchEvents",

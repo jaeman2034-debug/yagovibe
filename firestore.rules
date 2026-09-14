@@ -2246,6 +2246,59 @@ service cloud.firestore {
         allow delete: if isFederationManager(fedSlug);
       }
 
+      // Canonical MatchOps is deliberately separate from the federation catch-all.
+      // Admin SDK writes bypass Security Rules; no client-side server exception is needed.
+      match /tournaments/{tournamentId}/matches/{matchId} {
+        allow read: if true;
+        // Match creation and bracket-slot assignment await the server core.
+        allow create, delete: if false;
+        allow update: if isFederationManager(fedSlug)
+          && resource.data.status != 'OFFICIAL'
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'homeScore', 'awayScore', 'scheduledAt', 'venueId', 'venueName'
+          ]);
+
+        match /events/{eventId} {
+          allow read: if true;
+          allow create: if isFederationManager(fedSlug)
+            && get(/databases/$(database)/documents/federations/$(fedSlug)/tournaments/$(tournamentId)/matches/$(matchId)).data.status != 'OFFICIAL'
+            && request.resource.data.recordedBy == request.auth.uid
+            && request.resource.data.keys().hasAll(['type', 'source', 'status', 'recordedBy', 'recordedAt'])
+            && request.resource.data.keys().hasOnly([
+              'type', 'teamId', 'teamSide', 'playerId', 'playerName', 'jerseyNumber',
+              'minute', 'period', 'note', 'source', 'status', 'voidReason',
+              'voidedBy', 'voidedAt', 'recordedBy', 'recordedAt', 'createdAt'
+            ])
+            && request.resource.data.status in ['CONFIRMED', 'PENDING'];
+          allow update: if isFederationManager(fedSlug)
+            && get(/databases/$(database)/documents/federations/$(fedSlug)/tournaments/$(tournamentId)/matches/$(matchId)).data.status != 'OFFICIAL'
+            && request.resource.data.recordedBy == resource.data.recordedBy
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'voidReason', 'voidedBy', 'voidedAt', 'note'
+            ])
+            && request.resource.data.status in ['CONFIRMED', 'PENDING', 'VOID'];
+          allow delete: if false;
+        }
+
+        match /auditTrail/{auditId} {
+          allow read: if isFederationManager(fedSlug);
+          // The future server transaction owns deterministic audit creation.
+          allow create, update, delete: if false;
+        }
+
+        match /revisions/{revisionId} {
+          allow read: if isFederationManager(fedSlug);
+          // No clean revision approval workflow exists yet.
+          allow create, update, delete: if false;
+        }
+
+        match /{otherCollection}/{otherDocument=**} {
+          allow read: if true;
+          allow write: if false;
+        }
+      }
+
       /**
        * Federation subcollection catch-all.
        * Use {firstSegment}/{rest=**} so venueBookings / baseline can be excluded by segment.
@@ -2262,6 +2315,7 @@ service cloud.firestore {
         // Legacy match documents remain readable, but may no longer be written by clients.
         allow write: if firstSegment != 'matches'
           && !(firstSegment == 'leagues' && string(rest).matches('^/?[^/]+/matches/[^/]+$'))
+          && !(firstSegment == 'tournaments' && string(rest).matches('^/?[^/]+/matches/[^/]+(/.*)?$'))
           && firstSegment != 'venueBookings'
           && firstSegment != 'venueBaselineAllocations'
           && firstSegment != 'venueAllocationRequests'
