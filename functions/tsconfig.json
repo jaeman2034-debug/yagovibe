@@ -21,6 +21,8 @@
     "src/federation/confirmFederationMatchOfficial.ts",
     "src/federation/propagateFederationOfficialBracketCore.ts",
     "src/federation/propagateFederationOfficialBracket.ts",
+    "src/federation/syncFederationPublicMatchView.ts",
+    "src/federation/syncFederationPublicMatchStoryOnEvent.ts",
     "src/**/core/**/*",
     "src/**/utils/**/*",
     "src/**/lib/**/*",
