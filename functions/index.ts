@@ -157,7 +157,12 @@ attachLazyModuleExports(
 attachLazyModuleExports(
   module.exports,
   modulePathFromLibSrc("federation/syncFederationPublicMatchView"),
-  ["syncFederationPublicMatchView", "syncFederationPublicMatchStoryOnEvent"] as const
+  ["syncFederationPublicMatchView"] as const
+);
+attachLazyModuleExports(
+  module.exports,
+  modulePathFromLibSrc("federation/syncFederationPublicMatchStoryOnEvent"),
+  ["syncFederationPublicMatchStoryOnEvent"] as const
 );
 
 /** STAGE 21M-17C-6B — Club tournament notice projection sync */
